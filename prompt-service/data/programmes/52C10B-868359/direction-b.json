@@ -1,0 +1,28 @@
+{
+  "direction_id": "B",
+  "role": "expressive",
+  "positive_prompt": "Elegant, sophisticated event programme for an Awards Ceremony. Dark black background with a subtle, shimmering gold foil texture. The title 'Annual Excellence Awards' is prominently displayed in a classic, elegant serif font with a raised gold effect. The programme content area utilizes a luxurious, textured paper effect, with a restrained gold accent. The overall atmosphere is one of prestige and celebration, evoking a sense of timeless quality. The composition is balanced and formal, with ample negative space to create a premium feel. Lighting is soft and warm, enhancing the gold tones.",
+  "negative_prompt": "Rough, chaotic, modern, minimalist, cluttered, low resolution, gradients, cartoonish, childish",
+  "title_suggestions": [
+    "Celebrating Excellence",
+    "Annual Awards Gala",
+    "The Prestige Awards"
+  ],
+  "short_design_rationale": "A classic, luxurious design reflecting the premium nature of the event. The colour palette and textures create a sense of sophistication and celebration, while the typography reinforces the event's prestigious title.",
+  "layout_guidance": {
+    "title_zone": {
+      "x": 0.15,
+      "y": 0.1,
+      "width": 0.3,
+      "height": 0.15
+    },
+    "programme_zone": {
+      "x": 0.4,
+      "y": 0.3,
+      "width": 0.6,
+      "height": 0.55
+    },
+    "headshot_zone": null,
+    "logo_zone": null
+  }
+}

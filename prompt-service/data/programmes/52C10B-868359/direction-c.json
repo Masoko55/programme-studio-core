@@ -1,0 +1,28 @@
+{
+  "direction_id": "C",
+  "role": "contemporary",
+  "positive_prompt": "A sleek, modern A4 portrait event programme for an Awards Ceremony titled 'Annual Excellence Awards'. The design features a sophisticated black and gold color scheme, evoking elegance and prestige. The background is a deep, textured black with subtle gold geometric patterns that create a sense of depth and sophistication. The composition is clean and minimalist, with ample white space to ensure strong visual hierarchy. The title area is prominently placed at the top, using a bold, contemporary sans-serif font in gold. The programme section is neatly organized below, with clear section headers and ample spacing between items. The overall atmosphere is luxurious and professional, perfect for celebrating excellence.",
+  "negative_prompt": "Avoid cluttered layouts, overly complex patterns, or any elements that detract from the elegance and professionalism of the event. Do not include any logos or headshots as they are not provided.",
+  "title_suggestions": [
+    "Annual Excellence Awards",
+    "Celebrating Excellence",
+    "Awards Ceremony Programme"
+  ],
+  "short_design_rationale": "The design emphasizes a clean, modern aesthetic with a strong visual hierarchy, ensuring that the event's theme of 'Celebrating Excellence' is conveyed through elegant use of black and gold. The layout is uncluttered, with ample white space to highlight the important information, making it easy to read and visually appealing.",
+  "layout_guidance": {
+    "title_zone": {
+      "x": 0.1,
+      "y": 0.05,
+      "width": 0.8,
+      "height": 0.15
+    },
+    "programme_zone": {
+      "x": 0.1,
+      "y": 0.25,
+      "width": 0.8,
+      "height": 0.65
+    },
+    "headshot_zone": null,
+    "logo_zone": null
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "reference_number": "D19F34-341293",
+  "status": "complete",
+  "current_stage": "complete",
+  "total_outputs": 9,
+  "completed_outputs": 9,
+  "outputs": [
+    {
+      "engine_id": "flux-1-schnell",
+      "engine_label": "FLUX.1-schnell",
+      "direction_id": "A",
+      "status": "complete",
+      "output_path": ".runtime/mock-images/flux-1-schnell/0fc18f99a17803a4.txt",
+      "sha256": "0fc18f99a17803a4e47000165585150999fb34e7fe28cb1c5a1121b6d27ea7da",
+      "error": null
+    },
+    {
+      "engine_id": "flux-1-schnell",
+      "engine_label": "FLUX.1-schnell",
+      "direction_id": "B",
+      "status": "complete",
+      "output_path": ".runtime/mock-images/flux-1-schnell/cd6332cafc67d69c.txt",
+      "sha256": "cd6332cafc67d69c02c82fff477b7a3ceecd4176bf823ba7186f4fc71c29dcf8",
+      "error": null
+    },
+    {
+      "engine_id": "flux-1-schnell",
+      "engine_label": "FLUX.1-schnell",
+      "direction_id": "C",
+      "status": "complete",
+      "output_path": ".runtime/mock-images/flux-1-schnell/6b577a8e15c3f0ea.txt",
+      "sha256": "6b577a8e15c3f0ea022a527a6c402b66614c2951f89c9013686df9a6b7c6e727",
+      "error": null
+    },
+    {
+      "engine_id": "sdxl-1-0",
+      "engine_label": "SDXL 1.0",
+      "direction_id": "A",
+      "status": "complete",
+      "output_path": ".runtime/mock-images/sdxl-1-0/0fc18f99a17803a4.txt",
+      "sha256": "0fc18f99a17803a4e47000165585150999fb34e7fe28cb1c5a1121b6d27ea7da",
+      "error": null
+    },
+    {
+      "engine_id": "sdxl-1-0",
+      "engine_label": "SDXL 1.0",
+      "direction_id": "B",
+      "status": "complete",
+      "output_path": ".runtime/mock-images/sdxl-1-0/cd6332cafc67d69c.txt",
+      "sha256": "cd6332cafc67d69c02c82fff477b7a3ceecd4176bf823ba7186f4fc71c29dcf8",
+      "error": null
+    },
+    {
+      "engine_id": "sdxl-1-0",
+      "engine_label": "SDXL 1.0",
+      "direction_id": "C",
+      "status": "complete",
+      "output_path": ".runtime/mock-images/sdxl-1-0/6b577a8e15c3f0ea.txt",
+      "sha256": "6b577a8e15c3f0ea022a527a6c402b66614c2951f89c9013686df9a6b7c6e727",
+      "error": null
+    },
+    {
+      "engine_id": "sd-3-5-medium",
+      "engine_label": "SD3.5 Medium",
+      "direction_id": "A",
+      "status": "complete",
+      "output_path": ".runtime/mock-images/sd-3-5-medium/0fc18f99a17803a4.txt",
+      "sha256": "0fc18f99a17803a4e47000165585150999fb34e7fe28cb1c5a1121b6d27ea7da",
+      "error": null
+    },
+    {
+      "engine_id": "sd-3-5-medium",
+      "engine_label": "SD3.5 Medium",
+      "direction_id": "B",
+      "status": "complete",
+      "output_path": ".runtime/mock-images/sd-3-5-medium/cd6332cafc67d69c.txt",
+      "sha256": "cd6332cafc67d69c02c82fff477b7a3ceecd4176bf823ba7186f4fc71c29dcf8",
+      "error": null
+    },
+    {
+      "engine_id": "sd-3-5-medium",
+      "engine_label": "SD3.5 Medium",
+      "direction_id": "C",
+      "status": "complete",
+      "output_path": ".runtime/mock-images/sd-3-5-medium/6b577a8e15c3f0ea.txt",
+      "sha256": "6b577a8e15c3f0ea022a527a6c402b66614c2951f89c9013686df9a6b7c6e727",
+      "error": null
+    }
+  ],
+  "error": null
+}

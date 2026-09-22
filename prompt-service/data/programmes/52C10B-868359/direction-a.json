@@ -1,0 +1,28 @@
+{
+  "direction_id": "A",
+  "role": "elegant",
+  "positive_prompt": "Elegant and sophisticated event programme with a premium corporate feel. The background features a subtle, textured metallic finish in gold and black tones, evoking a sense of luxury and refinement. The composition is clean and uncluttered, with ample white space to emphasize the visual hierarchy. Soft, ambient lighting is suggested through the use of warm, diffused shadows and highlights. The overall atmosphere is one of exclusivity and celebration, perfectly aligning with the theme of 'Celebrating Excellence'.",
+  "negative_prompt": "Avoid cluttered layouts, excessive patterns, bright or garish colors, cartoonish elements, and any text or logos not specified in the event brief.",
+  "title_suggestions": [
+    "Annual Excellence Awards",
+    "Celebrating Excellence",
+    "Prestigious Recognition"
+  ],
+  "short_design_rationale": "The design emphasizes elegance and hierarchy through a minimalist approach, using gold and black to reflect the event's premium nature. Ample white space ensures readability and visual balance, while the metallic texture adds a touch of luxury.",
+  "layout_guidance": {
+    "title_zone": {
+      "x": 0.1,
+      "y": 0.1,
+      "width": 0.8,
+      "height": 0.15
+    },
+    "programme_zone": {
+      "x": 0.1,
+      "y": 0.35,
+      "width": 0.8,
+      "height": 0.5
+    },
+    "headshot_zone": null,
+    "logo_zone": null
+  }
+}

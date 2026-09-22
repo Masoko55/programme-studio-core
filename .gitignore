@@ -1,0 +1,14 @@
+**/target/
+repository-service/data/
+__pycache__/
+*.pyc
+# Build and runtime data
+**/target/
+repository-service/data/
+__pycache__/
+*.pyc
+
+**/target/
+repository-service/data/
+__pycache__/
+*.pyc

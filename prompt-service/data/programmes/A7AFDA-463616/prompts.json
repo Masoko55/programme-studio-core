@@ -1,0 +1,143 @@
+{
+  "schema_version": "1.0",
+  "reference_number": "A7AFDA-463616",
+  "input_sha256": "5a8d6581d8c039793927b3a122d2e91dfb1a30445b5ca89a30a1c0da095fcfa0",
+  "created_at": "2026-09-16T08:40:01.554000Z",
+  "brief": {
+    "event_type": "Awards Ceremony",
+    "theme": "Celebrating Excellence",
+    "age_group": "Adults",
+    "event_date": "2026-10-20",
+    "start_time": "18:00",
+    "timezone": "Africa/Johannesburg",
+    "primary_colour": "Black",
+    "secondary_colour": "Gold",
+    "creative_description": "Elegant premium corporate event programme with strong visual hierarchy.",
+    "title": "Annual Excellence Awards",
+    "venue": "Pretoria Convention Centre",
+    "programme": [
+      {
+        "time": "18:00",
+        "title": "Guest Arrival",
+        "description": "Guests arrive, register, and are welcomed into the venue."
+      },
+      {
+        "time": "18:30",
+        "title": "Welcome Address",
+        "description": "Opening remarks and introduction to the evening."
+      },
+      {
+        "time": "19:00",
+        "title": "Awards Ceremony",
+        "description": "Recognition and presentation of awards to selected recipients."
+      }
+    ],
+    "headshot_path": null,
+    "logo_path": null
+  },
+  "directions": [
+    {
+      "provenance": {
+        "provider": "ollama",
+        "model": "qwen3:14b"
+      },
+      "direction": {
+        "direction_id": "A",
+        "role": "elegant",
+        "positive_prompt": "elegant, premium corporate, strong visual hierarchy, black and gold color scheme, sophisticated typography, ample white space, refined illustrations",
+        "negative_prompt": "cluttered, busy, informal, garish, low quality, unprofessional",
+        "title_suggestions": [
+          "Annual Excellence Awards",
+          "Celebrating Excellence",
+          "Prestigious Awards Ceremony"
+        ],
+        "short_design_rationale": "The design emphasizes elegance and sophistication through a refined black and gold color palette, ensuring a premium feel. Strong visual hierarchy guides the eye, with ample white space allowing for a sense of exclusivity and refinement.",
+        "layout_guidance": {
+          "title_zone": {
+            "x": 0.1,
+            "y": 0.1,
+            "width": 0.8,
+            "height": 0.15
+          },
+          "programme_zone": {
+            "x": 0.1,
+            "y": 0.3,
+            "width": 0.8,
+            "height": 0.5
+          },
+          "headshot_zone": null,
+          "logo_zone": null
+        }
+      }
+    },
+    {
+      "provenance": {
+        "provider": "ollama",
+        "model": "gemma3:latest"
+      },
+      "direction": {
+        "direction_id": "B",
+        "role": "expressive",
+        "positive_prompt": "Create one visual creative direction for an A4 portrait event programme. Use the supplied event brief as the source of truth. Design only the visual background and composition concept. Do not render the actual event programme text into the background. Do not invent logos. Do not invent portraits. Return all layout zones as normalized coordinates between 0 and 1. x and y represent the top-left position of a zone. width and height represent the size of the zone. No zone may extend beyond the page boundary. The title zone and programme zone must not overlap. Only include a headshot zone when a headshot is supplied. Only include a logo zone when a logo is supplied. If no headshot is supplied, headshot_zone must be null. If no logo is supplied, logo_zone must be null. Keep sufficient visual space around all reserved content zones.",
+        "negative_prompt": "Detailed renderings, photorealistic images, text, logos, portraits, cluttered design, low resolution, simple background",
+        "title_suggestions": [
+          "Golden Echoes",
+          "Celebrating Excellence",
+          "The Apex Awards"
+        ],
+        "short_design_rationale": "A bold, modern design utilizing the gold and black colour palette to convey a sense of premium quality and celebration. The background will be a subtly textured gold with a dark grey accent for the title zone. A clean, spacious layout to focus on the programme content.",
+        "layout_guidance": {
+          "title_zone": {
+            "x": 0.01,
+            "y": 0.02,
+            "width": 0.3,
+            "height": 0.15
+          },
+          "programme_zone": {
+            "x": 0.01,
+            "y": 0.25,
+            "width": 0.9,
+            "height": 0.65
+          },
+          "headshot_zone": null,
+          "logo_zone": null
+        }
+      }
+    },
+    {
+      "provenance": {
+        "provider": "ollama",
+        "model": "mistral-small3.2:24b"
+      },
+      "direction": {
+        "direction_id": "C",
+        "role": "contemporary",
+        "positive_prompt": "Elegant, premium corporate event programme with strong visual hierarchy. Black and gold color scheme, celebrating excellence theme. Abstract geometric patterns with metallic gold accents on a black background. Clean typography with ample white space for readability. Sophisticated and modern design that reflects the prestige of the awards ceremony.",
+        "negative_prompt": "Overly busy or cluttered design, bright or pastel colors, childish or playful elements, excessive use of images or illustrations, poor contrast or readability issues.",
+        "title_suggestions": [
+          "Annual Excellence Awards",
+          "Celebrating Excellence",
+          "Pretoria Convention Centre Awards",
+          "2026 Excellence Gala"
+        ],
+        "short_design_rationale": "The design emphasizes elegance and sophistication, aligning with the 'Celebrating Excellence' theme. The use of black and gold creates a premium and prestigious feel, while abstract geometric patterns add a contemporary touch. The strong visual hierarchy ensures easy navigation and readability, making it suitable for an adult audience at a corporate awards ceremony.",
+        "layout_guidance": {
+          "title_zone": {
+            "x": 0.1,
+            "y": 0.05,
+            "width": 0.8,
+            "height": 0.15
+          },
+          "programme_zone": {
+            "x": 0.1,
+            "y": 0.25,
+            "width": 0.8,
+            "height": 0.65
+          },
+          "headshot_zone": null,
+          "logo_zone": null
+        }
+      }
+    }
+  ]
+}

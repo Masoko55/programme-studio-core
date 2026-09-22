@@ -1,0 +1,9 @@
+{
+  "created_at": "2026-09-16T09:20:30.743256+00:00",
+  "current_stage": "failed",
+  "error": "1 validation error for CreativeDirectionOutput\nlayout_guidance.title_zone\n  Value error, Layout zone exceeds page height. [type=value_error, input_value={'x': 0.1, 'y': 0.9, 'width': 0.3, 'height': 0.15}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.13/v/value_error",
+  "input_sha256": "5a8d6581d8c039793927b3a122d2e91dfb1a30445b5ca89a30a1c0da095fcfa0",
+  "reference_number": "1731F6-964757",
+  "status": "failed",
+  "updated_at": "2026-09-16T09:20:48.049367+00:00"
+}

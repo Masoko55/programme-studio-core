@@ -1,0 +1,28 @@
+{
+  "direction_id": "B",
+  "role": "expressive",
+  "positive_prompt": "Elegant and sophisticated event programme design for an ‘Annual Excellence Awards’ ceremony. The background evokes a luxurious, formal setting with a subtle, textured gold-foil effect reminiscent of embossed paper. A deep black background provides a dramatic contrast to the gold accents. The composition utilizes a central vertical axis, with a sense of depth achieved through layering and subtle gradients. The overall atmosphere is one of prestige and celebration. Lighting is soft and diffused, contributing to a sense of grandeur.",
+  "negative_prompt": "Low resolution, blurry, distorted, noisy, amateurish, cluttered, plastic-looking, modern, minimalist, overly bright, cartoonish.",
+  "title_suggestions": [
+    "Celebrating Excellence",
+    "Annual Awards",
+    "Pretoria Awards"
+  ],
+  "short_design_rationale": "This design utilizes a classic, sophisticated aesthetic to reflect the premium nature of the event. The dark background and gold accents create a sense of luxury and importance, aligning with the ‘Celebrating Excellence’ theme.",
+  "layout_guidance": {
+    "title_zone": {
+      "x": 0.05,
+      "y": 0.05,
+      "width": 0.3,
+      "height": 0.15
+    },
+    "programme_zone": {
+      "x": 0.45,
+      "y": 0.25,
+      "width": 0.5,
+      "height": 0.6
+    },
+    "headshot_zone": null,
+    "logo_zone": null
+  }
+}

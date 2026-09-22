@@ -1,0 +1,32 @@
+{
+  "event_type": "Awards Ceremony",
+  "theme": "Celebrating Excellence",
+  "age_group": "Adults",
+  "event_date": "2026-10-20",
+  "start_time": "18:00",
+  "timezone": "Africa/Johannesburg",
+  "primary_colour": "Black",
+  "secondary_colour": "Gold",
+  "creative_description": "Elegant premium corporate event programme with strong visual hierarchy.",
+  "title": "Annual Excellence Awards",
+  "venue": "Pretoria Convention Centre",
+  "programme": [
+    {
+      "time": "18:00",
+      "title": "Guest Arrival",
+      "description": "Guests arrive, register, and are welcomed into the venue."
+    },
+    {
+      "time": "18:30",
+      "title": "Welcome Address",
+      "description": "Opening remarks and introduction to the evening."
+    },
+    {
+      "time": "19:00",
+      "title": "Awards Ceremony",
+      "description": "Recognition and presentation of awards to selected recipients."
+    }
+  ],
+  "headshot_path": null,
+  "logo_path": null
+}

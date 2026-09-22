@@ -1,0 +1,17 @@
+server:
+  port: ${SERVER_PORT:8003}
+
+spring:
+  application:
+    name: programme-repository-service
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - info
+
+repository:
+  path: ${REPOSITORY_PATH:/data/repository}

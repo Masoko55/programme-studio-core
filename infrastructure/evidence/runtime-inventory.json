@@ -1,0 +1,1480 @@
+{
+  "captured_at": "2026-09-22T10:44:03.620874+00:00",
+  "ollama_url": "http://192.168.68.115:11434/api/tags",
+  "comfyui_url": "http://192.168.68.115:8188/object_info",
+  "ollama_models": [
+    {
+      "name": "qwen3-vl:30b",
+      "model": "qwen3-vl:30b",
+      "digest": "eda0be1008774ea4e575187712b9a3b1201f3e66e7ecff899cc295db1cf00248",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3vlmoe",
+        "families": [
+          "qwen3vlmoe"
+        ],
+        "parameter_size": "31.1B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 262144,
+        "embedding_length": 2048
+      }
+    },
+    {
+      "name": "qwen3.8-27b-film:latest",
+      "model": "qwen3.8-27b-film:latest",
+      "digest": "97ceab285b392ea4a75eb850d82a534518198f85ec228fa61db28baffc725b2f",
+      "details": {
+        "parent_model": "qwen3.8:27b",
+        "format": "gguf",
+        "family": "qwen35",
+        "families": [
+          "qwen35"
+        ],
+        "parameter_size": "27.3B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 262144,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "minicpm-v4.5:latest",
+      "model": "minicpm-v4.5:latest",
+      "digest": "0c40168f46d1cbf5cec399d8ced34b6d3347a79f69306866efa44203c08eeda3",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "8.2B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 40960,
+        "embedding_length": 4096
+      }
+    },
+    {
+      "name": "qwen3.8:27b",
+      "model": "qwen3.8:27b",
+      "digest": "22130167c4c20e20c7b71454612966ca8e8171e9b3cc8ab6ce8aa6cbfec79643",
+      "details": {
+        "parent_model": "qwen3.8:27b-q4_K_M",
+        "format": "gguf",
+        "family": "qwen35",
+        "families": [
+          "qwen35"
+        ],
+        "parameter_size": "27.3B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 262144,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "gemma4:26b",
+      "model": "gemma4:26b",
+      "digest": "5571076f3d70050487b26b341705799e0ab29b808164f90d20d4cf84f699d251",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "gemma4",
+        "families": [
+          "gemma4"
+        ],
+        "parameter_size": "25.8B",
+        "quantization_level": "Q4_K_M"
+      }
+    },
+    {
+      "name": "local-video-director:latest",
+      "model": "local-video-director:latest",
+      "digest": "64e449fd3c1ca992021e1658e80fac0e1805c9563fe347f148b7796345af03ab",
+      "details": {
+        "parent_model": "qwen3.8:27b",
+        "format": "gguf",
+        "family": "qwen35",
+        "families": [
+          "qwen35"
+        ],
+        "parameter_size": "27.3B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 262144,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "muse-glimmer:30b",
+      "model": "muse-glimmer:30b",
+      "digest": "de878ce33ad81d060001db1469a02eebe4d86f0ad58cfe52dc062fdcbe4464c1",
+      "details": {
+        "parent_model": "muse-glimmer:30b-q4_K_M",
+        "format": "gguf",
+        "family": "muse-glimmer",
+        "families": [
+          "muse-glimmer"
+        ],
+        "parameter_size": "27.9B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 131072,
+        "embedding_length": 6656
+      }
+    },
+    {
+      "name": "qwen3.6-vibe:27b",
+      "model": "qwen3.6-vibe:27b",
+      "digest": "47a19f2a6044e275dc8645677a93e0aa5956f872cb46c09f23079b1fbf9fba1d",
+      "details": {
+        "parent_model": "qwen3.6:27b",
+        "format": "gguf",
+        "family": "qwen35",
+        "families": [
+          "qwen35"
+        ],
+        "parameter_size": "27.8B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 262144,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "qwen3.6:27b",
+      "model": "qwen3.6:27b",
+      "digest": "a50eda8ed977ab48a12431878896b27ffd5cef552c17af3317d9623b939a7f1e",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen35",
+        "families": [
+          "qwen35"
+        ],
+        "parameter_size": "27.8B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 262144,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "devstral:24b",
+      "model": "devstral:24b",
+      "digest": "9bd74193e93935e9d8564d88607b220a9d341c4a36b748cffcbd9ad4f47a9ca9",
+      "details": {
+        "parent_model": "devstral:latest",
+        "format": "gguf",
+        "family": "llama",
+        "families": [
+          "llama"
+        ],
+        "parameter_size": "23.6B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 131072,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "devstral-small-2:latest",
+      "model": "devstral-small-2:latest",
+      "digest": "24277f07f62db8f9cb68e9dfc679ea1818a7fbac47a50eff0a701d3f645b63c8",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "mistral3",
+        "families": [
+          "mistral3"
+        ],
+        "parameter_size": "24.0B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 393216,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "kimi-k2.6:cloud",
+      "model": "kimi-k2.6:cloud",
+      "digest": "a90cd0d1590c53b9f9f4e0f66218e4c514d190652b8bed2842528e2530e34dc6",
+      "details": {
+        "parent_model": "",
+        "format": "",
+        "family": "kimi-k2",
+        "families": [
+          "kimi-k2"
+        ],
+        "parameter_size": "1T",
+        "quantization_level": "int4",
+        "context_length": 262144,
+        "embedding_length": 2048
+      }
+    },
+    {
+      "name": "gemma4:e4b",
+      "model": "gemma4:e4b",
+      "digest": "c6eb396dbd5992bbe3f5cdb947e8bbc0ee413d7c17e2beaae69f5d569cf982eb",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "gemma4",
+        "families": [
+          "gemma4"
+        ],
+        "parameter_size": "8.0B",
+        "quantization_level": "Q4_K_M"
+      }
+    },
+    {
+      "name": "qwen2.5-coder:1.5b",
+      "model": "qwen2.5-coder:1.5b",
+      "digest": "d7372fd828518a4d38b1eb196c673c31a85f2ed302b3d1e406c4c2d1b64a0668",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen2",
+        "families": [
+          "qwen2"
+        ],
+        "parameter_size": "1.5B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 32768,
+        "embedding_length": 1536
+      }
+    },
+    {
+      "name": "gpt-oss:20b",
+      "model": "gpt-oss:20b",
+      "digest": "17052f91a42e97930aa6e28a6c6c06a983e6a58dbb00434885a0cf5313e376f7",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "gptoss",
+        "families": [
+          "gptoss"
+        ],
+        "parameter_size": "20.9B",
+        "quantization_level": "MXFP4",
+        "context_length": 131072,
+        "embedding_length": 2880
+      }
+    },
+    {
+      "name": "qwen3.5:27b",
+      "model": "qwen3.5:27b",
+      "digest": "7653528ba5cba4dd8e19da24aaddc7f4d0b5ecd93571c0825dfd4137958ec06e",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen35",
+        "families": [
+          "qwen35"
+        ],
+        "parameter_size": "27.8B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 262144,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "kimi-k2.5:cloud",
+      "model": "kimi-k2.5:cloud",
+      "digest": "6d1c3246c6080b61c87b543323760b8f36cb68cf4473080b9429d09e2a73ddb7",
+      "details": {
+        "parent_model": "",
+        "format": "",
+        "family": "",
+        "families": null,
+        "parameter_size": "",
+        "quantization_level": "",
+        "context_length": 262144
+      }
+    },
+    {
+      "name": "qwen3_14b/angular_prime:1.0.0",
+      "model": "qwen3_14b/angular_prime:1.0.0",
+      "digest": "0e69caf1f5f15f9ffb35fb135ec98898ea9aa69addafa224fc8c27c7f065a0c4",
+      "details": {
+        "parent_model": "/usr/share/ollama/.ollama/models/blobs/sha256-332cadb0c0e860284a0095c63e9d0bb1b4106b3d2ab36d92d79561baf0723e20",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "14.8B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 40960,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "qwen3_8b/angular_21_with_prime:1.0.0",
+      "model": "qwen3_8b/angular_21_with_prime:1.0.0",
+      "digest": "e2af9e7a3c0c6dd2dae9bd3560e18e1650334022f08fb6258fb15d41eff6501e",
+      "details": {
+        "parent_model": "/usr/share/ollama/.ollama/models/blobs/sha256-a978de718a11dab2dd7279123c1ccfdb2b2182f31d062cf898c6f4153d58c040",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "8.2B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 40960,
+        "embedding_length": 4096
+      }
+    },
+    {
+      "name": "qwen_2_5_coder_14b/angular_21_with_prime:1.0.0",
+      "model": "qwen_2_5_coder_14b/angular_21_with_prime:1.0.0",
+      "digest": "e2c8301e2c4f7b13051f431a4dd8a91c873fd58d8a1c45e8358ea9caa6f994ce",
+      "details": {
+        "parent_model": "/usr/share/ollama/.ollama/models/blobs/sha256-12723da083acbdb300256046b1d3401affb1aa3908c4a9a1333428ce5bfe37fc",
+        "format": "gguf",
+        "family": "qwen2",
+        "families": [
+          "qwen2"
+        ],
+        "parameter_size": "14.8B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 32768,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "angular21_with_primeng:1.0.0",
+      "model": "angular21_with_primeng:1.0.0",
+      "digest": "8d40d8f7f422827bcd0bb0def5f4700659b0fa193d7674ae73dcf0628923c048",
+      "details": {
+        "parent_model": "/usr/share/ollama/.ollama/models/blobs/sha256-55191ded7df179fc1076315cc0c354bfbb56019a3e9b21549188bb901182961a",
+        "format": "gguf",
+        "family": "qwen2",
+        "families": [
+          "qwen2"
+        ],
+        "parameter_size": "7.6B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 32768,
+        "embedding_length": 3584
+      }
+    },
+    {
+      "name": "qwen3-coder:30b",
+      "model": "qwen3-coder:30b",
+      "digest": "06c1097efce0431c2045fe7b2e5108366e43bee1b4603a7aded8f21689e90bca",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3moe",
+        "families": [
+          "qwen3moe"
+        ],
+        "parameter_size": "30.5B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 262144,
+        "embedding_length": 2048
+      }
+    },
+    {
+      "name": "qwen3-coder-8b-gguf:2.0.0",
+      "model": "qwen3-coder-8b-gguf:2.0.0",
+      "digest": "e529bb9a575565122f7475a02063f49b5a866196ab13ab55d0fa17593e839a9c",
+      "details": {
+        "parent_model": "/usr/share/ollama/.ollama/models/blobs/sha256-b804835dd0f7b5ab72dd4cee8d1950b7b2883f0d589c666dcdcfdfae8dd12036",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "8.2B",
+        "quantization_level": "F16",
+        "context_length": 40960,
+        "embedding_length": 4096
+      }
+    },
+    {
+      "name": "qwen3-coder-8b-gguf:1.0.1",
+      "model": "qwen3-coder-8b-gguf:1.0.1",
+      "digest": "6679d69a904a5371a8a15578c7ba9d7df7c037a06fc57dfa3771f2349fee8b32",
+      "details": {
+        "parent_model": "/usr/share/ollama/.ollama/models/blobs/sha256-c9282fbcefa33a7f1eb02e23e240a88f55e5376da514d28d45ef58b4f610cee8",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "8.2B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 40960,
+        "embedding_length": 4096
+      }
+    },
+    {
+      "name": "qwen3-coder-8b-gguf:latest",
+      "model": "qwen3-coder-8b-gguf:latest",
+      "digest": "26c3c8d9120ae8eff9c85ef524449e5c10920fb6b0e7ac93e9606c4935711510",
+      "details": {
+        "parent_model": "/usr/share/ollama/.ollama/models/blobs/sha256-c9282fbcefa33a7f1eb02e23e240a88f55e5376da514d28d45ef58b4f610cee8",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "8.2B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 40960,
+        "embedding_length": 4096
+      }
+    },
+    {
+      "name": "qwen2.5-coder-14b-gguf:latest",
+      "model": "qwen2.5-coder-14b-gguf:latest",
+      "digest": "a9052aa4d2db656068857060b7ef65d0ff3bfcdd4a406a66fe53f264fa6a8719",
+      "details": {
+        "parent_model": "/usr/share/ollama/.ollama/models/blobs/sha256-c9282fbcefa33a7f1eb02e23e240a88f55e5376da514d28d45ef58b4f610cee8",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "8.2B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 40960,
+        "embedding_length": 4096
+      }
+    },
+    {
+      "name": "qwen2.5-coder:14b-base",
+      "model": "qwen2.5-coder:14b-base",
+      "digest": "8221e52a9c29aef9cfa2419ef73618c2a98ba3ab927effab55957390ed5039a9",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen2",
+        "families": [
+          "qwen2"
+        ],
+        "parameter_size": "14.8B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 32768,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "mistral-small3.2:24b",
+      "model": "mistral-small3.2:24b",
+      "digest": "5a408ab55df5c1b5cf46533c368813b30bf9e4d8fc39263bf2a3338cfa3b895b",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "mistral3",
+        "families": [
+          "mistral3"
+        ],
+        "parameter_size": "24.0B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 131072,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "thewindmom/llama3-med42-8b:latest",
+      "model": "thewindmom/llama3-med42-8b:latest",
+      "digest": "9605c7ec9e5d503dce5755fddd474ed2d94c434bd6604611226c99bb8eb1b8d1",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "llama",
+        "families": [
+          "llama"
+        ],
+        "parameter_size": "8.0B",
+        "quantization_level": "Q8_0",
+        "context_length": 8192,
+        "embedding_length": 4096
+      }
+    },
+    {
+      "name": "qwen3:32b",
+      "model": "qwen3:32b",
+      "digest": "030ee887880fc378860c2dd35101da424377520441ae4bfe7be6deff8ade7840",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "32.8B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 40960,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "qwen2.5:7b",
+      "model": "qwen2.5:7b",
+      "digest": "845dbda0ea48ed749caafd9e6037047aa19acfcfd82e704d7ca97d631a0b697e",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen2",
+        "families": [
+          "qwen2"
+        ],
+        "parameter_size": "7.6B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 32768,
+        "embedding_length": 3584
+      }
+    },
+    {
+      "name": "z-image-turbo:q4_k_m",
+      "model": "z-image-turbo:q4_k_m",
+      "digest": "ce0c09b12eaf7f6a0d5775440304276d2b13c4fdd52503de20ccac5005e7f12e",
+      "details": {
+        "parent_model": "/usr/share/ollama/.ollama/models/blobs/sha256-745ec270db042409fde084d6b5cfccabf214a7fe5a494edf994a391125656afd",
+        "format": "gguf",
+        "family": "lumina2",
+        "families": [
+          "lumina2"
+        ],
+        "parameter_size": "6.2B",
+        "quantization_level": "Q4_K_M"
+      }
+    },
+    {
+      "name": "qwen3-vl:4b",
+      "model": "qwen3-vl:4b",
+      "digest": "1343d82ebee38e26a4dd6b0180b915eb91550184e67c505dea97509571c8f683",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3vl",
+        "families": [
+          "qwen3vl"
+        ],
+        "parameter_size": "4.4B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 262144,
+        "embedding_length": 2560
+      }
+    },
+    {
+      "name": "gpt-oss:latest",
+      "model": "gpt-oss:latest",
+      "digest": "17052f91a42e97930aa6e28a6c6c06a983e6a58dbb00434885a0cf5313e376f7",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "gptoss",
+        "families": [
+          "gptoss"
+        ],
+        "parameter_size": "20.9B",
+        "quantization_level": "MXFP4",
+        "context_length": 131072,
+        "embedding_length": 2880
+      }
+    },
+    {
+      "name": "qwen3-vl:8b",
+      "model": "qwen3-vl:8b",
+      "digest": "901cae73216286ea8c5aba8b46d307ff7188f737285ec500c795a12f05225d28",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3vl",
+        "families": [
+          "qwen3vl"
+        ],
+        "parameter_size": "8.8B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 262144,
+        "embedding_length": 4096
+      }
+    },
+    {
+      "name": "qwen3-vl:32b",
+      "model": "qwen3-vl:32b",
+      "digest": "ff2e46876908853b8d0872595047c46d599d970056277e4864c8a1f0fd93fd3b",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3vl",
+        "families": [
+          "qwen3vl"
+        ],
+        "parameter_size": "33.4B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 262144,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "qwen2.5-coder:32b",
+      "model": "qwen2.5-coder:32b",
+      "digest": "b92d6a0bd47ee79114298de0177bf920c05a706d12633950b3936778492bef41",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen2",
+        "families": [
+          "qwen2"
+        ],
+        "parameter_size": "32.8B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 32768,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "qwen2.5:1.5b",
+      "model": "qwen2.5:1.5b",
+      "digest": "65ec06548149b04c096a120e4a6da9d4017ea809c91734ea5631e89f96ddc57b",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen2",
+        "families": [
+          "qwen2"
+        ],
+        "parameter_size": "1.5B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 32768,
+        "embedding_length": 1536
+      }
+    },
+    {
+      "name": "qwen3:14b",
+      "model": "qwen3:14b",
+      "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "14.8B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 40960,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "medllama2:latest",
+      "model": "medllama2:latest",
+      "digest": "a53737ec0c72e31e16968f232cad6a13d79b979d7c0cb13404dcd4405214c8f2",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "llama",
+        "families": null,
+        "parameter_size": "7B",
+        "quantization_level": "Q4_0",
+        "context_length": 4096,
+        "embedding_length": 4096
+      }
+    },
+    {
+      "name": "qwen2.5vl:32b",
+      "model": "qwen2.5vl:32b",
+      "digest": "3edc3a52fe988de3e8ba4f99ac1f21a1bbc35e1af32a74983fe4e1667d6b6188",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen25vl",
+        "families": [
+          "qwen25vl"
+        ],
+        "parameter_size": "33.5B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 128000,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "qwen3-coder:latest",
+      "model": "qwen3-coder:latest",
+      "digest": "ad67f85ca2502e92936ef793bf29a312e1912ecd1e2c09c9c2963adf1debde78",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3moe",
+        "families": [
+          "qwen3moe"
+        ],
+        "parameter_size": "30.5B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 262144,
+        "embedding_length": 2048
+      }
+    },
+    {
+      "name": "gpt-oss:120b",
+      "model": "gpt-oss:120b",
+      "digest": "735371f916a9e1365c819eae4b05c1ee1dd390536036c1a85cc06075182e9f3d",
+      "details": {
+        "parent_model": "gpt-oss:120b",
+        "format": "gguf",
+        "family": "gptoss",
+        "families": [
+          "gptoss"
+        ],
+        "parameter_size": "116.8B",
+        "quantization_level": "MXFP4",
+        "context_length": 131072,
+        "embedding_length": 2880
+      }
+    },
+    {
+      "name": "qwen3:14b-q4_K_M",
+      "model": "qwen3:14b-q4_K_M",
+      "digest": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "14.8B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 40960,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "qwen3:32b-q4_K_M",
+      "model": "qwen3:32b-q4_K_M",
+      "digest": "030ee887880fc378860c2dd35101da424377520441ae4bfe7be6deff8ade7840",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "32.8B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 40960,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "nomic-embed-text:latest",
+      "model": "nomic-embed-text:latest",
+      "digest": "0a109f422b47e3a30ba2b10eca18548e944e8a23073ee3f3e947efcf3c45e59f",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "nomic-bert",
+        "families": [
+          "nomic-bert"
+        ],
+        "parameter_size": "137M",
+        "quantization_level": "F16",
+        "context_length": 2048,
+        "embedding_length": 768
+      }
+    },
+    {
+      "name": "deepseek-r1:14b",
+      "model": "deepseek-r1:14b",
+      "digest": "c333b7232bdb521236694ffbb5f5a6b11cc45d98e9142c73123b670fca400b09",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen2",
+        "families": [
+          "qwen2"
+        ],
+        "parameter_size": "14.8B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 131072,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "gemma3:latest",
+      "model": "gemma3:latest",
+      "digest": "a2af6cc3eb7fa8be8504abaf9b04e88f17a119ec3f04a3addf55f92841195f5a",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "gemma3",
+        "families": [
+          "gemma3"
+        ],
+        "parameter_size": "4.3B",
+        "quantization_level": "Q4_K_M"
+      }
+    }
+  ],
+  "comfyui_node_types": [
+    "APG",
+    "ARVideoI2V",
+    "AddLayer",
+    "AddNoise",
+    "AddTextPrefix",
+    "AddTextSuffix",
+    "AdjustBrightness",
+    "AdjustContrast",
+    "AlignYourStepsScheduler",
+    "AnimaLLLiteApply",
+    "ApplyTextureToMesh",
+    "AudioAdjustVolume",
+    "AudioConcat",
+    "AudioEncoderEncode",
+    "AudioEncoderLoader",
+    "AudioEqualizer3Band",
+    "AudioMerge",
+    "BakeAmbientOcclusion",
+    "BakeNormalMapFromMesh",
+    "BakeTextureFromVoxel",
+    "BasicGuider",
+    "BasicScheduler",
+    "BatchImagesNode",
+    "BatchLatentsNode",
+    "BatchMasksNode",
+    "BerniniConditioning",
+    "BetaSamplingScheduler",
+    "BlockSparseAttention",
+    "BuildJsonPromptIdeogram",
+    "BuildPoseFile",
+    "CFGGuider",
+    "CFGNorm",
+    "CFGOverride",
+    "CFGZeroStar",
+    "CLIPAttentionMultiply",
+    "CLIPLoader",
+    "CLIPMergeAdd",
+    "CLIPMergeSimple",
+    "CLIPMergeSubtract",
+    "CLIPSave",
+    "CLIPSetLastLayer",
+    "CLIPTextEncode",
+    "CLIPTextEncodeControlnet",
+    "CLIPTextEncodeFlux",
+    "CLIPTextEncodeHiDream",
+    "CLIPTextEncodeHunyuanDiT",
+    "CLIPTextEncodeKandinsky5",
+    "CLIPTextEncodeLumina2",
+    "CLIPTextEncodePixArtAlpha",
+    "CLIPTextEncodeSD3",
+    "CLIPTextEncodeSDXL",
+    "CLIPTextEncodeSDXLRefiner",
+    "CLIPVisionEncode",
+    "CLIPVisionLoader",
+    "Canny",
+    "CaseConverter",
+    "CenterCropImages",
+    "CheckpointLoader",
+    "CheckpointLoaderSimple",
+    "CheckpointSave",
+    "ChromaRadianceOptions",
+    "ColorToRGBInt",
+    "ColorTransfer",
+    "CombineHooks2",
+    "CombineHooks4",
+    "CombineHooks8",
+    "ComfyAndNode",
+    "ComfyMathExpression",
+    "ComfyNotNode",
+    "ComfyNumberConvert",
+    "ComfyOrNode",
+    "ComfySwitchNode",
+    "ConditioningAverage",
+    "ConditioningCombine",
+    "ConditioningConcat",
+    "ConditioningMultiply",
+    "ConditioningSetArea",
+    "ConditioningSetAreaPercentage",
+    "ConditioningSetAreaPercentageVideo",
+    "ConditioningSetAreaStrength",
+    "ConditioningSetDefaultCombine",
+    "ConditioningSetMask",
+    "ConditioningSetProperties",
+    "ConditioningSetPropertiesAndCombine",
+    "ConditioningSetTimestepRange",
+    "ConditioningStableAudio",
+    "ConditioningTimestepsRange",
+    "ConditioningZeroOut",
+    "ContextWindowsManual",
+    "ControlNetApply",
+    "ControlNetApplyAdvanced",
+    "ControlNetApplySD3",
+    "ControlNetInpaintingAliMamaApply",
+    "ControlNetLoader",
+    "ConvertArrayToString",
+    "ConvertDictionaryToString",
+    "CosmosImageToVideoLatent",
+    "CosmosPredict2ImageToVideoLatent",
+    "CreateBoundingBoxes",
+    "CreateCameraInfo",
+    "CreateHookKeyframe",
+    "CreateHookKeyframesFromFloats",
+    "CreateHookKeyframesInterpolated",
+    "CreateHookLora",
+    "CreateHookLoraModelOnly",
+    "CreateHookModelAsLora",
+    "CreateHookModelAsLoraModelOnly",
+    "CreateList",
+    "CreateVideo",
+    "CropByBBoxes",
+    "CropMask",
+    "CurveEditor",
+    "CustomCombo",
+    "DA3GeometryToMesh",
+    "DA3Inference",
+    "DA3Render",
+    "DecimateMesh",
+    "DiffControlNetLoader",
+    "DifferentialDiffusion",
+    "DiffusersLoader",
+    "DisableNoise",
+    "DrawBBoxes",
+    "DualCFGGuider",
+    "DualCLIPLoader",
+    "DualModelGuider",
+    "EasyCache",
+    "EmptyARVideoLatent",
+    "EmptyAceStep1.5LatentAudio",
+    "EmptyAceStepLatentAudio",
+    "EmptyAudio",
+    "EmptyChromaRadianceLatentImage",
+    "EmptyCosmosLatentVideo",
+    "EmptyFlux2LatentImage",
+    "EmptyHiDreamO1LatentImage",
+    "EmptyHunyuanImageLatent",
+    "EmptyHunyuanLatentVideo",
+    "EmptyHunyuanVideo15Latent",
+    "EmptyImage",
+    "EmptyLTXVLatentVideo",
+    "EmptyLatentAudio",
+    "EmptyLatentHunyuan3Dv2",
+    "EmptyLatentImage",
+    "EmptyMiniMaxH3LatentAV",
+    "EmptyMiniMaxMusic3LatentAudio",
+    "EmptyMochiLatentVideo",
+    "EmptyQwenImageLayeredLatentImage",
+    "EmptySD3LatentImage",
+    "EmptyTrellis2LatentStructure",
+    "Epsilon Scaling",
+    "ExponentialScheduler",
+    "ExtendIntermediateSigmas",
+    "FeatherMask",
+    "File3DToSplat",
+    "FillHoles",
+    "FlipSigmas",
+    "Flux2Scheduler",
+    "FluxDisableGuidance",
+    "FluxGuidance",
+    "FluxKVCache",
+    "FluxKontextImageScale",
+    "FluxKontextMultiReferenceLatentMethod",
+    "FrameInterpolate",
+    "FrameInterpolationModelLoader",
+    "FreSca",
+    "FreeU",
+    "FreeU_V2",
+    "GITSScheduler",
+    "GLIGENLoader",
+    "GLIGENTextBoxApply",
+    "GLSLShader",
+    "GenerateTracks",
+    "Get3DComponents",
+    "GetICLoRAParameters",
+    "GetImageSize",
+    "GetMeshInfo",
+    "GetSplatCount",
+    "GetVideoComponents",
+    "GrowMask",
+    "HiDreamO1PatchSeamSmoothing",
+    "HiDreamO1ReferenceImages",
+    "Hunyuan3Dv2Conditioning",
+    "Hunyuan3Dv2ConditioningMultiView",
+    "HunyuanImageToVideo",
+    "HunyuanRefinerLatent",
+    "HunyuanVideo15ImageToVideo",
+    "HunyuanVideo15LatentUpscaleWithModel",
+    "HunyuanVideo15SuperResolution",
+    "HyperTile",
+    "HypernetworkLoader",
+    "Ideogram4Scheduler",
+    "ImageAddNoise",
+    "ImageBatch",
+    "ImageBlend",
+    "ImageBlur",
+    "ImageColorSpace",
+    "ImageColorToMask",
+    "ImageCompare",
+    "ImageCompositeMasked",
+    "ImageCompositor",
+    "ImageCrop",
+    "ImageCropToMask",
+    "ImageCropV2",
+    "ImageDeduplication",
+    "ImageFlip",
+    "ImageFromBatch",
+    "ImageGrid",
+    "ImageHistogram",
+    "ImageInvert",
+    "ImageMergeTileList",
+    "ImageOnlyCheckpointLoader",
+    "ImageOnlyCheckpointSave",
+    "ImagePadForOutpaint",
+    "ImageQuantize",
+    "ImageRGBToYUV",
+    "ImageRotate",
+    "ImageScale",
+    "ImageScaleBy",
+    "ImageScaleToMaxDimension",
+    "ImageScaleToTotalPixels",
+    "ImageSharpen",
+    "ImageStitch",
+    "ImageToMask",
+    "ImageUpscaleWithModel",
+    "ImageYUVToRGB",
+    "InpaintModelConditioning",
+    "InstructPixToPixConditioning",
+    "InvertMask",
+    "JoinAudioChannels",
+    "JoinImageWithAlpha",
+    "JsonExtractString",
+    "KSampler",
+    "KSamplerAdvanced",
+    "KSamplerSelect",
+    "Kandinsky5ImageToVideo",
+    "KarrasScheduler",
+    "LTXAVTextEncoderLoader",
+    "LTXVAddGeneratedKeyframes",
+    "LTXVAddGuide",
+    "LTXVAddLatentGuide",
+    "LTXVAudioVAEDecode",
+    "LTXVAudioVAEEncode",
+    "LTXVAudioVAELoader",
+    "LTXVConcatAVLatent",
+    "LTXVConditioning",
+    "LTXVContextWindows",
+    "LTXVCropGuides",
+    "LTXVDualCFGGuider",
+    "LTXVDurationPredictor",
+    "LTXVEmptyLatentAudio",
+    "LTXVFreezeLatent",
+    "LTXVGeneratedKeyframesToGuides",
+    "LTXVImgToVideo",
+    "LTXVImgToVideoInplace",
+    "LTXVLatentUpsampler",
+    "LTXVModalityGuidance",
+    "LTXVPreprocess",
+    "LTXVReferenceAudio",
+    "LTXVScheduler",
+    "LTXVSeparateAVLatent",
+    "LTXVSeparateGeneratedKeyframes",
+    "LTXVSpatioTemporalGuidance",
+    "LaplaceScheduler",
+    "LatentAdd",
+    "LatentApplyOperation",
+    "LatentApplyOperationCFG",
+    "LatentBatch",
+    "LatentBatchSeedBehavior",
+    "LatentBlend",
+    "LatentComposite",
+    "LatentCompositeMasked",
+    "LatentConcat",
+    "LatentCrop",
+    "LatentCut",
+    "LatentCutToBatch",
+    "LatentFlip",
+    "LatentFromBatch",
+    "LatentInterpolate",
+    "LatentMultiply",
+    "LatentOperationSharpen",
+    "LatentOperationTonemapReinhard",
+    "LatentRotate",
+    "LatentSubtract",
+    "LatentUpscale",
+    "LatentUpscaleBy",
+    "LatentUpscaleModelLoader",
+    "LayersFromBoundingBoxes",
+    "LazyCache",
+    "Load3D",
+    "Load3DAdvanced",
+    "LoadAudio",
+    "LoadBackgroundRemovalModel",
+    "LoadDA3Model",
+    "LoadImage",
+    "LoadImageDataSetFromFolder",
+    "LoadImageMask",
+    "LoadImageOutput",
+    "LoadImageTextDataSetFromFolder",
+    "LoadLatent",
+    "LoadMediaPipeFaceLandmarker",
+    "LoadMoGeModel",
+    "LoadTrainingDataset",
+    "LoadVideo",
+    "LoadVideoDataSetFromFolder",
+    "LoadVideoTextDataSetFromFolder",
+    "LoraLoader",
+    "LoraLoaderBypass",
+    "LoraLoaderBypassModelOnly",
+    "LoraLoaderModelOnly",
+    "LoraModelLoader",
+    "LoraSave",
+    "LossGraphNode",
+    "LotusConditioning",
+    "Mahiro",
+    "MakeTrainingDataset",
+    "ManualSigmas",
+    "MaskComposite",
+    "MaskPreview",
+    "MaskToImage",
+    "MediaPipeFaceLandmarker",
+    "MediaPipeFaceMask",
+    "MediaPipeFaceMeshVisualize",
+    "MergeImageLists",
+    "MergeMeshes",
+    "MergeSplat",
+    "MergeTextLists",
+    "MeshSmoothNormals",
+    "MeshTextureToImage",
+    "MeshToFile3D",
+    "MiniMaxH3AddGuide",
+    "MiniMaxH3FunControlNetApply",
+    "MiniMaxH3ImageToVideo",
+    "MiniMaxH3ReferenceToVideo",
+    "MiniMaxH3SigmaShift",
+    "MiniMaxMusic3TextEncode",
+    "MoGeGeometryToFOV",
+    "MoGeInference",
+    "MoGePanoramaInference",
+    "MoGePointMapToMesh",
+    "MoGeRender",
+    "ModelAttentionBackend",
+    "ModelComputeDtype",
+    "ModelMergeAdd",
+    "ModelMergeAuraflow",
+    "ModelMergeBlocks",
+    "ModelMergeCosmos14B",
+    "ModelMergeCosmos7B",
+    "ModelMergeCosmosPredict2_14B",
+    "ModelMergeCosmosPredict2_2B",
+    "ModelMergeFlux1",
+    "ModelMergeKrea2",
+    "ModelMergeLTXV",
+    "ModelMergeMochiPreview",
+    "ModelMergeQwenImage",
+    "ModelMergeSD1",
+    "ModelMergeSD2",
+    "ModelMergeSD35_Large",
+    "ModelMergeSD3_2B",
+    "ModelMergeSDXL",
+    "ModelMergeSimple",
+    "ModelMergeSubtract",
+    "ModelMergeWAN2_1",
+    "ModelNoiseScale",
+    "ModelPatchLoader",
+    "ModelSamplingAuraFlow",
+    "ModelSamplingContinuousEDM",
+    "ModelSamplingContinuousV",
+    "ModelSamplingDiscrete",
+    "ModelSamplingFlux",
+    "ModelSamplingLTXV",
+    "ModelSamplingSD3",
+    "ModelSamplingStableCascade",
+    "ModelSave",
+    "Morphology",
+    "MultiGPU_WorkUnits",
+    "NAGuidance",
+    "NormalizeImages",
+    "NormalizeVideoLatentStart",
+    "OpticalFlowLoader",
+    "OptimalStepsScheduler",
+    "PaintMesh",
+    "Painter",
+    "PairConditioningCombine",
+    "PairConditioningSetDefaultCombine",
+    "PairConditioningSetProperties",
+    "PairConditioningSetPropertiesAndCombine",
+    "PatchModelAddDownscale",
+    "PerpNeg",
+    "PerpNegGuider",
+    "PerturbedAttentionGuidance",
+    "PhotoMakerEncode",
+    "PhotoMakerLoader",
+    "PiDConditioning",
+    "Pixal3DConditioning",
+    "Pixal3DMultiViewConditioning",
+    "PolyexponentialScheduler",
+    "PorterDuffImageComposite",
+    "Preview3D",
+    "Preview3DAdvanced",
+    "PreviewAny",
+    "PreviewAudio",
+    "PreviewGaussianSplat",
+    "PreviewImage",
+    "PreviewPointCloud",
+    "PrimitiveBoolean",
+    "PrimitiveBoundingBox",
+    "PrimitiveFloat",
+    "PrimitiveInt",
+    "PrimitiveString",
+    "PrimitiveStringMultiline",
+    "QuadrupleCLIPLoader",
+    "QwenImageDiffsynthControlnet",
+    "RTDETR_detect",
+    "RandomCropImages",
+    "RandomNoise",
+    "RebatchImages",
+    "RebatchLatents",
+    "RecordAudio",
+    "ReferenceLatent",
+    "ReferenceTimbreAudio",
+    "RegexExtract",
+    "RegexMatch",
+    "RegexReplace",
+    "RemeshMesh",
+    "RemoveBackground",
+    "RenderMesh",
+    "RenderSplat",
+    "RenderUVAtlas",
+    "RenormCFG",
+    "RepeatImageBatch",
+    "RepeatLatentBatch",
+    "ReplaceText",
+    "ReplaceVideoLatentFrames",
+    "RescaleCFG",
+    "ResizeAndPadImage",
+    "ResizeImageMaskNode",
+    "ResizeImagesByLongerEdge",
+    "ResizeImagesByShorterEdge",
+    "ResolutionBucket",
+    "ResolutionSelector",
+    "RotateMesh",
+    "SAM3DBody_FaceExpression",
+    "SAM3DBody_Loader",
+    "SAM3DBody_Predict",
+    "SAM3DBody_Render",
+    "SAM3DBody_Smooth",
+    "SAM3_Detect",
+    "SAM3_TrackPreview",
+    "SAM3_TrackToMask",
+    "SAM3_VideoTrack",
+    "SCAIL2ColoredMask",
+    "SDPoseDrawKeypoints",
+    "SDPoseFaceBBoxes",
+    "SDPoseKeypointExtractor",
+    "SDTurboScheduler",
+    "SD_4XUpscale_Conditioning",
+    "SUPIRApply",
+    "SV3D_Conditioning",
+    "SVD_img2vid_Conditioning",
+    "SamplerARVideo",
+    "SamplerCustom",
+    "SamplerCustomAdvanced",
+    "SamplerDPMAdaptative",
+    "SamplerDPMPP_2M_SDE",
+    "SamplerDPMPP_2S_Ancestral",
+    "SamplerDPMPP_3M_SDE",
+    "SamplerDPMPP_SDE",
+    "SamplerER_SDE",
+    "SamplerEulerAncestral",
+    "SamplerEulerAncestralCFGPP",
+    "SamplerEulerCFGpp",
+    "SamplerLCM",
+    "SamplerLCMUpscale",
+    "SamplerLMS",
+    "SamplerSASolver",
+    "SamplerSEEDS2",
+    "SamplingPercentToSigma",
+    "Save3DAdvanced",
+    "SaveAnimatedPNG",
+    "SaveAnimatedWEBP",
+    "SaveAudio",
+    "SaveAudioAdvanced",
+    "SaveAudioMP3",
+    "SaveAudioOpus",
+    "SaveGLB",
+    "SaveGaussianSplat",
+    "SaveImage",
+    "SaveImageAdvanced",
+    "SaveImageDataSetToFolder",
+    "SaveImageTextDataSetToFolder",
+    "SaveImageWebsocket",
+    "SaveLatent",
+    "SaveLoRA",
+    "SavePointCloud",
+    "SaveSVGNode",
+    "SaveText",
+    "SaveTrainingDataset",
+    "SaveVideo",
+    "SaveWEBM",
+    "ScaleROPE",
+    "SeedNode",
+    "SeedVR2Conditioning",
+    "SeedVR2PostProcessing",
+    "SeedVR2Preprocess",
+    "SeedVR2TemporalChunk",
+    "SeedVR2TemporalMerge",
+    "SelectCLIPDevice",
+    "SelectModelDevice",
+    "SelectVAEDevice",
+    "SelfAttentionGuidance",
+    "SenseNovaSamplingOptions",
+    "SetClipHooks",
+    "SetFirstSigma",
+    "SetHookKeyframes",
+    "SetLatentNoiseMask",
+    "SetUnionControlNetType",
+    "ShuffleDataset",
+    "ShuffleImageTextDataset",
+    "ShuffleVideoDataset",
+    "ShuffleVideoTextDataset",
+    "SkipLayerGuidanceDiT",
+    "SkipLayerGuidanceDiTSimple",
+    "SkipLayerGuidanceSD3",
+    "SolidMask",
+    "SplatToFile3D",
+    "SplatToMesh",
+    "SplitAudioChannels",
+    "SplitImageToTileList",
+    "SplitImageWithAlpha",
+    "SplitSigmas",
+    "SplitSigmasDenoise",
+    "StableCascade_EmptyLatentImage",
+    "StableCascade_StageB_Conditioning",
+    "StableCascade_StageC_VAEEncode",
+    "StableCascade_SuperResolutionControlnet",
+    "StableZero123_Conditioning",
+    "StableZero123_Conditioning_Batched",
+    "StringCompare",
+    "StringConcatenate",
+    "StringContains",
+    "StringFormat",
+    "StringLength",
+    "StringReplace",
+    "StringSubstring",
+    "StringTrim",
+    "StripWhitespace",
+    "StyleModelApply",
+    "StyleModelLoader",
+    "T5TokenizerOptions",
+    "TCFG",
+    "TemporalScoreRescaling",
+    "TextEncodeAceStepAudio",
+    "TextEncodeAceStepAudio1.5",
+    "TextEncodeBooguEdit",
+    "TextEncodeHunyuanVideo_ImageToVideo",
+    "TextEncodeJoyImageEdit",
+    "TextEncodeMageFlowEdit",
+    "TextEncodeQwenImageEdit",
+    "TextEncodeQwenImageEditPlus",
+    "TextEncodeZImageOmni",
+    "TextGenerate",
+    "TextGenerateLTX2Prompt",
+    "TextOverlay",
+    "TextToLowercase",
+    "TextToUppercase",
+    "ThresholdMask",
+    "TomePatchModel",
+    "TorchCompileModel",
+    "TrainLoraNode",
+    "TransformSplat",
+    "Trellis2Conditioning",
+    "Trellis2ShapeStage",
+    "Trellis2TextureStage",
+    "Trellis2UpsampleStage",
+    "TrimAudioDuration",
+    "TrimVideoLatent",
+    "TripleCLIPLoader",
+    "TripoSplatConditioning",
+    "TripoSplatPreprocessImage",
+    "TripoSplatSamplingPreview",
+    "TruncateText",
+    "UNETLoader",
+    "UNetCrossAttentionMultiply",
+    "UNetSelfAttentionMultiply",
+    "UNetTemporalAttentionMultiply",
+    "USOStyleReference",
+    "UnwrapMesh",
+    "UpscaleModelLoader",
+    "VAEDecode",
+    "VAEDecodeAudio",
+    "VAEDecodeAudioTiled",
+    "VAEDecodeHunyuan3D",
+    "VAEDecodeTiled",
+    "VAEDecodeTripoSplat",
+    "VAEEncode",
+    "VAEEncodeAudio",
+    "VAEEncodeForInpaint",
+    "VAEEncodeTiled",
+    "VAELoader",
+    "VAESave",
+    "VOIDInpaintConditioning",
+    "VOIDQuadmaskPreprocess",
+    "VOIDSampler",
+    "VOIDWarpedNoise",
+    "VOIDWarpedNoiseSource",
+    "VPScheduler",
+    "VaeDecodeShapeTrellis",
+    "VaeDecodeStructureTrellis2",
+    "VaeDecodeTextureTrellis",
+    "Video Slice",
+    "VideoCrop",
+    "VideoFrameSample",
+    "VideoLinearCFGGuidance",
+    "VideoRandomTemporalCrop",
+    "VideoTemporalCrop",
+    "VideoTriangleCFGGuidance",
+    "VideoTrim",
+    "VoxelToMesh",
+    "VoxelToMeshBasic",
+    "Wan22FunControlToVideo",
+    "Wan22ImageToVideoLatent",
+    "WanAnimate2Cache",
+    "WanAnimate2ToVideo",
+    "WanAnimateToVideo",
+    "WanCameraEmbedding",
+    "WanCameraImageToVideo",
+    "WanContextWindowsManual",
+    "WanDancerEncodeAudio",
+    "WanDancerPadKeyframes",
+    "WanDancerPadKeyframesList",
+    "WanDancerVideo",
+    "WanFirstLastFrameToVideo",
+    "WanFunControlToVideo",
+    "WanFunInpaintToVideo",
+    "WanHuMoImageToVideo",
+    "WanImageToVideo",
+    "WanInfiniteTalkToVideo",
+    "WanMoveConcatTrack",
+    "WanMoveTrackToVideo",
+    "WanMoveTracksFromCoords",
+    "WanMoveVisualizeTracks",
+    "WanPhantomSubjectToVideo",
+    "WanSCAILToVideo",
+    "WanSoundImageToVideo",
+    "WanSoundImageToVideoExtend",
+    "WanTrackToVideo",
+    "WanUni3CControlnetApply",
+    "WanVaceToVideo",
+    "WebcamCapture",
+    "WeldVertices",
+    "ZImageFunControlnet",
+    "unCLIPCheckpointLoader",
+    "unCLIPConditioning",
+    "wanBlockSwap"
+  ],
+  "workflow_files": {
+    "flux2": {
+      "path": "image-service/workflows/flux2.json",
+      "sha256": "3e884f4586a26c76563bfafb4fcee9b32f1aa9b033ebac6e507d4363aca5cb64"
+    },
+    "sd35-medium": {
+      "path": "image-service/workflows/sd35-medium.json",
+      "sha256": "8eb918621814cad619eb2bf3959e7b80512cc7e307507fdf2820a208441b2aa3"
+    },
+    "sdxl": {
+      "path": "image-service/workflows/sdxl.json",
+      "sha256": "8b06e6351f552277e42db04d47707cfac89b31c983ef3e9950c612cb9cc99ec1"
+    }
+  },
+  "note": "Ollama digests are supplied by the running host. ComfyUI model-file digests require filesystem access on the GPU host and are not exposed by its HTTP API."
+}

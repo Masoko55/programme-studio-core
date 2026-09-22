@@ -1,0 +1,28 @@
+{
+  "direction_id": "A",
+  "role": "elegant",
+  "positive_prompt": "Elegant premium corporate event programme with strong visual hierarchy, sophisticated black and gold color palette, luxurious textures such as satin and velvet, soft ambient lighting creating a warm and opulent atmosphere, intricate gold patterns in the background, subtle metallic accents, and a clean minimalist layout with ample white space.",
+  "negative_prompt": "Avoid clutter, busy patterns, bright neon colors, cartoonish elements, low quality textures, and any text or logos not specified in the event brief.",
+  "title_suggestions": [
+    "Annual Excellence Awards",
+    "Celebrating Excellence",
+    "Prestigious Awards Ceremony"
+  ],
+  "short_design_rationale": "The design emphasizes elegance and sophistication through a refined black and gold palette, luxurious textures, and a minimalist layout that ensures a strong visual hierarchy and ample white space around content zones.",
+  "layout_guidance": {
+    "title_zone": {
+      "x": 0.1,
+      "y": 0.1,
+      "width": 0.8,
+      "height": 0.15
+    },
+    "programme_zone": {
+      "x": 0.1,
+      "y": 0.35,
+      "width": 0.8,
+      "height": 0.5
+    },
+    "headshot_zone": null,
+    "logo_zone": null
+  }
+}

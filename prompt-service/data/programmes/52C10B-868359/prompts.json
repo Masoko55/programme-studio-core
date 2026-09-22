@@ -1,0 +1,142 @@
+{
+  "schema_version": "1.0",
+  "reference_number": "52C10B-868359",
+  "input_sha256": "5a8d6581d8c039793927b3a122d2e91dfb1a30445b5ca89a30a1c0da095fcfa0",
+  "created_at": "2026-09-16T09:29:49.861217Z",
+  "brief": {
+    "event_type": "Awards Ceremony",
+    "theme": "Celebrating Excellence",
+    "age_group": "Adults",
+    "event_date": "2026-10-20",
+    "start_time": "18:00",
+    "timezone": "Africa/Johannesburg",
+    "primary_colour": "Black",
+    "secondary_colour": "Gold",
+    "creative_description": "Elegant premium corporate event programme with strong visual hierarchy.",
+    "title": "Annual Excellence Awards",
+    "venue": "Pretoria Convention Centre",
+    "programme": [
+      {
+        "time": "18:00",
+        "title": "Guest Arrival",
+        "description": "Guests arrive, register, and are welcomed into the venue."
+      },
+      {
+        "time": "18:30",
+        "title": "Welcome Address",
+        "description": "Opening remarks and introduction to the evening."
+      },
+      {
+        "time": "19:00",
+        "title": "Awards Ceremony",
+        "description": "Recognition and presentation of awards to selected recipients."
+      }
+    ],
+    "headshot_path": null,
+    "logo_path": null
+  },
+  "directions": [
+    {
+      "provenance": {
+        "provider": "ollama",
+        "model": "qwen3:14b"
+      },
+      "direction": {
+        "direction_id": "A",
+        "role": "elegant",
+        "positive_prompt": "Elegant and sophisticated event programme with a premium corporate feel. The background features a subtle, textured metallic finish in gold and black tones, evoking a sense of luxury and refinement. The composition is clean and uncluttered, with ample white space to emphasize the visual hierarchy. Soft, ambient lighting is suggested through the use of warm, diffused shadows and highlights. The overall atmosphere is one of exclusivity and celebration, perfectly aligning with the theme of 'Celebrating Excellence'.",
+        "negative_prompt": "Avoid cluttered layouts, excessive patterns, bright or garish colors, cartoonish elements, and any text or logos not specified in the event brief.",
+        "title_suggestions": [
+          "Annual Excellence Awards",
+          "Celebrating Excellence",
+          "Prestigious Recognition"
+        ],
+        "short_design_rationale": "The design emphasizes elegance and hierarchy through a minimalist approach, using gold and black to reflect the event's premium nature. Ample white space ensures readability and visual balance, while the metallic texture adds a touch of luxury.",
+        "layout_guidance": {
+          "title_zone": {
+            "x": 0.1,
+            "y": 0.1,
+            "width": 0.8,
+            "height": 0.15
+          },
+          "programme_zone": {
+            "x": 0.1,
+            "y": 0.35,
+            "width": 0.8,
+            "height": 0.5
+          },
+          "headshot_zone": null,
+          "logo_zone": null
+        }
+      }
+    },
+    {
+      "provenance": {
+        "provider": "ollama",
+        "model": "gemma3:latest"
+      },
+      "direction": {
+        "direction_id": "B",
+        "role": "expressive",
+        "positive_prompt": "Elegant, sophisticated event programme for an Awards Ceremony. Dark black background with a subtle, shimmering gold foil texture. The title 'Annual Excellence Awards' is prominently displayed in a classic, elegant serif font with a raised gold effect. The programme content area utilizes a luxurious, textured paper effect, with a restrained gold accent. The overall atmosphere is one of prestige and celebration, evoking a sense of timeless quality. The composition is balanced and formal, with ample negative space to create a premium feel. Lighting is soft and warm, enhancing the gold tones.",
+        "negative_prompt": "Rough, chaotic, modern, minimalist, cluttered, low resolution, gradients, cartoonish, childish",
+        "title_suggestions": [
+          "Celebrating Excellence",
+          "Annual Awards Gala",
+          "The Prestige Awards"
+        ],
+        "short_design_rationale": "A classic, luxurious design reflecting the premium nature of the event. The colour palette and textures create a sense of sophistication and celebration, while the typography reinforces the event's prestigious title.",
+        "layout_guidance": {
+          "title_zone": {
+            "x": 0.15,
+            "y": 0.1,
+            "width": 0.3,
+            "height": 0.15
+          },
+          "programme_zone": {
+            "x": 0.4,
+            "y": 0.3,
+            "width": 0.6,
+            "height": 0.55
+          },
+          "headshot_zone": null,
+          "logo_zone": null
+        }
+      }
+    },
+    {
+      "provenance": {
+        "provider": "ollama",
+        "model": "mistral-small3.2:24b"
+      },
+      "direction": {
+        "direction_id": "C",
+        "role": "contemporary",
+        "positive_prompt": "A sleek, modern A4 portrait event programme for an Awards Ceremony titled 'Annual Excellence Awards'. The design features a sophisticated black and gold color scheme, evoking elegance and prestige. The background is a deep, textured black with subtle gold geometric patterns that create a sense of depth and sophistication. The composition is clean and minimalist, with ample white space to ensure strong visual hierarchy. The title area is prominently placed at the top, using a bold, contemporary sans-serif font in gold. The programme section is neatly organized below, with clear section headers and ample spacing between items. The overall atmosphere is luxurious and professional, perfect for celebrating excellence.",
+        "negative_prompt": "Avoid cluttered layouts, overly complex patterns, or any elements that detract from the elegance and professionalism of the event. Do not include any logos or headshots as they are not provided.",
+        "title_suggestions": [
+          "Annual Excellence Awards",
+          "Celebrating Excellence",
+          "Awards Ceremony Programme"
+        ],
+        "short_design_rationale": "The design emphasizes a clean, modern aesthetic with a strong visual hierarchy, ensuring that the event's theme of 'Celebrating Excellence' is conveyed through elegant use of black and gold. The layout is uncluttered, with ample white space to highlight the important information, making it easy to read and visually appealing.",
+        "layout_guidance": {
+          "title_zone": {
+            "x": 0.1,
+            "y": 0.05,
+            "width": 0.8,
+            "height": 0.15
+          },
+          "programme_zone": {
+            "x": 0.1,
+            "y": 0.25,
+            "width": 0.8,
+            "height": 0.65
+          },
+          "headshot_zone": null,
+          "logo_zone": null
+        }
+      }
+    }
+  ]
+}

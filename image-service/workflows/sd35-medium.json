@@ -1,0 +1,94 @@
+{
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
+        "4",
+        2
+      ]
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "${output_prefix}",
+      "images": [
+        "8",
+        0
+      ]
+    }
+  },
+  "40": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "${negative_prompt}",
+      "clip": [
+        "43",
+        0
+      ]
+    }
+  },
+  "53": {
+    "class_type": "EmptySD3LatentImage",
+    "inputs": {
+      "width": "${width}",
+      "height": "${height}",
+      "batch_size": 1
+    }
+  },
+  "4": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "${sd35_checkpoint}"
+    }
+  },
+  "43": {
+    "class_type": "TripleCLIPLoader",
+    "inputs": {
+      "clip_name1": "${sd35_clip_l}",
+      "clip_name2": "${sd35_clip_g}",
+      "clip_name3": "${sd35_t5}"
+    }
+  },
+  "3": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": "${seed}",
+      "steps": 28,
+      "cfg": 4.5,
+      "sampler_name": "euler",
+      "scheduler": "sgm_uniform",
+      "denoise": 1.0,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "16",
+        0
+      ],
+      "negative": [
+        "40",
+        0
+      ],
+      "latent_image": [
+        "53",
+        0
+      ]
+    }
+  },
+  "16": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "${positive_prompt}",
+      "clip": [
+        "43",
+        0
+      ]
+    }
+  }
+}

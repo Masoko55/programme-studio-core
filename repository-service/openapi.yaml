@@ -1,0 +1,115 @@
+openapi: 3.0.3
+info:
+  title: Programme Repository Service API
+  version: 1.0.0
+  description: Stores immutable programme manifests and PNG artifacts in Jackrabbit Oak.
+servers:
+  - url: http://127.0.0.1:8003
+paths:
+  /health:
+    get:
+      summary: Liveness check
+      responses:
+        '200': { description: Service is healthy }
+  /ready:
+    get:
+      summary: Readiness check
+      responses:
+        '200': { description: Repository is ready }
+  /v1/references/{referenceNumber}/artifacts/{artifactKey}:
+    put:
+      summary: Store an artifact
+      parameters:
+        - $ref: '#/components/parameters/referenceNumber'
+        - name: artifactKey
+          in: path
+          required: true
+          schema: { type: string }
+        - name: X-SHA256
+          in: header
+          required: false
+          schema: { type: string, pattern: '^[a-fA-F0-9]{64}$' }
+      requestBody:
+        required: true
+        content:
+          image/png:
+            schema: { type: string, format: binary }
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        '200':
+          description: Stored artifact metadata
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ArtifactMetadata' }
+        '400': { description: Invalid artifact or checksum }
+  /v1/references/{referenceNumber}/manifest:
+    put:
+      summary: Store a reference manifest
+      parameters:
+        - $ref: '#/components/parameters/referenceNumber'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: true }
+      responses:
+        '200': { description: Manifest stored }
+    get:
+      summary: Retrieve a reference manifest
+      parameters:
+        - $ref: '#/components/parameters/referenceNumber'
+      responses:
+        '200':
+          description: Stored manifest
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: true }
+        '404': { description: Reference not found }
+  /v1/references/{referenceNumber}/artifacts:
+    get:
+      summary: List artifacts for a reference
+      parameters:
+        - $ref: '#/components/parameters/referenceNumber'
+      responses:
+        '200':
+          description: Artifact metadata
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ArtifactMetadata' }
+  /v1/artifacts/{artifactId}:
+    get:
+      summary: Download an artifact
+      parameters:
+        - name: artifactId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Artifact bytes
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+        '404': { description: Artifact not found }
+components:
+  parameters:
+    referenceNumber:
+      name: referenceNumber
+      in: path
+      required: true
+      schema: { type: string, pattern: '^[A-Za-z0-9-]+$' }
+  schemas:
+    ArtifactMetadata:
+      type: object
+      required: [artifactId, referenceNumber, artifactKey, mimeType, sha256, size, downloadUrl]
+      properties:
+        artifactId: { type: string }
+        referenceNumber: { type: string }
+        artifactKey: { type: string }
+        mimeType: { type: string }
+        sha256: { type: string }
+        size: { type: integer, format: int64 }
+        downloadUrl: { type: string }

@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     comfyui_connect_timeout_seconds: float = Field(default=10, gt=0)
     comfyui_generation_timeout_seconds: float = Field(default=1800, gt=0)
     comfyui_poll_interval_seconds: float = Field(default=2, gt=0)
+    max_candidate_retries: int = Field(default=2, ge=0, le=2)
     comfyui_workflow_path: Path = SERVICE_ROOT / "workflows"
     flux2_model: str = "flux-2-klein-4b.safetensors"
     flux2_clip: str = "qwen_3_4b.safetensors"

@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 
 from app.config.settings import settings
 from app.schemas.creative_direction import (
@@ -11,6 +12,65 @@ from app.services.ollama import generate_text
 
 
 logger = logging.getLogger("uvicorn.error")
+
+
+POSITIVE_PROMPT_FORBIDDEN_TERMS = (
+    "typography",
+    "lettering",
+    "watermark",
+    "readable text",
+    "written text",
+    "text",
+    "words",
+    "writing",
+    "logo",
+    "portrait",
+)
+
+
+def fallback_visual_prompt(brief: dict, role: str) -> str:
+    """Produce a usable background-only prompt when a model echoes instructions."""
+    palette = ", ".join(
+        colour
+        for colour in (
+            brief.get("primary_colour"),
+            brief.get("secondary_colour"),
+        )
+        if colour
+    ) or "refined neutral"
+    theme = brief.get("theme") or "celebratory event"
+    return (
+        f"{role} A4 portrait abstract event background, {palette} palette, "
+        f"{theme} atmosphere, refined border motifs, quiet central composition, "
+        "subtle tactile paper texture, soft cinematic lighting, generous open space"
+    )
+
+
+def sanitize_positive_prompt(
+    positive_prompt: str,
+    brief: dict,
+    role: str,
+) -> str:
+    """Remove model instructions that would put generated lettering into art.
+
+    The Composer owns every visible character and supplied asset.  A model may
+    still echo a prohibition despite structured-output instructions, so retain
+    only visual clauses and use a deterministic visual fallback if needed.
+    """
+    clauses = re.split(r"[,;.!?]+", positive_prompt)
+    kept = [
+        clause.strip()
+        for clause in clauses
+        if clause.strip()
+        and not any(
+            re.search(rf"\b{re.escape(term)}\b", clause, re.IGNORECASE)
+            for term in POSITIVE_PROMPT_FORBIDDEN_TERMS
+        )
+    ]
+    sanitized = ", ".join(kept)
+    if len(sanitized) < 40 or sanitized.lower().count("do not") >= 2:
+        return fallback_visual_prompt(brief, role)
+    return sanitized
 
 
 def build_safe_layout(brief: dict) -> LayoutGuidance:
@@ -170,6 +230,18 @@ async def generate_creative_direction(
     direction = CreativeDirectionOutput.model_validate_json(
         result["response"]
     )
+
+    sanitized_prompt = sanitize_positive_prompt(
+        direction.positive_prompt,
+        brief,
+        role,
+    )
+    if sanitized_prompt != direction.positive_prompt:
+        logger.info(
+            "Sanitized non-visual instruction from direction %s positive prompt",
+            direction_id.upper(),
+        )
+        direction.positive_prompt = sanitized_prompt
 
     # Geometry is a production constraint, not a creative choice.  Replacing
     # model-proposed zones prevents invalid coordinates from exhausting retries.

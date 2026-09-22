@@ -1,15 +1,38 @@
+import asyncio
+import json
 import logging
 from pathlib import Path
 import httpx
 from app.config.settings import settings
 from app.engines.registry import get_engine
-from app.services.comfyui_client import ComfyUIClient
+from app.services.comfyui_client import ComfyUIClient, ComfyUIError
 from app.services.execution_plan import build_execution_plan
 from app.services.gpu_lease import GPULease
 from app.services.job_persistence import load_image_job_state, persist_image_job_state, update_output
 from app.services.prompt_repository import get_direction, load_prompts_document
 
 logger = logging.getLogger("uvicorn.error")
+
+
+def _candidate_was_rejected(reference_number: str, engine_id: str, direction_id: str) -> bool:
+    """Only retry a completed generation rejected by local background QA.
+
+    Transport, validation, and submission failures can be ambiguous.  They must
+    remain resumable failures rather than being resubmitted automatically.
+    """
+    record_path = (
+        settings.programme_data_path
+        / reference_number
+        / "backgrounds"
+        / engine_id
+        / f"image-{direction_id.lower()}.json"
+    )
+    try:
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return record.get("status") == "rejected" and bool(record.get("rejection_reason"))
+
 
 async def execute_image_job(reference_number: str, max_outputs: int | None = None):
     """Run in frozen engine-first order; max_outputs supports staged verification."""
@@ -38,7 +61,6 @@ async def execute_image_job(reference_number: str, max_outputs: int | None = Non
                             entries = queue.get('queue_running', []) + queue.get('queue_pending', [])
                             # A surviving remote job is resumed by its persisted submission token.
                             own_path = settings.programme_data_path / reference_number / 'backgrounds' / output.engine_id / f'image-{output.direction_id.lower()}.json'
-                            import json
                             own = json.loads(own_path.read_text()) if own_path.exists() else {}
                             if entries:
                                 if not own or any(e[3].get('programme_request_id') != own.get('request_id') for e in entries):
@@ -50,9 +72,37 @@ async def execute_image_job(reference_number: str, max_outputs: int | None = Non
                         persist_image_job_state(state)
                         direction = get_direction(document, output.direction_id)
                         try:
-                            result = await get_engine(output.engine_id).generate(
-                                reference_number=reference_number, direction_id=output.direction_id,
-                                positive_prompt=direction['positive_prompt'], negative_prompt=direction.get('negative_prompt', ''))
+                            for retry_count in range(settings.max_candidate_retries + 1):
+                                try:
+                                    result = await get_engine(output.engine_id).generate(
+                                        reference_number=reference_number,
+                                        direction_id=output.direction_id,
+                                        positive_prompt=direction['positive_prompt'],
+                                        negative_prompt=direction.get('negative_prompt', ''),
+                                    )
+                                    break
+                                except ComfyUIError as error:
+                                    if (
+                                        retry_count >= settings.max_candidate_retries
+                                        or not _candidate_was_rejected(
+                                            reference_number,
+                                            output.engine_id,
+                                            output.direction_id,
+                                        )
+                                    ):
+                                        raise
+                                    delay_seconds = 2 ** retry_count
+                                    logger.warning(
+                                        "event=candidate_retry reference=%s engine=%s direction=%s retry=%s/%s delay_seconds=%s reason=%s",
+                                        reference_number,
+                                        output.engine_id,
+                                        output.direction_id,
+                                        retry_count + 1,
+                                        settings.max_candidate_retries,
+                                        delay_seconds,
+                                        error,
+                                    )
+                                    await asyncio.sleep(delay_seconds)
                             output.seed = result['seed']
                             output.prompt_id = result['prompt_id']
                             output.workflow_sha256 = result['workflow_sha256']

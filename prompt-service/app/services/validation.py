@@ -1,7 +1,5 @@
 import re
 
-import re
-
 from app.schemas.creative_direction import (
     CreativeDirectionOutput,
     LayoutZone,
@@ -30,6 +28,16 @@ FORBIDDEN_BACKGROUND_CONTENT = (
     "text",
     "words",
     "writing",
+    "title",
+    "programme",
+    "program",
+    "agenda",
+    "schedule",
+    "display",
+    "displayed",
+    "organize",
+    "organized",
+    "organised",
 )
 
 

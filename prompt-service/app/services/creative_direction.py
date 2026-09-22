@@ -25,6 +25,19 @@ POSITIVE_PROMPT_FORBIDDEN_TERMS = (
     "writing",
     "logo",
     "portrait",
+    # These terms are usually evidence that a model is describing the composed
+    # programme rather than a background.  The Composer is the only component
+    # allowed to place the title or agenda on the final page.
+    "title",
+    "programme",
+    "program",
+    "agenda",
+    "schedule",
+    "display",
+    "displayed",
+    "organize",
+    "organized",
+    "organised",
 )
 
 

@@ -34,6 +34,9 @@ podman run -d --name programme-prompt --network programme-studio -p 8001:8001 \
   -v /data/programmes:/data/programmes:rw \
   -e PROGRAMME_DATA_PATH=/data/programmes \
   -e OLLAMA_BASE_URL=http://192.168.68.115:11434 \
+  -e DIRECTION_A_MODEL=qwen2.5:14b \
+  -e DIRECTION_B_MODEL=gemma3:27b \
+  -e DIRECTION_C_MODEL=mistral-small3.1:24b \
   -e COMFYUI_BASE_URL=http://192.168.68.115:8188 \
   -e IMAGE_SERVICE_BASE_URL=http://programme-image:8002 \
   localhost/programme-prompt-service:1.0
@@ -67,3 +70,6 @@ It releases the current ComfyUI model before switching engines.
 The historical specification mentioned FLUX.1-schnell. The configured GPU
 runtime provides FLUX.2 instead, so this implementation uses FLUX.2 while
 retaining the three-engine, three-direction, nine-output design.
+
+The Prompt Service readiness endpoint requires the three contracted Ollama
+tags above. It returns HTTP 503 until all three are installed on the GPU host.

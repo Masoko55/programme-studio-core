@@ -61,6 +61,35 @@ async def get_models():
         ) from error
 
 
+def required_models() -> tuple[str, str, str]:
+    """Return the frozen three-model contract in direction order."""
+    return (
+        settings.direction_a_model,
+        settings.direction_b_model,
+        settings.direction_c_model,
+    )
+
+
+async def assert_required_models_available() -> dict:
+    """Refuse work when the GPU host cannot provide the contracted models."""
+    payload = await get_models()
+    installed = {
+        item.get("name")
+        for item in payload.get("models", [])
+        if item.get("name")
+    }
+    missing = [model for model in required_models() if model not in installed]
+    if missing:
+        raise ValueError(
+            "Required Ollama model(s) are unavailable: "
+            + ", ".join(missing)
+        )
+    return {
+        "required_models": list(required_models()),
+        "installed_models": sorted(installed),
+    }
+
+
 async def _generate_text(
     model: str,
     prompt: str,

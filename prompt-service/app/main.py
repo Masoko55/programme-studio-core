@@ -16,6 +16,7 @@ from app.services.job_service import (
     generate_reference_number,
 )
 from app.services.ollama import (
+    assert_required_models_available,
     generate_text,
     get_models,
 )
@@ -87,10 +88,16 @@ def health():
 
 
 @app.get("/ready")
-def ready():
+async def ready():
+    try:
+        model_status = await assert_required_models_available()
+    except ValueError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
+
     return {
         "status": "ready",
         "service": "prompt-service",
+        "models": model_status["required_models"],
     }
 
 
@@ -119,6 +126,7 @@ async def create_prompt_job(
     background_tasks: BackgroundTasks,
 ):
     try:
+        await assert_required_models_available()
         brief = request.model_dump()
 
         reference_number = (
@@ -190,6 +198,7 @@ async def resume_prompt_job(
     background_tasks: BackgroundTasks,
 ):
     try:
+        await assert_required_models_available()
         brief = load_brief(
             reference_number
         )

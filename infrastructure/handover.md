@@ -51,6 +51,12 @@ workflow hashes with `python3 infrastructure/capture_runtime_inventory.py`.
 See `model-registry.md` for the captured active models, workflow hashes and an
 explicit record of the remaining model-version and GPU-host evidence gap.
 
+To demonstrate an intentional interruption and recovery for a fresh accepted
+reference, use `verify_resume.py`. Its header documents the stop, restart,
+resume and artifact-stability sequence. Run `capture_gpu_host_evidence.py` on
+the GPU host (with `COMFYUI_MODELS_DIR` set when required) to capture VRAM,
+weight file hashes and the licence-approval record.
+
 ## Reviewer inputs still required
 
 Replace the demonstration headshot and `GOLDEN` logo under

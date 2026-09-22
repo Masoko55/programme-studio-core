@@ -15,11 +15,11 @@ class Settings(BaseSettings):
 
     ollama_connect_timeout_seconds: float = 10
     ollama_read_timeout_seconds: float = 900
-    direction_a_model: str = "qwen3:14b"
+    direction_a_model: str = "qwen2.5:14b"
     direction_a_role: str = "elegant"
-    direction_b_model: str = "gemma3:latest"
+    direction_b_model: str = "gemma3:27b"
     direction_b_role: str = "expressive"
-    direction_c_model: str = "mistral-small3.2:24b"
+    direction_c_model: str = "mistral-small3.1:24b"
     direction_c_role: str = "contemporary"
     comfyui_base_url: str = "http://192.168.68.115:8188"
     image_service_base_url: str = "http://programme-image:8002"

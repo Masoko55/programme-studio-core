@@ -12,3 +12,6 @@ __pycache__/
 repository-service/data/
 __pycache__/
 *.pyc
+
+# Local Python environments
+.venv/

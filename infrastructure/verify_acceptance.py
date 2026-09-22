@@ -18,19 +18,19 @@ REPOSITORY_URL = "http://127.0.0.1:8003"
 
 SAMPLES = {
     "funeral with headshot": {
-        "reference": "97C1E4-549908",
+        "reference": "6CA211-996230",
         "minimum_rows": 1,
         "headshot": True,
         "logo": False,
     },
     "celebration with logo": {
-        "reference": "312CE7-445589",
+        "reference": "4E8EEE-671617",
         "minimum_rows": 1,
         "headshot": False,
         "logo": True,
     },
     "15-row programme with both assets": {
-        "reference": "212407-703088",
+        "reference": "1B4566-784525",
         "minimum_rows": 15,
         "headshot": True,
         "logo": True,

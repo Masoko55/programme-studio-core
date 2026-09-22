@@ -15,7 +15,9 @@ REQUIRED_PROMPT_MODELS = (
     "gemma3:27b",
     "mistral-small3.1:24b",
 )
-MINIMUM_VRAM_BYTES = 24 * 1024 * 1024 * 1024
+# The agreed host requirement is expressed as 24 GB (manufacturer decimal GB),
+# not 24 GiB.  ComfyUI reports bytes, so compare it with 24,000,000,000.
+MINIMUM_VRAM_BYTES = 24_000_000_000
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "infrastructure" / "evidence" / "runtime-inventory.json"
 

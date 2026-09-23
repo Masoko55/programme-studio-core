@@ -1,8 +1,58 @@
 {
-  "captured_at": "2026-09-22T10:44:03.620874+00:00",
+  "captured_at": "2026-09-22T13:10:27.883972+00:00",
   "ollama_url": "http://192.168.68.115:11434/api/tags",
   "comfyui_url": "http://192.168.68.115:8188/object_info",
+  "comfyui_system_stats_url": "http://192.168.68.115:8188/system_stats",
   "ollama_models": [
+    {
+      "name": "mistral-small3.1:24b",
+      "model": "mistral-small3.1:24b",
+      "digest": "b9aaf0c2586a8ed8105feab808c0f034bd4d346203822f048e2366165a13f4ea",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "mistral3",
+        "families": [
+          "mistral3"
+        ],
+        "parameter_size": "24.0B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 131072,
+        "embedding_length": 5120
+      }
+    },
+    {
+      "name": "gemma3:27b",
+      "model": "gemma3:27b",
+      "digest": "a418f5838eaf7fe2cfe0a3046c8384b68ba43a4435542c942f9db00a5f342203",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "gemma3",
+        "families": [
+          "gemma3"
+        ],
+        "parameter_size": "27.4B",
+        "quantization_level": "Q4_K_M"
+      }
+    },
+    {
+      "name": "qwen2.5:14b",
+      "model": "qwen2.5:14b",
+      "digest": "7cdf5a0187d5c58cc5d369b255592f7841d1c4696d45a8c8a9489440385b22f6",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen2",
+        "families": [
+          "qwen2"
+        ],
+        "parameter_size": "14.8B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 32768,
+        "embedding_length": 5120
+      }
+    },
     {
       "name": "qwen3-vl:30b",
       "model": "qwen3-vl:30b",
@@ -1462,6 +1512,27 @@
     "unCLIPConditioning",
     "wanBlockSwap"
   ],
+  "gpu_devices": [
+    {
+      "name": "cuda:0 NVIDIA GeForce RTX 5090 Laptop GPU : cudaMallocAsync",
+      "type": "cuda",
+      "index": 0,
+      "vram_total": 25157828608,
+      "vram_free": 24709431296,
+      "torch_vram_total": 33554432,
+      "torch_vram_free": 23986176
+    }
+  ],
+  "contract_validation": {
+    "required_prompt_models": [
+      "qwen2.5:14b",
+      "gemma3:27b",
+      "mistral-small3.1:24b"
+    ],
+    "missing_prompt_models": [],
+    "minimum_vram_bytes": 24000000000,
+    "has_24gb_gpu": true
+  },
   "workflow_files": {
     "flux2": {
       "path": "image-service/workflows/flux2.json",

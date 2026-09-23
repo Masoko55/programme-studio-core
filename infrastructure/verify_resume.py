@@ -10,6 +10,7 @@ import argparse
 import json
 import sys
 from urllib.request import Request, urlopen
+from urllib.error import HTTPError
 
 
 IMAGE_URL = "http://127.0.0.1:8002"
@@ -32,7 +33,14 @@ def post_workflow(reference: str) -> dict:
 
 
 def artifact_map(reference: str) -> dict[str, tuple[str, str]]:
-    manifest = get_json(f"{REPOSITORY_URL}/v1/references/{reference}/manifest")
+    try:
+        manifest = get_json(f"{REPOSITORY_URL}/v1/references/{reference}/manifest")
+    except HTTPError as error:
+        if error.code != 404:
+            raise
+        # A deliberately interrupted fresh workflow has no manifest yet.  An
+        # empty checkpoint makes the post-resume nine-artifact assertion useful.
+        return {}
     return {
         item["artifact_key"]: (item["artifact_id"], item["output_sha256"])
         for item in manifest.get("artifacts", [])

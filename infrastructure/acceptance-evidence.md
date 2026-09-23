@@ -17,3 +17,11 @@ after the documented repository restart procedure in `podman-runbook.md`.
 The current validation also includes an idempotency rerun of the 15-row
 sample: the workflow must reuse the same nine repository artifact IDs and
 preserve every SHA-256 value.
+
+## Interruption and recovery evidence
+
+Reference `C2AE04-430496` was deliberately interrupted while its Image Service
+job reported 8 of 9 outputs complete and `processing`. The container required
+SIGKILL after its normal termination window, then restarted successfully. The
+persisted workflow resumed to completion and `verify_resume.py` confirmed nine
+repository artifacts without changing an existing artifact ID or SHA-256 value.

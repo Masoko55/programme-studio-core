@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional
 
 
@@ -29,3 +29,14 @@ class PromptJobRequest(BaseModel):
 
     headshot_path: Optional[str] = None
     logo_path: Optional[str] = None
+
+    @field_validator("headshot_path", "logo_path")
+    @classmethod
+    def reject_retired_demo_assets(cls, value: Optional[str]) -> Optional[str]:
+        """Require a real supplied asset for production programme requests."""
+        if value and "/demo-assets/" in value.replace("\\", "/"):
+            raise ValueError(
+                "Demo assets have been retired. Supply the approved client "
+                "headshot or logo from a non-demo path."
+            )
+        return value

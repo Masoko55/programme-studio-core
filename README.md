@@ -42,6 +42,6 @@ bash infrastructure/export_openapi.sh
 - [Model registry](infrastructure/model-registry.md)
 - [QA review sheet](infrastructure/qa-review.md)
 
-Before a client delivery, replace the demonstration assets in
-`/data/programmes/demo-assets`, complete the human visual/proof-print review,
-and capture GPU-host model-file hashes and licence evidence.
+Before a client delivery, supply approved client headshot and logo files,
+complete the human visual/proof-print review, and capture GPU-host model-file
+hashes and licence evidence. The services reject retired demo-asset paths.

@@ -25,6 +25,7 @@ logger = logging.getLogger("uvicorn.error")
 BACKGROUND_ONLY_SUFFIX = (
     "Decorative background only. Absolutely no words, letters, typography, "
     "logos, signatures, watermarks, labels, or readable characters. "
+    "Absolutely no people, human figures, faces, portraits, or characters. "
     "Use unframed abstract ornament only: never a poster, card, document, "
     "menu, certificate, signage, or central panel. Leave the reserved content "
     "zones visually quiet."
@@ -35,6 +36,8 @@ BACKGROUND_ONLY_NEGATIVE = (
     "(writing:2.0), (calligraphy:1.8), (signature:1.8), (logo:1.8), "
     "(watermark:1.8), (poster:2.0), (card:2.0), (document:2.0), "
     "(menu:2.0), (certificate:2.0), (signage:2.0), numbers, labels, invitation"
+    ", (person:2.0), (people:2.0), (human:2.0), (face:2.0), "
+    "(portrait:2.0), (human figure:2.0), character"
 )
 
 SDXL_ABSTRACT_PROMPT = (
@@ -60,6 +63,11 @@ FORBIDDEN_BACKGROUND_PROMPT_TERMS = (
     "text",
     "words",
     "writing",
+    "person",
+    "people",
+    "human",
+    "face",
+    "figure",
 )
 
 class ComfyUIError(RuntimeError):

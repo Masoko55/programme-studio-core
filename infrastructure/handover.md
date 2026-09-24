@@ -59,7 +59,7 @@ weight file hashes and the licence-approval record.
 
 ## Reviewer inputs still required
 
-Replace the demonstration headshot and `GOLDEN` logo under
-`/data/programmes/demo-assets` with client-supplied assets before final
-delivery. A human reviewer must also proof-print one final PNG and record the
-visual-quality scores required by the acceptance checklist.
+Supply approved client headshot and logo files when submitting a final brief;
+the services reject retired demo-asset paths. A human reviewer must also
+proof-print one final PNG and record the visual-quality scores required by the
+acceptance checklist.

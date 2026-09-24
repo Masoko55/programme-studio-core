@@ -25,6 +25,11 @@ POSITIVE_PROMPT_FORBIDDEN_TERMS = (
     "writing",
     "logo",
     "portrait",
+    "person",
+    "people",
+    "human",
+    "face",
+    "figure",
     # These terms are usually evidence that a model is describing the composed
     # programme rather than a background.  The Composer is the only component
     # allowed to place the title or agenda on the final page.
@@ -148,6 +153,7 @@ def build_creative_direction_prompt(
         "writing, or any readable characters in the positive_prompt.",
         "Do not invent logos.",
         "Do not invent portraits.",
+        "Do not generate people, human figures, faces, or portraits in the background.",
         "Return all layout zones as normalized coordinates between 0 and 1.",
         "x and y represent the top-left position of a zone.",
         "width and height represent the size of the zone.",

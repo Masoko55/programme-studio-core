@@ -59,7 +59,8 @@ weight file hashes and the licence-approval record.
 
 ## Reviewer inputs still required
 
-Supply approved client headshot and logo files when submitting a final brief;
-the services reject retired demo-asset paths. A human reviewer must also
+After the client chooses a candidate, submit the optional approved headshot
+and logo through the selection endpoint; either field may be empty. The
+services reject retired demo-asset paths. A human reviewer must also
 proof-print one final PNG and record the visual-quality scores required by the
 acceptance checklist.

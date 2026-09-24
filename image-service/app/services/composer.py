@@ -97,7 +97,8 @@ def overlay_asset(canvas: Image.Image, asset_path: str | None, zone: dict | None
 
 
 def compose_programme(reference_number: str, engine_id: str, direction_id: str,
-                      background_path: str, brief: dict, layout_guidance: dict) -> CompositionResult:
+                      background_path: str, brief: dict, layout_guidance: dict,
+                      output_path: Path | None = None) -> CompositionResult:
     boxes = [normalized_zone_to_pixels(zone) for zone in layout_guidance.values() if isinstance(zone, dict) and 'x' in zone]
     for i, a in enumerate(boxes):
         for b in boxes[i+1:]:
@@ -124,7 +125,10 @@ def compose_programme(reference_number: str, engine_id: str, direction_id: str,
     draw_panel(canvas, rows, layout_guidance['programme_zone'], max_size=52)
     for name in ['headshot', 'logo']:
         overlay_asset(canvas, brief.get(name+'_path'), layout_guidance.get(name+'_zone'))
-    path = settings.programme_data_path / reference_number / 'final' / f'{engine_id}-{direction_id.lower()}.png'
+    path = output_path or (
+        settings.programme_data_path / reference_number / 'final' /
+        f'{engine_id}-{direction_id.lower()}.png'
+    )
     buffer = io.BytesIO()
     canvas.convert('RGB').save(buffer, format='PNG', dpi=(300, 300))
     data = buffer.getvalue()

@@ -45,3 +45,11 @@ bash infrastructure/export_openapi.sh
 Before a client delivery, supply approved client headshot and logo files,
 complete the human visual/proof-print review, and capture GPU-host model-file
 hashes and licence evidence. The services reject retired demo-asset paths.
+
+## Client selection and optional assets
+
+Generate and review the nine candidate designs first. The client then selects
+one with `POST /v1/image-jobs/{reference_number}/selection`. The request asks
+for `headshot_path` and `logo_path`; both may be `null`. When supplied, each
+asset must be an approved JPEG or PNG. The selected A4 PNG and a record of the
+choice are stored under the reference directory.

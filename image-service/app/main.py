@@ -9,6 +9,9 @@ from fastapi.responses import (
 from app.schemas.image_job import (
     ImageJobRequest,
 )
+from app.schemas.final_selection import (
+    FinalSelectionRequest,
+)
 from app.services.execution_plan import (
     build_execution_plan,
 )
@@ -40,6 +43,9 @@ from app.services.repository_client import (
 )
 from app.services.workflow_state import (
     load_workflow_state,
+)
+from app.services.final_selection_service import (
+    select_final,
 )
 
 
@@ -228,6 +234,22 @@ async def get_job(
             status_code=404,
             detail=str(error),
         )
+
+
+@app.post(
+    "/v1/image-jobs/{reference_number}/selection"
+)
+async def create_final_selection(
+    reference_number: str,
+    request: FinalSelectionRequest,
+):
+    """Create the client-selected A4 final, with optional headshot and logo."""
+    try:
+        return select_final(reference_number, request)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
 
 
 @app.post(

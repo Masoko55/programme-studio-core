@@ -17,10 +17,8 @@ from app.services.artifact_validation import (
     validate_final_png,
 )
 from app.services.prompt_repository import (
+    get_job_directory,
     load_prompts_document,
-)
-from app.services.job_persistence import (
-    load_image_job_state,
 )
 
 
@@ -52,23 +50,30 @@ def get_prompt_model(
             ]["model"]
 
     raise ValueError(
-        f"Prompt model not found for "
+        "Prompt model not found for "
         f"direction {direction_id}."
     )
 
 
-def get_final_artifact_path(
+def load_selected_final(
     reference_number: str,
-    engine_id: str,
-    direction_id: str,
-) -> Path:
-    return (
-        settings.programme_data_path
-        / reference_number
-        / "final"
-        / (
-            f"{engine_id}-"
-            f"{direction_id.lower()}.png"
+) -> dict:
+    path = (
+        get_job_directory(
+            reference_number
+        )
+        / "selected-final.json"
+    )
+
+    if not path.exists():
+        raise FileNotFoundError(
+            "No final background has been selected "
+            f"for {reference_number}."
+        )
+
+    return json.loads(
+        path.read_text(
+            encoding="utf-8"
         )
     )
 
@@ -91,8 +96,8 @@ def build_quality_result(
                     "sha256_valid": False,
                 },
                 errors=[
-                    "Final composed artifact "
-                    "does not exist yet."
+                    "Selected final programme "
+                    "does not exist."
                 ],
             ),
             "",
@@ -116,82 +121,60 @@ def build_quality_result(
             )
         )
 
-        quality = QualityResult(
-            passed=True,
-            checks={
-                "file_exists": True,
-                "png_valid": True,
-                "dimensions_valid": (
-                    validation["width"]
-                    == settings.final_image_width
-                    and validation["height"]
-                    == settings.final_image_height
-                ),
-                "dpi_valid": (
-                    validation["dpi"]
-                    == settings.final_image_dpi
-                ),
-                "sha256_valid": True,
-            },
-            errors=[],
+        dimensions_valid = (
+            validation["width"]
+            == settings.final_image_width
+            and validation["height"]
+            == settings.final_image_height
+        )
+
+        dpi_valid = (
+            validation["dpi"]
+            == settings.final_image_dpi
+        )
+
+        passed = (
+            dimensions_valid
+            and dpi_valid
         )
 
         return (
-            quality,
+            QualityResult(
+                passed=passed,
+                checks={
+                    "file_exists": True,
+                    "png_valid": True,
+                    "dimensions_valid": (
+                        dimensions_valid
+                    ),
+                    "dpi_valid": dpi_valid,
+                    "sha256_valid": True,
+                },
+                errors=(
+                    []
+                    if passed
+                    else [
+                        "Selected final programme "
+                        "failed print validation."
+                    ]
+                ),
+            ),
             output_sha256,
         )
 
     except Exception as error:
-        checks = {
-            "file_exists": True,
-            "png_valid": False,
-            "dimensions_valid": False,
-            "dpi_valid": False,
-            "sha256_valid": False,
-        }
-
-        error_message = str(
-            error
-        )
-
-        if "width" in error_message.lower():
-            checks[
-                "png_valid"
-            ] = True
-
-        elif "height" in error_message.lower():
-            checks[
-                "png_valid"
-            ] = True
-
-        elif "dpi" in error_message.lower():
-            checks[
-                "png_valid"
-            ] = True
-
-            checks[
-                "dimensions_valid"
-            ] = True
-
-        elif "sha-256" in error_message.lower():
-            checks[
-                "png_valid"
-            ] = True
-
-            checks[
-                "dimensions_valid"
-            ] = True
-
-            checks[
-                "dpi_valid"
-            ] = True
-
         return (
             QualityResult(
                 passed=False,
-                checks=checks,
+                checks={
+                    "file_exists": True,
+                    "png_valid": False,
+                    "dimensions_valid": False,
+                    "dpi_valid": False,
+                    "sha256_valid": False,
+                },
                 errors=[
-                    error_message
+                    str(error)
                 ],
             ),
             output_sha256,
@@ -207,138 +190,113 @@ def build_manifest(
         )
     )
 
-    input_sha256 = (
-        prompts_document[
-            "input_sha256"
+    selected = load_selected_final(
+        reference_number
+    )
+
+    source = selected[
+        "source_candidate"
+    ]
+
+    selected_output = selected[
+        "selected_output"
+    ]
+
+    engine_id = source[
+        "engine_id"
+    ]
+
+    direction_id = source[
+        "direction_id"
+    ]
+
+    final_path = Path(
+        selected_output[
+            "output_path"
         ]
     )
 
-    artifacts = []
-    image_job = load_image_job_state(
-        reference_number
+    quality, output_sha256 = (
+        build_quality_result(
+            final_path
+        )
     )
-    output_records = {
-        (
-            output.engine_id,
-            output.direction_id,
-        ): output
-        for output in image_job.outputs
-    }
 
-    engines = [
-        settings.engine_1_id,
-        settings.engine_2_id,
-        settings.engine_3_id,
-    ]
+    prompt_model = (
+        get_prompt_model(
+            prompts_document,
+            direction_id,
+        )
+    )
 
-    directions = [
-        "A",
-        "B",
-        "C",
-    ]
-
-    for engine_id in engines:
-        for direction_id in directions:
-            artifact_key = (
-                f"{engine_id}/"
-                f"{direction_id.lower()}"
+    artifact = ManifestArtifact(
+        artifact_key="final-programme",
+        artifact_id=None,
+        engine_id=engine_id,
+        direction_id=direction_id,
+        input_sha256=(
+            prompts_document[
+                "input_sha256"
+            ]
+        ),
+        output_sha256=(
+            output_sha256
+        ),
+        width=(
+            settings.final_image_width
+        ),
+        height=(
+            settings.final_image_height
+        ),
+        dpi=(
+            settings.final_image_dpi
+        ),
+        seed=None,
+        attempt_count=1,
+        provenance=(
+            ArtifactProvenance(
+                prompt_model=(
+                    prompt_model
+                ),
+                image_engine=(
+                    engine_id
+                ),
+                direction_id=(
+                    direction_id
+                ),
             )
-
-            final_path = (
-                get_final_artifact_path(
-                    reference_number,
-                    engine_id,
-                    direction_id,
-                )
-            )
-
-            prompt_model = (
-                get_prompt_model(
-                    prompts_document,
-                    direction_id,
-                )
-            )
-
-            (
-                quality,
-                output_sha256,
-            ) = build_quality_result(
-                final_path
-            )
-
-            artifact = ManifestArtifact(
-                artifact_key=artifact_key,
-                artifact_id=None,
-                engine_id=engine_id,
-                direction_id=direction_id,
-                input_sha256=(
-                    input_sha256
-                ),
-                output_sha256=(
-                    output_sha256
-                ),
-                width=(
-                    settings
-                    .final_image_width
-                ),
-                height=(
-                    settings
-                    .final_image_height
-                ),
-                dpi=(
-                    settings
-                    .final_image_dpi
-                ),
-                seed=output_records[
-                    (engine_id, direction_id)
-                ].seed,
-                attempt_count=1,
-                provenance=(
-                    ArtifactProvenance(
-                        prompt_model=(
-                            prompt_model
-                        ),
-                        image_engine=(
-                            engine_id
-                        ),
-                        direction_id=(
-                            direction_id
-                        ),
-                    )
-                ),
-                quality=quality,
-                local_path=str(
-                    final_path
-                ),
-                retrieval_url=None,
-            )
-
-            artifacts.append(
-                artifact
-            )
-
-    completed_count = sum(
-        1
-        for artifact in artifacts
-        if artifact.quality.passed
+        ),
+        quality=quality,
+        local_path=str(
+            final_path
+        ),
+        retrieval_url=None,
     )
 
     return ProgrammeManifest(
-        schema_version="1.0",
+        schema_version="2.0",
         reference_number=(
-            reference_number
+            reference_number.upper()
         ),
-        input_sha256=input_sha256,
+        input_sha256=(
+            prompts_document[
+                "input_sha256"
+            ]
+        ),
         created_at=datetime.now(
             timezone.utc
         ),
-        expected_artifact_count=9,
+        expected_artifact_count=1,
         completed_artifact_count=(
-            completed_count
+            1
+            if quality.passed
+            else 0
         ),
-        artifacts=artifacts,
+        artifacts=[
+            artifact
+        ],
         complete=(
-            completed_count == 9
+            quality.passed
         ),
     )
 

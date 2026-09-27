@@ -1,3 +1,0 @@
-INFO:     10.89.0.58:37608 - "POST /v1/prompt-jobs HTTP/1.1" 202 Accepted
-INFO:     10.89.0.58:42614 - "GET /v1/prompt-jobs/7D844E-442208 HTTP/1.1" 200 OK
-INFO:     10.89.0.58:43296 - "GET /v1/prompt-jobs/7D844E-442208 HTTP/1.1" 200 OK

@@ -4,11 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class PromptJobRequest(BaseModel):
-    """Background-only creative intake from Happy Path 2.
 
-    Programme text and upload paths are deliberately excluded.  They are
-    accepted only by the Image Service after a candidate is selected.
-    """
 
     event_type: str = Field(..., min_length=1)
     theme: str = Field(..., min_length=1)

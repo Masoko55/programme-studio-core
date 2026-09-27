@@ -10,7 +10,7 @@ class ProgrammeItem(BaseModel):
 
 
 class GrillMeAnswers(BaseModel):
-    """Happy Path 2 and 3 answers. All fields stay editable before generation."""
+
 
     event_type: str | None = None
     theme: str | None = None

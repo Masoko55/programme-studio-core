@@ -13,9 +13,11 @@ from app.schemas.prompt_job import (
 from app.schemas.grill_me import (
     GenerateBackgroundsRequest,
     GrillMeAnswers,
+    ProgrammeItem,
 )
 from app.services.grill_me_service import (
     create_session,
+    append_programme_item,
     freeze_for_generation,
     load_session,
     mark_generated,
@@ -63,6 +65,17 @@ app = FastAPI(
 class GenerateRequest(BaseModel):
     model: str
     prompt: str
+
+
+def grill_me_response(session):
+    """Return one actionable question so command-line clients can converse."""
+    pending = questions(session)
+    return {
+        "session_id": session.session_id,
+        "status": session.status,
+        "next_question": pending[0] if pending else None,
+        "ready_to_generate": not pending,
+    }
 
 
 async def hand_off_to_image_service(
@@ -139,14 +152,14 @@ async def ollama_generate(
 @app.post("/v1/grill-me/sessions", status_code=201)
 async def create_grill_me_session():
     session = create_session()
-    return {"session": session.model_dump(mode="json"), "questions": questions(session)}
+    return grill_me_response(session)
 
 
 @app.get("/v1/grill-me/sessions/{session_id}")
 async def get_grill_me_session(session_id: str):
     try:
         session = load_session(session_id)
-        return {"session": session.model_dump(mode="json"), "questions": questions(session)}
+        return grill_me_response(session)
     except FileNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 
@@ -155,7 +168,25 @@ async def get_grill_me_session(session_id: str):
 async def answer_grill_me_questions(session_id: str, answers: GrillMeAnswers):
     try:
         session = update_answers(session_id, answers)
-        return {"session": session.model_dump(mode="json"), "questions": questions(session)}
+        return grill_me_response(session)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@app.get("/v1/grill-me/sessions/{session_id}/next-question")
+async def get_next_grill_me_question(session_id: str):
+    try:
+        return grill_me_response(load_session(session_id))
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@app.post("/v1/grill-me/sessions/{session_id}/programme")
+async def add_grill_me_programme_item(session_id: str, item: ProgrammeItem):
+    try:
+        return grill_me_response(append_programme_item(session_id, item))
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     except FileNotFoundError as error:
@@ -166,7 +197,7 @@ async def answer_grill_me_questions(session_id: str, answers: GrillMeAnswers):
 async def upload_grill_me_asset(session_id: str, asset_name: str, file: UploadFile = File(...)):
     try:
         session = await store_asset(session_id, asset_name, file)
-        return {"session": session.model_dump(mode="json"), "questions": questions(session)}
+        return grill_me_response(session)
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     except FileNotFoundError as error:
@@ -200,7 +231,41 @@ async def generate_from_grill_me_session(
             "prompts_document": result["prompts_document"].model_dump(mode="json"),
         }
     except ValueError as error:
-        raise HTTPException(status_code=422, detail=str(error)) from error
+        message = str(error)
+
+        if message.startswith(
+            "GRILL_ME_INCOMPLETE:"
+       ):
+            missing_fields = [
+                field
+                for field in message.split(
+                    ":",
+                    1,
+                )[1].split(",")
+                if field
+           ]
+
+            raise HTTPException(
+               status_code=422,
+               detail={
+                   "error": (
+                       "grill_me_incomplete"
+                    ),
+                    "message": (
+                        "Complete Grill-Me "
+                        "before generating "
+                        "backgrounds."
+                    ),
+                    "missing_fields": (
+                        missing_fields
+                   ),
+               },
+            ) from error
+
+        raise HTTPException(
+            status_code=422,
+            detail=str(error),
+        ) from error
     except FileNotFoundError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
 

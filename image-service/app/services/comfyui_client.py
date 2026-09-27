@@ -70,6 +70,27 @@ FORBIDDEN_BACKGROUND_PROMPT_TERMS = (
     "figure",
 )
 
+
+def sanitize_background_prompt(positive_prompt: str) -> str:
+    """Drop non-visual safety clauses before submitting a diffusion prompt.
+
+    Prompt Service normally removes these clauses.  Image Service repeats the
+    check because persisted jobs can outlive a Prompt Service deployment and
+    because terms such as ``people-free`` would otherwise be rejected here.
+    """
+    clauses = re.split(r"[,;.!?]+", positive_prompt)
+    kept = [
+        clause.strip()
+        for clause in clauses
+        if clause.strip()
+        and not any(
+            re.search(rf"\b{re.escape(term)}\b", clause, re.IGNORECASE)
+            for term in FORBIDDEN_BACKGROUND_PROMPT_TERMS
+        )
+    ]
+    sanitized = ", ".join(kept)
+    return sanitized or "abstract nonrepresentational background with generous open space"
+
 class ComfyUIError(RuntimeError):
     """Unavailable dependency, invalid workflow, or failed remote execution."""
 
@@ -102,6 +123,7 @@ def build_background_only_prompt(
 
 def build_engine_prompt(engine_id: str, positive_prompt: str) -> str:
     """Remove editorial cues before text-prone diffusion engines see them."""
+    positive_prompt = sanitize_background_prompt(positive_prompt)
     if engine_id not in {settings.engine_2_id, settings.engine_3_id}:
         return build_background_only_prompt(positive_prompt)
 

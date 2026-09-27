@@ -1,0 +1,3 @@
+3e884f4586a26c76563bfafb4fcee9b32f1aa9b033ebac6e507d4363aca5cb64  image-service/workflows/flux2.json
+8eb918621814cad619eb2bf3959e7b80512cc7e307507fdf2820a208441b2aa3  image-service/workflows/sd35-medium.json
+8b06e6351f552277e42db04d47707cfac89b31c983ef3e9950c612cb9cc99ec1  image-service/workflows/sdxl.json

@@ -1,42 +1,24 @@
-from pydantic import BaseModel, Field, field_validator
-from typing import List, Optional
+from typing import Optional
 
-
-class ProgrammeItem(BaseModel):
-    time: str
-    title: str
-    description: Optional[str] = None
+from pydantic import BaseModel, Field
 
 
 class PromptJobRequest(BaseModel):
+    """Background-only creative intake from Happy Path 2.
+
+    Programme text and upload paths are deliberately excluded.  They are
+    accepted only by the Image Service after a candidate is selected.
+    """
+
     event_type: str = Field(..., min_length=1)
     theme: str = Field(..., min_length=1)
     age_group: str = Field(..., min_length=1)
-
-    event_date: str
-    start_time: str
-    timezone: str
-
+    creative_description: str = Field(..., min_length=1)
     primary_colour: Optional[str] = None
     secondary_colour: Optional[str] = None
-
-    creative_description: str = Field(..., min_length=1)
-
-    title: str = Field(..., min_length=1)
-    venue: Optional[str] = None
-
-    programme: List[ProgrammeItem]
-
-    headshot_path: Optional[str] = None
-    logo_path: Optional[str] = None
-
-    @field_validator("headshot_path", "logo_path")
-    @classmethod
-    def reject_retired_demo_assets(cls, value: Optional[str]) -> Optional[str]:
-        """Require a real supplied asset for production programme requests."""
-        if value and "/demo-assets/" in value.replace("\\", "/"):
-            raise ValueError(
-                "Demo assets have been retired. Supply the approved client "
-                "headshot or logo from a non-demo path."
-            )
-        return value
+    title_preference: Optional[str] = None
+    event_date: Optional[str] = None
+    start_time: Optional[str] = None
+    timezone: Optional[str] = None
+    output_language: str = Field(default="en", min_length=1)
+    accessibility_preferences: list[str] = Field(default_factory=list)

@@ -45,6 +45,23 @@ def wrap_text(draw: ImageDraw.ImageDraw, text: str, font, max_width: int) -> lis
     return lines
 
 
+def accent_colour(image: Image.Image) -> tuple[int, int, int, int]:
+    """Choose a saturated mid-tone sampled from the selected background."""
+    sample = image.convert('RGB').resize((80, 112), Image.Resampling.LANCZOS)
+    candidates: dict[tuple[int, int, int], int] = {}
+    for red, green, blue in sample.getdata():
+        maximum, minimum = max(red, green, blue), min(red, green, blue)
+        lightness = (maximum + minimum) / 510
+        saturation = maximum - minimum
+        if 0.18 <= lightness <= 0.82 and saturation >= 28:
+            colour = (red // 16 * 16, green // 16 * 16, blue // 16 * 16)
+            candidates[colour] = candidates.get(colour, 0) + saturation
+    if not candidates:
+        return (38, 38, 38, 255)
+    red, green, blue = max(candidates, key=candidates.get)
+    return (red, green, blue, 255)
+
+
 def draw_panel(image: Image.Image, texts: list[tuple[str, bool]], zone: dict,
                max_size: int, min_size: int = 42) -> None:
     left, top, right, bottom = normalized_zone_to_pixels(zone)
@@ -73,7 +90,7 @@ def draw_panel(image: Image.Image, texts: list[tuple[str, bool]], zone: dict,
         (left, top, right, panel_bottom),
         radius=18,
         fill=(255, 255, 255, 238),
-        outline=(212, 175, 55, 255),
+        outline=accent_colour(image),
         width=4,
     )
     y = top+padding
@@ -93,6 +110,16 @@ def overlay_asset(canvas: Image.Image, asset_path: str | None, zone: dict | None
             raise ValueError('Supplied asset must be JPEG or PNG')
         image = source.convert('RGBA')
     image.thumbnail((right-left, bottom-top), Image.Resampling.LANCZOS)
+    if zone.get('shape') == 'circle':
+        side = min(image.width, image.height)
+        image = image.crop(((image.width-side)//2, (image.height-side)//2, (image.width+side)//2, (image.height+side)//2))
+        mask = Image.new('L', image.size, 0)
+        ImageDraw.Draw(mask).ellipse((0, 0, image.width-1, image.height-1), fill=255)
+        image.putalpha(mask)
+    elif zone.get('shape') == 'rounded':
+        mask = Image.new('L', image.size, 0)
+        ImageDraw.Draw(mask).rounded_rectangle((0, 0, image.width-1, image.height-1), radius=min(image.width, image.height)//10, fill=255)
+        image.putalpha(mask)
     canvas.alpha_composite(image, dest=(left+(right-left-image.width)//2, top+(bottom-top-image.height)//2))
 
 

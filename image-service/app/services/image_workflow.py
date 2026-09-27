@@ -68,9 +68,11 @@ async def run_image_workflow(
                     reference_number,
                 )
 
-        state["status"] = "complete"
+        # Candidate generation ends before composition. The selected background
+        # is the only image that can later receive programme details and assets.
+        state["status"] = "awaiting_selection"
         state["current_stage"] = (
-            "complete"
+            "awaiting_selection"
         )
 
         save_workflow_state(

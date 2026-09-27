@@ -97,20 +97,12 @@ def build_safe_layout(brief: dict) -> LayoutGuidance:
     LLMs describe the visual direction; they do not calculate page geometry.
     Every value keeps at least the required 10 mm margin on a 2480 x 3508 page.
     """
-    headshot_supplied = bool(brief.get("headshot_path"))
-    logo_supplied = bool(brief.get("logo_path"))
-
     return LayoutGuidance(
         title_zone=LayoutZone(x=0.10, y=0.08, width=0.80, height=0.12),
         programme_zone=LayoutZone(x=0.10, y=0.47, width=0.80, height=0.40),
-        headshot_zone=(
-            LayoutZone(x=0.10, y=0.24, width=0.22, height=0.18)
-            if headshot_supplied else None
-        ),
-        logo_zone=(
-            LayoutZone(x=0.68, y=0.24, width=0.22, height=0.18)
-            if logo_supplied else None
-        ),
+        # Asset zones are selected by the client after choosing a background.
+        headshot_zone=None,
+        logo_zone=None,
     )
 
 
@@ -159,10 +151,7 @@ def build_creative_direction_prompt(
         "width and height represent the size of the zone.",
         "No zone may extend beyond the page boundary.",
         "The title zone and programme zone must not overlap.",
-        "Only include a headshot zone when a headshot is supplied.",
-        "Only include a logo zone when a logo is supplied.",
-        "If no headshot is supplied, headshot_zone must be null.",
-        "If no logo is supplied, logo_zone must be null.",
+        "headshot_zone and logo_zone must be null; assets are added after selection.",
         "Keep sufficient visual space around all reserved content zones.",
         "Keep every reserved zone within a 10 mm safe margin on all page edges.",
         (

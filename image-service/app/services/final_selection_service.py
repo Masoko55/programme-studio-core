@@ -1,11 +1,11 @@
 """Compose one client-selected candidate with optional supplied assets."""
 import hashlib
+import json
 from pathlib import Path
 
 from app.schemas.final_selection import FinalSelectionRequest
 from app.services.atomic import write_json
 from app.services.composer import compose_programme
-from app.services.composition_service import get_final_output_path
 from app.services.job_persistence import load_image_job_state
 from app.services.prompt_repository import get_direction, get_job_directory, load_prompts_document
 
@@ -22,15 +22,26 @@ def _asset_hash(path: str | None) -> str | None:
 
 
 def _selection_layout(layout: dict, request: FinalSelectionRequest) -> dict:
-    """Keep frozen title/agenda geometry and add asset zones only when chosen."""
+    """Keep frozen text geometry and apply client-chosen asset placement."""
     result = {
         "title_zone": layout["title_zone"],
         "programme_zone": layout["programme_zone"],
     }
+    headshot_side = request.headshot_placement or "left"
+    logo_side = request.logo_placement or "right"
     if request.headshot_path:
-        result["headshot_zone"] = {"x": 0.10, "y": 0.24, "width": 0.22, "height": 0.18}
+        result["headshot_zone"] = {
+            "x": 0.10 if headshot_side == "left" else 0.68,
+            "y": 0.24, "width": 0.22, "height": 0.18,
+            "shape": request.headshot_shape or "rounded",
+        }
     if request.logo_path:
-        result["logo_zone"] = {"x": 0.68, "y": 0.24, "width": 0.22, "height": 0.18}
+        result["logo_zone"] = {
+            "x": 0.10 if logo_side == "left" else 0.68,
+            "y": 0.24, "width": 0.22, "height": 0.18,
+        }
+    if request.headshot_path and request.logo_path and headshot_side == logo_side:
+        raise ValueError("Headshot and logo placements must use different sides.")
     return result
 
 
@@ -53,16 +64,36 @@ def select_final(reference_number: str, request: FinalSelectionRequest) -> dict:
     if not layout:
         raise ValueError("Selected direction has no layout contract")
 
+    # Grill-Me stores final details while backgrounds are generated. A caller may
+    # still provide details directly for API compatibility.
+    pending_path = get_job_directory(reference_number) / "pending-final.json"
+    pending = json.loads(pending_path.read_text(encoding="utf-8")) if pending_path.exists() else {}
+    details = request.programme_details.model_dump() if request.programme_details else pending
+    if not details:
+        raise ValueError("Select a candidate from a completed Grill-Me session or provide programme_details.")
+    headshot_path = request.headshot_path if request.headshot_path is not None else pending.get("headshot_path")
+    logo_path = request.logo_path if request.logo_path is not None else pending.get("logo_path")
+    if (headshot_path or logo_path) and not (
+        request.rights_and_consent_confirmed or pending.get("rights_and_consent_confirmed")
+    ):
+        raise ValueError("Confirmed rights and consent are required for selected assets.")
     asset_hashes = {
-        "headshot": _asset_hash(request.headshot_path),
-        "logo": _asset_hash(request.logo_path),
+        "headshot": _asset_hash(headshot_path),
+        "logo": _asset_hash(logo_path),
     }
     selected_brief = {
-        **document["brief"],
-        "headshot_path": request.headshot_path,
-        "logo_path": request.logo_path,
+        **details,
+        "headshot_path": headshot_path,
+        "logo_path": logo_path,
     }
-    selected_layout = _selection_layout(layout, request)
+    selection_request = request.model_copy(update={
+        "headshot_path": headshot_path,
+        "logo_path": logo_path,
+        "headshot_shape": request.headshot_shape or pending.get("headshot_shape"),
+        "headshot_placement": request.headshot_placement or pending.get("headshot_placement"),
+        "logo_placement": request.logo_placement or pending.get("logo_placement"),
+    })
+    selected_layout = _selection_layout(layout, selection_request)
     selection_path = (
         get_job_directory(reference_number) / "selected" /
         f"{request.engine_id}-{request.direction_id.lower()}.png"
@@ -86,9 +117,7 @@ def select_final(reference_number: str, request: FinalSelectionRequest) -> dict:
             "direction_id": output.direction_id,
             "background_path": output.output_path,
             "background_sha256": output.sha256,
-            "candidate_preview_path": str(
-                get_final_output_path(reference_number, output.engine_id, output.direction_id)
-            ),
+            "candidate_background_path": output.output_path,
         },
         "selected_output": result.model_dump(mode="json"),
     }

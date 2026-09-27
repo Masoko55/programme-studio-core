@@ -1,0 +1,299 @@
+{
+  "schema_version": "1.0",
+  "reference_number": "7D844E-442208",
+  "input_sha256": "8849ad2cb92f170df1b29b275392af2b6b46fc890185fd8cb988d1f7be1033f7",
+  "created_at": "2026-09-27T12:00:40.421093Z",
+  "expected_artifact_count": 9,
+  "completed_artifact_count": 9,
+  "artifacts": [
+    {
+      "artifact_key": "flux-2/a",
+      "artifact_id": "fc77282d-e080-43e8-9394-886dffc677bf",
+      "engine_id": "flux-2",
+      "direction_id": "A",
+      "input_sha256": "8849ad2cb92f170df1b29b275392af2b6b46fc890185fd8cb988d1f7be1033f7",
+      "output_sha256": "5afdda6ba463af22ffefd680cee088b7d879304c9945037dd3475c773d2a0e19",
+      "width": 2480,
+      "height": 3508,
+      "dpi": 300,
+      "seed": 5320293539777390570,
+      "attempt_count": 1,
+      "provenance": {
+        "prompt_model": "qwen2.5:14b",
+        "image_engine": "flux-2",
+        "direction_id": "A"
+      },
+      "quality": {
+        "passed": true,
+        "checks": {
+          "file_exists": true,
+          "png_valid": true,
+          "dimensions_valid": true,
+          "dpi_valid": true,
+          "sha256_valid": true,
+          "retrieval_verified": true
+        },
+        "errors": []
+      },
+      "local_path": "/data/programmes/7D844E-442208/final/flux-2-a.png",
+      "retrieval_url": "/v1/artifacts/fc77282d-e080-43e8-9394-886dffc677bf"
+    },
+    {
+      "artifact_key": "flux-2/b",
+      "artifact_id": "14428bd0-9475-4b0a-9f9a-0ebf557ef16d",
+      "engine_id": "flux-2",
+      "direction_id": "B",
+      "input_sha256": "8849ad2cb92f170df1b29b275392af2b6b46fc890185fd8cb988d1f7be1033f7",
+      "output_sha256": "223e7b2ba2d65e593702bf09c3423978df16ddc61082f7b208765520107de3bf",
+      "width": 2480,
+      "height": 3508,
+      "dpi": 300,
+      "seed": 1022541810318617797,
+      "attempt_count": 1,
+      "provenance": {
+        "prompt_model": "gemma3:27b",
+        "image_engine": "flux-2",
+        "direction_id": "B"
+      },
+      "quality": {
+        "passed": true,
+        "checks": {
+          "file_exists": true,
+          "png_valid": true,
+          "dimensions_valid": true,
+          "dpi_valid": true,
+          "sha256_valid": true,
+          "retrieval_verified": true
+        },
+        "errors": []
+      },
+      "local_path": "/data/programmes/7D844E-442208/final/flux-2-b.png",
+      "retrieval_url": "/v1/artifacts/14428bd0-9475-4b0a-9f9a-0ebf557ef16d"
+    },
+    {
+      "artifact_key": "flux-2/c",
+      "artifact_id": "134542e7-36b7-4d79-af01-05577a70077b",
+      "engine_id": "flux-2",
+      "direction_id": "C",
+      "input_sha256": "8849ad2cb92f170df1b29b275392af2b6b46fc890185fd8cb988d1f7be1033f7",
+      "output_sha256": "614475bdbe54ef1dbd38db0618a95b79d1b14a311dd3524479e0a124d26bd895",
+      "width": 2480,
+      "height": 3508,
+      "dpi": 300,
+      "seed": 4283444244641394670,
+      "attempt_count": 1,
+      "provenance": {
+        "prompt_model": "mistral-small3.1:24b",
+        "image_engine": "flux-2",
+        "direction_id": "C"
+      },
+      "quality": {
+        "passed": true,
+        "checks": {
+          "file_exists": true,
+          "png_valid": true,
+          "dimensions_valid": true,
+          "dpi_valid": true,
+          "sha256_valid": true,
+          "retrieval_verified": true
+        },
+        "errors": []
+      },
+      "local_path": "/data/programmes/7D844E-442208/final/flux-2-c.png",
+      "retrieval_url": "/v1/artifacts/134542e7-36b7-4d79-af01-05577a70077b"
+    },
+    {
+      "artifact_key": "sdxl-1-0/a",
+      "artifact_id": "5d7ba7ab-059a-46b7-ba40-e59b33207db0",
+      "engine_id": "sdxl-1-0",
+      "direction_id": "A",
+      "input_sha256": "8849ad2cb92f170df1b29b275392af2b6b46fc890185fd8cb988d1f7be1033f7",
+      "output_sha256": "658f1011e5a201cb374b0c9071e153e69fad12c30b25893610f7f0930855c95f",
+      "width": 2480,
+      "height": 3508,
+      "dpi": 300,
+      "seed": 1906088797205615852,
+      "attempt_count": 1,
+      "provenance": {
+        "prompt_model": "qwen2.5:14b",
+        "image_engine": "sdxl-1-0",
+        "direction_id": "A"
+      },
+      "quality": {
+        "passed": true,
+        "checks": {
+          "file_exists": true,
+          "png_valid": true,
+          "dimensions_valid": true,
+          "dpi_valid": true,
+          "sha256_valid": true,
+          "retrieval_verified": true
+        },
+        "errors": []
+      },
+      "local_path": "/data/programmes/7D844E-442208/final/sdxl-1-0-a.png",
+      "retrieval_url": "/v1/artifacts/5d7ba7ab-059a-46b7-ba40-e59b33207db0"
+    },
+    {
+      "artifact_key": "sdxl-1-0/b",
+      "artifact_id": "9d7cfbfe-c47e-4626-87ff-bc0a428ab372",
+      "engine_id": "sdxl-1-0",
+      "direction_id": "B",
+      "input_sha256": "8849ad2cb92f170df1b29b275392af2b6b46fc890185fd8cb988d1f7be1033f7",
+      "output_sha256": "d5262a89895e5b68783acd396cde0401e3e874d85f4e409276fbb9d0d9fce87d",
+      "width": 2480,
+      "height": 3508,
+      "dpi": 300,
+      "seed": 1923614524236171155,
+      "attempt_count": 1,
+      "provenance": {
+        "prompt_model": "gemma3:27b",
+        "image_engine": "sdxl-1-0",
+        "direction_id": "B"
+      },
+      "quality": {
+        "passed": true,
+        "checks": {
+          "file_exists": true,
+          "png_valid": true,
+          "dimensions_valid": true,
+          "dpi_valid": true,
+          "sha256_valid": true,
+          "retrieval_verified": true
+        },
+        "errors": []
+      },
+      "local_path": "/data/programmes/7D844E-442208/final/sdxl-1-0-b.png",
+      "retrieval_url": "/v1/artifacts/9d7cfbfe-c47e-4626-87ff-bc0a428ab372"
+    },
+    {
+      "artifact_key": "sdxl-1-0/c",
+      "artifact_id": "8ca14bf9-f1c6-4f41-a4b6-040a8f78d7ac",
+      "engine_id": "sdxl-1-0",
+      "direction_id": "C",
+      "input_sha256": "8849ad2cb92f170df1b29b275392af2b6b46fc890185fd8cb988d1f7be1033f7",
+      "output_sha256": "af5e99e72db490c05d0b1eb4f97da693393617b2012f73116ffc60680f2dd9f2",
+      "width": 2480,
+      "height": 3508,
+      "dpi": 300,
+      "seed": 4486662545688321988,
+      "attempt_count": 1,
+      "provenance": {
+        "prompt_model": "mistral-small3.1:24b",
+        "image_engine": "sdxl-1-0",
+        "direction_id": "C"
+      },
+      "quality": {
+        "passed": true,
+        "checks": {
+          "file_exists": true,
+          "png_valid": true,
+          "dimensions_valid": true,
+          "dpi_valid": true,
+          "sha256_valid": true,
+          "retrieval_verified": true
+        },
+        "errors": []
+      },
+      "local_path": "/data/programmes/7D844E-442208/final/sdxl-1-0-c.png",
+      "retrieval_url": "/v1/artifacts/8ca14bf9-f1c6-4f41-a4b6-040a8f78d7ac"
+    },
+    {
+      "artifact_key": "sd-3-5-medium/a",
+      "artifact_id": "4ec62bda-141f-4e8a-9f02-0f7ca3dbeb64",
+      "engine_id": "sd-3-5-medium",
+      "direction_id": "A",
+      "input_sha256": "8849ad2cb92f170df1b29b275392af2b6b46fc890185fd8cb988d1f7be1033f7",
+      "output_sha256": "ecc4c19f3be8b92aaac6a247448acf74b0de89161bff3903bd47b0c5f93b989f",
+      "width": 2480,
+      "height": 3508,
+      "dpi": 300,
+      "seed": 3188505810058985279,
+      "attempt_count": 1,
+      "provenance": {
+        "prompt_model": "qwen2.5:14b",
+        "image_engine": "sd-3-5-medium",
+        "direction_id": "A"
+      },
+      "quality": {
+        "passed": true,
+        "checks": {
+          "file_exists": true,
+          "png_valid": true,
+          "dimensions_valid": true,
+          "dpi_valid": true,
+          "sha256_valid": true,
+          "retrieval_verified": true
+        },
+        "errors": []
+      },
+      "local_path": "/data/programmes/7D844E-442208/final/sd-3-5-medium-a.png",
+      "retrieval_url": "/v1/artifacts/4ec62bda-141f-4e8a-9f02-0f7ca3dbeb64"
+    },
+    {
+      "artifact_key": "sd-3-5-medium/b",
+      "artifact_id": "8365cd79-2fe1-4801-a0d4-8cd0f5d3976f",
+      "engine_id": "sd-3-5-medium",
+      "direction_id": "B",
+      "input_sha256": "8849ad2cb92f170df1b29b275392af2b6b46fc890185fd8cb988d1f7be1033f7",
+      "output_sha256": "5750c315bc3da5af30b77507bf00f79056bb1424295f59e75caced150a7040be",
+      "width": 2480,
+      "height": 3508,
+      "dpi": 300,
+      "seed": 3474770879304724139,
+      "attempt_count": 1,
+      "provenance": {
+        "prompt_model": "gemma3:27b",
+        "image_engine": "sd-3-5-medium",
+        "direction_id": "B"
+      },
+      "quality": {
+        "passed": true,
+        "checks": {
+          "file_exists": true,
+          "png_valid": true,
+          "dimensions_valid": true,
+          "dpi_valid": true,
+          "sha256_valid": true,
+          "retrieval_verified": true
+        },
+        "errors": []
+      },
+      "local_path": "/data/programmes/7D844E-442208/final/sd-3-5-medium-b.png",
+      "retrieval_url": "/v1/artifacts/8365cd79-2fe1-4801-a0d4-8cd0f5d3976f"
+    },
+    {
+      "artifact_key": "sd-3-5-medium/c",
+      "artifact_id": "017e613f-4973-41ff-8aa6-9e428d1979dc",
+      "engine_id": "sd-3-5-medium",
+      "direction_id": "C",
+      "input_sha256": "8849ad2cb92f170df1b29b275392af2b6b46fc890185fd8cb988d1f7be1033f7",
+      "output_sha256": "45e9c1872d8ed55766aaeca84c1b8906379a44f8652b7af47ccc22bbf3451682",
+      "width": 2480,
+      "height": 3508,
+      "dpi": 300,
+      "seed": 260908785619630020,
+      "attempt_count": 1,
+      "provenance": {
+        "prompt_model": "mistral-small3.1:24b",
+        "image_engine": "sd-3-5-medium",
+        "direction_id": "C"
+      },
+      "quality": {
+        "passed": true,
+        "checks": {
+          "file_exists": true,
+          "png_valid": true,
+          "dimensions_valid": true,
+          "dpi_valid": true,
+          "sha256_valid": true,
+          "retrieval_verified": true
+        },
+        "errors": []
+      },
+      "local_path": "/data/programmes/7D844E-442208/final/sd-3-5-medium-c.png",
+      "retrieval_url": "/v1/artifacts/017e613f-4973-41ff-8aa6-9e428d1979dc"
+    }
+  ],
+  "complete": true
+}

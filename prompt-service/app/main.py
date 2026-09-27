@@ -1,12 +1,28 @@
 from fastapi import (
     BackgroundTasks,
     FastAPI,
+    File,
     HTTPException,
+    UploadFile,
 )
 from pydantic import BaseModel
 
 from app.schemas.prompt_job import (
     PromptJobRequest,
+)
+from app.schemas.grill_me import (
+    GenerateBackgroundsRequest,
+    GrillMeAnswers,
+)
+from app.services.grill_me_service import (
+    create_session,
+    freeze_for_generation,
+    load_session,
+    mark_generated,
+    persist_pending_final,
+    questions,
+    store_asset,
+    update_answers,
 )
 from app.services.creative_direction import (
     generate_creative_direction,
@@ -73,8 +89,8 @@ async def hand_off_to_image_service(
 
     update_job_status(
         reference_number,
-        status="complete",
-        current_stage="complete",
+        status="awaiting_selection",
+        current_stage="awaiting_selection",
         error=None,
     )
 
@@ -120,73 +136,82 @@ async def ollama_generate(
     )
 
 
-@app.post("/v1/prompt-jobs", status_code=202)
-async def create_prompt_job(
-    request: PromptJobRequest,
+@app.post("/v1/grill-me/sessions", status_code=201)
+async def create_grill_me_session():
+    session = create_session()
+    return {"session": session.model_dump(mode="json"), "questions": questions(session)}
+
+
+@app.get("/v1/grill-me/sessions/{session_id}")
+async def get_grill_me_session(session_id: str):
+    try:
+        session = load_session(session_id)
+        return {"session": session.model_dump(mode="json"), "questions": questions(session)}
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@app.patch("/v1/grill-me/sessions/{session_id}/answers")
+async def answer_grill_me_questions(session_id: str, answers: GrillMeAnswers):
+    try:
+        session = update_answers(session_id, answers)
+        return {"session": session.model_dump(mode="json"), "questions": questions(session)}
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@app.post("/v1/grill-me/sessions/{session_id}/assets/{asset_name}")
+async def upload_grill_me_asset(session_id: str, asset_name: str, file: UploadFile = File(...)):
+    try:
+        session = await store_asset(session_id, asset_name, file)
+        return {"session": session.model_dump(mode="json"), "questions": questions(session)}
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@app.post("/v1/grill-me/sessions/{session_id}/generate", status_code=202)
+async def generate_from_grill_me_session(
+    session_id: str,
+    request: GenerateBackgroundsRequest,
     background_tasks: BackgroundTasks,
 ):
     try:
         await assert_required_models_available()
-        brief = request.model_dump()
-
-        reference_number = (
-            generate_reference_number()
+        reference_number = generate_reference_number()
+        _, brief, final_details = freeze_for_generation(session_id, reference_number)
+        input_sha256 = calculate_sha256(brief)
+        result = await run_prompt_workflow(
+            reference_number=reference_number,
+            input_sha256=input_sha256,
+            brief=brief,
+            resume=False,
         )
-
-        input_sha256 = (
-            calculate_sha256(
-                brief
-            )
-        )
-
-        result = (
-            await run_prompt_workflow(
-                reference_number=(
-                    reference_number
-                ),
-                input_sha256=(
-                    input_sha256
-                ),
-                brief=brief,
-                resume=False,
-            )
-        )
-
-        document = result[
-            "prompts_document"
-        ]
-
-        background_tasks.add_task(
-            hand_off_to_image_service,
-            reference_number,
-        )
-
+        persist_pending_final(reference_number, final_details)
+        mark_generated(session_id)
+        background_tasks.add_task(hand_off_to_image_service, reference_number)
         return {
             "status": "accepted",
-            "reference_number": (
-                reference_number
-            ),
-            "input_sha256": (
-                input_sha256
-            ),
-            "brief_path": result[
-                "brief_path"
-            ],
-            "prompts_path": result[
-                "prompts_path"
-            ],
-            "prompts_document": (
-                document.model_dump(
-                    mode="json"
-                )
-            ),
+            "reference_number": reference_number,
+            "input_sha256": input_sha256,
+            "prompts_document": result["prompts_document"].model_dump(mode="json"),
         }
-
     except ValueError as error:
-        raise HTTPException(
-            status_code=422,
-            detail=str(error),
-        )
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except FileNotFoundError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@app.post("/v1/prompt-jobs", status_code=410)
+async def create_prompt_job():
+    """Prevent bypassing the required Grill-Me questionnaire."""
+    raise HTTPException(
+        status_code=410,
+        detail="Create and complete a Grill-Me session before generating prompts.",
+    )
 
 
 @app.post(
@@ -381,32 +406,9 @@ async def get_prompt_job_prompts(
         )
 
 
-@app.post(
-    "/v1/prompt-jobs/"
-    "directions/{direction_id}"
-)
-async def create_creative_direction(
-    direction_id: str,
-    request: PromptJobRequest,
-):
-    try:
-        brief = request.model_dump()
-
-        direction = (
-            await generate_creative_direction(
-                direction_id=(
-                    direction_id
-                ),
-                brief=brief,
-            )
-        )
-
-        return direction.model_dump(
-            mode="json"
-        )
-
-    except ValueError as error:
-        raise HTTPException(
-            status_code=400,
-            detail=str(error),
-        )
+@app.post("/v1/prompt-jobs/directions/{direction_id}", status_code=410)
+async def create_creative_direction(direction_id: str):
+    raise HTTPException(
+        status_code=410,
+        detail="Creative directions are generated only from a completed Grill-Me session.",
+    )

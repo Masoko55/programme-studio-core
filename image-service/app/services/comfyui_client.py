@@ -41,7 +41,7 @@ BACKGROUND_ONLY_NEGATIVE = (
 )
 
 SDXL_ABSTRACT_PROMPT = (
-    "Abstract black and gold material study, polished obsidian, brushed metal, "
+    "Abstract nonrepresentational background study, refined material texture, "
     "soft nonrepresentational light, asymmetric edge ornament and generous open "
     "negative space. No focal object, no frame, no placard, no page layout, and "
     "no information hierarchy."
@@ -112,7 +112,7 @@ def build_engine_prompt(engine_id: str, positive_prompt: str) -> str:
     ]
     visual_detail = " ".join(visual_sentences)
     if not visual_detail:
-        visual_detail = "black and gold abstract material texture"
+        visual_detail = "refined abstract material texture"
     return f"{SDXL_ABSTRACT_PROMPT} {visual_detail}. {BACKGROUND_ONLY_SUFFIX}"
 
 

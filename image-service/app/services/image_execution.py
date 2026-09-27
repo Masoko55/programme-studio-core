@@ -34,56 +34,172 @@ def _candidate_was_rejected(reference_number: str, engine_id: str, direction_id:
     return record.get("status") == "rejected" and bool(record.get("rejection_reason"))
 
 
-async def execute_image_job(reference_number: str, max_outputs: int | None = None):
-    """Run in frozen engine-first order; max_outputs supports staged verification."""
+
+async def execute_image_job(
+    reference_number: str,
+    max_outputs: int | None = None,
+):
+    """Generate background candidates only.
+
+    The nine outputs produced here are background candidates. No programme
+    title, programme rows, event details, headshot, or logo are composed at
+    this stage.
+
+    Once all candidates are generated the job enters awaiting_selection.
+    """
+
     async with GPULease():
         state = load_image_job_state(reference_number)
         document = load_prompts_document(reference_number)
-        expected = [(s['engine_id'], s['direction']) for s in build_execution_plan(document)['execution_order']]
-        if [(o.engine_id, o.direction_id) for o in state.outputs] != expected:
-            raise ValueError("Historical engine plan differs from current configuration. Preserve this job and use a new reference for FLUX.2.")
-        state.status, state.current_stage, state.error = "processing", "generating", None
+
+        expected = [
+            (
+                step["engine_id"],
+                step["direction"],
+            )
+            for step in build_execution_plan(document)["execution_order"]
+        ]
+
+        actual = [
+            (
+                output.engine_id,
+                output.direction_id,
+            )
+            for output in state.outputs
+        ]
+
+        if actual != expected:
+            raise ValueError(
+                "Historical engine plan differs from the current "
+                "configuration. Preserve this job and create a new "
+                "reference number."
+            )
+
+        state.status = "processing"
+        state.current_stage = "generating_backgrounds"
+        state.error = None
+
         persist_image_job_state(state)
-        # Do not overlap ComfyUI with a resident Ollama model.
+
         try:
             async with httpx.AsyncClient(timeout=60) as http:
-                response = await http.get(settings.ollama_base_url + '/api/ps')
+                response = await http.get(
+                    settings.ollama_base_url + "/api/ps"
+                )
+
                 response.raise_for_status()
-                if response.json().get('models'):
-                    raise RuntimeError("Ollama has resident models; unload them before image generation")
+
+                if response.json().get("models"):
+                    raise RuntimeError(
+                        "Ollama has resident models; unload them "
+                        "before image generation."
+                    )
+
             async with ComfyUIClient() as client:
                 current_engine = None
                 generated = 0
+
                 try:
                     for output in state.outputs:
                         if current_engine != output.engine_id:
-                            queue = (await client.request('GET', '/queue')).json()
-                            entries = queue.get('queue_running', []) + queue.get('queue_pending', [])
-                            # A surviving remote job is resumed by its persisted submission token.
-                            own_path = settings.programme_data_path / reference_number / 'backgrounds' / output.engine_id / f'image-{output.direction_id.lower()}.json'
-                            own = json.loads(own_path.read_text()) if own_path.exists() else {}
+                            queue = (
+                                await client.request(
+                                    "GET",
+                                    "/queue",
+                                )
+                            ).json()
+
+                            entries = (
+                                queue.get("queue_running", [])
+                                + queue.get("queue_pending", [])
+                            )
+
+                            own_path = (
+                                settings.programme_data_path
+                                / reference_number
+                                / "backgrounds"
+                                / output.engine_id
+                                / (
+                                    "image-"
+                                    f"{output.direction_id.lower()}"
+                                    ".json"
+                                )
+                            )
+
+                            own = (
+                                json.loads(
+                                    own_path.read_text(
+                                        encoding="utf-8"
+                                    )
+                                )
+                                if own_path.exists()
+                                else {}
+                            )
+
                             if entries:
-                                if not own or any(e[3].get('programme_request_id') != own.get('request_id') for e in entries):
-                                    raise RuntimeError('ComfyUI has another active job; retry later')
+                                if not own or any(
+                                    entry[3].get(
+                                        "programme_request_id"
+                                    )
+                                    != own.get("request_id")
+                                    for entry in entries
+                                ):
+                                    raise RuntimeError(
+                                        "ComfyUI has another active "
+                                        "job; retry later."
+                                    )
                             else:
                                 await client.release_models()
+
                             current_engine = output.engine_id
-                        state.current_stage = f'{output.engine_id}:{output.direction_id}'
+
+                        state.current_stage = (
+                            f"{output.engine_id}:"
+                            f"{output.direction_id}"
+                        )
+
                         persist_image_job_state(state)
-                        direction = get_direction(document, output.direction_id)
+
+                        direction = get_direction(
+                            document,
+                            output.direction_id,
+                        )
+
                         try:
-                            for retry_count in range(settings.max_candidate_retries + 1):
+                            for retry_count in range(
+                                settings.max_candidate_retries + 1
+                            ):
                                 try:
-                                    result = await get_engine(output.engine_id).generate(
-                                        reference_number=reference_number,
-                                        direction_id=output.direction_id,
-                                        positive_prompt=direction['positive_prompt'],
-                                        negative_prompt=direction.get('negative_prompt', ''),
+                                    result = (
+                                        await get_engine(
+                                            output.engine_id
+                                        ).generate(
+                                            reference_number=(
+                                                reference_number
+                                            ),
+                                            direction_id=(
+                                                output.direction_id
+                                            ),
+                                            positive_prompt=(
+                                                direction[
+                                                    "positive_prompt"
+                                                ]
+                                            ),
+                                            negative_prompt=(
+                                                direction.get(
+                                                    "negative_prompt",
+                                                    "",
+                                                )
+                                            ),
+                                        )
                                     )
+
                                     break
+
                                 except ComfyUIError as error:
                                     if (
-                                        retry_count >= settings.max_candidate_retries
+                                        retry_count
+                                        >= settings.max_candidate_retries
                                         or not _candidate_was_rejected(
                                             reference_number,
                                             output.engine_id,
@@ -91,9 +207,17 @@ async def execute_image_job(reference_number: str, max_outputs: int | None = Non
                                         )
                                     ):
                                         raise
+
                                     delay_seconds = 2 ** retry_count
+
                                     logger.warning(
-                                        "event=candidate_retry reference=%s engine=%s direction=%s retry=%s/%s delay_seconds=%s reason=%s",
+                                        "event=candidate_retry "
+                                        "reference=%s "
+                                        "engine=%s "
+                                        "direction=%s "
+                                        "retry=%s/%s "
+                                        "delay_seconds=%s "
+                                        "reason=%s",
                                         reference_number,
                                         output.engine_id,
                                         output.direction_id,
@@ -102,29 +226,88 @@ async def execute_image_job(reference_number: str, max_outputs: int | None = Non
                                         delay_seconds,
                                         error,
                                     )
-                                    await asyncio.sleep(delay_seconds)
-                            output.seed = result['seed']
-                            output.prompt_id = result['prompt_id']
-                            output.workflow_sha256 = result['workflow_sha256']
-                            update_output(state, output.engine_id, output.direction_id, 'complete', result['output_path'], result['sha256'])
-                            logger.info('event=candidate_complete reference=%s engine=%s direction=%s reused=%s', reference_number, output.engine_id, output.direction_id, result['reused'])
-                            if not result['reused']:
+
+                                    await asyncio.sleep(
+                                        delay_seconds
+                                    )
+
+                            output.seed = result["seed"]
+                            output.prompt_id = result["prompt_id"]
+                            output.workflow_sha256 = (
+                                result["workflow_sha256"]
+                            )
+
+                            update_output(
+                                state,
+                                output.engine_id,
+                                output.direction_id,
+                                "complete",
+                                result["output_path"],
+                                result["sha256"],
+                            )
+
+                            logger.info(
+                                "event=candidate_complete "
+                                "reference=%s "
+                                "engine=%s "
+                                "direction=%s "
+                                "reused=%s",
+                                reference_number,
+                                output.engine_id,
+                                output.direction_id,
+                                result["reused"],
+                            )
+
+                            if not result["reused"]:
                                 generated += 1
-                            if max_outputs is not None and generated >= max_outputs:
+
+                            if (
+                                max_outputs is not None
+                                and generated >= max_outputs
+                            ):
                                 break
+
                         except Exception as error:
-                            update_output(state, output.engine_id, output.direction_id, 'failed', error=str(error))
+                            update_output(
+                                state,
+                                output.engine_id,
+                                output.direction_id,
+                                "failed",
+                                error=str(error),
+                            )
+
                             raise
+
                 finally:
-                    # On timeout an active remote job is kept and reconciled on resume.
-                    queue = (await client.request('GET', '/queue')).json()
-                    if not queue.get('queue_running') and not queue.get('queue_pending'):
+                    queue = (
+                        await client.request(
+                            "GET",
+                            "/queue",
+                        )
+                    ).json()
+
+                    if (
+                        not queue.get("queue_running")
+                        and not queue.get("queue_pending")
+                    ):
                         await client.release_models()
-            state.status = 'generated' if state.completed_outputs == 9 else 'paused'
-            state.current_stage = 'generation_complete' if state.completed_outputs == 9 else 'generation_checkpoint'
+
+            if state.completed_outputs == state.total_outputs:
+                state.status = "awaiting_selection"
+                state.current_stage = "backgrounds_complete"
+            else:
+                state.status = "paused"
+                state.current_stage = "generation_checkpoint"
+
             persist_image_job_state(state)
+
             return state
+
         except Exception as error:
-            state.status, state.current_stage, state.error = 'failed', 'generation_failed', str(error)
+            state.status = "failed"
+            state.current_stage = "generation_failed"
+            state.error = str(error)
+
             persist_image_job_state(state)
+
             raise

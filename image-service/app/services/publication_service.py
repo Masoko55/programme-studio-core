@@ -12,8 +12,8 @@ from app.services.manifest_service import (
     persist_manifest,
 )
 from app.services.repository_client import (
-    get_repository_artifacts,
     download_repository_artifact,
+    get_repository_artifacts,
     upload_artifact,
     upload_manifest,
 )
@@ -24,33 +24,26 @@ logger = logging.getLogger(
 )
 
 
-def get_existing_artifact_map(
-    repository_artifacts: list,
-) -> dict:
-    return {
-        artifact[
-            "artifactKey"
-        ]: artifact
-        for artifact
-        in repository_artifacts
-    }
-
-
 async def verify_retrieval(
     artifact,
 ) -> None:
-    content = await download_repository_artifact(
-        artifact.artifact_id
+    content = (
+        await download_repository_artifact(
+            artifact.artifact_id
+        )
     )
 
     actual_sha256 = hashlib.sha256(
         content
     ).hexdigest()
 
-    if actual_sha256 != artifact.output_sha256:
+    if (
+        actual_sha256
+        != artifact.output_sha256
+    ):
         raise RuntimeError(
-            "Repository retrieval SHA-256 does not "
-            f"match {artifact.artifact_key}."
+            "Repository retrieval SHA-256 "
+            "does not match the final programme."
         )
 
     artifact.quality.checks[
@@ -61,6 +54,8 @@ async def verify_retrieval(
 async def publish_programme(
     reference_number: str,
 ) -> ProgrammeManifest:
+    """Publish exactly one selected and composed final programme."""
+
     manifest = build_manifest(
         reference_number
     )
@@ -68,9 +63,32 @@ async def publish_programme(
     if not manifest.complete:
         raise RuntimeError(
             "Programme cannot be published because "
-            f"only {manifest.completed_artifact_count} "
-            f"of {manifest.expected_artifact_count} "
-            "final artifacts are available."
+            "the selected final programme has not "
+            "passed validation."
+        )
+
+    if len(manifest.artifacts) != 1:
+        raise RuntimeError(
+            "A programme manifest must contain "
+            "exactly one final artifact."
+        )
+
+    artifact = manifest.artifacts[0]
+
+    validation = (
+        validate_final_png(
+            image_path=(
+                artifact.local_path
+            ),
+            expected_sha256=(
+                artifact.output_sha256
+            ),
+        )
+    )
+
+    if not validation["valid"]:
+        raise RuntimeError(
+            "Final programme validation failed."
         )
 
     repository_artifacts = (
@@ -79,84 +97,47 @@ async def publish_programme(
         )
     )
 
-    existing_artifacts = (
-        get_existing_artifact_map(
-            repository_artifacts
-        )
+    repository_key = (
+        f"{artifact.engine_id}_"
+        f"{artifact.direction_id.lower()}"
     )
 
-    for artifact in manifest.artifacts:
-        validation = (
-            validate_final_png(
-                image_path=(
-                    artifact.local_path
-                ),
-                expected_sha256=(
-                    artifact.output_sha256
-                ),
+    existing = next(
+        (
+            item
+            for item in repository_artifacts
+            if item.get(
+                "artifactKey"
             )
-        )
+            == repository_key
+        ),
+        None,
+    )
 
-        if not validation[
-            "valid"
-        ]:
+    if existing is not None:
+        if (
+            existing["sha256"].lower()
+            != artifact.output_sha256.lower()
+        ):
             raise RuntimeError(
-                "Artifact validation failed for "
-                f"{artifact.artifact_key}."
+                "Repository already contains "
+                "the selected final key but its "
+                "SHA-256 does not match."
             )
 
-        repository_key = (
-            f"{artifact.engine_id}_"
-            f"{artifact.direction_id.lower()}"
+        artifact.artifact_id = (
+            existing[
+                "artifactId"
+            ]
         )
 
-        existing = (
-            existing_artifacts.get(
-                repository_key
-            )
+        artifact.retrieval_url = (
+            existing[
+                "downloadUrl"
+            ]
         )
 
-        if existing is not None:
-            if (
-                existing["sha256"].lower()
-                != artifact.output_sha256.lower()
-            ):
-                raise RuntimeError(
-                    "Repository already contains "
-                    f"{repository_key}, but its "
-                    "SHA-256 does not match the "
-                    "local artifact."
-                )
-
-            artifact.artifact_id = (
-                existing[
-                    "artifactId"
-                ]
-            )
-
-            artifact.retrieval_url = (
-                existing[
-                    "downloadUrl"
-                ]
-            )
-
-            await verify_retrieval(
-                artifact
-            )
-
-            logger.info(
-                "Reusing repository artifact "
-                "%s with ID %s",
-                repository_key,
-                artifact.artifact_id,
-            )
-
-            persist_manifest(
-                manifest
-            )
-
-            continue
-
+    else:
         repository_result = (
             await upload_artifact(
                 reference_number=(
@@ -189,19 +170,9 @@ async def publish_programme(
             ]
         )
 
-        await verify_retrieval(
-            artifact
-        )
-
-        logger.info(
-            "Published %s as artifact %s",
-            artifact.artifact_key,
-            artifact.artifact_id,
-        )
-
-        persist_manifest(
-            manifest
-        )
+    await verify_retrieval(
+        artifact
+    )
 
     manifest.complete = True
 
@@ -221,8 +192,11 @@ async def publish_programme(
     )
 
     logger.info(
-        "Published manifest for %s",
+        "Published selected final programme "
+        "for %s using %s/%s",
         reference_number,
+        artifact.engine_id,
+        artifact.direction_id,
     )
 
     return manifest

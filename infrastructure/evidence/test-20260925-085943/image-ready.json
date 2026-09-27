@@ -1,1 +1,0 @@
-{"status":"ready","service":"image-service","comfyui":{"status":"available","details":{"status":"available","version":"0.35.0","engines":["flux-2","sdxl-1-0","sd-3-5-medium"]}},"repository_service":{"status":"available","details":{"service":"repository-service","status":"healthy"}}}

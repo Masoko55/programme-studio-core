@@ -1,6 +1,5 @@
 """Persisted Happy Path 2/3 questionnaire used before creative direction generation."""
 import json
-import shutil
 import uuid
 from pathlib import Path
 
@@ -65,8 +64,14 @@ def questions(session: GrillMeSession) -> list[dict]:
     result = [{"field": field, "question": prompts[field]} for field in REQUIRED_FIELDS if answers.get(field) in (None, "")]
     if "headshot" in session.assets and not answers.get("headshot_consent_confirmed"):
         result.append({"field": "headshot_consent_confirmed", "question": "Confirm you have rights and consent to use the headshot."})
+    if "headshot" in session.assets and not answers.get("headshot_shape"):
+        result.append({"field": "headshot_shape", "question": "Choose the headshot shape: circle, square, or rounded."})
+    if "headshot" in session.assets and not answers.get("headshot_placement"):
+        result.append({"field": "headshot_placement", "question": "Choose the headshot placement: left or right."})
     if "logo" in session.assets and not answers.get("logo_consent_confirmed"):
         result.append({"field": "logo_consent_confirmed", "question": "Confirm you have rights and consent to use the logo."})
+    if "logo" in session.assets and not answers.get("logo_placement"):
+        result.append({"field": "logo_placement", "question": "Choose the logo placement: left or right."})
     return result
 
 
@@ -76,6 +81,21 @@ def update_answers(session_id: str, patch: GrillMeAnswers) -> GrillMeSession:
         raise ValueError("This Grill-Me session is frozen after generation.")
     values = patch.model_dump(exclude_unset=True)
     session.answers = GrillMeAnswers.model_validate({**session.answers.model_dump(), **values})
+    session.status = "ready" if not questions(session) else "questioning"
+    return _save(session)
+
+
+def append_programme_item(session_id: str, item) -> GrillMeSession:
+    """Append one programme row, preserving the user's previously entered rows."""
+    session = load_session(session_id)
+    if session.status in {"generating", "generated"}:
+        raise ValueError("This Grill-Me session is frozen after generation.")
+    rows = [row.model_dump() for row in (session.answers.programme or [])]
+    rows.append(item.model_dump())
+    session.answers = GrillMeAnswers.model_validate({
+        **session.answers.model_dump(),
+        "programme": rows,
+    })
     session.status = "ready" if not questions(session) else "questioning"
     return _save(session)
 
@@ -103,8 +123,21 @@ async def store_asset(session_id: str, asset_name: str, upload: UploadFile) -> G
 def freeze_for_generation(session_id: str, reference_number: str) -> tuple[GrillMeSession, dict, dict]:
     session = load_session(session_id)
     missing = questions(session)
+    
+    
+
     if missing:
-        raise ValueError("Complete Grill-Me before generating backgrounds: " + ", ".join(item["field"] for item in missing))
+        missing_fields = [
+            item["field"]
+            for item in missing
+        ]
+
+        raise ValueError(
+            "GRILL_ME_INCOMPLETE:"
+            +",".join(
+                missing_fields
+            )
+        )
     if session.status == "generated":
         raise ValueError("This Grill-Me session has already generated backgrounds.")
     session.status = "generating"

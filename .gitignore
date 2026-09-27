@@ -1,17 +1,43 @@
-**/target/
-repository-service/data/
+# Python
 __pycache__/
-*.pyc
-# Build and runtime data
-**/target/
-repository-service/data/
-__pycache__/
-*.pyc
+*.py[cod]
+*.pyo
 
-**/target/
-repository-service/data/
-__pycache__/
-*.pyc
-
-# Local Python environments
+# Virtual environments
 .venv/
+venv/
+env/
+
+# Local environment configuration
+.env
+**/.env
+
+# Keep templates
+!.env.example
+!**/.env.example
+
+# Runtime Programme Studio data
+/data/
+**/data/programmes/*
+!**/data/programmes/.gitkeep
+
+# Repository runtime storage
+repository-service/data/
+
+# Generated evidence
+infrastructure/evidence/
+
+# Temporary files
+*.tmp
+*.part
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Java
+**/target/

@@ -1,4 +1,10 @@
-"""Persisted Grill-Me questionnaire used before creative-direction generation."""
+"""Persisted Grill-Me questionnaire.
+
+Grill-Me gathers the event brief before any creative directions are created.
+
+Background-generation information is separated from final-composition
+information. Programme text is never passed to the diffusion/image engines.
+"""
 
 import json
 import uuid
@@ -10,7 +16,6 @@ from app.config.settings import settings
 from app.schemas.grill_me import (
     GrillMeAnswers,
     GrillMeSession,
-    ProgrammeItem,
 )
 
 
@@ -84,13 +89,11 @@ def _save(
 
 
 def create_session() -> GrillMeSession:
-    session = GrillMeSession(
-        session_id=uuid.uuid4().hex,
-        status="questioning",
-    )
-
     return _save(
-        session
+        GrillMeSession(
+            session_id=uuid.uuid4().hex,
+            status="questioning",
+        )
     )
 
 
@@ -120,8 +123,6 @@ def load_session(
 def questions(
     session: GrillMeSession,
 ) -> list[dict]:
-    """Return the questions that still need answers."""
-
     answers = (
         session.answers.model_dump()
     )
@@ -196,8 +197,8 @@ def questions(
                     "headshot_consent_confirmed"
                 ),
                 "question": (
-                    "Confirm you have rights and consent "
-                    "to use the headshot."
+                    "Confirm you have rights and "
+                    "consent to use the headshot."
                 ),
             }
         )
@@ -248,8 +249,8 @@ def questions(
                     "logo_consent_confirmed"
                 ),
                 "question": (
-                    "Confirm you have rights and consent "
-                    "to use the logo."
+                    "Confirm you have rights and "
+                    "consent to use the logo."
                 ),
             }
         )
@@ -277,8 +278,6 @@ def update_answers(
     session_id: str,
     patch: GrillMeAnswers,
 ) -> GrillMeSession:
-    """Merge only the fields supplied by the caller."""
-
     session = load_session(
         session_id
     )
@@ -296,14 +295,12 @@ def update_answers(
         exclude_unset=True
     )
 
-    merged = {
-        **session.answers.model_dump(),
-        **values,
-    }
-
     session.answers = (
         GrillMeAnswers.model_validate(
-            merged
+            {
+                **session.answers.model_dump(),
+                **values,
+            }
         )
     )
 
@@ -320,14 +317,8 @@ def update_answers(
 
 def append_programme_item(
     session_id: str,
-    item: ProgrammeItem,
+    item,
 ) -> GrillMeSession:
-    """Append one programme row.
-
-    The programme may contain between one and fifteen rows.
-    Nothing is hardcoded to require exactly fifteen rows.
-    """
-
     session = load_session(
         session_id
     )
@@ -389,8 +380,7 @@ async def store_asset(
         "logo",
     }:
         raise ValueError(
-            "asset_name must be "
-            "headshot or logo."
+            "asset_name must be headshot or logo."
         )
 
     session = load_session(
@@ -415,8 +405,7 @@ async def store_asset(
 
     if suffix is None:
         raise ValueError(
-            "Assets must be JPEG "
-            "or PNG files."
+            "Assets must be JPEG or PNG files."
         )
 
     data = await upload.read(
@@ -477,16 +466,7 @@ def freeze_for_generation(
     dict,
     dict,
 ]:
-    """Freeze Grill-Me and split background/final responsibilities.
-
-    background_brief:
-        Only information needed to generate background concepts.
-
-    final_details:
-        Information retained until ONE background has been selected.
-        This includes the theme colours so the final composer can derive
-        the liquid-glass treatment and text colour from the user's theme.
-    """
+    """Freeze Grill-Me and split background/final data."""
 
     session = load_session(
         session_id
@@ -511,8 +491,8 @@ def freeze_for_generation(
 
     if session.status == "generated":
         raise ValueError(
-            "This Grill-Me session has "
-            "already generated backgrounds."
+            "This Grill-Me session has already "
+            "generated backgrounds."
         )
 
     session.status = "generating"
@@ -528,32 +508,11 @@ def freeze_for_generation(
         session.answers.model_dump()
     )
 
-    # This information is used by the LLMs and diffusion engines.
-    # It does NOT contain programme rows or visible event details.
-    background_brief = {
-        key: answer[key]
-        for key in (
-            "event_type",
-            "theme",
-            "age_group",
-            "primary_colour",
-            "secondary_colour",
-            "creative_description",
-            "title_preference",
-            "event_date",
-            "start_time",
-            "timezone",
-            "output_language",
-            "accessibility_preferences",
-        )
-    }
-
-    # This information is held until the user selects one background.
+    # Information used to create the visual backgrounds.
     #
-    # Theme values are deliberately preserved here because the final
-    # deterministic composer uses them to style the liquid-glass panels
-    # and choose an appropriately dark theme-relative text colour.
-    final_details = {
+    # programme and venue are deliberately excluded from
+    # diffusion prompt generation.
+    background_brief = {
         "event_type": (
             answer["event_type"]
         ),
@@ -569,6 +528,76 @@ def freeze_for_generation(
         "secondary_colour": (
             answer["secondary_colour"]
         ),
+        "creative_description": (
+            answer[
+                "creative_description"
+            ]
+        ),
+        "title_preference": (
+            answer[
+                "title_preference"
+            ]
+        ),
+        "event_date": (
+            answer[
+                "event_date"
+            ]
+        ),
+        "start_time": (
+            answer[
+                "start_time"
+            ]
+        ),
+        "timezone": (
+            answer[
+                "timezone"
+            ]
+        ),
+        "output_language": (
+            answer[
+                "output_language"
+            ]
+        ),
+        "accessibility_preferences": (
+            answer[
+                "accessibility_preferences"
+            ]
+        ),
+    }
+
+    # This payload is held back until ONE background is selected.
+    #
+    # The theme colours are retained because the deterministic
+    # composer uses them to derive the glass border and text colours.
+    final_details = {
+        "session_id": (
+            session.session_id
+        ),
+        "reference_number": (
+            reference_number
+        ),
+
+        "event_type": (
+            answer["event_type"]
+        ),
+        "theme": (
+            answer["theme"]
+        ),
+        "age_group": (
+            answer["age_group"]
+        ),
+
+        "primary_colour": (
+            answer[
+                "primary_colour"
+            ]
+        ),
+        "secondary_colour": (
+            answer[
+                "secondary_colour"
+            ]
+        ),
+
         "creative_description": (
             answer[
                 "creative_description"
@@ -670,8 +699,7 @@ def freeze_for_generation(
                     "headshot_consent_confirmed"
                 )
             )
-            and
-            (
+            and (
                 "logo"
                 not in session.assets
                 or answer.get(

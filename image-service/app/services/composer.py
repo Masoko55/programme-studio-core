@@ -1,16 +1,11 @@
-"""Deterministic final composition.
+"""Deterministic final programme composition.
 
-Diffusion supplies only the selected background.
+Diffusion supplies the background only.
 
-After the user selects one background, this module adds:
-- event title
-- date/time/venue
-- programme rows
-- optional approved assets
-
-Text is rendered over translucent liquid-glass panels. The visible colour
-treatment derives from the event theme and selected background rather than
-using hardcoded white/gold styling.
+After a user selects one generated background, this module adds event
+information and approved assets. Text colours dynamically adapt to the
+actual brightness behind each content panel while remaining related to
+the user's primary/secondary event palette.
 """
 
 import hashlib
@@ -23,9 +18,12 @@ from PIL import (
     ImageDraw,
     ImageFilter,
     ImageFont,
+    ImageStat,
 )
 
-from app.config.settings import settings
+from app.config.settings import (
+    settings,
+)
 from app.schemas.composition import (
     CompositionResult,
 )
@@ -45,34 +43,35 @@ NAMED_COLOURS = {
     "black": (0, 0, 0),
     "white": (255, 255, 255),
 
-    "red": (220, 40, 40),
-    "blue": (40, 90, 210),
-    "green": (45, 145, 80),
+    "red": (220, 45, 45),
+    "blue": (45, 95, 220),
+    "green": (45, 150, 80),
 
-    "pink": (235, 110, 165),
-    "purple": (125, 70, 180),
-    "violet": (115, 75, 180),
+    "pink": (235, 115, 170),
+    "purple": (125, 75, 185),
+    "violet": (120, 80, 185),
 
-    "orange": (225, 125, 40),
-    "yellow": (225, 185, 40),
+    "orange": (230, 130, 45),
+    "yellow": (230, 195, 45),
 
-    "gold": (190, 145, 45),
-    "golden": (190, 145, 45),
+    "gold": (195, 150, 50),
+    "golden": (195, 150, 50),
 
-    "silver": (165, 170, 180),
-    "grey": (120, 120, 120),
-    "gray": (120, 120, 120),
+    "silver": (175, 180, 190),
 
-    "navy": (25, 45, 95),
-    "teal": (35, 125, 125),
-    "cyan": (50, 165, 185),
+    "grey": (125, 125, 125),
+    "gray": (125, 125, 125),
 
-    "brown": (115, 75, 45),
-    "beige": (205, 185, 145),
-    "cream": (235, 220, 180),
+    "navy": (25, 45, 100),
+    "teal": (35, 135, 135),
+    "cyan": (55, 170, 190),
 
-    "maroon": (110, 30, 45),
-    "burgundy": (115, 35, 55),
+    "brown": (120, 80, 50),
+    "beige": (210, 190, 150),
+    "cream": (240, 225, 190),
+
+    "maroon": (115, 30, 50),
+    "burgundy": (120, 35, 60),
 }
 
 
@@ -117,7 +116,8 @@ def normalized_zone_to_pixels(
         > 1.000001
     ):
         raise ValueError(
-            "Invalid layout zone: outside page."
+            "Invalid layout zone: "
+            "outside page."
         )
 
     result = (
@@ -158,8 +158,8 @@ def normalized_zone_to_pixels(
         - SAFE_MARGIN_Y
     ):
         raise ValueError(
-            "Layout zone violates the 10 mm "
-            "safe margin."
+            "Layout zone violates "
+            "the 10 mm safe margin."
         )
 
     return result
@@ -204,8 +204,8 @@ def load_font(
             )
 
     raise RuntimeError(
-        "Required scalable fonts are missing. "
-        "Install fonts-dejavu-core."
+        "Required scalable fonts "
+        "are missing."
     )
 
 
@@ -215,10 +215,10 @@ def wrap_text(
     font,
     max_width: int,
 ) -> list[str]:
-    lines: list[str] = []
+    lines = []
 
     for paragraph in (
-        text.split("\n")
+        str(text).split("\n")
     ):
         current = ""
 
@@ -282,8 +282,6 @@ def parse_colour(
     int,
     int,
 ] | None:
-    """Parse common colour names and hexadecimal colours."""
-
     if not value:
         return None
 
@@ -306,32 +304,25 @@ def parse_colour(
     )
 
     if hexadecimal:
-        value = (
+        raw = (
             hexadecimal.group(1)
         )
 
         return (
             int(
-                value[0:2],
+                raw[0:2],
                 16,
             ),
             int(
-                value[2:4],
+                raw[2:4],
                 16,
             ),
             int(
-                value[4:6],
+                raw[4:6],
                 16,
             ),
         )
 
-    # Allow phrases such as:
-    #
-    #   dark blue
-    #   blush pink
-    #   black and white
-    #
-    # by looking for a known colour token.
     for name, rgb in (
         NAMED_COLOURS.items()
     ):
@@ -344,6 +335,32 @@ def parse_colour(
     return None
 
 
+def srgb_channel(
+    value: int,
+) -> float:
+    channel = (
+        value
+        / 255.0
+    )
+
+    if channel <= 0.04045:
+        return (
+            channel
+            / 12.92
+        )
+
+    return (
+        (
+            (
+                channel
+                + 0.055
+            )
+            / 1.055
+        )
+        ** 2.4
+    )
+
+
 def relative_luminance(
     colour: tuple[
         int,
@@ -351,7 +368,17 @@ def relative_luminance(
         int,
     ],
 ) -> float:
-    red, green, blue = colour
+    red = srgb_channel(
+        colour[0]
+    )
+
+    green = srgb_channel(
+        colour[1]
+    )
+
+    blue = srgb_channel(
+        colour[2]
+    )
 
     return (
         0.2126
@@ -363,49 +390,137 @@ def relative_luminance(
     )
 
 
-def darken_colour(
-    colour: tuple[
+def contrast_ratio(
+    first: tuple[
         int,
         int,
         int,
     ],
-    factor: float = 0.32,
+    second: tuple[
+        int,
+        int,
+        int,
+    ],
+) -> float:
+    first_luminance = (
+        relative_luminance(
+            first
+        )
+    )
+
+    second_luminance = (
+        relative_luminance(
+            second
+        )
+    )
+
+    lighter = max(
+        first_luminance,
+        second_luminance,
+    )
+
+    darker = min(
+        first_luminance,
+        second_luminance,
+    )
+
+    return (
+        (
+            lighter
+            + 0.05
+        )
+        / (
+            darker
+            + 0.05
+        )
+    )
+
+
+def mix_colour(
+    first: tuple[
+        int,
+        int,
+        int,
+    ],
+    second: tuple[
+        int,
+        int,
+        int,
+    ],
+    amount: float,
 ) -> tuple[
     int,
     int,
     int,
-    int,
 ]:
-    """Produce a dark version of a theme colour."""
-
-    red, green, blue = colour
-
-    result = (
-        max(
-            8,
-            round(
-                red
-                * factor
-            ),
+    amount = max(
+        0.0,
+        min(
+            1.0,
+            amount,
         ),
-        max(
-            8,
-            round(
-                green
-                * factor
-            ),
-        ),
-        max(
-            8,
-            round(
-                blue
-                * factor
-            ),
-        ),
-        255,
     )
 
-    return result
+    return tuple(
+        round(
+            first[index]
+            * (
+                1.0
+                - amount
+            )
+            + second[index]
+            * amount
+        )
+        for index in range(
+            3
+        )
+    )
+
+
+def average_region_colour(
+    image: Image.Image,
+    box: tuple[
+        int,
+        int,
+        int,
+        int,
+    ],
+) -> tuple[
+    int,
+    int,
+    int,
+]:
+    """Measure the actual selected background behind a content panel."""
+
+    region = (
+        image
+        .convert(
+            "RGB"
+        )
+        .crop(
+            box
+        )
+        .resize(
+            (
+                32,
+                32,
+            ),
+            Image.Resampling.LANCZOS,
+        )
+    )
+
+    statistics = (
+        ImageStat.Stat(
+            region
+        )
+    )
+
+    return tuple(
+        round(value)
+        for value in (
+            statistics.mean[:3]
+        )
+    )
 
 
 def sample_background_accent(
@@ -415,11 +530,11 @@ def sample_background_accent(
     int,
     int,
 ]:
-    """Find a useful mid-tone from the selected background."""
-
     sample = (
         image
-        .convert("RGB")
+        .convert(
+            "RGB"
+        )
         .resize(
             (
                 80,
@@ -429,14 +544,7 @@ def sample_background_accent(
         )
     )
 
-    candidates: dict[
-        tuple[
-            int,
-            int,
-            int,
-        ],
-        int,
-    ] = {}
+    candidates = {}
 
     for (
         red,
@@ -473,9 +581,15 @@ def sample_background_accent(
             >= 24
         ):
             colour = (
-                red // 16 * 16,
-                green // 16 * 16,
-                blue // 16 * 16,
+                red
+                // 16
+                * 16,
+                green
+                // 16
+                * 16,
+                blue
+                // 16
+                * 16,
             )
 
             candidates[
@@ -490,9 +604,9 @@ def sample_background_accent(
 
     if not candidates:
         return (
-            75,
-            75,
-            75,
+            90,
+            90,
+            90,
         )
 
     return max(
@@ -501,117 +615,286 @@ def sample_background_accent(
     )
 
 
-def theme_accent_colour(
+def theme_colours(
     image: Image.Image,
     brief: dict,
-) -> tuple[
-    int,
-    int,
-    int,
+) -> list[
+    tuple[
+        int,
+        int,
+        int,
+    ]
 ]:
-    """Prefer the user's theme colours; fall back to the image."""
+    colours = []
 
-    primary = parse_colour(
-        brief.get(
-            "primary_colour"
-        )
-    )
-
-    secondary = parse_colour(
-        brief.get(
-            "secondary_colour"
-        )
-    )
-
-    if primary is not None:
-        # A pure white primary colour would make
-        # a weak outline, so prefer the secondary
-        # colour if it has stronger visual identity.
-        if (
-            relative_luminance(
-                primary
+    for key in (
+        "primary_colour",
+        "secondary_colour",
+    ):
+        parsed = parse_colour(
+            brief.get(
+                key
             )
-            > 230
-            and secondary
-            is not None
-        ):
-            return secondary
-
-        return primary
-
-    if secondary is not None:
-        return secondary
-
-    return (
-        sample_background_accent(
-            image
         )
-    )
+
+        if (
+            parsed is not None
+            and parsed not in colours
+        ):
+            colours.append(
+                parsed
+            )
+
+    if not colours:
+        colours.append(
+            sample_background_accent(
+                image
+            )
+        )
+
+    return colours
 
 
-def theme_text_colour(
+def themed_text_colour(
     image: Image.Image,
     brief: dict,
+    background_colour: tuple[
+        int,
+        int,
+        int,
+    ],
 ) -> tuple[
     int,
     int,
     int,
     int,
 ]:
-    """Choose text darker than the theme.
+    """Select readable text while respecting the event palette.
 
-    Examples:
+    Dark artwork:
+        Prefer a lightened primary/secondary colour.
 
-    blue theme  -> dark navy
-    pink theme  -> dark berry/maroon
-    red theme   -> dark burgundy
-    black theme -> near black
+    Light artwork:
+        Prefer a darkened primary/secondary colour.
 
-    Text never becomes a light theme colour because legibility
-    takes priority over matching the palette literally.
+    The final candidate must have sufficient contrast against the
+    measured local background. Otherwise a palette-tinted near-white
+    or near-black fallback is used.
     """
 
-    accent = (
-        theme_accent_colour(
-            image,
-            brief,
+    palette = theme_colours(
+        image,
+        brief,
+    )
+
+    background_luminance = (
+        relative_luminance(
+            background_colour
         )
     )
 
-    # White / very light themes still require dark text.
-    if (
-        relative_luminance(
-            accent
-        )
-        > 215
-    ):
-        return (
-            28,
-            28,
-            32,
-            255,
-        )
-
-    text = darken_colour(
-        accent,
-        factor=0.30,
+    background_is_dark = (
+        background_luminance
+        < 0.34
     )
 
-    # Prevent unusually bright derived colours.
-    if (
-        relative_luminance(
-            text[:3]
-        )
-        > 95
-    ):
-        return (
-            35,
-            35,
-            40,
-            255,
+    candidates = []
+
+    if background_is_dark:
+        for colour in palette:
+            candidates.extend(
+                [
+                    mix_colour(
+                        colour,
+                        (
+                            255,
+                            255,
+                            255,
+                        ),
+                        0.72,
+                    ),
+                    mix_colour(
+                        colour,
+                        (
+                            255,
+                            255,
+                            255,
+                        ),
+                        0.84,
+                    ),
+                    mix_colour(
+                        colour,
+                        (
+                            255,
+                            255,
+                            255,
+                        ),
+                        0.92,
+                    ),
+                ]
+            )
+
+        palette_average = tuple(
+            round(
+                sum(
+                    colour[index]
+                    for colour
+                    in palette
+                )
+                / len(
+                    palette
+                )
+            )
+            for index in range(
+                3
+            )
         )
 
-    return text
+        candidates.append(
+            mix_colour(
+                palette_average,
+                (
+                    255,
+                    255,
+                    255,
+                ),
+                0.90,
+            )
+        )
+
+        candidates.append(
+            (
+                248,
+                248,
+                246,
+            )
+        )
+
+    else:
+        for colour in palette:
+            candidates.extend(
+                [
+                    mix_colour(
+                        colour,
+                        (
+                            0,
+                            0,
+                            0,
+                        ),
+                        0.62,
+                    ),
+                    mix_colour(
+                        colour,
+                        (
+                            0,
+                            0,
+                            0,
+                        ),
+                        0.74,
+                    ),
+                    mix_colour(
+                        colour,
+                        (
+                            0,
+                            0,
+                            0,
+                        ),
+                        0.84,
+                    ),
+                ]
+            )
+
+        palette_average = tuple(
+            round(
+                sum(
+                    colour[index]
+                    for colour
+                    in palette
+                )
+                / len(
+                    palette
+                )
+            )
+            for index in range(
+                3
+            )
+        )
+
+        candidates.append(
+            mix_colour(
+                palette_average,
+                (
+                    0,
+                    0,
+                    0,
+                ),
+                0.88,
+            )
+        )
+
+        candidates.append(
+            (
+                24,
+                24,
+                28,
+            )
+        )
+
+    best = max(
+        candidates,
+        key=lambda colour: (
+            contrast_ratio(
+                colour,
+                background_colour,
+            )
+        ),
+    )
+
+    return (
+        best[0],
+        best[1],
+        best[2],
+        255,
+    )
+
+
+def panel_accent_colour(
+    image: Image.Image,
+    brief: dict,
+    background_colour: tuple[
+        int,
+        int,
+        int,
+    ],
+) -> tuple[
+    int,
+    int,
+    int,
+    int,
+]:
+    palette = theme_colours(
+        image,
+        brief,
+    )
+
+    # Prefer the theme colour that is visually most distinct
+    # from the local background.
+    accent = max(
+        palette,
+        key=lambda colour: (
+            contrast_ratio(
+                colour,
+                background_colour,
+            )
+        ),
+    )
+
+    return (
+        accent[0],
+        accent[1],
+        accent[2],
+        150,
+    )
 
 
 def liquid_glass_panel(
@@ -622,19 +905,26 @@ def liquid_glass_panel(
         int,
         int,
     ],
+    background_colour: tuple[
+        int,
+        int,
+        int,
+    ],
     accent: tuple[
+        int,
         int,
         int,
         int,
     ],
 ) -> None:
-    """Render a subtle translucent liquid-glass panel.
+    """Render an almost-transparent adaptive glass panel."""
 
-    The selected artwork remains clearly visible through the panel.
-    There is no opaque white rectangle.
-    """
-
-    left, top, right, bottom = box
+    (
+        left,
+        top,
+        right,
+        bottom,
+    ) = box
 
     width = (
         right
@@ -654,27 +944,19 @@ def liquid_glass_panel(
 
     radius = 28
 
-    # Create a softly blurred version of the artwork
-    # behind the panel.
-    region = image.crop(
-        (
-            left,
-            top,
-            right,
-            bottom,
+    source_region = (
+        image
+        .crop(
+            box
         )
-    )
-
-    blurred = (
-        region
         .filter(
             ImageFilter.GaussianBlur(
-                radius=14
+                radius=15
             )
         )
     )
 
-    mask = Image.new(
+    blur_mask = Image.new(
         "L",
         (
             width,
@@ -683,13 +965,9 @@ def liquid_glass_panel(
         0,
     )
 
-    mask_draw = (
-        ImageDraw.Draw(
-            mask
-        )
-    )
-
-    mask_draw.rounded_rectangle(
+    ImageDraw.Draw(
+        blur_mask
+    ).rounded_rectangle(
         (
             0,
             0,
@@ -697,36 +975,74 @@ def liquid_glass_panel(
             height - 1,
         ),
         radius=radius,
-        fill=90,
+        fill=115,
     )
 
-    blurred_layer = (
-        Image.new(
-            "RGBA",
-            image.size,
-            (
-                0,
-                0,
-                0,
-                0,
-            ),
-        )
+    blur_layer = Image.new(
+        "RGBA",
+        image.size,
+        (
+            0,
+            0,
+            0,
+            0,
+        ),
     )
 
-    blurred_layer.paste(
-        blurred,
+    blur_layer.paste(
+        source_region,
         (
             left,
             top,
         ),
-        mask,
+        blur_mask,
     )
 
     image.alpha_composite(
-        blurred_layer
+        blur_layer
     )
 
-    # Near-transparent glass tint.
+    background_is_dark = (
+        relative_luminance(
+            background_colour
+        )
+        < 0.34
+    )
+
+    # Almost-transparent glass:
+    #
+    # dark backgrounds get a tiny light veil;
+    # light backgrounds get a tiny dark veil.
+    if background_is_dark:
+        glass_fill = (
+            255,
+            255,
+            255,
+            34,
+        )
+
+        highlight = (
+            255,
+            255,
+            255,
+            90,
+        )
+
+    else:
+        glass_fill = (
+            20,
+            20,
+            24,
+            24,
+        )
+
+        highlight = (
+            255,
+            255,
+            255,
+            70,
+        )
+
     glass = Image.new(
         "RGBA",
         image.size,
@@ -738,52 +1054,31 @@ def liquid_glass_panel(
         ),
     )
 
-    glass_draw = (
-        ImageDraw.Draw(
-            glass,
-            "RGBA",
-        )
+    draw = ImageDraw.Draw(
+        glass,
+        "RGBA",
     )
 
-    glass_draw.rounded_rectangle(
-        (
-            left,
-            top,
-            right,
-            bottom,
-        ),
+    draw.rounded_rectangle(
+        box,
         radius=radius,
-        fill=(
-            255,
-            255,
-            255,
-            48,
-        ),
-        outline=(
-            accent[0],
-            accent[1],
-            accent[2],
-            125,
-        ),
+        fill=glass_fill,
+        outline=accent,
         width=4,
     )
 
-    # Thin highlight across the upper edge adds the
-    # glass-like reflective effect without becoming
-    # a solid white container.
-    glass_draw.line(
+    draw.line(
         (
-            left + radius,
-            top + 3,
-            right - radius,
-            top + 3,
+            left
+            + radius,
+            top
+            + 3,
+            right
+            - radius,
+            top
+            + 3,
         ),
-        fill=(
-            255,
-            255,
-            255,
-            105,
-        ),
+        fill=highlight,
         width=2,
     )
 
@@ -805,10 +1100,13 @@ def draw_panel(
     max_size: int,
     min_size: int = 42,
 ) -> None:
-    left, top, right, bottom = (
-        normalized_zone_to_pixels(
-            zone
-        )
+    (
+        left,
+        top,
+        right,
+        bottom,
+    ) = normalized_zone_to_pixels(
+        zone
     )
 
     padding = 32
@@ -820,8 +1118,10 @@ def draw_panel(
     available_width = (
         right
         - left
-        - 2
-        * padding
+        - (
+            2
+            * padding
+        )
     )
 
     runs = []
@@ -853,14 +1153,12 @@ def draw_panel(
                     + 10
                 )
 
-                wrapped = wrap_text(
+                for line in wrap_text(
                     draw,
                     str(text),
                     font,
                     available_width,
-                )
-
-                for line in wrapped:
+                ):
                     candidate_runs.append(
                         (
                             line,
@@ -878,8 +1176,10 @@ def draw_panel(
                 <= (
                     bottom
                     - top
-                    - 2
-                    * padding
+                    - (
+                        2
+                        * padding
+                    )
                 )
             ):
                 runs = (
@@ -907,32 +1207,46 @@ def draw_panel(
         bottom,
         top
         + content_height
-        + 2
-        * padding,
+        + (
+            2
+            * padding
+        ),
     )
 
-    accent = (
-        theme_accent_colour(
+    panel_box = (
+        left,
+        top,
+        right,
+        panel_bottom,
+    )
+
+    local_background = (
+        average_region_colour(
             image,
-            brief,
+            panel_box,
         )
     )
 
     text_colour = (
-        theme_text_colour(
+        themed_text_colour(
             image,
             brief,
+            local_background,
+        )
+    )
+
+    accent = (
+        panel_accent_colour(
+            image,
+            brief,
+            local_background,
         )
     )
 
     liquid_glass_panel(
         image,
-        (
-            left,
-            top,
-            right,
-            panel_bottom,
-        ),
+        panel_box,
+        local_background,
         accent,
     )
 
@@ -948,7 +1262,7 @@ def draw_panel(
     for (
         line,
         font,
-        height,
+        line_height,
     ) in runs:
         draw.text(
             (
@@ -962,7 +1276,7 @@ def draw_panel(
             anchor="lt",
         )
 
-        y += height
+        y += line_height
 
 
 def overlay_asset(
@@ -1000,14 +1314,14 @@ def overlay_asset(
                 "be JPEG or PNG."
             )
 
-        image = (
+        asset = (
             source
             .convert(
                 "RGBA"
             )
         )
 
-    image.thumbnail(
+    asset.thumbnail(
         (
             right
             - left,
@@ -1024,29 +1338,29 @@ def overlay_asset(
         == "circle"
     ):
         side = min(
-            image.width,
-            image.height,
+            asset.width,
+            asset.height,
         )
 
-        image = image.crop(
+        asset = asset.crop(
             (
                 (
-                    image.width
+                    asset.width
                     - side
                 )
                 // 2,
                 (
-                    image.height
+                    asset.height
                     - side
                 )
                 // 2,
                 (
-                    image.width
+                    asset.width
                     + side
                 )
                 // 2,
                 (
-                    image.height
+                    asset.height
                     + side
                 )
                 // 2,
@@ -1055,7 +1369,7 @@ def overlay_asset(
 
         mask = Image.new(
             "L",
-            image.size,
+            asset.size,
             0,
         )
 
@@ -1065,13 +1379,13 @@ def overlay_asset(
             (
                 0,
                 0,
-                image.width - 1,
-                image.height - 1,
+                asset.width - 1,
+                asset.height - 1,
             ),
             fill=255,
         )
 
-        image.putalpha(
+        asset.putalpha(
             mask
         )
 
@@ -1083,7 +1397,7 @@ def overlay_asset(
     ):
         mask = Image.new(
             "L",
-            image.size,
+            asset.size,
             0,
         )
 
@@ -1093,43 +1407,41 @@ def overlay_asset(
             (
                 0,
                 0,
-                image.width - 1,
-                image.height - 1,
+                asset.width - 1,
+                asset.height - 1,
             ),
             radius=(
                 min(
-                    image.width,
-                    image.height,
+                    asset.width,
+                    asset.height,
                 )
                 // 10
             ),
             fill=255,
         )
 
-        image.putalpha(
+        asset.putalpha(
             mask
         )
 
-    destination = (
-        left
-        + (
-            right
-            - left
-            - image.width
-        )
-        // 2,
-        top
-        + (
-            bottom
-            - top
-            - image.height
-        )
-        // 2,
-    )
-
     canvas.alpha_composite(
-        image,
-        dest=destination,
+        asset,
+        dest=(
+            left
+            + (
+                right
+                - left
+                - asset.width
+            )
+            // 2,
+            top
+            + (
+                bottom
+                - top
+                - asset.height
+            )
+            // 2,
+        ),
     )
 
 
@@ -1160,7 +1472,7 @@ def validate_layout(
                 index + 1:
             ]
         ):
-            overlaps = (
+            if (
                 first[0]
                 < second[2]
                 and first[2]
@@ -1169,9 +1481,7 @@ def validate_layout(
                 < second[3]
                 and first[3]
                 > second[1]
-            )
-
-            if overlaps:
+            ):
                 raise ValueError(
                     "Reserved layout zones overlap."
                 )
@@ -1186,7 +1496,7 @@ def compose_programme(
     layout_guidance: dict,
     output_path: Path | None = None,
 ) -> CompositionResult:
-    """Compose text/assets only after a background has been selected."""
+    """Compose the selected background into the single final programme."""
 
     validate_layout(
         layout_guidance
@@ -1255,8 +1565,6 @@ def compose_programme(
         max_size=80,
     )
 
-    rows = []
-
     programme = (
         brief.get(
             "programme"
@@ -1269,6 +1577,8 @@ def compose_programme(
             "A programme may contain "
             "at most 15 rows."
         )
+
+    rows = []
 
     for item in programme:
         time = (
@@ -1291,13 +1601,15 @@ def compose_programme(
             )
         )
 
+        row_text = (
+            f"{time}  {label}"
+            if time
+            else str(label)
+        )
+
         rows.append(
             (
-                (
-                    f"{time}  {label}"
-                    if time
-                    else str(label)
-                ),
+                row_text,
                 True,
             )
         )

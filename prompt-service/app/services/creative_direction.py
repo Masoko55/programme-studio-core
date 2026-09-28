@@ -1,12 +1,8 @@
-"""Generate creative directions from a completed Grill-Me brief."""
-
 import json
 import logging
 import re
 
-from app.config.settings import (
-    settings,
-)
+from app.config.settings import settings
 
 from app.schemas.creative_direction import (
     CreativeDirectionOutput,
@@ -14,9 +10,7 @@ from app.schemas.creative_direction import (
     LayoutZone,
 )
 
-from app.services.ollama import (
-    generate_text,
-)
+from app.services.ollama import generate_text
 
 
 logger = logging.getLogger(
@@ -80,13 +74,21 @@ KNOWN_COLOURS = (
 )
 
 
+NEUTRAL_COLOURS = {
+    "black",
+    "white",
+    "grey",
+    "silver",
+}
+
+
 def normalize_colour(
     value: str | None,
 ) -> str | None:
     if not value:
         return None
 
-    value = (
+    normalized = (
         value
         .strip()
         .lower()
@@ -94,8 +96,8 @@ def normalize_colour(
 
     return (
         COLOUR_ALIASES.get(
-            value,
-            value,
+            normalized,
+            normalized,
         )
     )
 
@@ -103,50 +105,45 @@ def normalize_colour(
 def requested_palette(
     brief: dict,
 ) -> list[str]:
-    result = []
+    colours = []
 
     for key in (
         "primary_colour",
         "secondary_colour",
     ):
-        colour = (
-            normalize_colour(
-                brief.get(
-                    key
-                )
+        colour = normalize_colour(
+            brief.get(
+                key
             )
         )
 
         if (
             colour
-            and colour not in result
+            and colour not in colours
         ):
-            result.append(
+            colours.append(
                 colour
             )
 
-    return result
+    return colours
 
 
-def palette_contract(
+def positive_palette_description(
     brief: dict,
 ) -> str:
-    colours = (
-        requested_palette(
-            brief
-        )
+    colours = requested_palette(
+        brief
     )
 
     if not colours:
         return (
-            "Use one restrained coherent palette."
+            "A restrained cohesive colour palette "
+            "with balanced tonal variation."
         )
 
-    primary = (
-        colours[
-            0
-        ]
-    )
+    primary = colours[
+        0
+    ]
 
     secondary = (
         colours[
@@ -158,54 +155,33 @@ def palette_contract(
         else None
     )
 
-    allowed = (
-        primary
-        if secondary is None
-        else (
-            f"{primary} and {secondary}"
+    if (
+        set(
+            colours
         )
-    )
-
-    text = [
-        (
-            "STRICT COLOUR PALETTE CONTRACT: "
-            f"use {allowed}."
-        ),
-        (
-            f"{primary} is the primary colour "
-            "and must remain clearly visible and dominant."
-        ),
-        (
-            "Do not substitute the requested colours "
-            "with theme-associated alternatives."
-        ),
-        (
-            "Do not introduce unrelated accent colours."
-        ),
-    ]
+        == {
+            "black",
+            "white",
+        }
+    ):
+        return (
+            "A strictly achromatic palette of black, "
+            "white and neutral grayscale, with black "
+            "as the dominant visual colour and white "
+            "providing clean tonal contrast."
+        )
 
     if secondary:
-        text.append(
-            (
-                f"{secondary} is the secondary colour."
-            )
+        return (
+            f"A controlled {primary} and {secondary} palette, "
+            f"with {primary} clearly dominant throughout the "
+            f"composition and {secondary} used as the supporting "
+            "colour."
         )
 
-    if set(
-        colours
-    ) == {
-        "black",
-        "white",
-    }:
-        text.append(
-            (
-                "Use only black, white and neutral grayscale. "
-                "No chromatic colour."
-            )
-        )
-
-    return " ".join(
-        text
+    return (
+        f"A controlled {primary} palette with {primary} "
+        "clearly dominant throughout the composition."
     )
 
 
@@ -220,13 +196,9 @@ def palette_negative(
 
     banned = []
 
-    for colour in (
-        KNOWN_COLOURS
-    ):
-        normalized = (
-            normalize_colour(
-                colour
-            )
+    for colour in KNOWN_COLOURS:
+        normalized = normalize_colour(
+            colour
         )
 
         if (
@@ -239,7 +211,7 @@ def palette_negative(
 
     return (
         "off-palette colours, colour drift, "
-        "unrequested accent colours, "
+        "unrequested accent colours, multicolour palette, "
         + ", ".join(
             banned
         )
@@ -254,14 +226,12 @@ def safe_layout() -> LayoutGuidance:
             width=0.80,
             height=0.12,
         ),
-
         programme_zone=LayoutZone(
             x=0.10,
             y=0.47,
             width=0.80,
             height=0.40,
         ),
-
         headshot_zone=None,
         logo_zone=None,
     )
@@ -290,18 +260,12 @@ def direction_configuration(
 
     model = getattr(
         settings,
-        (
-            f"direction_"
-            f"{normalized}_model"
-        ),
+        f"direction_{normalized}_model",
     )
 
     role = getattr(
         settings,
-        (
-            f"direction_"
-            f"{normalized}_role"
-        ),
+        f"direction_{normalized}_role",
     )
 
     return (
@@ -321,14 +285,23 @@ def fallback_prompt(
         or "celebration"
     )
 
+    palette = (
+        positive_palette_description(
+            brief
+        )
+    )
+
     return (
-        f"{role} abstract A4 portrait event background. "
-        f"{theme} atmosphere. "
-        "Decorative abstract texture. "
-        "Refined border treatment. "
-        "Generous negative space. "
-        "No people. No text. "
-        f"{palette_contract(brief)}"
+        f"{role} abstract A4 portrait decorative event background, "
+        f"{theme} atmosphere, "
+        f"{palette} "
+        "refined layered materials, "
+        "soft controlled lighting, "
+        "elegant abstract forms, "
+        "balanced border details, "
+        "subtle depth and texture, "
+        "generous visual breathing room, "
+        "quiet upper and central regions reserved for later composition."
     )
 
 
@@ -362,7 +335,18 @@ def sanitize_positive_prompt(
             in POSITIVE_PROMPT_FORBIDDEN_TERMS
         )
 
-        if not blocked:
+        negative_instruction = bool(
+            re.search(
+                r"\b(?:do not|don't|no|without|avoid)\b",
+                clause,
+                re.IGNORECASE,
+            )
+        )
+
+        if (
+            not blocked
+            and not negative_instruction
+        ):
             clean.append(
                 clause
             )
@@ -377,23 +361,25 @@ def sanitize_positive_prompt(
         len(
             result
         )
-        < 30
+        < 40
     ):
-        result = (
-            fallback_prompt(
-                brief,
-                role,
-            )
+        return fallback_prompt(
+            brief,
+            role,
         )
+
+    palette = (
+        positive_palette_description(
+            brief
+        )
+    )
 
     return (
         result.rstrip(
             ". "
         )
         + ". "
-        + palette_contract(
-            brief
-        )
+        + palette
     )
 
 
@@ -405,78 +391,79 @@ def build_creative_direction_prompt(
 ) -> str:
     requirements = [
         (
-            "Use the supplied event brief as "
-            "the source of truth."
+            "Use the supplied event brief as the source "
+            "of truth."
         ),
-
         (
-            "Design background artwork only."
+            "Create visual background artwork rather than "
+            "a finished poster."
         ),
-
         (
-            "Do not render event title, venue, programme "
-            "or other event details into the image."
+            "Keep the positive_prompt purely descriptive."
         ),
-
         (
-            "Do not generate text, typography, words, "
-            "letters, numbers, logos or watermarks."
+            "Put exclusions and unwanted content only in "
+            "negative_prompt."
         ),
-
         (
-            "Do not generate people, human figures, "
-            "faces, silhouettes, portraits, body parts, "
-            "mannequins or human-shaped focal objects."
+            "The positive_prompt must describe visual style, "
+            "composition, materials, lighting, atmosphere and "
+            "the requested colour palette."
         ),
-
         (
-            "The requested primary and secondary colours "
-            "are strict production requirements."
+            "The requested primary colour must be clearly "
+            "visible and dominant."
         ),
-
         (
-            "Do not replace the user's palette with "
-            "colours that merely suit the event theme."
+            "The requested secondary colour must support "
+            "the primary colour."
         ),
-
         (
-            "Leave visually quiet space for title "
+            "The negative_prompt must exclude people, faces, "
+            "human figures, portraits, silhouettes, body parts, "
+            "mannequins, clothing, text, words, letters, numbers, "
+            "logos and watermarks."
+        ),
+        (
+            "The negative_prompt must exclude colour families "
+            "outside the requested palette."
+        ),
+        (
+            "Leave visually quiet regions suitable for title "
             "and programme overlays added later."
         ),
-
         (
-            "Return JSON matching the supplied schema."
+            "Return JSON matching the supplied output schema."
         ),
     ]
 
-    instruction = {
+    payload = {
         "task": (
-            "Create one creative direction for "
-            "an A4 portrait event background."
+            "Create one creative direction for an "
+            "A4 portrait event background."
         ),
-
         "direction_id": (
             direction_id.upper()
         ),
-
         "creative_role": (
             role
         ),
-
         "event_brief": (
             brief
         ),
-
-        "palette_contract": (
-            palette_contract(
+        "positive_palette_description": (
+            positive_palette_description(
                 brief
             )
         ),
-
+        "negative_palette_constraints": (
+            palette_negative(
+                brief
+            )
+        ),
         "requirements": (
             requirements
         ),
-
         "output_schema": (
             CreativeDirectionOutput
             .model_json_schema()
@@ -484,22 +471,20 @@ def build_creative_direction_prompt(
     }
 
     if correction_error:
-        instruction[
+        payload[
             "correction_required"
         ] = {
             "previous_validation_error": (
                 correction_error
             ),
-
             "instruction": (
-                "Correct the previous validation error "
-                "without violating the event brief or "
-                "palette contract."
+                "Return a corrected creative direction that "
+                "satisfies the schema and validation requirements."
             ),
         }
 
     return json.dumps(
-        instruction,
+        payload,
         ensure_ascii=False,
         indent=2,
     )
@@ -524,10 +509,14 @@ async def generate_creative_direction(
 
     prompt = (
         build_creative_direction_prompt(
-            brief,
-            direction_id,
-            role,
-            correction_error,
+            brief=brief,
+            direction_id=(
+                direction_id
+            ),
+            role=role,
+            correction_error=(
+                correction_error
+            ),
         )
     )
 
@@ -551,6 +540,14 @@ async def generate_creative_direction(
         )
     )
 
+    direction.direction_id = (
+        direction_id.upper()
+    )
+
+    direction.role = (
+        role
+    )
+
     direction.positive_prompt = (
         sanitize_positive_prompt(
             direction.positive_prompt,
@@ -559,7 +556,7 @@ async def generate_creative_direction(
         )
     )
 
-    base_negative = (
+    generated_negative = (
         direction.negative_prompt
         or ""
     )
@@ -568,17 +565,19 @@ async def generate_creative_direction(
         ", ".join(
             value
             for value in (
-                base_negative.strip(
+                generated_negative.strip(
                     ", "
                 ),
                 (
-                    "people, person, human, human figure, "
-                    "face, portrait, silhouette, body, "
-                    "hands, arms, legs, mannequin, clothing"
+                    "person, people, human, human figure, "
+                    "man, woman, child, face, portrait, "
+                    "silhouette, body, head, hands, arms, "
+                    "legs, clothing, mannequin, character"
                 ),
                 (
-                    "text, typography, words, letters, "
-                    "numbers, writing, logo, watermark"
+                    "text, typography, lettering, words, "
+                    "letters, numbers, writing, calligraphy, "
+                    "signature, logo, watermark, signage"
                 ),
                 palette_negative(
                     brief
@@ -588,28 +587,9 @@ async def generate_creative_direction(
         )
     )
 
-    # We do not trust model-generated coordinates.
     direction.layout_guidance = (
         safe_layout()
     )
-
-    if (
-        direction.direction_id.upper()
-        != direction_id.upper()
-    ):
-        raise ValueError(
-            "Generated direction ID does not "
-            "match requested direction."
-        )
-
-    if (
-        direction.role
-        != role
-    ):
-        raise ValueError(
-            f"Generated role '{direction.role}' "
-            f"does not match configured role '{role}'."
-        )
 
     logger.info(
         "Completed direction %s using model %s",

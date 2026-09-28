@@ -49,9 +49,7 @@ REQUIRED_FIELDS = (
     "venue",
     "programme",
     "output_language",
-    "accessibility_preferences",
 )
-
 
 def _directory(
     session_id: str,
@@ -97,23 +95,24 @@ def _save(
 
     return session
 
-
 def create_session() -> GrillMeSession:
     session = GrillMeSession(
-        session_id=(
-            uuid.uuid4().hex
-        ),
+        session_id=uuid.uuid4().hex,
         status="questioning",
         answers=GrillMeAnswers(
-            timezone=(
-                settings.user_timezone
-            )
+            timezone=settings.user_timezone,
+            accessibility_preferences=[
+                "high contrast",
+                "clear readable programme text",
+            ],
         ),
     )
 
     return _save(
         session
     )
+
+
 
 
 def load_session(
@@ -137,7 +136,6 @@ def load_session(
             )
         )
     )
-
 
 def questions(
     session: GrillMeSession,
@@ -185,7 +183,7 @@ def questions(
         ),
 
         "venue": (
-            "What is the venue?"
+            "Where is the venue?"
         ),
 
         "programme": (
@@ -195,21 +193,14 @@ def questions(
         "output_language": (
             "What output language should be used?"
         ),
-
-        "accessibility_preferences": (
-            "What accessibility preferences should "
-            "the final programme follow?"
-        ),
     }
 
     result = [
         {
             "field": field,
-            "question": (
-                prompts[
-                    field
-                ]
-            ),
+            "question": prompts[
+                field
+            ],
         }
         for field
         in REQUIRED_FIELDS
@@ -320,6 +311,8 @@ def questions(
         )
 
     return result
+
+
 
 
 def update_answers(

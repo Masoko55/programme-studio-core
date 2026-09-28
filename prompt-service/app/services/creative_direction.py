@@ -273,7 +273,6 @@ def direction_configuration(
         role,
     )
 
-
 def fallback_prompt(
     brief: dict,
     role: str,
@@ -295,14 +294,18 @@ def fallback_prompt(
         f"{role} abstract A4 portrait decorative event background, "
         f"{theme} atmosphere, "
         f"{palette} "
+        "strong tonal contrast, "
+        "clear separation between light and dark visual regions, "
+        "high-contrast composition suitable for readable overlays, "
         "refined layered materials, "
-        "soft controlled lighting, "
+        "controlled lighting, "
         "elegant abstract forms, "
         "balanced border details, "
         "subtle depth and texture, "
         "generous visual breathing room, "
         "quiet upper and central regions reserved for later composition."
     )
+
 
 
 def sanitize_positive_prompt(
@@ -419,6 +422,19 @@ def build_creative_direction_prompt(
             "the primary colour."
         ),
         (
+            "The background must use strong tonal contrast "
+            "with clearly separated light and dark values."
+        ),
+        (
+            "The background must remain visually readable "
+            "when adaptive dark or light programme text is "
+            "placed over it later."
+        ),
+        (
+            "Do not make the whole image uniformly pale, "
+            "uniformly dark, washed out or low contrast."
+        ),
+        (
             "The negative_prompt must exclude people, faces, "
             "human figures, portraits, silhouettes, body parts, "
             "mannequins, clothing, text, words, letters, numbers, "
@@ -461,6 +477,11 @@ def build_creative_direction_prompt(
                 brief
             )
         ),
+        "automatic_rendering_policy": {
+            "high_contrast": True,
+            "readable_overlay_regions": True,
+            "background_only": True,
+        },
         "requirements": (
             requirements
         ),

@@ -22,11 +22,15 @@ import hashlib
 import io
 from pathlib import Path
 
+import cv2
+import numpy as np
+
 from PIL import (
     Image,
     ImageDraw,
     ImageFilter,
     ImageFont,
+    ImageOps,
     ImageStat,
 )
 
@@ -884,23 +888,289 @@ def draw_panel(
             line_height
         )
 
+def remove_logo_edge_matte(
+    asset: Image.Image,
+) -> Image.Image:
+    rgba = (
+        asset
+        .convert(
+            "RGBA"
+        )
+    )
+
+    array = np.array(
+        rgba,
+        dtype=np.uint8,
+    )
+
+    rgb = (
+        array[
+            :,
+            :,
+            :3
+        ]
+    )
+
+    minimum = (
+        rgb.min(
+            axis=2
+        )
+    )
+
+    maximum = (
+        rgb.max(
+            axis=2
+        )
+    )
+
+    spread = (
+        maximum
+        - minimum
+    )
+
+    candidate = (
+        (
+            minimum >= 235
+        )
+        & (
+            spread <= 28
+        )
+    ).astype(
+        np.uint8
+    )
+
+    count, labels = (
+        cv2.connectedComponents(
+            candidate,
+            connectivity=8,
+        )
+    )
+
+    if count <= 1:
+        return rgba
+
+    border_labels = set(
+        np.unique(
+            np.concatenate(
+                [
+                    labels[
+                        0,
+                        :
+                    ],
+                    labels[
+                        -1,
+                        :
+                    ],
+                    labels[
+                        :,
+                        0
+                    ],
+                    labels[
+                        :,
+                        -1
+                    ],
+                ]
+            )
+        ).tolist()
+    )
+
+    border_labels.discard(
+        0
+    )
+
+    if not border_labels:
+        return rgba
+
+    matte = np.isin(
+        labels,
+        list(
+            border_labels
+        ),
+    )
+
+    alpha = (
+        array[
+            :,
+            :,
+            3
+        ]
+    )
+
+    alpha[
+        matte
+    ] = 0
+
+    array[
+        :,
+        :,
+        3
+    ] = alpha
+
+    return Image.fromarray(
+        array,
+        mode="RGBA",
+    )
+
+
+def mask_asset_shape(
+    asset: Image.Image,
+    shape: str | None,
+) -> Image.Image:
+    if (
+        shape
+        not in {
+            "circle",
+            "rounded",
+        }
+    ):
+        return asset
+
+    mask = Image.new(
+        "L",
+        asset.size,
+        0,
+    )
+
+    draw = ImageDraw.Draw(
+        mask
+    )
+
+    if (
+        shape
+        == "circle"
+    ):
+        draw.ellipse(
+            (
+                0,
+                0,
+                asset.width - 1,
+                asset.height - 1,
+            ),
+            fill=255,
+        )
+
+    else:
+        draw.rounded_rectangle(
+            (
+                0,
+                0,
+                asset.width - 1,
+                asset.height - 1,
+            ),
+            radius=(
+                min(
+                    asset.width,
+                    asset.height,
+                )
+                // 8
+            ),
+            fill=255,
+        )
+
+    current_alpha = (
+        asset.getchannel(
+            "A"
+        )
+    )
+
+    combined = Image.new(
+        "L",
+        asset.size,
+        0,
+    )
+
+    combined_array = np.minimum(
+        np.array(
+            current_alpha
+        ),
+        np.array(
+            mask
+        ),
+    ).astype(
+        np.uint8
+    )
+
+    combined = Image.fromarray(
+        combined_array,
+        mode="L",
+    )
+
+    result = (
+        asset.copy()
+    )
+
+    result.putalpha(
+        combined
+    )
+
+    return result
+
+
+def draw_asset_glass(
+    canvas: Image.Image,
+    box: tuple[
+        int,
+        int,
+        int,
+        int,
+    ],
+) -> None:
+    statistics = (
+        region_statistics(
+            canvas,
+            box,
+        )
+    )
+
+    style = (
+        choose_panel_style(
+            statistics
+        )
+    )
+
+    adjusted_style = {
+        **style,
+        "panel_fill": (
+            style[
+                "panel_fill"
+            ][
+                :3
+            ]
+            + (
+                48,
+            )
+        ),
+        "border": (
+            style[
+                "border"
+            ][
+                :3
+            ]
+            + (
+                90,
+            )
+        ),
+    }
+
+    liquid_glass_panel(
+        canvas,
+        box,
+        adjusted_style,
+    )
+
 
 def overlay_asset(
     canvas: Image.Image,
     asset_path: str | None,
     zone: dict | None,
+    asset_kind: str,
 ) -> None:
-    if not (
-        asset_path
-    ):
+    if not asset_path:
         return
 
-    if not (
-        zone
-    ):
+    if not zone:
         raise ValueError(
-            "Supplied asset has no "
-            "reserved layout zone."
+            "Supplied asset has no reserved layout zone."
         )
 
     (
@@ -912,6 +1182,16 @@ def overlay_asset(
         normalized_zone_to_pixels(
             zone
         )
+    )
+
+    zone_width = (
+        right
+        - left
+    )
+
+    zone_height = (
+        bottom
+        - top
     )
 
     with Image.open(
@@ -935,136 +1215,123 @@ def overlay_asset(
             )
         )
 
-    asset.thumbnail(
-        (
-            right
-            - left,
-            bottom
-            - top,
-        ),
-        Image.Resampling.LANCZOS,
-    )
-
-    shape = (
-        zone.get(
-            "shape"
-        )
-    )
-
     if (
-        shape
-        == "circle"
+        asset_kind
+        == "headshot"
     ):
-        side = min(
-            asset.width,
-            asset.height,
+        shape = (
+            zone.get(
+                "shape"
+            )
+            or "rounded"
         )
 
-        asset = asset.crop(
+        target_width = (
+            zone_width
+        )
+
+        target_height = (
+            zone_height
+        )
+
+        if (
+            shape
+            == "circle"
+        ):
+            side = min(
+                target_width,
+                target_height,
+            )
+
+            target_width = side
+            target_height = side
+
+        asset = ImageOps.fit(
+            asset,
             (
-                (
-                    asset.width
-                    - side
-                )
-                // 2,
-                (
-                    asset.height
-                    - side
-                )
-                // 2,
-                (
-                    asset.width
-                    + side
-                )
-                // 2,
-                (
-                    asset.height
-                    + side
-                )
-                // 2,
+                target_width,
+                target_height,
+            ),
+            method=(
+                Image.Resampling.LANCZOS
+            ),
+            centering=(
+                0.5,
+                0.42,
+            ),
+        )
+
+        asset = (
+            mask_asset_shape(
+                asset,
+                shape,
             )
         )
 
-        mask = Image.new(
-            "L",
-            asset.size,
-            0,
-        )
-
-        ImageDraw.Draw(
-            mask
-        ).ellipse(
-            (
-                0,
-                0,
-                asset.width - 1,
-                asset.height - 1,
-            ),
-            fill=255,
-        )
-
-        asset.putalpha(
-            mask
-        )
-
     elif (
-        shape
-        == "rounded"
+        asset_kind
+        == "logo"
     ):
-        mask = Image.new(
-            "L",
-            asset.size,
-            0,
+        asset = (
+            remove_logo_edge_matte(
+                asset
+            )
         )
 
-        ImageDraw.Draw(
-            mask
-        ).rounded_rectangle(
+        inner_width = int(
+            zone_width
+            * 0.78
+        )
+
+        inner_height = int(
+            zone_height
+            * 0.72
+        )
+
+        asset.thumbnail(
             (
-                0,
-                0,
-                asset.width - 1,
-                asset.height - 1,
+                inner_width,
+                inner_height,
             ),
-            radius=(
-                min(
-                    asset.width,
-                    asset.height,
-                )
-                // 10
-            ),
-            fill=255,
+            Image.Resampling.LANCZOS,
         )
 
-        asset.putalpha(
-            mask
+        draw_asset_glass(
+            canvas,
+            (
+                left,
+                top,
+                right,
+                bottom,
+            ),
+        )
+
+    else:
+        raise ValueError(
+            f"Unsupported asset kind: {asset_kind}"
         )
 
     destination = (
         left
         + (
-            (
-                right
-                - left
-                - asset.width
-            )
-            // 2
-        ),
+            zone_width
+            - asset.width
+        )
+        // 2,
         top
         + (
-            (
-                bottom
-                - top
-                - asset.height
-            )
-            // 2
-        ),
+            zone_height
+            - asset.height
+        )
+        // 2,
     )
 
     canvas.alpha_composite(
         asset,
         dest=destination,
     )
+
+
 
 
 def validate_layout(
@@ -1334,7 +1601,9 @@ def compose_programme(
                 name
                 + "_zone"
             ),
-        )
+            asset_kind=name,
+        )    
+
 
     path = (
         output_path

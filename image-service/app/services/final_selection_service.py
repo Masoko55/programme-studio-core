@@ -45,16 +45,21 @@ def _asset_hash(
         asset.read_bytes()
     ).hexdigest()
 
-
 def _selection_layout(
     layout: dict,
     request: FinalSelectionRequest,
 ) -> dict:
-    """Use the frozen text geometry and selected asset placement."""
-
     result = {
-        "title_zone": layout["title_zone"],
-        "programme_zone": layout["programme_zone"],
+        "title_zone": (
+            layout[
+                "title_zone"
+            ]
+        ),
+        "programme_zone": (
+            layout[
+                "programme_zone"
+            ]
+        ),
     }
 
     headshot_side = (
@@ -67,16 +72,30 @@ def _selection_layout(
         or "right"
     )
 
+    if (
+        request.headshot_path
+        and request.logo_path
+        and headshot_side
+        == logo_side
+    ):
+        raise ValueError(
+            "Headshot and logo placements must "
+            "use different sides."
+        )
+
     if request.headshot_path:
-        result["headshot_zone"] = {
+        result[
+            "headshot_zone"
+        ] = {
             "x": (
-                0.10
-                if headshot_side == "left"
-                else 0.68
+                0.12
+                if headshot_side
+                == "left"
+                else 0.70
             ),
-            "y": 0.24,
-            "width": 0.22,
-            "height": 0.18,
+            "y": 0.25,
+            "width": 0.18,
+            "height": 0.15,
             "shape": (
                 request.headshot_shape
                 or "rounded"
@@ -84,28 +103,22 @@ def _selection_layout(
         }
 
     if request.logo_path:
-        result["logo_zone"] = {
+        result[
+            "logo_zone"
+        ] = {
             "x": (
-                0.10
-                if logo_side == "left"
+                0.12
+                if logo_side
+                == "left"
                 else 0.68
             ),
-            "y": 0.24,
+            "y": 0.25,
             "width": 0.22,
-            "height": 0.18,
+            "height": 0.15,
         }
 
-    if (
-        request.headshot_path
-        and request.logo_path
-        and headshot_side == logo_side
-    ):
-        raise ValueError(
-            "Headshot and logo placements must "
-            "use different sides."
-        )
-
     return result
+
 
 
 def select_final(

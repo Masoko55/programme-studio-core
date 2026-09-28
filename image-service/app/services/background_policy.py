@@ -1,15 +1,3 @@
-"""Deterministic policy for generated programme backgrounds.
-
-This module contains requirements that must remain consistent regardless
-of which diffusion model or creative-direction model is being used.
-
-Responsibilities:
-- enforce the user's requested primary/secondary colour palette
-- strengthen prompts so generated images remain background-only
-- prevent people, faces, silhouettes and human subjects
-- validate generated candidates before they become selectable
-"""
-
 from __future__ import annotations
 
 import re
@@ -23,33 +11,25 @@ from PIL import Image
 NAMED_COLOURS = {
     "black": (0, 0, 0),
     "white": (255, 255, 255),
-
     "grey": (128, 128, 128),
     "gray": (128, 128, 128),
     "silver": (185, 185, 190),
-
     "red": (220, 45, 45),
     "blue": (45, 95, 220),
     "green": (45, 150, 80),
-
     "pink": (235, 115, 170),
     "purple": (125, 75, 185),
     "violet": (120, 80, 185),
-
     "orange": (230, 130, 45),
     "yellow": (230, 195, 45),
-
     "gold": (195, 150, 50),
     "golden": (195, 150, 50),
-
     "navy": (25, 45, 100),
     "teal": (35, 135, 135),
     "cyan": (55, 170, 190),
-
     "brown": (120, 80, 50),
     "beige": (210, 190, 150),
     "cream": (240, 225, 190),
-
     "maroon": (115, 30, 50),
     "burgundy": (120, 35, 60),
 }
@@ -63,32 +43,39 @@ NEUTRAL_NAMES = {
     "silver",
 }
 
-MAX_OFF_PALETTE_RATIO = 0.10
-MIN_PRIMARY_COLOUR_RATIO = 0.06
-MIN_SECONDARY_COLOUR_RATIO = 0.015
+
+MAX_OFF_PALETTE_RATIO = 0.12
+MIN_PRIMARY_COLOUR_RATIO = 0.05
+MIN_SECONDARY_COLOUR_RATIO = 0.008
 MIN_BLACK_WHITE_RATIO = 0.90
-MAX_HUE_DISTANCE = 16
+MAX_HUE_DISTANCE = 18
+
+MIN_HOG_PERSON_WEIGHT = 0.75
+MIN_FACE_SIZE = 42
+MIN_PROFILE_SIZE = 46
+MIN_UPPER_BODY_SIZE = 70
+
 
 BACKGROUND_ONLY_NEGATIVE = (
-    "(person:2.0), "
-    "(people:2.0), "
-    "(human:2.0), "
-    "(human figure:2.0), "
-    "(man:2.0), "
-    "(woman:2.0), "
-    "(child:2.0), "
-    "(face:2.0), "
-    "(portrait:2.0), "
-    "(body:2.0), "
-    "(silhouette:2.0), "
-    "(character:2.0), "
-    "(head:2.0), "
-    "(hands:2.0), "
-    "(arms:2.0), "
-    "(legs:2.0), "
-    "(clothing:2.0), "
-    "(mannequin:2.0), "
-    "(human-shaped object:2.0), "
+    "(person:2.2), "
+    "(people:2.2), "
+    "(human:2.2), "
+    "(human figure:2.2), "
+    "(man:2.2), "
+    "(woman:2.2), "
+    "(child:2.2), "
+    "(face:2.2), "
+    "(portrait:2.2), "
+    "(body:2.2), "
+    "(silhouette:2.2), "
+    "(character:2.2), "
+    "(head:2.2), "
+    "(hands:2.2), "
+    "(arms:2.2), "
+    "(legs:2.2), "
+    "(clothing:2.2), "
+    "(mannequin:2.2), "
+    "(human-shaped object:2.2), "
     "(text:2.0), "
     "(words:2.0), "
     "(letters:2.0), "
@@ -113,7 +100,7 @@ BACKGROUND_ONLY_SUFFIX = (
     "Pure abstract nonrepresentational visual artwork. "
     "No central subject. "
     "No focal character. "
-    "No narrative scene. "
+    "No narrative human scene. "
     "No photographic person. "
     "No human silhouette. "
     "No human-shaped geometry. "
@@ -127,7 +114,8 @@ BACKGROUND_ONLY_SUFFIX = (
     "Do not create a finished poster, invitation, card, certificate, "
     "menu, document or signage. "
     "Use abstract patterns, materials, textures, ornament, lines, "
-    "gradients, shapes and lighting only. "
+    "gradients, shapes, architecture, lighting and environmental "
+    "design elements only. "
     "Preserve visually quiet regions for later title and programme text."
 )
 
@@ -189,9 +177,11 @@ def parse_colour(
     )
 
     if normalized in NAMED_COLOURS:
-        return NAMED_COLOURS[
-            normalized
-        ]
+        return (
+            NAMED_COLOURS[
+                normalized
+            ]
+        )
 
     hexadecimal = re.fullmatch(
         r"#?([0-9a-f]{6})",
@@ -199,8 +189,10 @@ def parse_colour(
     )
 
     if hexadecimal:
-        raw = hexadecimal.group(
-            1
+        raw = (
+            hexadecimal.group(
+                1
+            )
         )
 
         return (
@@ -274,9 +266,11 @@ def palette_prompt_contract(
             "Use one restrained and coherent colour palette."
         )
 
-    primary = colours[
-        0
-    ]
+    primary = (
+        colours[
+            0
+        ]
+    )
 
     secondary = (
         colours[
@@ -288,17 +282,16 @@ def palette_prompt_contract(
         else None
     )
 
-    if secondary:
-        palette_text = (
-            f"{primary} and {secondary}"
-        )
-    else:
-        palette_text = primary
+    palette_text = (
+        f"{primary} and {secondary}"
+        if secondary
+        else primary
+    )
 
     statements = [
         (
             "STRICT COLOUR PALETTE CONTRACT: "
-            f"use only {palette_text} as the intended palette."
+            f"use {palette_text} as the intended palette."
         ),
         (
             f"The primary colour is {primary}. "
@@ -309,7 +302,7 @@ def palette_prompt_contract(
             "that merely fit the event theme."
         ),
         (
-            "Do not introduce unrelated accent colours."
+            "Do not introduce unrelated chromatic accent colours."
         ),
     ]
 
@@ -317,7 +310,7 @@ def palette_prompt_contract(
         statements.append(
             (
                 f"The secondary colour is {secondary}. "
-                "It supports the primary colour."
+                "It must be visibly present as a supporting colour."
             )
         )
 
@@ -408,9 +401,11 @@ def palette_negative_contract(
 def sanitize_background_prompt(
     positive_prompt: str,
 ) -> str:
-    clauses = re.split(
-        r"[,;.!?]+",
-        positive_prompt,
+    clauses = (
+        re.split(
+            r"[,;.!?]+",
+            positive_prompt,
+        )
     )
 
     kept = []
@@ -470,7 +465,7 @@ def build_engine_prompt(
     return (
         "Abstract nonrepresentational event background. "
         "Decorative background surface only. "
-        "No subject and no narrative scene. "
+        "No human subject and no human narrative scene. "
         f"{palette} "
         f"{visual.rstrip('. ')}. "
         f"{BACKGROUND_ONLY_SUFFIX}"
@@ -480,13 +475,15 @@ def build_engine_prompt(
 def _rgb_to_hsv(
     colour: tuple[int, int, int],
 ) -> tuple[int, int, int]:
-    pixel = np.array(
-        [
+    pixel = (
+        np.array(
             [
-                colour
-            ]
-        ],
-        dtype=np.uint8,
+                [
+                    colour
+                ]
+            ],
+            dtype=np.uint8,
+        )
     )
 
     converted = (
@@ -527,8 +524,7 @@ def _hue_distance(
 
     return min(
         raw,
-        180
-        - raw,
+        180 - raw,
     )
 
 
@@ -537,8 +533,6 @@ def validate_palette(
     primary_colour: str | None,
     secondary_colour: str | None,
 ) -> dict:
-    """Validate actual generated pixels against the requested palette."""
-
     primary_name = (
         normalize_colour_name(
             primary_colour
@@ -576,15 +570,11 @@ def validate_palette(
 
     requested = [
         item
-        for item in requested
+        for item
+        in requested
         if (
-            item[
-                0
-            ]
-            and item[
-                1
-            ]
-            is not None
+            item[0]
+            and item[1] is not None
         )
     ]
 
@@ -607,9 +597,11 @@ def validate_palette(
         )
     )
 
-    rgb_array = np.array(
-        sample,
-        dtype=np.uint8,
+    rgb_array = (
+        np.array(
+            sample,
+            dtype=np.uint8,
+        )
     )
 
     hsv_array = (
@@ -635,7 +627,8 @@ def validate_palette(
         for (
             name,
             _
-        ) in requested
+        )
+        in requested
     }
 
     if requested_names == {
@@ -659,8 +652,6 @@ def validate_palette(
             monochrome_ratio
             < MIN_BLACK_WHITE_RATIO
         ):
-
-        
             raise ValueError(
                 "Generated background left the requested "
                 "black-and-white palette "
@@ -670,9 +661,7 @@ def validate_palette(
 
         return {
             "palette_checked": True,
-            "palette_mode": (
-                "black-white"
-            ),
+            "palette_mode": "black-white",
             "palette_match_ratio": (
                 monochrome_ratio
             ),
@@ -710,7 +699,8 @@ def validate_palette(
         for (
             name,
             _
-        ) in chromatic_targets
+        )
+        in chromatic_targets
     }
 
     neutral_count = 0
@@ -733,11 +723,6 @@ def validate_palette(
             value
         )
 
-        # Neutral regions include white, grey and black.
-        #
-        # Neutral shading is permitted for depth, but it
-        # does not satisfy the requirement that a chromatic
-        # primary colour must actually be visible.
         if (
             saturation <= 42
             or value <= 32
@@ -746,7 +731,7 @@ def validate_palette(
             continue
 
         best_name = None
-        best_distance <= None
+        best_distance = None
 
         for (
             name,
@@ -760,8 +745,7 @@ def validate_palette(
             )
 
             if (
-                best_distance
-                is None
+                best_distance is None
                 or distance
                 < best_distance
             ):
@@ -771,7 +755,8 @@ def validate_palette(
         if (
             best_name is not None
             and best_distance is not None
-            and best_distance <= 12
+            and best_distance
+            <= MAX_HUE_DISTANCE
         ):
             chromatic_counts[
                 best_name
@@ -785,9 +770,6 @@ def validate_palette(
         / total
     )
 
-    # 5% tolerance handles antialiasing, shadows and
-    # minor diffusion noise without permitting a second
-    # unrelated colour scheme.
     if (
         off_palette_ratio
         > MAX_OFF_PALETTE_RATIO
@@ -814,8 +796,6 @@ def validate_palette(
             / total
         )
 
-        # Prevent a virtually white/grey image from passing
-        # a pink+white, blue+white, red+white etc. brief.
         if (
             primary_ratio
             < MIN_PRIMARY_COLOUR_RATIO
@@ -867,9 +847,7 @@ def validate_palette(
 
     return {
         "palette_checked": True,
-        "palette_mode": (
-            "strict-theme"
-        ),
+        "palette_mode": "strict-theme",
         "palette_match_ratio": (
             palette_match_ratio
         ),
@@ -912,6 +890,7 @@ def _cascade_detect(
     classifier,
     gray: np.ndarray,
     minimum_size: tuple[int, int],
+    minimum_neighbors: int,
 ) -> list[
     tuple[int, int, int, int]
 ]:
@@ -922,7 +901,9 @@ def _cascade_detect(
         classifier.detectMultiScale(
             gray,
             scaleFactor=1.1,
-            minNeighbors=5,
+            minNeighbors=(
+                minimum_neighbors
+            ),
             minSize=(
                 minimum_size
             ),
@@ -934,7 +915,8 @@ def _cascade_detect(
             int(
                 value
             )
-            for value in rectangle
+            for value
+            in rectangle
         )
         for rectangle
         in results
@@ -944,17 +926,19 @@ def _cascade_detect(
 def detect_human_signals(
     image: Image.Image,
 ) -> dict:
-    """Detect multiple kinds of human content."""
-
-    rgb = np.array(
-        image.convert(
-            "RGB"
+    rgb = (
+        np.array(
+            image.convert(
+                "RGB"
+            )
         )
     )
 
-    bgr = cv2.cvtColor(
-        rgb,
-        cv2.COLOR_RGB2BGR,
+    bgr = (
+        cv2.cvtColor(
+            rgb,
+            cv2.COLOR_RGB2BGR,
+        )
     )
 
     maximum_dimension = max(
@@ -972,19 +956,23 @@ def detect_human_signals(
             / maximum_dimension
         )
 
-        bgr = cv2.resize(
-            bgr,
-            None,
-            fx=scale,
-            fy=scale,
-            interpolation=(
-                cv2.INTER_AREA
-            ),
+        bgr = (
+            cv2.resize(
+                bgr,
+                None,
+                fx=scale,
+                fy=scale,
+                interpolation=(
+                    cv2.INTER_AREA
+                ),
+            )
         )
 
-    gray = cv2.cvtColor(
-        bgr,
-        cv2.COLOR_BGR2GRAY,
+    gray = (
+        cv2.cvtColor(
+            bgr,
+            cv2.COLOR_BGR2GRAY,
+        )
     )
 
     hog = (
@@ -1011,6 +999,7 @@ def detect_human_signals(
     )
 
     people = []
+    people_weights = []
 
     for (
         rectangle,
@@ -1019,11 +1008,13 @@ def detect_human_signals(
         rectangles,
         weights,
     ):
+        numeric_weight = float(
+            weight
+        )
+
         if (
-            float(
-                weight
-            )
-            >= 0.40
+            numeric_weight
+            >= MIN_HOG_PERSON_WEIGHT
         ):
             people.append(
                 tuple(
@@ -1033,6 +1024,10 @@ def detect_human_signals(
                     for value
                     in rectangle
                 )
+            )
+
+            people_weights.append(
+                numeric_weight
             )
 
     frontal_detector = (
@@ -1058,9 +1053,10 @@ def detect_human_signals(
             frontal_detector,
             gray,
             (
-                36,
-                36,
+                MIN_FACE_SIZE,
+                MIN_FACE_SIZE,
             ),
+            6,
         )
     )
 
@@ -1069,9 +1065,10 @@ def detect_human_signals(
             profile_detector,
             gray,
             (
-                40,
-                40,
+                MIN_PROFILE_SIZE,
+                MIN_PROFILE_SIZE,
             ),
+            6,
         )
     )
 
@@ -1080,23 +1077,39 @@ def detect_human_signals(
             upper_body_detector,
             gray,
             (
-                55,
-                55,
+                MIN_UPPER_BODY_SIZE,
+                MIN_UPPER_BODY_SIZE,
             ),
+            7,
         )
+    )
+
+    strong_upper_body_signal = (
+        len(
+            upper_bodies
+        )
+        >= 2
     )
 
     detected = bool(
         people
         or faces
         or profiles
-        or upper_bodies
+        or strong_upper_body_signal
     )
 
     return {
         "people": people,
+        "people_weights": (
+            people_weights
+        ),
         "faces": faces,
         "profiles": profiles,
-        "upper_bodies": upper_bodies,
+        "upper_bodies": (
+            upper_bodies
+        ),
+        "strong_upper_body_signal": (
+            strong_upper_body_signal
+        ),
         "detected": detected,
     }

@@ -1,18 +1,3 @@
-"""Execute background-candidate generation.
-
-Every engine/direction pair is independent.
-
-QA-rejected candidates are retried with:
-- a new seed
-- stronger correction instructions based on the actual rejection reason
-
-If a candidate exhausts its retry budget, only that candidate fails.
-The remaining candidates continue generating.
-
-Transport, queue, workflow and ambiguous submission failures remain hard
-failures because blindly resubmitting them could duplicate remote jobs.
-"""
-
 import asyncio
 import json
 import logging
@@ -22,24 +7,30 @@ import httpx
 from app.config.settings import (
     settings,
 )
+
 from app.engines.registry import (
     get_engine,
 )
+
 from app.services.comfyui_client import (
     ComfyUIClient,
     ComfyUIError,
 )
+
 from app.services.execution_plan import (
     build_execution_plan,
 )
+
 from app.services.gpu_lease import (
     GPULease,
 )
+
 from app.services.job_persistence import (
     load_image_job_state,
     persist_image_job_state,
     update_output,
 )
+
 from app.services.prompt_repository import (
     get_direction,
     load_prompts_document,
@@ -87,10 +78,12 @@ def _candidate_was_rejected(
     engine_id: str,
     direction_id: str,
 ) -> bool:
-    record = _candidate_record(
-        reference_number,
-        engine_id,
-        direction_id,
+    record = (
+        _candidate_record(
+            reference_number,
+            engine_id,
+            direction_id,
+        )
     )
 
     return (
@@ -111,10 +104,12 @@ def _rejection_reason(
     engine_id: str,
     direction_id: str,
 ) -> str:
-    record = _candidate_record(
-        reference_number,
-        engine_id,
-        direction_id,
+    record = (
+        _candidate_record(
+            reference_number,
+            engine_id,
+            direction_id,
+        )
     )
 
     return str(
@@ -125,10 +120,89 @@ def _rejection_reason(
     )
 
 
+def _normalise_colour(
+    value: str | None,
+) -> str:
+    return (
+        str(
+            value
+            or ""
+        )
+        .strip()
+        .lower()
+    )
+
+
+def _palette_instruction(
+    primary_colour: str | None,
+    secondary_colour: str | None,
+    retry_number: int,
+) -> str:
+    primary = (
+        _normalise_colour(
+            primary_colour
+        )
+    )
+
+    secondary = (
+        _normalise_colour(
+            secondary_colour
+        )
+    )
+
+    if (
+        primary
+        and secondary
+    ):
+        if (
+            retry_number
+            >= 4
+        ):
+            return (
+                "STRICT RETRY COLOUR CORRECTION: "
+                f"use an unmistakable {primary} base covering most "
+                "of the composition and clearly visible "
+                f"{secondary} decorative accents across multiple "
+                "regions of the image. "
+                f"Both {primary} and {secondary} must be visibly "
+                "present in the rendered pixels. "
+                f"{primary} must remain dominant. "
+                f"{secondary} must remain a supporting colour. "
+                "Do not replace either requested colour with "
+                "neutral grey or another hue."
+            )
+
+        return (
+            "STRICT RETRY COLOUR CORRECTION: "
+            f"the requested primary colour is {primary} and the "
+            f"requested secondary colour is {secondary}. "
+            f"Make {primary} clearly dominant and ensure "
+            f"{secondary} is visibly present as repeated supporting "
+            "accents. Preserve both requested colours."
+        )
+
+    if primary:
+        return (
+            "STRICT RETRY COLOUR CORRECTION: "
+            f"the requested colour is {primary}. "
+            f"Make {primary} unmistakably visible throughout "
+            "the composition."
+        )
+
+    return (
+        "STRICT RETRY COLOUR CORRECTION: "
+        "obey the requested palette exactly and do not introduce "
+        "unrequested chromatic colours."
+    )
+
+
 def _strengthen_prompts(
     positive_prompt: str,
     negative_prompt: str,
     reason: str,
+    primary_colour: str | None,
+    secondary_colour: str | None,
+    retry_number: int,
 ) -> tuple[
     str,
     str,
@@ -147,28 +221,47 @@ def _strengthen_prompts(
         in reason_lower
         or "people"
         in reason_lower
+        or "face"
+        in reason_lower
+        or "figure"
+        in reason_lower
     ):
-        positive_additions.append(
-            (
-                "STRICT RETRY CORRECTION: "
-                "pure abstract nonrepresentational "
-                "background only. No human figure, "
-                "no silhouette, no face, no body, "
-                "no mannequin, no clothing, no "
-                "human-shaped object and no central character."
+        if (
+            retry_number
+            >= 4
+        ):
+            positive_additions.append(
+                (
+                    "STRICT RETRY HUMAN-FREE CORRECTION: "
+                    "remove every human-like visual structure. "
+                    "Use only environmental, architectural, abstract, "
+                    "geometric, ornamental or material forms. "
+                    "Do not arrange shapes into a head, torso, limbs, "
+                    "face, body, pose, person or character. "
+                    "Avoid central figure-like compositions."
+                )
             )
-        )
+
+        else:
+            positive_additions.append(
+                (
+                    "STRICT RETRY HUMAN-FREE CORRECTION: "
+                    "background only with no person, human figure, "
+                    "silhouette, face, body, mannequin, clothing, "
+                    "character or human-shaped object."
+                )
+            )
 
         negative_additions.append(
             (
-                "person, people, human, man, woman, "
-                "child, face, portrait, silhouette, "
-                "body, head, arms, hands, legs, "
-                "clothing, mannequin, character"
+                "person, people, human, human figure, man, woman, "
+                "child, face, portrait, silhouette, body, head, "
+                "arms, hands, legs, clothing, mannequin, character, "
+                "human-shaped form, humanoid"
             )
         )
 
-    if (
+    colour_failure = (
         "monochrome"
         in reason_lower
         or "black-and-white"
@@ -179,23 +272,64 @@ def _strengthen_prompts(
         in reason_lower
         or "color"
         in reason_lower
-    ):
+        or "primary ratio"
+        in reason_lower
+        or "secondary ratio"
+        in reason_lower
+    )
+
+    if colour_failure:
         positive_additions.append(
-            (
-                "STRICT RETRY CORRECTION: obey the requested "
-                "colour palette exactly. If the requested "
-                "palette is black and white, generate ONLY "
-                "achromatic black, white and neutral gray. "
-                "No coloured tinting, warm cast, cool cast, "
-                "sepia or chromatic lighting."
+            _palette_instruction(
+                primary_colour,
+                secondary_colour,
+                retry_number,
             )
         )
 
         negative_additions.append(
             (
-                "blue, cyan, green, yellow, beige, brown, "
-                "gold, orange, red, pink, purple, "
-                "colour cast, colored tint, coloured tint"
+                "off-palette colours, colour drift, "
+                "unrequested chromatic accents"
+            )
+        )
+
+    if (
+        "secondary"
+        in reason_lower
+        and secondary_colour
+    ):
+        secondary = (
+            _normalise_colour(
+                secondary_colour
+            )
+        )
+
+        positive_additions.append(
+            (
+                "MANDATORY SECONDARY COLOUR CORRECTION: "
+                f"the colour {secondary} must be clearly visible "
+                "in several supporting accents rather than being "
+                "absent, imperceptible or replaced by neutral tones."
+            )
+        )
+
+    if (
+        "primary"
+        in reason_lower
+        and primary_colour
+    ):
+        primary = (
+            _normalise_colour(
+                primary_colour
+            )
+        )
+
+        positive_additions.append(
+            (
+                "MANDATORY PRIMARY COLOUR CORRECTION: "
+                f"the colour {primary} must visibly dominate "
+                "the composition."
             )
         )
 
@@ -209,16 +343,16 @@ def _strengthen_prompts(
     ):
         positive_additions.append(
             (
-                "STRICT RETRY CORRECTION: no readable "
-                "characters of any kind. Pure visual "
-                "background only."
+                "STRICT RETRY TEXT-FREE CORRECTION: "
+                "no readable characters, pseudo-letters, words, "
+                "numbers, logos, labels or signs of any kind."
             )
         )
 
         negative_additions.append(
             (
-                "text, typography, words, letters, "
-                "numbers, writing, logo, watermark, signage"
+                "text, typography, words, letters, numbers, "
+                "writing, logo, watermark, signage, labels"
             )
         )
 
@@ -227,9 +361,9 @@ def _strengthen_prompts(
     ):
         positive_additions.append(
             (
-                "STRICT RETRY CORRECTION: correct the "
-                "previous QA violation while preserving "
-                "the requested abstract background."
+                "STRICT RETRY CORRECTION: correct the previous "
+                "QA violation while preserving the requested "
+                "background design and colour requirements."
             )
         )
 
@@ -246,7 +380,8 @@ def _strengthen_prompts(
     corrected_negative = (
         ", ".join(
             value
-            for value in (
+            for value
+            in (
                 negative_prompt.strip(),
                 *negative_additions,
             )
@@ -265,13 +400,34 @@ async def execute_image_job(
     max_outputs: int | None = None,
 ):
     async with GPULease():
-        state = load_image_job_state(
-            reference_number
+        state = (
+            load_image_job_state(
+                reference_number
+            )
         )
 
         document = (
             load_prompts_document(
                 reference_number
+            )
+        )
+
+        brief = (
+            document.get(
+                "brief",
+                {},
+            )
+        )
+
+        primary_colour = (
+            brief.get(
+                "primary_colour"
+            )
+        )
+
+        secondary_colour = (
+            brief.get(
+                "secondary_colour"
             )
         )
 
@@ -285,11 +441,13 @@ async def execute_image_job(
                 ],
             )
             for step
-            in build_execution_plan(
-                document
-            )[
-                "execution_order"
-            ]
+            in (
+                build_execution_plan(
+                    document
+                )[
+                    "execution_order"
+                ]
+            )
         ]
 
         actual = [
@@ -336,7 +494,8 @@ async def execute_image_job(
                 response.raise_for_status()
 
                 if (
-                    response.json()
+                    response
+                    .json()
                     .get(
                         "models"
                     )
@@ -401,7 +560,9 @@ async def execute_image_job(
                                     not own
                                     or any(
                                         (
-                                            entry[3]
+                                            entry[
+                                                3
+                                            ]
                                             .get(
                                                 "programme_request_id"
                                             )
@@ -548,8 +709,6 @@ async def execute_image_job(
                                     )
                                 )
 
-                                # Do not blindly retry ambiguous
-                                # infrastructure failures.
                                 if not rejected:
                                     raise
 
@@ -599,15 +758,23 @@ async def execute_image_job(
                                 (
                                     positive_prompt,
                                     negative_prompt,
-                                ) = _strengthen_prompts(
-                                    positive_prompt,
-                                    negative_prompt,
-                                    reason,
+                                ) = (
+                                    _strengthen_prompts(
+                                        positive_prompt,
+                                        negative_prompt,
+                                        reason,
+                                        primary_colour,
+                                        secondary_colour,
+                                        retry_count
+                                        + 1,
+                                    )
                                 )
 
-                                delay_seconds = (
+                                delay_seconds = min(
                                     2
-                                    ** retry_count
+                                    ** retry_count,
+                                    settings
+                                    .max_candidate_retry_delay_seconds,
                                 )
 
                                 logger.warning(

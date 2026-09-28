@@ -1,9 +1,13 @@
 """Persisted Grill-Me questionnaire.
 
-Grill-Me gathers the event brief before any creative directions are created.
+Grill-Me gathers the event brief before creative directions are created.
+
+The service automatically stores the configured user's timezone when a
+session starts. Timezone is therefore available to downstream composition
+without Grill-Me asking the user for it.
 
 Background-generation information is separated from final-composition
-information. Programme text is never passed to the diffusion/image engines.
+information. Programme text is never passed to the diffusion engines.
 """
 
 import json
@@ -19,7 +23,12 @@ from app.schemas.grill_me import (
 )
 
 
-MAX_ASSET_BYTES = 10 * 1024 * 1024
+MAX_ASSET_BYTES = (
+    10
+    * 1024
+    * 1024
+)
+
 
 ALLOWED_ASSET_TYPES = {
     "image/jpeg": ".jpg",
@@ -27,6 +36,9 @@ ALLOWED_ASSET_TYPES = {
 }
 
 
+# Timezone deliberately does NOT appear here.
+#
+# It is populated automatically when the session is created.
 REQUIRED_FIELDS = (
     "event_type",
     "theme",
@@ -38,7 +50,6 @@ REQUIRED_FIELDS = (
     "start_time",
     "title_preference",
     "venue",
-    "timezone",
     "programme",
     "output_language",
     "accessibility_preferences",
@@ -59,7 +70,9 @@ def _path(
     session_id: str,
 ) -> Path:
     return (
-        _directory(session_id)
+        _directory(
+            session_id
+        )
         / "session.json"
     )
 
@@ -89,11 +102,24 @@ def _save(
 
 
 def create_session() -> GrillMeSession:
-    return _save(
-        GrillMeSession(
-            session_id=uuid.uuid4().hex,
-            status="questioning",
+    """Create a session with timezone already known."""
+
+    answers = GrillMeAnswers(
+        timezone=(
+            settings.user_timezone
         )
+    )
+
+    session = GrillMeSession(
+        session_id=(
+            uuid.uuid4().hex
+        ),
+        status="questioning",
+        answers=answers,
+    )
+
+    return _save(
+        session
     )
 
 
@@ -124,49 +150,59 @@ def questions(
     session: GrillMeSession,
 ) -> list[dict]:
     answers = (
-        session.answers.model_dump()
+        session.answers
+        .model_dump()
     )
 
     prompts = {
         "event_type": (
             "What type of event are you creating?"
         ),
+
         "theme": (
             "What is the event theme?"
         ),
+
         "age_group": (
             "Who is the audience or age group?"
         ),
+
         "primary_colour": (
             "What is the primary suggested colour?"
         ),
+
         "secondary_colour": (
             "What is the secondary suggested colour?"
         ),
+
         "creative_description": (
             "Describe the visual mood and creative direction."
         ),
+
         "event_date": (
             "What is the event date?"
         ),
+
         "start_time": (
             "What is the start time?"
         ),
+
         "title_preference": (
             "What title should appear on the final programme?"
         ),
+
         "venue": (
             "What is the venue?"
         ),
-        "timezone": (
-            "What timezone applies to the event?"
-        ),
+
         "programme": (
             "Add up to 15 programme rows."
         ),
+
         "output_language": (
             "What output language should be used?"
         ),
+
         "accessibility_preferences": (
             "What accessibility preferences should "
             "the final programme follow?"
@@ -176,17 +212,28 @@ def questions(
     result = [
         {
             "field": field,
-            "question": prompts[field],
+            "question": (
+                prompts[
+                    field
+                ]
+            ),
         }
-        for field in REQUIRED_FIELDS
-        if answers.get(field) in (
-            None,
-            "",
+        for field
+        in REQUIRED_FIELDS
+        if (
+            answers.get(
+                field
+            )
+            in (
+                None,
+                "",
+            )
         )
     ]
 
     if (
-        "headshot" in session.assets
+        "headshot"
+        in session.assets
         and not answers.get(
             "headshot_consent_confirmed"
         )
@@ -204,14 +251,17 @@ def questions(
         )
 
     if (
-        "headshot" in session.assets
+        "headshot"
+        in session.assets
         and not answers.get(
             "headshot_shape"
         )
     ):
         result.append(
             {
-                "field": "headshot_shape",
+                "field": (
+                    "headshot_shape"
+                ),
                 "question": (
                     "Choose the headshot shape: "
                     "circle, square, or rounded."
@@ -220,7 +270,8 @@ def questions(
         )
 
     if (
-        "headshot" in session.assets
+        "headshot"
+        in session.assets
         and not answers.get(
             "headshot_placement"
         )
@@ -238,7 +289,8 @@ def questions(
         )
 
     if (
-        "logo" in session.assets
+        "logo"
+        in session.assets
         and not answers.get(
             "logo_consent_confirmed"
         )
@@ -256,14 +308,17 @@ def questions(
         )
 
     if (
-        "logo" in session.assets
+        "logo"
+        in session.assets
         and not answers.get(
             "logo_placement"
         )
     ):
         result.append(
             {
-                "field": "logo_placement",
+                "field": (
+                    "logo_placement"
+                ),
                 "question": (
                     "Choose the logo placement: "
                     "left or right."
@@ -291,22 +346,39 @@ def update_answers(
             "after generation."
         )
 
-    values = patch.model_dump(
-        exclude_unset=True
+    values = (
+        patch.model_dump(
+            exclude_unset=True
+        )
+    )
+
+    # Timezone belongs to system/session context.
+    # Ignore attempts to alter it through normal
+    # Grill-Me answers.
+    values.pop(
+        "timezone",
+        None,
     )
 
     session.answers = (
-        GrillMeAnswers.model_validate(
+        GrillMeAnswers
+        .model_validate(
             {
                 **session.answers.model_dump(),
                 **values,
+                "timezone": (
+                    session.answers.timezone
+                    or settings.user_timezone
+                ),
             }
         )
     )
 
     session.status = (
         "ready"
-        if not questions(session)
+        if not questions(
+            session
+        )
         else "questioning"
     )
 
@@ -334,13 +406,16 @@ def append_programme_item(
 
     rows = [
         row.model_dump()
-        for row in (
+        for row
+        in (
             session.answers.programme
             or []
         )
     ]
 
-    if len(rows) >= 15:
+    if len(
+        rows
+    ) >= 15:
         raise ValueError(
             "A programme may contain "
             "at most 15 rows."
@@ -351,17 +426,22 @@ def append_programme_item(
     )
 
     session.answers = (
-        GrillMeAnswers.model_validate(
+        GrillMeAnswers
+        .model_validate(
             {
                 **session.answers.model_dump(),
-                "programme": rows,
+                "programme": (
+                    rows
+                ),
             }
         )
     )
 
     session.status = (
         "ready"
-        if not questions(session)
+        if not questions(
+            session
+        )
         else "questioning"
     )
 
@@ -380,7 +460,8 @@ async def store_asset(
         "logo",
     }:
         raise ValueError(
-            "asset_name must be headshot or logo."
+            "asset_name must be "
+            "headshot or logo."
         )
 
     session = load_session(
@@ -397,7 +478,8 @@ async def store_asset(
         )
 
     suffix = (
-        ALLOWED_ASSET_TYPES.get(
+        ALLOWED_ASSET_TYPES
+        .get(
             upload.content_type
             or ""
         )
@@ -405,23 +487,32 @@ async def store_asset(
 
     if suffix is None:
         raise ValueError(
-            "Assets must be JPEG or PNG files."
+            "Assets must be JPEG "
+            "or PNG files."
         )
 
     data = await upload.read(
-        MAX_ASSET_BYTES + 1
+        MAX_ASSET_BYTES
+        + 1
     )
 
-    if len(data) > MAX_ASSET_BYTES:
+    if len(
+        data
+    ) > MAX_ASSET_BYTES:
         raise ValueError(
             "Assets must be no larger "
             "than 10 MB."
         )
 
     asset_path = (
-        _directory(session_id)
+        _directory(
+            session_id
+        )
         / "assets"
-        / f"{asset_name}{suffix}"
+        / (
+            f"{asset_name}"
+            f"{suffix}"
+        )
     )
 
     asset_path.parent.mkdir(
@@ -449,7 +540,9 @@ async def store_asset(
 
     session.status = (
         "ready"
-        if not questions(session)
+        if not questions(
+            session
+        )
         else "questioning"
     )
 
@@ -466,8 +559,6 @@ def freeze_for_generation(
     dict,
     dict,
 ]:
-    """Freeze Grill-Me and split background/final data."""
-
     session = load_session(
         session_id
     )
@@ -478,8 +569,11 @@ def freeze_for_generation(
 
     if missing:
         missing_fields = [
-            item["field"]
-            for item in missing
+            item[
+                "field"
+            ]
+            for item
+            in missing
         ]
 
         raise ValueError(
@@ -489,13 +583,28 @@ def freeze_for_generation(
             )
         )
 
-    if session.status == "generated":
+    if (
+        session.status
+        == "generated"
+    ):
         raise ValueError(
             "This Grill-Me session has already "
             "generated backgrounds."
         )
 
-    session.status = "generating"
+    # Ensure timezone is always populated even for
+    # sessions created before this patch.
+    if not (
+        session.answers.timezone
+    ):
+        session.answers.timezone = (
+            settings.user_timezone
+        )
+
+    session.status = (
+        "generating"
+    )
+
     session.reference_number = (
         reference_number
     )
@@ -505,86 +614,27 @@ def freeze_for_generation(
     )
 
     answer = (
-        session.answers.model_dump()
+        session.answers
+        .model_dump()
     )
 
-    # Information used to create the visual backgrounds.
-    #
-    # programme and venue are deliberately excluded from
-    # diffusion prompt generation.
     background_brief = {
         "event_type": (
-            answer["event_type"]
-        ),
-        "theme": (
-            answer["theme"]
-        ),
-        "age_group": (
-            answer["age_group"]
-        ),
-        "primary_colour": (
-            answer["primary_colour"]
-        ),
-        "secondary_colour": (
-            answer["secondary_colour"]
-        ),
-        "creative_description": (
             answer[
-                "creative_description"
+                "event_type"
             ]
-        ),
-        "title_preference": (
-            answer[
-                "title_preference"
-            ]
-        ),
-        "event_date": (
-            answer[
-                "event_date"
-            ]
-        ),
-        "start_time": (
-            answer[
-                "start_time"
-            ]
-        ),
-        "timezone": (
-            answer[
-                "timezone"
-            ]
-        ),
-        "output_language": (
-            answer[
-                "output_language"
-            ]
-        ),
-        "accessibility_preferences": (
-            answer[
-                "accessibility_preferences"
-            ]
-        ),
-    }
-
-    # This payload is held back until ONE background is selected.
-    #
-    # The theme colours are retained because the deterministic
-    # composer uses them to derive the glass border and text colours.
-    final_details = {
-        "session_id": (
-            session.session_id
-        ),
-        "reference_number": (
-            reference_number
         ),
 
-        "event_type": (
-            answer["event_type"]
-        ),
         "theme": (
-            answer["theme"]
+            answer[
+                "theme"
+            ]
         ),
+
         "age_group": (
-            answer["age_group"]
+            answer[
+                "age_group"
+            ]
         ),
 
         "primary_colour": (
@@ -592,6 +642,89 @@ def freeze_for_generation(
                 "primary_colour"
             ]
         ),
+
+        "secondary_colour": (
+            answer[
+                "secondary_colour"
+            ]
+        ),
+
+        "creative_description": (
+            answer[
+                "creative_description"
+            ]
+        ),
+
+        "title_preference": (
+            answer[
+                "title_preference"
+            ]
+        ),
+
+        "event_date": (
+            answer[
+                "event_date"
+            ]
+        ),
+
+        "start_time": (
+            answer[
+                "start_time"
+            ]
+        ),
+
+        "timezone": (
+            answer[
+                "timezone"
+            ]
+        ),
+
+        "output_language": (
+            answer[
+                "output_language"
+            ]
+        ),
+
+        "accessibility_preferences": (
+            answer[
+                "accessibility_preferences"
+            ]
+        ),
+    }
+
+    final_details = {
+        "session_id": (
+            session.session_id
+        ),
+
+        "reference_number": (
+            reference_number
+        ),
+
+        "event_type": (
+            answer[
+                "event_type"
+            ]
+        ),
+
+        "theme": (
+            answer[
+                "theme"
+            ]
+        ),
+
+        "age_group": (
+            answer[
+                "age_group"
+            ]
+        ),
+
+        "primary_colour": (
+            answer[
+                "primary_colour"
+            ]
+        ),
+
         "secondary_colour": (
             answer[
                 "secondary_colour"
@@ -609,21 +742,25 @@ def freeze_for_generation(
                 "title_preference"
             ]
         ),
+
         "event_date": (
             answer[
                 "event_date"
             ]
         ),
+
         "start_time": (
             answer[
                 "start_time"
             ]
         ),
+
         "timezone": (
             answer[
                 "timezone"
             ]
         ),
+
         "venue": (
             answer[
                 "venue"
@@ -699,7 +836,8 @@ def freeze_for_generation(
                     "headshot_consent_confirmed"
                 )
             )
-            and (
+            and
+            (
                 "logo"
                 not in session.assets
                 or answer.get(
@@ -723,7 +861,9 @@ def mark_generated(
         session_id
     )
 
-    session.status = "generated"
+    session.status = (
+        "generated"
+    )
 
     _save(
         session

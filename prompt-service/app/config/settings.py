@@ -1,4 +1,10 @@
 from pathlib import Path
+from zoneinfo import ZoneInfo
+
+from pydantic import (
+    Field,
+    field_validator,
+)
 
 from pydantic_settings import (
     BaseSettings,
@@ -7,7 +13,9 @@ from pydantic_settings import (
 
 
 class Settings(BaseSettings):
-    ollama_base_url: str = "http://192.168.68.115:11434"
+    ollama_base_url: str = (
+        "http://192.168.68.115:11434"
+    )
 
     programme_data_path: Path = Path(
         "/data/programmes"
@@ -15,24 +23,78 @@ class Settings(BaseSettings):
 
     ollama_connect_timeout_seconds: float = 10
     ollama_read_timeout_seconds: float = 900
+
     direction_a_model: str = "qwen2.5:14b"
     direction_a_role: str = "elegant"
+
     direction_b_model: str = "gemma3:27b"
     direction_b_role: str = "expressive"
-    direction_c_model: str = "mistral-small3.1:24b"
+
+    direction_c_model: str = (
+        "mistral-small3.1:24b"
+    )
     direction_c_role: str = "contemporary"
-    comfyui_base_url: str = "http://192.168.68.115:8188"
-    image_service_base_url: str = "http://programme-image:8002"
+
+    comfyui_base_url: str = (
+        "http://192.168.68.115:8188"
+    )
+
+    image_service_base_url: str = (
+        "http://programme-image:8002"
+    )
+
     image_service_connect_timeout_seconds: float = 10
     image_service_read_timeout_seconds: float = 3600
+
     gpu_lease_timeout_seconds: float = 1800
 
+    # Grill-Me never asks the user for this.
+    #
+    # The container receives USER_TIMEZONE automatically
+    # from the host machine when it starts.
+    user_timezone: str = Field(
+        default="Africa/Johannesburg"
+    )
+
+    @field_validator(
+        "user_timezone"
+    )
+    @classmethod
+    def validate_timezone(
+        cls,
+        value: str,
+    ) -> str:
+        try:
+            ZoneInfo(
+                value
+            )
+        except Exception as error:
+            raise ValueError(
+                "USER_TIMEZONE must be a valid "
+                "IANA timezone such as "
+                "Africa/Johannesburg."
+            ) from error
+
+        return value
+
     @property
-    def gpu_lease_path(self) -> Path:
-        return self.programme_data_path / ".gpu.lock"
+    def gpu_lease_path(
+        self,
+    ) -> Path:
+        return (
+            self.programme_data_path
+            / ".gpu.lock"
+        )
 
     model_config = SettingsConfigDict(
-        env_file=Path(__file__).resolve().parents[2] / ".env",
+        env_file=(
+            Path(
+                __file__
+            )
+            .resolve()
+            .parents[2]
+            / ".env"
+        ),
         env_file_encoding="utf-8",
         extra="ignore",
     )

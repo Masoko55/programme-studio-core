@@ -2,12 +2,11 @@
 
 Grill-Me gathers the event brief before creative directions are created.
 
-The service automatically stores the configured user's timezone when a
-session starts. Timezone is therefore available to downstream composition
-without Grill-Me asking the user for it.
+Timezone is system/session metadata. Grill-Me does not ask the user for it.
+The configured deployment timezone is inserted automatically when a session
+is created.
 
-Background-generation information is separated from final-composition
-information. Programme text is never passed to the diffusion engines.
+Programme text is held back until one background is selected.
 """
 
 import json
@@ -36,9 +35,7 @@ ALLOWED_ASSET_TYPES = {
 }
 
 
-# Timezone deliberately does NOT appear here.
-#
-# It is populated automatically when the session is created.
+# timezone deliberately excluded
 REQUIRED_FIELDS = (
     "event_type",
     "theme",
@@ -102,20 +99,16 @@ def _save(
 
 
 def create_session() -> GrillMeSession:
-    """Create a session with timezone already known."""
-
-    answers = GrillMeAnswers(
-        timezone=(
-            settings.user_timezone
-        )
-    )
-
     session = GrillMeSession(
         session_id=(
             uuid.uuid4().hex
         ),
         status="questioning",
-        answers=answers,
+        answers=GrillMeAnswers(
+            timezone=(
+                settings.user_timezone
+            )
+        ),
     )
 
     return _save(
@@ -352,25 +345,25 @@ def update_answers(
         )
     )
 
-    # Timezone belongs to system/session context.
-    # Ignore attempts to alter it through normal
-    # Grill-Me answers.
+    # timezone is system-managed
     values.pop(
         "timezone",
         None,
     )
 
+    merged = {
+        **session.answers.model_dump(),
+        **values,
+        "timezone": (
+            session.answers.timezone
+            or settings.user_timezone
+        ),
+    }
+
     session.answers = (
         GrillMeAnswers
         .model_validate(
-            {
-                **session.answers.model_dump(),
-                **values,
-                "timezone": (
-                    session.answers.timezone
-                    or settings.user_timezone
-                ),
-            }
+            merged
         )
     )
 
@@ -430,9 +423,7 @@ def append_programme_item(
         .model_validate(
             {
                 **session.answers.model_dump(),
-                "programme": (
-                    rows
-                ),
+                "programme": rows,
             }
         )
     )
@@ -460,8 +451,7 @@ async def store_asset(
         "logo",
     }:
         raise ValueError(
-            "asset_name must be "
-            "headshot or logo."
+            "asset_name must be headshot or logo."
         )
 
     session = load_session(
@@ -487,8 +477,7 @@ async def store_asset(
 
     if suffix is None:
         raise ValueError(
-            "Assets must be JPEG "
-            "or PNG files."
+            "Assets must be JPEG or PNG files."
         )
 
     data = await upload.read(
@@ -509,10 +498,7 @@ async def store_asset(
             session_id
         )
         / "assets"
-        / (
-            f"{asset_name}"
-            f"{suffix}"
-        )
+        / f"{asset_name}{suffix}"
     )
 
     asset_path.parent.mkdir(
@@ -568,7 +554,7 @@ def freeze_for_generation(
     )
 
     if missing:
-        missing_fields = [
+        fields = [
             item[
                 "field"
             ]
@@ -579,7 +565,7 @@ def freeze_for_generation(
         raise ValueError(
             "GRILL_ME_INCOMPLETE:"
             + ",".join(
-                missing_fields
+                fields
             )
         )
 
@@ -592,8 +578,6 @@ def freeze_for_generation(
             "generated backgrounds."
         )
 
-    # Ensure timezone is always populated even for
-    # sessions created before this patch.
     if not (
         session.answers.timezone
     ):
@@ -624,55 +608,48 @@ def freeze_for_generation(
                 "event_type"
             ]
         ),
-
         "theme": (
             answer[
                 "theme"
             ]
         ),
-
         "age_group": (
             answer[
                 "age_group"
             ]
         ),
-
         "primary_colour": (
             answer[
                 "primary_colour"
             ]
         ),
-
         "secondary_colour": (
             answer[
                 "secondary_colour"
             ]
         ),
-
         "creative_description": (
             answer[
                 "creative_description"
             ]
         ),
-
         "title_preference": (
             answer[
                 "title_preference"
             ]
         ),
-
         "event_date": (
             answer[
                 "event_date"
             ]
         ),
-
         "start_time": (
             answer[
                 "start_time"
             ]
         ),
 
+        # retained internally for temporal context
         "timezone": (
             answer[
                 "timezone"
@@ -684,7 +661,6 @@ def freeze_for_generation(
                 "output_language"
             ]
         ),
-
         "accessibility_preferences": (
             answer[
                 "accessibility_preferences"
@@ -696,7 +672,6 @@ def freeze_for_generation(
         "session_id": (
             session.session_id
         ),
-
         "reference_number": (
             reference_number
         ),
@@ -706,13 +681,11 @@ def freeze_for_generation(
                 "event_type"
             ]
         ),
-
         "theme": (
             answer[
                 "theme"
             ]
         ),
-
         "age_group": (
             answer[
                 "age_group"
@@ -724,7 +697,6 @@ def freeze_for_generation(
                 "primary_colour"
             ]
         ),
-
         "secondary_colour": (
             answer[
                 "secondary_colour"
@@ -742,19 +714,18 @@ def freeze_for_generation(
                 "title_preference"
             ]
         ),
-
         "event_date": (
             answer[
                 "event_date"
             ]
         ),
-
         "start_time": (
             answer[
                 "start_time"
             ]
         ),
 
+        # retained in data, not rendered on poster
         "timezone": (
             answer[
                 "timezone"

@@ -1,16 +1,25 @@
 """Deterministic final programme composition.
 
-Diffusion supplies the background only.
+The selected image remains the visual background.
 
-After a user selects one generated background, this module adds event
-information and approved assets. Text colours dynamically adapt to the
-actual brightness behind each content panel while remaining related to
-the user's primary/secondary event palette.
+Only after selection do we add:
+- title
+- date
+- start time
+- venue
+- programme rows
+- optional approved assets
+
+Timezone remains internal metadata and is NOT rendered.
+
+Every text panel independently analyses the real pixels underneath it:
+- light local background -> dark text
+- dark local background -> light text
+- highly mixed black/white background -> stronger glass panel for readability
 """
 
 import hashlib
 import io
-import re
 from pathlib import Path
 
 from PIL import (
@@ -39,42 +48,6 @@ SAFE_MARGIN_X = 119
 SAFE_MARGIN_Y = 119
 
 
-NAMED_COLOURS = {
-    "black": (0, 0, 0),
-    "white": (255, 255, 255),
-
-    "red": (220, 45, 45),
-    "blue": (45, 95, 220),
-    "green": (45, 150, 80),
-
-    "pink": (235, 115, 170),
-    "purple": (125, 75, 185),
-    "violet": (120, 80, 185),
-
-    "orange": (230, 130, 45),
-    "yellow": (230, 195, 45),
-
-    "gold": (195, 150, 50),
-    "golden": (195, 150, 50),
-
-    "silver": (175, 180, 190),
-
-    "grey": (125, 125, 125),
-    "gray": (125, 125, 125),
-
-    "navy": (25, 45, 100),
-    "teal": (35, 135, 135),
-    "cyan": (55, 170, 190),
-
-    "brown": (120, 80, 50),
-    "beige": (210, 190, 150),
-    "cream": (240, 225, 190),
-
-    "maroon": (115, 30, 50),
-    "burgundy": (120, 35, 60),
-}
-
-
 def normalized_zone_to_pixels(
     zone: dict,
 ) -> tuple[
@@ -84,40 +57,39 @@ def normalized_zone_to_pixels(
     int,
 ]:
     x = float(
-        zone["x"]
+        zone[
+            "x"
+        ]
     )
 
     y = float(
-        zone["y"]
+        zone[
+            "y"
+        ]
     )
 
     width = float(
-        zone["width"]
+        zone[
+            "width"
+        ]
     )
 
     height = float(
-        zone["height"]
+        zone[
+            "height"
+        ]
     )
 
     if (
-        min(
-            x,
-            y,
-        )
-        < 0
-        or min(
-            width,
-            height,
-        )
-        <= 0
-        or x + width
-        > 1.000001
-        or y + height
-        > 1.000001
+        x < 0
+        or y < 0
+        or width <= 0
+        or height <= 0
+        or x + width > 1.000001
+        or y + height > 1.000001
     ):
         raise ValueError(
-            "Invalid layout zone: "
-            "outside page."
+            "Invalid layout zone: outside page."
         )
 
     result = (
@@ -146,20 +118,32 @@ def normalized_zone_to_pixels(
     )
 
     if (
-        result[0]
+        result[
+            0
+        ]
         < SAFE_MARGIN_X
-        or result[1]
+        or result[
+            1
+        ]
         < SAFE_MARGIN_Y
-        or result[2]
-        > CANVAS_WIDTH
-        - SAFE_MARGIN_X
-        or result[3]
-        > CANVAS_HEIGHT
-        - SAFE_MARGIN_Y
+        or result[
+            2
+        ]
+        > (
+            CANVAS_WIDTH
+            - SAFE_MARGIN_X
+        )
+        or result[
+            3
+        ]
+        > (
+            CANVAS_HEIGHT
+            - SAFE_MARGIN_Y
+        )
     ):
         raise ValueError(
-            "Layout zone violates "
-            "the 10 mm safe margin."
+            "Layout zone violates the 10 mm "
+            "safe margin."
         )
 
     return result
@@ -175,7 +159,7 @@ def load_font(
         else ""
     )
 
-    candidates = [
+    bases = [
         (
             "/usr/share/fonts/"
             "truetype/dejavu/"
@@ -188,7 +172,7 @@ def load_font(
         ),
     ]
 
-    for base in candidates:
+    for base in bases:
         path = Path(
             base
             + suffix
@@ -198,14 +182,15 @@ def load_font(
         if path.exists():
             return (
                 ImageFont.truetype(
-                    str(path),
+                    str(
+                        path
+                    ),
                     size=size,
                 )
             )
 
     raise RuntimeError(
-        "Required scalable fonts "
-        "are missing."
+        "Required scalable fonts are missing."
     )
 
 
@@ -218,12 +203,18 @@ def wrap_text(
     lines = []
 
     for paragraph in (
-        str(text).split("\n")
+        str(
+            text
+        ).split(
+            "\n"
+        )
     ):
         current = ""
 
         for word in (
-            paragraph.split(" ")
+            paragraph.split(
+                " "
+            )
         ):
             candidate = (
                 current
@@ -242,9 +233,7 @@ def wrap_text(
                 )
                 <= max_width
             ):
-                current = (
-                    candidate
-                )
+                current = candidate
 
             else:
                 if current:
@@ -254,19 +243,6 @@ def wrap_text(
 
                 current = word
 
-                if (
-                    draw.textlength(
-                        word,
-                        font=font,
-                    )
-                    > max_width
-                ):
-                    raise ValueError(
-                        "CONTENT_TOO_LONG: "
-                        "a word does not fit "
-                        "its reserved zone."
-                    )
-
         if current:
             lines.append(
                 current
@@ -275,84 +251,27 @@ def wrap_text(
     return lines
 
 
-def parse_colour(
-    value: str | None,
-) -> tuple[
-    int,
-    int,
-    int,
-] | None:
-    if not value:
-        return None
-
-    normalized = (
-        value
-        .strip()
-        .lower()
-    )
-
-    if normalized in NAMED_COLOURS:
-        return (
-            NAMED_COLOURS[
-                normalized
-            ]
-        )
-
-    hexadecimal = re.fullmatch(
-        r"#?([0-9a-f]{6})",
-        normalized,
-    )
-
-    if hexadecimal:
-        raw = (
-            hexadecimal.group(1)
-        )
-
-        return (
-            int(
-                raw[0:2],
-                16,
-            ),
-            int(
-                raw[2:4],
-                16,
-            ),
-            int(
-                raw[4:6],
-                16,
-            ),
-        )
-
-    for name, rgb in (
-        NAMED_COLOURS.items()
-    ):
-        if re.search(
-            rf"\b{re.escape(name)}\b",
-            normalized,
-        ):
-            return rgb
-
-    return None
-
-
-def srgb_channel(
-    value: int,
+def _srgb_channel(
+    value: float,
 ) -> float:
-    channel = (
+    value = (
         value
         / 255.0
     )
 
-    if channel <= 0.04045:
+    if (
+        value
+        <= 0.04045
+    ):
         return (
-            channel
+            value
             / 12.92
         )
 
     return (
         (
             (
-                channel
+                value
                 + 0.055
             )
             / 1.055
@@ -362,22 +281,28 @@ def srgb_channel(
 
 
 def relative_luminance(
-    colour: tuple[
+    rgb: tuple[
         int,
         int,
         int,
     ],
 ) -> float:
-    red = srgb_channel(
-        colour[0]
+    red = _srgb_channel(
+        rgb[
+            0
+        ]
     )
 
-    green = srgb_channel(
-        colour[1]
+    green = _srgb_channel(
+        rgb[
+            1
+        ]
     )
 
-    blue = srgb_channel(
-        colour[2]
+    blue = _srgb_channel(
+        rgb[
+            2
+        ]
     )
 
     return (
@@ -390,94 +315,7 @@ def relative_luminance(
     )
 
 
-def contrast_ratio(
-    first: tuple[
-        int,
-        int,
-        int,
-    ],
-    second: tuple[
-        int,
-        int,
-        int,
-    ],
-) -> float:
-    first_luminance = (
-        relative_luminance(
-            first
-        )
-    )
-
-    second_luminance = (
-        relative_luminance(
-            second
-        )
-    )
-
-    lighter = max(
-        first_luminance,
-        second_luminance,
-    )
-
-    darker = min(
-        first_luminance,
-        second_luminance,
-    )
-
-    return (
-        (
-            lighter
-            + 0.05
-        )
-        / (
-            darker
-            + 0.05
-        )
-    )
-
-
-def mix_colour(
-    first: tuple[
-        int,
-        int,
-        int,
-    ],
-    second: tuple[
-        int,
-        int,
-        int,
-    ],
-    amount: float,
-) -> tuple[
-    int,
-    int,
-    int,
-]:
-    amount = max(
-        0.0,
-        min(
-            1.0,
-            amount,
-        ),
-    )
-
-    return tuple(
-        round(
-            first[index]
-            * (
-                1.0
-                - amount
-            )
-            + second[index]
-            * amount
-        )
-        for index in range(
-            3
-        )
-    )
-
-
-def average_region_colour(
+def region_statistics(
     image: Image.Image,
     box: tuple[
         int,
@@ -485,13 +323,7 @@ def average_region_colour(
         int,
         int,
     ],
-) -> tuple[
-    int,
-    int,
-    int,
-]:
-    """Measure the actual selected background behind a content panel."""
-
+) -> dict:
     region = (
         image
         .convert(
@@ -502,8 +334,8 @@ def average_region_colour(
         )
         .resize(
             (
-                32,
-                32,
+                64,
+                64,
             ),
             Image.Resampling.LANCZOS,
         )
@@ -515,386 +347,203 @@ def average_region_colour(
         )
     )
 
-    return tuple(
-        round(value)
-        for value in (
-            statistics.mean[:3]
+    mean_rgb = tuple(
+        round(
+            value
         )
+        for value
+        in statistics.mean[
+            :3
+        ]
     )
 
+    luminances = []
 
-def sample_background_accent(
-    image: Image.Image,
-) -> tuple[
-    int,
-    int,
-    int,
-]:
-    sample = (
-        image
-        .convert(
-            "RGB"
-        )
-        .resize(
-            (
-                80,
-                112,
-            ),
-            Image.Resampling.LANCZOS,
-        )
-    )
-
-    candidates = {}
-
-    for (
-        red,
-        green,
-        blue,
-    ) in sample.getdata():
-        maximum = max(
-            red,
-            green,
-            blue,
-        )
-
-        minimum = min(
-            red,
-            green,
-            blue,
-        )
-
-        lightness = (
-            maximum
-            + minimum
-        ) / 510
-
-        saturation = (
-            maximum
-            - minimum
-        )
-
-        if (
-            0.16
-            <= lightness
-            <= 0.84
-            and saturation
-            >= 24
-        ):
-            colour = (
-                red
-                // 16
-                * 16,
-                green
-                // 16
-                * 16,
-                blue
-                // 16
-                * 16,
-            )
-
-            candidates[
-                colour
-            ] = (
-                candidates.get(
-                    colour,
-                    0,
-                )
-                + saturation
-            )
-
-    if not candidates:
-        return (
-            90,
-            90,
-            90,
-        )
-
-    return max(
-        candidates,
-        key=candidates.get,
-    )
-
-
-def theme_colours(
-    image: Image.Image,
-    brief: dict,
-) -> list[
-    tuple[
-        int,
-        int,
-        int,
-    ]
-]:
-    colours = []
-
-    for key in (
-        "primary_colour",
-        "secondary_colour",
+    for pixel in (
+        region.getdata()
     ):
-        parsed = parse_colour(
-            brief.get(
-                key
+        luminances.append(
+            relative_luminance(
+                pixel
             )
         )
 
-        if (
-            parsed is not None
-            and parsed not in colours
-        ):
-            colours.append(
-                parsed
-            )
-
-    if not colours:
-        colours.append(
-            sample_background_accent(
-                image
-            )
+    average_luminance = (
+        sum(
+            luminances
         )
-
-    return colours
-
-
-def themed_text_colour(
-    image: Image.Image,
-    brief: dict,
-    background_colour: tuple[
-        int,
-        int,
-        int,
-    ],
-) -> tuple[
-    int,
-    int,
-    int,
-    int,
-]:
-    """Select readable text while respecting the event palette.
-
-    Dark artwork:
-        Prefer a lightened primary/secondary colour.
-
-    Light artwork:
-        Prefer a darkened primary/secondary colour.
-
-    The final candidate must have sufficient contrast against the
-    measured local background. Otherwise a palette-tinted near-white
-    or near-black fallback is used.
-    """
-
-    palette = theme_colours(
-        image,
-        brief,
-    )
-
-    background_luminance = (
-        relative_luminance(
-            background_colour
+        / len(
+            luminances
         )
     )
 
-    background_is_dark = (
-        background_luminance
-        < 0.34
-    )
-
-    candidates = []
-
-    if background_is_dark:
-        for colour in palette:
-            candidates.extend(
-                [
-                    mix_colour(
-                        colour,
-                        (
-                            255,
-                            255,
-                            255,
-                        ),
-                        0.72,
-                    ),
-                    mix_colour(
-                        colour,
-                        (
-                            255,
-                            255,
-                            255,
-                        ),
-                        0.84,
-                    ),
-                    mix_colour(
-                        colour,
-                        (
-                            255,
-                            255,
-                            255,
-                        ),
-                        0.92,
-                    ),
-                ]
-            )
-
-        palette_average = tuple(
-            round(
-                sum(
-                    colour[index]
-                    for colour
-                    in palette
-                )
-                / len(
-                    palette
-                )
-            )
-            for index in range(
-                3
-            )
-        )
-
-        candidates.append(
-            mix_colour(
-                palette_average,
-                (
-                    255,
-                    255,
-                    255,
-                ),
-                0.90,
-            )
-        )
-
-        candidates.append(
+    variance = (
+        sum(
             (
-                248,
-                248,
-                246,
+                value
+                - average_luminance
             )
+            ** 2
+            for value
+            in luminances
         )
-
-    else:
-        for colour in palette:
-            candidates.extend(
-                [
-                    mix_colour(
-                        colour,
-                        (
-                            0,
-                            0,
-                            0,
-                        ),
-                        0.62,
-                    ),
-                    mix_colour(
-                        colour,
-                        (
-                            0,
-                            0,
-                            0,
-                        ),
-                        0.74,
-                    ),
-                    mix_colour(
-                        colour,
-                        (
-                            0,
-                            0,
-                            0,
-                        ),
-                        0.84,
-                    ),
-                ]
-            )
-
-        palette_average = tuple(
-            round(
-                sum(
-                    colour[index]
-                    for colour
-                    in palette
-                )
-                / len(
-                    palette
-                )
-            )
-            for index in range(
-                3
-            )
+        / len(
+            luminances
         )
+    )
 
-        candidates.append(
-            mix_colour(
-                palette_average,
+    dark_fraction = (
+        sum(
+            1
+            for value
+            in luminances
+            if value < 0.30
+        )
+        / len(
+            luminances
+        )
+    )
+
+    light_fraction = (
+        sum(
+            1
+            for value
+            in luminances
+            if value > 0.65
+        )
+        / len(
+            luminances
+        )
+    )
+
+    return {
+        "mean_rgb": (
+            mean_rgb
+        ),
+        "average_luminance": (
+            average_luminance
+        ),
+        "variance": (
+            variance
+        ),
+        "dark_fraction": (
+            dark_fraction
+        ),
+        "light_fraction": (
+            light_fraction
+        ),
+    }
+
+
+def choose_panel_style(
+    statistics: dict,
+) -> dict:
+    luminance = (
+        statistics[
+            "average_luminance"
+        ]
+    )
+
+    variance = (
+        statistics[
+            "variance"
+        ]
+    )
+
+    dark_fraction = (
+        statistics[
+            "dark_fraction"
+        ]
+    )
+
+    light_fraction = (
+        statistics[
+            "light_fraction"
+        ]
+    )
+
+    # Very mixed areas such as black/white stripes
+    # need a stronger glass substrate.
+    highly_mixed = (
+        variance > 0.07
+        or (
+            dark_fraction > 0.22
+            and light_fraction > 0.22
+        )
+    )
+
+    if (
+        luminance >= 0.52
+    ):
+        # light background -> dark typography
+        return {
+            "text": (
+                18,
+                18,
+                20,
+                255,
+            ),
+
+            "panel_fill": (
+                255,
+                255,
+                255,
                 (
-                    0,
-                    0,
-                    0,
+                    150
+                    if highly_mixed
+                    else 72
                 ),
-                0.88,
-            )
-        )
+            ),
 
-        candidates.append(
+            "border": (
+                15,
+                15,
+                18,
+                150,
+            ),
+
+            "highlight": (
+                255,
+                255,
+                255,
+                110,
+            ),
+        }
+
+    # dark background -> light typography
+    return {
+        "text": (
+            246,
+            246,
+            246,
+            255,
+        ),
+
+        "panel_fill": (
+            0,
+            0,
+            0,
             (
-                24,
-                24,
-                28,
-            )
-        )
-
-    best = max(
-        candidates,
-        key=lambda colour: (
-            contrast_ratio(
-                colour,
-                background_colour,
-            )
+                150
+                if highly_mixed
+                else 76
+            ),
         ),
-    )
 
-    return (
-        best[0],
-        best[1],
-        best[2],
-        255,
-    )
-
-
-def panel_accent_colour(
-    image: Image.Image,
-    brief: dict,
-    background_colour: tuple[
-        int,
-        int,
-        int,
-    ],
-) -> tuple[
-    int,
-    int,
-    int,
-    int,
-]:
-    palette = theme_colours(
-        image,
-        brief,
-    )
-
-    # Prefer the theme colour that is visually most distinct
-    # from the local background.
-    accent = max(
-        palette,
-        key=lambda colour: (
-            contrast_ratio(
-                colour,
-                background_colour,
-            )
+        "border": (
+            245,
+            245,
+            245,
+            145,
         ),
-    )
 
-    return (
-        accent[0],
-        accent[1],
-        accent[2],
-        150,
-    )
+        "highlight": (
+            255,
+            255,
+            255,
+            100,
+        ),
+    }
 
 
 def liquid_glass_panel(
@@ -905,20 +554,8 @@ def liquid_glass_panel(
         int,
         int,
     ],
-    background_colour: tuple[
-        int,
-        int,
-        int,
-    ],
-    accent: tuple[
-        int,
-        int,
-        int,
-        int,
-    ],
+    style: dict,
 ) -> None:
-    """Render an almost-transparent adaptive glass panel."""
-
     (
         left,
         top,
@@ -936,15 +573,9 @@ def liquid_glass_panel(
         - top
     )
 
-    if (
-        width <= 0
-        or height <= 0
-    ):
-        return
-
     radius = 28
 
-    source_region = (
+    background_region = (
         image
         .crop(
             box
@@ -956,7 +587,7 @@ def liquid_glass_panel(
         )
     )
 
-    blur_mask = Image.new(
+    mask = Image.new(
         "L",
         (
             width,
@@ -966,7 +597,7 @@ def liquid_glass_panel(
     )
 
     ImageDraw.Draw(
-        blur_mask
+        mask
     ).rounded_rectangle(
         (
             0,
@@ -975,10 +606,10 @@ def liquid_glass_panel(
             height - 1,
         ),
         radius=radius,
-        fill=115,
+        fill=125,
     )
 
-    blur_layer = Image.new(
+    blurred_layer = Image.new(
         "RGBA",
         image.size,
         (
@@ -989,59 +620,18 @@ def liquid_glass_panel(
         ),
     )
 
-    blur_layer.paste(
-        source_region,
+    blurred_layer.paste(
+        background_region,
         (
             left,
             top,
         ),
-        blur_mask,
+        mask,
     )
 
     image.alpha_composite(
-        blur_layer
+        blurred_layer
     )
-
-    background_is_dark = (
-        relative_luminance(
-            background_colour
-        )
-        < 0.34
-    )
-
-    # Almost-transparent glass:
-    #
-    # dark backgrounds get a tiny light veil;
-    # light backgrounds get a tiny dark veil.
-    if background_is_dark:
-        glass_fill = (
-            255,
-            255,
-            255,
-            34,
-        )
-
-        highlight = (
-            255,
-            255,
-            255,
-            90,
-        )
-
-    else:
-        glass_fill = (
-            20,
-            20,
-            24,
-            24,
-        )
-
-        highlight = (
-            255,
-            255,
-            255,
-            70,
-        )
 
     glass = Image.new(
         "RGBA",
@@ -1062,8 +652,16 @@ def liquid_glass_panel(
     draw.rounded_rectangle(
         box,
         radius=radius,
-        fill=glass_fill,
-        outline=accent,
+        fill=(
+            style[
+                "panel_fill"
+            ]
+        ),
+        outline=(
+            style[
+                "border"
+            ]
+        ),
         width=4,
     )
 
@@ -1078,7 +676,11 @@ def liquid_glass_panel(
             top
             + 3,
         ),
-        fill=highlight,
+        fill=(
+            style[
+                "highlight"
+            ]
+        ),
         width=2,
     )
 
@@ -1096,7 +698,6 @@ def draw_panel(
         ]
     ],
     zone: dict,
-    brief: dict,
     max_size: int,
     min_size: int = 42,
 ) -> None:
@@ -1105,23 +706,25 @@ def draw_panel(
         top,
         right,
         bottom,
-    ) = normalized_zone_to_pixels(
-        zone
+    ) = (
+        normalized_zone_to_pixels(
+            zone
+        )
     )
 
     padding = 32
-
-    draw = ImageDraw.Draw(
-        image
-    )
 
     available_width = (
         right
         - left
         - (
-            2
-            * padding
+            padding
+            * 2
         )
+    )
+
+    draw = ImageDraw.Draw(
+        image
     )
 
     runs = []
@@ -1133,83 +736,91 @@ def draw_panel(
     ):
         candidate_runs = []
 
-        try:
-            for (
-                text,
+        for (
+            text,
+            bold,
+        ) in texts:
+            font = load_font(
+                size,
                 bold,
-            ) in texts:
-                font = load_font(
-                    size,
-                    bold,
-                )
+            )
 
-                ascent, descent = (
-                    font.getmetrics()
-                )
+            ascent, descent = (
+                font.getmetrics()
+            )
 
-                line_height = (
-                    ascent
-                    + descent
-                    + 10
-                )
+            line_height = (
+                ascent
+                + descent
+                + 10
+            )
 
-                for line in wrap_text(
-                    draw,
-                    str(text),
-                    font,
-                    available_width,
-                ):
-                    candidate_runs.append(
-                        (
-                            line,
-                            font,
-                            line_height,
-                        )
-                    )
+            lines = wrap_text(
+                draw,
+                str(
+                    text
+                ),
+                font,
+                available_width,
+            )
 
-            if (
-                sum(
-                    run[2]
-                    for run
-                    in candidate_runs
-                )
-                <= (
-                    bottom
-                    - top
-                    - (
-                        2
-                        * padding
+            for line in lines:
+                candidate_runs.append(
+                    (
+                        line,
+                        font,
+                        line_height,
                     )
                 )
-            ):
-                runs = (
-                    candidate_runs
+
+        total_height = sum(
+            item[
+                2
+            ]
+            for item
+            in candidate_runs
+        )
+
+        if (
+            total_height
+            <= (
+                bottom
+                - top
+                - (
+                    padding
+                    * 2
                 )
+            )
+        ):
+            runs = (
+                candidate_runs
+            )
 
-                break
-
-        except ValueError:
-            continue
+            break
 
     if not runs:
         raise ValueError(
-            "CONTENT_TOO_LONG: "
-            "full text cannot fit "
-            "inside its reserved zone."
+            "CONTENT_TOO_LONG: text does not fit "
+            "inside the reserved zone."
         )
 
     content_height = sum(
-        run[2]
-        for run in runs
+        item[
+            2
+        ]
+        for item
+        in runs
     )
 
     panel_bottom = min(
         bottom,
-        top
-        + content_height
-        + (
-            2
-            * padding
+        (
+            top
+            + content_height
+            + (
+                padding
+                * 2
+            )
         ),
     )
 
@@ -1220,34 +831,23 @@ def draw_panel(
         panel_bottom,
     )
 
-    local_background = (
-        average_region_colour(
+    statistics = (
+        region_statistics(
             image,
             panel_box,
         )
     )
 
-    text_colour = (
-        themed_text_colour(
-            image,
-            brief,
-            local_background,
-        )
-    )
-
-    accent = (
-        panel_accent_colour(
-            image,
-            brief,
-            local_background,
+    style = (
+        choose_panel_style(
+            statistics
         )
     )
 
     liquid_glass_panel(
         image,
         panel_box,
-        local_background,
-        accent,
+        style,
     )
 
     draw = ImageDraw.Draw(
@@ -1272,11 +872,17 @@ def draw_panel(
             ),
             line,
             font=font,
-            fill=text_colour,
+            fill=(
+                style[
+                    "text"
+                ]
+            ),
             anchor="lt",
         )
 
-        y += line_height
+        y += (
+            line_height
+        )
 
 
 def overlay_asset(
@@ -1284,10 +890,14 @@ def overlay_asset(
     asset_path: str | None,
     zone: dict | None,
 ) -> None:
-    if not asset_path:
+    if not (
+        asset_path
+    ):
         return
 
-    if not zone:
+    if not (
+        zone
+    ):
         raise ValueError(
             "Supplied asset has no "
             "reserved layout zone."
@@ -1298,20 +908,24 @@ def overlay_asset(
         top,
         right,
         bottom,
-    ) = normalized_zone_to_pixels(
-        zone
+    ) = (
+        normalized_zone_to_pixels(
+            zone
+        )
     )
 
     with Image.open(
         asset_path
     ) as source:
-        if source.format not in {
-            "JPEG",
-            "PNG",
-        }:
+        if (
+            source.format
+            not in {
+                "JPEG",
+                "PNG",
+            }
+        ):
             raise ValueError(
-                "Supplied asset must "
-                "be JPEG or PNG."
+                "Supplied asset must be JPEG or PNG."
             )
 
         asset = (
@@ -1331,10 +945,14 @@ def overlay_asset(
         Image.Resampling.LANCZOS,
     )
 
-    if (
+    shape = (
         zone.get(
             "shape"
         )
+    )
+
+    if (
+        shape
         == "circle"
     ):
         side = min(
@@ -1390,9 +1008,7 @@ def overlay_asset(
         )
 
     elif (
-        zone.get(
-            "shape"
-        )
+        shape
         == "rounded"
     ):
         mask = Image.new(
@@ -1424,24 +1040,30 @@ def overlay_asset(
             mask
         )
 
-    canvas.alpha_composite(
-        asset,
-        dest=(
-            left
-            + (
+    destination = (
+        left
+        + (
+            (
                 right
                 - left
                 - asset.width
             )
-            // 2,
-            top
-            + (
+            // 2
+        ),
+        top
+        + (
+            (
                 bottom
                 - top
                 - asset.height
             )
-            // 2,
+            // 2
         ),
+    )
+
+    canvas.alpha_composite(
+        asset,
+        dest=destination,
     )
 
 
@@ -1452,15 +1074,15 @@ def validate_layout(
         normalized_zone_to_pixels(
             zone
         )
-        for zone in (
-            layout_guidance.values()
-        )
+        for zone
+        in layout_guidance.values()
         if (
             isinstance(
                 zone,
                 dict,
             )
-            and "x" in zone
+            and "x"
+            in zone
         )
     ]
 
@@ -1469,19 +1091,38 @@ def validate_layout(
     ):
         for second in (
             boxes[
-                index + 1:
+                index
+                + 1:
             ]
         ):
-            if (
-                first[0]
-                < second[2]
-                and first[2]
-                > second[0]
-                and first[1]
-                < second[3]
-                and first[3]
-                > second[1]
-            ):
+            overlaps = (
+                first[
+                    0
+                ]
+                < second[
+                    2
+                ]
+                and first[
+                    2
+                ]
+                > second[
+                    0
+                ]
+                and first[
+                    1
+                ]
+                < second[
+                    3
+                ]
+                and first[
+                    3
+                ]
+                > second[
+                    1
+                ]
+            )
+
+            if overlaps:
                 raise ValueError(
                     "Reserved layout zones overlap."
                 )
@@ -1496,8 +1137,6 @@ def compose_programme(
     layout_guidance: dict,
     output_path: Path | None = None,
 ) -> CompositionResult:
-    """Compose the selected background into the single final programme."""
-
     validate_layout(
         layout_guidance
     )
@@ -1521,7 +1160,7 @@ def compose_programme(
             )
         )
 
-    title = [
+    title_content = [
         (
             brief[
                 "title"
@@ -1530,26 +1169,31 @@ def compose_programme(
         )
     ]
 
-    details = [
+    # IMPORTANT:
+    # timezone intentionally excluded from visible poster.
+    metadata = [
         str(
-            brief[key]
+            brief[
+                key
+            ]
         )
         for key in (
             "event_date",
             "start_time",
-            "timezone",
             "venue",
         )
-        if brief.get(
-            key
+        if (
+            brief.get(
+                key
+            )
         )
     ]
 
-    if details:
-        title.append(
+    if metadata:
+        title_content.append(
             (
                 " | ".join(
-                    details
+                    metadata
                 ),
                 False,
             )
@@ -1557,11 +1201,10 @@ def compose_programme(
 
     draw_panel(
         canvas,
-        title,
+        title_content,
         layout_guidance[
             "title_zone"
         ],
-        brief,
         max_size=80,
     )
 
@@ -1572,10 +1215,14 @@ def compose_programme(
         or []
     )
 
-    if len(programme) > 15:
+    if (
+        len(
+            programme
+        )
+        > 15
+    ):
         raise ValueError(
-            "A programme may contain "
-            "at most 15 rows."
+            "A programme may contain at most 15 rows."
         )
 
     rows = []
@@ -1601,34 +1248,52 @@ def compose_programme(
             )
         )
 
-        row_text = (
+        text = (
             f"{time}  {label}"
             if time
-            else str(label)
+            else str(
+                label
+            )
         )
 
         rows.append(
             (
-                row_text,
+                text,
                 True,
             )
         )
 
-        for key in (
-            "speaker",
-            "description",
+        if (
+            item.get(
+                "speaker"
+            )
         ):
-            if item.get(
-                key
-            ):
-                rows.append(
-                    (
-                        str(
-                            item[key]
-                        ),
-                        False,
-                    )
+            rows.append(
+                (
+                    str(
+                        item[
+                            "speaker"
+                        ]
+                    ),
+                    False,
                 )
+            )
+
+        if (
+            item.get(
+                "description"
+            )
+        ):
+            rows.append(
+                (
+                    str(
+                        item[
+                            "description"
+                        ]
+                    ),
+                    False,
+                )
+            )
 
         if (
             item.get(
@@ -1639,8 +1304,7 @@ def compose_programme(
             rows.append(
                 (
                     (
-                        f"{item['duration_minutes']} "
-                        "min"
+                        f"{item['duration_minutes']} min"
                     ),
                     False,
                 )
@@ -1653,7 +1317,6 @@ def compose_programme(
             layout_guidance[
                 "programme_zone"
             ],
-            brief,
             max_size=52,
         )
 
@@ -1683,7 +1346,9 @@ def compose_programme(
         )
     )
 
-    buffer = io.BytesIO()
+    buffer = (
+        io.BytesIO()
+    )
 
     canvas.convert(
         "RGB"
@@ -1724,7 +1389,8 @@ def compose_programme(
         sha256=(
             hashlib.sha256(
                 data
-            ).hexdigest()
+            )
+            .hexdigest()
         ),
         width=(
             CANVAS_WIDTH

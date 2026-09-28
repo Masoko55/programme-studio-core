@@ -1,13 +1,16 @@
 """Execute background-candidate generation.
 
-Each engine/direction pair is an independent candidate.
+Every engine/direction pair is independent.
 
-A candidate rejected by deterministic QA is retried with a new seed and
-stronger corrective prompting. If that candidate still fails after its retry
-budget is exhausted, it is marked failed and the remaining candidates continue.
+QA-rejected candidates are retried with:
+- a new seed
+- stronger correction instructions based on the actual rejection reason
 
-Infrastructure/transport failures remain hard failures because blindly
-resubmitting ambiguous remote jobs could create duplicates.
+If a candidate exhausts its retry budget, only that candidate fails.
+The remaining candidates continue generating.
+
+Transport, queue, workflow and ambiguous submission failures remain hard
+failures because blindly resubmitting them could duplicate remote jobs.
 """
 
 import asyncio
@@ -53,7 +56,7 @@ def _candidate_record(
     engine_id: str,
     direction_id: str,
 ) -> dict:
-    record_path = (
+    path = (
         settings.programme_data_path
         / reference_number
         / "backgrounds"
@@ -67,7 +70,7 @@ def _candidate_record(
 
     try:
         return json.loads(
-            record_path.read_text(
+            path.read_text(
                 encoding="utf-8"
             )
         )
@@ -103,7 +106,7 @@ def _candidate_was_rejected(
     )
 
 
-def _candidate_rejection_reason(
+def _rejection_reason(
     reference_number: str,
     engine_id: str,
     direction_id: str,
@@ -125,138 +128,135 @@ def _candidate_rejection_reason(
 def _strengthen_prompts(
     positive_prompt: str,
     negative_prompt: str,
-    rejection_reason: str,
+    reason: str,
 ) -> tuple[
     str,
     str,
 ]:
-    """Correct the next retry based on deterministic QA feedback."""
-
-    reason = (
-        rejection_reason
-        .lower()
+    reason_lower = (
+        reason.lower()
     )
 
-    positive_extra = []
-    negative_extra = []
+    positive_additions = []
+    negative_additions = []
 
     if (
-        "human figure"
-        in reason
+        "human"
+        in reason_lower
         or "person"
-        in reason
+        in reason_lower
         or "people"
-        in reason
+        in reason_lower
     ):
-        positive_extra.append(
+        positive_additions.append(
             (
-                "STRICT RETRY REQUIREMENT: "
-                "create pure abstract nonrepresentational "
-                "surface design only. No central subject, "
-                "no silhouette, no body-shaped form, no face, "
-                "no human-like object, no clothing, no mannequin. "
-                "Use only geometry, material texture, lines, "
-                "light, gradients and ornament."
+                "STRICT RETRY CORRECTION: "
+                "pure abstract nonrepresentational "
+                "background only. No human figure, "
+                "no silhouette, no face, no body, "
+                "no mannequin, no clothing, no "
+                "human-shaped object and no central character."
             )
         )
 
-        negative_extra.append(
+        negative_additions.append(
             (
-                "person, people, human, human figure, "
-                "man, woman, child, face, portrait, "
-                "silhouette, body, head, hands, arms, "
-                "legs, clothing, mannequin, character"
+                "person, people, human, man, woman, "
+                "child, face, portrait, silhouette, "
+                "body, head, arms, hands, legs, "
+                "clothing, mannequin, character"
             )
         )
 
     if (
-        "palette"
-        in reason
-        or "monochrome"
-        in reason
+        "monochrome"
+        in reason_lower
+        or "black-and-white"
+        in reason_lower
+        or "palette"
+        in reason_lower
         or "colour"
-        in reason
+        in reason_lower
         or "color"
-        in reason
+        in reason_lower
     ):
-        positive_extra.append(
+        positive_additions.append(
             (
-                "STRICT RETRY REQUIREMENT: remain inside "
-                "the requested colour palette only. "
-                "For a black-and-white brief use ONLY "
+                "STRICT RETRY CORRECTION: obey the requested "
+                "colour palette exactly. If the requested "
+                "palette is black and white, generate ONLY "
                 "achromatic black, white and neutral gray. "
-                "Zero coloured tinting: no blue, cyan, green, "
-                "yellow, beige, brown, gold, orange, red, pink, "
-                "purple or other chromatic hues."
+                "No coloured tinting, warm cast, cool cast, "
+                "sepia or chromatic lighting."
             )
         )
 
-        negative_extra.append(
+        negative_additions.append(
             (
-                "colour cast, colored tint, coloured tint, "
                 "blue, cyan, green, yellow, beige, brown, "
-                "gold, orange, red, pink, purple"
+                "gold, orange, red, pink, purple, "
+                "colour cast, colored tint, coloured tint"
             )
         )
 
     if (
         "ocr"
-        in reason
+        in reason_lower
         or "text"
-        in reason
+        in reason_lower
         or "readable"
-        in reason
+        in reason_lower
     ):
-        positive_extra.append(
+        positive_additions.append(
             (
-                "STRICT RETRY REQUIREMENT: decorative visual "
-                "background only. No symbols resembling letters, "
-                "numbers or written language."
+                "STRICT RETRY CORRECTION: no readable "
+                "characters of any kind. Pure visual "
+                "background only."
             )
         )
 
-        negative_extra.append(
+        negative_additions.append(
             (
-                "text, letters, words, numbers, typography, "
-                "writing, logo, watermark, signage"
+                "text, typography, words, letters, "
+                "numbers, writing, logo, watermark, signage"
             )
         )
 
-    if not positive_extra:
-        positive_extra.append(
+    if not (
+        positive_additions
+    ):
+        positive_additions.append(
             (
-                "STRICT RETRY REQUIREMENT: correct the "
+                "STRICT RETRY CORRECTION: correct the "
                 "previous QA violation while preserving "
-                "the requested abstract event background."
+                "the requested abstract background."
             )
         )
 
-    strengthened_positive = (
+    corrected_positive = (
         positive_prompt.rstrip(
             ". "
         )
         + ". "
         + " ".join(
-            positive_extra
+            positive_additions
         )
     )
 
-    strengthened_negative = (
+    corrected_negative = (
         ", ".join(
-            [
-                value
-                for value in (
-                    negative_prompt.strip(),
-                    *negative_extra,
-                )
-                if value
-            ]
+            value
+            for value in (
+                negative_prompt.strip(),
+                *negative_additions,
+            )
+            if value
         )
     )
 
     return (
-        strengthened_positive,
-        strengthened_negative,
+        corrected_positive,
+        corrected_negative,
     )
 
 
@@ -264,20 +264,6 @@ async def execute_image_job(
     reference_number: str,
     max_outputs: int | None = None,
 ):
-    """Generate all selectable background candidates.
-
-    Successful existing candidates are reused.
-
-    QA rejection:
-        retry with stronger corrective prompting.
-
-    Exhausted QA rejection:
-        mark only that candidate failed and continue.
-
-    Infrastructure/transport ambiguity:
-        abort the job so an operator can safely resume it.
-    """
-
     async with GPULease():
         state = load_image_job_state(
             reference_number
@@ -317,9 +303,9 @@ async def execute_image_job(
 
         if actual != expected:
             raise ValueError(
-                "Historical engine plan differs from "
-                "the current configuration. Preserve "
-                "this job and create a new reference."
+                "Historical engine plan differs from the "
+                "current configuration. Preserve this job "
+                "and create a new reference number."
             )
 
         state.status = (
@@ -337,8 +323,6 @@ async def execute_image_job(
         )
 
         try:
-            # Ollama must release GPU memory before
-            # ComfyUI image generation.
             async with httpx.AsyncClient(
                 timeout=60
             ) as http:
@@ -364,7 +348,7 @@ async def execute_image_job(
 
             async with ComfyUIClient() as client:
                 current_engine = None
-                newly_generated = 0
+                generated = 0
 
                 try:
                     for output in state.outputs:
@@ -473,7 +457,7 @@ async def execute_image_job(
                             )
                         )
 
-                        candidate_completed = False
+                        candidate_complete = False
 
                         for retry_count in range(
                             settings.max_candidate_retries
@@ -544,17 +528,19 @@ async def execute_image_job(
                                     ],
                                 )
 
-                                if not result[
-                                    "reused"
-                                ]:
-                                    newly_generated += 1
+                                if not (
+                                    result[
+                                        "reused"
+                                    ]
+                                ):
+                                    generated += 1
 
-                                candidate_completed = True
+                                candidate_complete = True
 
                                 break
 
                             except ComfyUIError as error:
-                                is_qa_rejection = (
+                                rejected = (
                                     _candidate_was_rejected(
                                         reference_number,
                                         output.engine_id,
@@ -562,13 +548,13 @@ async def execute_image_job(
                                     )
                                 )
 
-                                # Transport, workflow, queue and submission
-                                # errors are intentionally NOT blindly retried.
-                                if not is_qa_rejection:
+                                # Do not blindly retry ambiguous
+                                # infrastructure failures.
+                                if not rejected:
                                     raise
 
-                                rejection_reason = (
-                                    _candidate_rejection_reason(
+                                reason = (
+                                    _rejection_reason(
                                         reference_number,
                                         output.engine_id,
                                         output.direction_id,
@@ -587,9 +573,7 @@ async def execute_image_job(
                                         output.engine_id,
                                         output.direction_id,
                                         "failed",
-                                        error=(
-                                            rejection_reason
-                                        ),
+                                        error=reason,
                                     )
 
                                     logger.error(
@@ -607,11 +591,9 @@ async def execute_image_job(
                                             .max_candidate_retries
                                             + 1
                                         ),
-                                        rejection_reason,
+                                        reason,
                                     )
 
-                                    # Important:
-                                    # do NOT abort the remaining candidates.
                                     break
 
                                 (
@@ -620,7 +602,7 @@ async def execute_image_job(
                                 ) = _strengthen_prompts(
                                     positive_prompt,
                                     negative_prompt,
-                                    rejection_reason,
+                                    reason,
                                 )
 
                                 delay_seconds = (
@@ -641,12 +623,9 @@ async def execute_image_job(
                                     output.direction_id,
                                     retry_count
                                     + 1,
-                                    (
-                                        settings
-                                        .max_candidate_retries
-                                    ),
+                                    settings.max_candidate_retries,
                                     delay_seconds,
-                                    rejection_reason,
+                                    reason,
                                 )
 
                                 await asyncio.sleep(
@@ -656,14 +635,14 @@ async def execute_image_job(
                         if (
                             max_outputs
                             is not None
-                            and newly_generated
+                            and generated
                             >= max_outputs
                         ):
                             break
 
-                        # Explicitly continue after an exhausted
-                        # candidate rather than aborting the batch.
-                        if not candidate_completed:
+                        if not (
+                            candidate_complete
+                        ):
                             continue
 
                 finally:
@@ -711,7 +690,6 @@ async def execute_image_job(
                 )
             )
 
-            # At least one selectable background exists.
             if completed > 0:
                 state.status = (
                     "awaiting_selection"

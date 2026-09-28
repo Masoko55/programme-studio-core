@@ -1,11 +1,7 @@
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
-from pydantic import (
-    Field,
-    field_validator,
-)
-
+from pydantic import field_validator
 from pydantic_settings import (
     BaseSettings,
     SettingsConfigDict,
@@ -48,12 +44,11 @@ class Settings(BaseSettings):
 
     gpu_lease_timeout_seconds: float = 1800
 
-    # Grill-Me never asks the user for this.
-    #
-    # The container receives USER_TIMEZONE automatically
-    # from the host machine when it starts.
-    user_timezone: str = Field(
-        default="Africa/Johannesburg"
+    # Grill-Me no longer asks the user for timezone.
+    # For your local deployment this is injected from
+    # the host when the container starts.
+    user_timezone: str = (
+        "Africa/Johannesburg"
     )
 
     @field_validator(
@@ -71,7 +66,7 @@ class Settings(BaseSettings):
         except Exception as error:
             raise ValueError(
                 "USER_TIMEZONE must be a valid "
-                "IANA timezone such as "
+                "IANA timezone, for example "
                 "Africa/Johannesburg."
             ) from error
 

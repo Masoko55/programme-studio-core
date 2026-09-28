@@ -1,4 +1,6 @@
-"""ComfyUI HTTP adapter and background-candidate QA."""
+"""ComfyUI HTTP adapter and deterministic candidate validation."""
+
+from __future__ import annotations
 
 import asyncio
 import hashlib
@@ -9,24 +11,34 @@ import re
 import secrets
 import time
 import uuid
+
 from pathlib import Path
 from typing import Any
 
-import cv2
 import httpx
-import numpy as np
 import pytesseract
 
 from PIL import Image
 
 from app.config.settings import settings
+
 from app.services.atomic import (
     write_bytes,
     write_json,
 )
+
+from app.services.background_policy import (
+    BACKGROUND_ONLY_NEGATIVE,
+    build_engine_prompt,
+    detect_human_signals,
+    palette_negative_contract,
+    validate_palette,
+)
+
 from app.services.job_persistence import (
     get_job_directory,
 )
+
 from app.services.prompt_repository import (
     load_prompts_document,
 )
@@ -37,139 +49,16 @@ logger = logging.getLogger(
 )
 
 
-BACKGROUND_ONLY_SUFFIX = (
-    "A4 portrait decorative background only. "
-    "Pure abstract nonrepresentational artwork. "
-    "No central subject. "
-    "No focal character. "
-    "No human silhouette. "
-    "No body-shaped form. "
-    "No person-like object. "
-    "No face-like focal object. "
-    "No portrait composition. "
-    "Absolutely no people, human figures, faces, portraits, "
-    "characters, mannequins, silhouettes, heads, bodies, "
-    "hands, arms, legs, or clothing. "
-    "Absolutely no words, letters, typography, logos, "
-    "signatures, watermarks, labels, numbers, or readable characters. "
-    "Do not create a poster, invitation, certificate, menu, card, "
-    "document, signage, or framed information panel. "
-    "Use abstract materials, geometric ornament, gradients, "
-    "textures, lines, shapes, lighting, and pattern only. "
-    "Leave the reserved title and programme areas visually quiet."
-)
-
-
-BACKGROUND_ONLY_NEGATIVE = (
-    "(person:2.0), "
-    "(people:2.0), "
-    "(human:2.0), "
-    "(human figure:2.0), "
-    "(man:2.0), "
-    "(woman:2.0), "
-    "(child:2.0), "
-    "(face:2.0), "
-    "(portrait:2.0), "
-    "(body:2.0), "
-    "(silhouette:2.0), "
-    "(character:2.0), "
-    "(head:1.8), "
-    "(hands:1.8), "
-    "(arms:1.8), "
-    "(legs:1.8), "
-    "(clothing:1.8), "
-    "(text:2.0), "
-    "(words:2.0), "
-    "(letters:2.0), "
-    "(typography:2.0), "
-    "(writing:2.0), "
-    "(calligraphy:1.8), "
-    "(signature:1.8), "
-    "(logo:1.8), "
-    "(watermark:1.8), "
-    "(poster:2.0), "
-    "(card:2.0), "
-    "(document:2.0), "
-    "(menu:2.0), "
-    "(certificate:2.0), "
-    "(signage:2.0), "
-    "numbers, labels, invitation"
-)
-
-
-ABSTRACT_BACKGROUND_PREFIX = (
-    "Abstract nonrepresentational event background, "
-    "decorative surface design only, "
-    "no subject, no character, no figure, "
-    "no photographic scene, no narrative scene, "
-    "no foreground object, generous negative space, "
-)
-
-
-SDXL_CONTENT_CUES = re.compile(
-    (
-        r"\b(?:programme|program|ceremony|event|award|title|"
-        r"information|hierarchy|layout|page|invitation|cover)\b"
-    ),
-    re.IGNORECASE,
-)
-
-
-FORBIDDEN_BACKGROUND_PROMPT_TERMS = (
-    "typography",
-    "lettering",
-    "watermark",
-    "readable text",
-    "written text",
-    "text",
-    "words",
-    "writing",
-    "person",
-    "people",
-    "human",
-    "face",
-    "figure",
-    "portrait",
-)
-
-
-NAMED_COLOURS = {
-    "black": (0, 0, 0),
-    "white": (255, 255, 255),
-    "red": (220, 45, 45),
-    "blue": (45, 95, 220),
-    "green": (45, 150, 80),
-    "pink": (235, 115, 170),
-    "purple": (125, 75, 185),
-    "violet": (120, 80, 185),
-    "orange": (230, 130, 45),
-    "yellow": (230, 195, 45),
-    "gold": (195, 150, 50),
-    "golden": (195, 150, 50),
-    "silver": (175, 180, 190),
-    "grey": (125, 125, 125),
-    "gray": (125, 125, 125),
-    "navy": (25, 45, 100),
-    "teal": (35, 135, 135),
-    "cyan": (55, 170, 190),
-    "brown": (120, 80, 50),
-    "beige": (210, 190, 150),
-    "cream": (240, 225, 190),
-    "maroon": (115, 30, 50),
-    "burgundy": (120, 35, 60),
-}
-
-
 class ComfyUIError(
     RuntimeError
 ):
-    """Unavailable dependency, invalid workflow, or failed remote execution."""
+    """ComfyUI execution or validation failure."""
 
 
 class SubmissionUncertain(
     ComfyUIError
 ):
-    """The server may have accepted a request; never blindly resubmit it."""
+    """The remote server may already have accepted the request."""
 
 
 def workflow_name(
@@ -197,115 +86,6 @@ def workflow_name(
     ]
 
 
-def sanitize_background_prompt(
-    positive_prompt: str,
-) -> str:
-    clauses = re.split(
-        r"[,;.!?]+",
-        positive_prompt,
-    )
-
-    kept = [
-        clause.strip()
-        for clause in clauses
-        if clause.strip()
-        and not any(
-            re.search(
-                rf"\b{re.escape(term)}\b",
-                clause,
-                re.IGNORECASE,
-            )
-            for term in (
-                FORBIDDEN_BACKGROUND_PROMPT_TERMS
-            )
-        )
-    ]
-
-    sanitized = (
-        ", ".join(
-            kept
-        )
-    )
-
-    return (
-        sanitized
-        or (
-            "abstract nonrepresentational background "
-            "with generous open space"
-        )
-    )
-
-
-def build_background_only_prompt(
-    positive_prompt: str,
-) -> str:
-    sanitized = (
-        sanitize_background_prompt(
-            positive_prompt
-        )
-    )
-
-    return (
-        ABSTRACT_BACKGROUND_PREFIX
-        + sanitized.rstrip(
-            ". "
-        )
-        + ". "
-        + BACKGROUND_ONLY_SUFFIX
-    )
-
-
-def build_engine_prompt(
-    engine_id: str,
-    positive_prompt: str,
-) -> str:
-    """Give every engine an abstract-only prompt.
-
-    FLUX does not have a negative-conditioning input in the configured
-    workflow, so its positive prompt must carry the full safety constraint.
-    """
-
-    sanitized = (
-        sanitize_background_prompt(
-            positive_prompt
-        )
-    )
-
-    visual_sentences = [
-        sentence.strip()
-        for sentence in re.split(
-            r"(?<=[.!?])\s+",
-            sanitized,
-        )
-        if (
-            sentence.strip()
-            and not SDXL_CONTENT_CUES.search(
-                sentence
-            )
-        )
-    ]
-
-    visual_detail = (
-        " ".join(
-            visual_sentences
-        )
-    )
-
-    if not visual_detail:
-        visual_detail = (
-            "refined abstract material texture"
-        )
-
-    return (
-        ABSTRACT_BACKGROUND_PREFIX
-        + visual_detail.rstrip(
-            ". "
-        )
-        + ". "
-        + BACKGROUND_ONLY_SUFFIX
-    )
-
-
 def detected_text_tokens(
     image: Image.Image,
 ) -> list[str]:
@@ -327,8 +107,12 @@ def detected_text_tokens(
         token,
         confidence,
     ) in zip(
-        data["text"],
-        data["conf"],
+        data[
+            "text"
+        ],
+        data[
+            "conf"
+        ],
     ):
         normalized = re.sub(
             r"[^A-Za-z]",
@@ -340,6 +124,7 @@ def detected_text_tokens(
             score = float(
                 confidence
             )
+
         except (
             TypeError,
             ValueError,
@@ -358,380 +143,6 @@ def detected_text_tokens(
             )
 
     return tokens
-
-
-def detect_people(
-    image: Image.Image,
-) -> list[
-    tuple[
-        int,
-        int,
-        int,
-        int,
-    ]
-]:
-    """Detect obvious full/upper-body human figures using OpenCV HOG.
-
-    This is intentionally conservative. It is used as a second safety net
-    after the diffusion prompt, not as the only person-avoidance mechanism.
-    """
-
-    rgb = np.array(
-        image.convert(
-            "RGB"
-        )
-    )
-
-    bgr = cv2.cvtColor(
-        rgb,
-        cv2.COLOR_RGB2BGR,
-    )
-
-    maximum_dimension = max(
-        bgr.shape[
-            :2
-        ]
-    )
-
-    if maximum_dimension > 1280:
-        scale = (
-            1280
-            / maximum_dimension
-        )
-
-        bgr = cv2.resize(
-            bgr,
-            None,
-            fx=scale,
-            fy=scale,
-            interpolation=(
-                cv2.INTER_AREA
-            ),
-        )
-
-    hog = cv2.HOGDescriptor()
-
-    hog.setSVMDetector(
-        cv2.HOGDescriptor_getDefaultPeopleDetector()
-    )
-
-    rectangles, weights = (
-        hog.detectMultiScale(
-            bgr,
-            winStride=(
-                8,
-                8,
-            ),
-            padding=(
-                16,
-                16,
-            ),
-            scale=1.05,
-        )
-    )
-
-    detected = []
-
-    for (
-        rectangle,
-        weight,
-    ) in zip(
-        rectangles,
-        weights,
-    ):
-        score = float(
-            weight
-        )
-
-        if score < 0.45:
-            continue
-
-        x, y, width, height = [
-            int(value)
-            for value in rectangle
-        ]
-
-        detected.append(
-            (
-                x,
-                y,
-                width,
-                height,
-            )
-        )
-
-    return detected
-
-
-def parse_colour(
-    value: str | None,
-) -> tuple[
-    int,
-    int,
-    int,
-] | None:
-    if not value:
-        return None
-
-    normalized = (
-        value
-        .strip()
-        .lower()
-    )
-
-    if normalized in (
-        NAMED_COLOURS
-    ):
-        return (
-            NAMED_COLOURS[
-                normalized
-            ]
-        )
-
-    hexadecimal = (
-        re.fullmatch(
-            r"#?([0-9a-f]{6})",
-            normalized,
-        )
-    )
-
-    if hexadecimal:
-        raw = (
-            hexadecimal.group(
-                1
-            )
-        )
-
-        return (
-            int(
-                raw[0:2],
-                16,
-            ),
-            int(
-                raw[2:4],
-                16,
-            ),
-            int(
-                raw[4:6],
-                16,
-            ),
-        )
-
-    for (
-        name,
-        rgb,
-    ) in NAMED_COLOURS.items():
-        if re.search(
-            rf"\b{re.escape(name)}\b",
-            normalized,
-        ):
-            return rgb
-
-    return None
-
-
-def colour_distance(
-    first: tuple[
-        int,
-        int,
-        int,
-    ],
-    second: tuple[
-        int,
-        int,
-        int,
-    ],
-) -> float:
-    return float(
-        np.linalg.norm(
-            np.array(
-                first,
-                dtype=np.float32,
-            )
-            - np.array(
-                second,
-                dtype=np.float32,
-            )
-        )
-    )
-
-
-def validate_palette(
-    image: Image.Image,
-    primary_colour: str | None,
-    secondary_colour: str | None,
-) -> dict:
-    """Reject candidates that materially leave the requested palette.
-
-    Black/white is treated more strictly because it is explicitly
-    monochromatic. Other palettes allow neutral values and variations
-    of the requested colours.
-    """
-
-    primary = parse_colour(
-        primary_colour
-    )
-
-    secondary = parse_colour(
-        secondary_colour
-    )
-
-    palette = [
-        colour
-        for colour in (
-            primary,
-            secondary,
-        )
-        if colour is not None
-    ]
-
-    if not palette:
-        return {
-            "palette_checked": (
-                False
-            ),
-        }
-
-    sample = (
-        image
-        .convert(
-            "RGB"
-        )
-        .resize(
-            (
-                96,
-                132,
-            ),
-            Image.Resampling.LANCZOS,
-        )
-    )
-
-    pixels = np.array(
-        sample,
-        dtype=np.int16,
-    ).reshape(
-        -1,
-        3,
-    )
-
-    normalized_names = {
-        (
-            primary_colour
-            or ""
-        )
-        .strip()
-        .lower(),
-        (
-            secondary_colour
-            or ""
-        )
-        .strip()
-        .lower(),
-    }
-
-    monochrome_requested = (
-        "black"
-        in normalized_names
-        and "white"
-        in normalized_names
-    )
-
-    if monochrome_requested:
-        chroma = (
-            pixels.max(
-                axis=1
-            )
-            - pixels.min(
-                axis=1
-            )
-        )
-
-        monochrome_ratio = float(
-            np.mean(
-                chroma <= 28
-            )
-        )
-
-        if monochrome_ratio < 0.90:
-            raise ValueError(
-                "Generated background left the requested "
-                "black-and-white palette "
-                f"(monochrome ratio {monochrome_ratio:.2f})."
-            )
-
-        return {
-            "palette_checked": (
-                True
-            ),
-            "palette_mode": (
-                "black-white"
-            ),
-            "palette_match_ratio": (
-                monochrome_ratio
-            ),
-        }
-
-    neutrals = [
-        (
-            0,
-            0,
-            0,
-        ),
-        (
-            255,
-            255,
-            255,
-        ),
-        (
-            128,
-            128,
-            128,
-        ),
-    ]
-
-    allowed = (
-        palette
-        + neutrals
-    )
-
-    matched = 0
-
-    for pixel in pixels:
-        current = tuple(
-            int(value)
-            for value in pixel
-        )
-
-        minimum_distance = min(
-            colour_distance(
-                current,
-                candidate,
-            )
-            for candidate in allowed
-        )
-
-        if minimum_distance <= 95:
-            matched += 1
-
-    ratio = (
-        matched
-        / len(
-            pixels
-        )
-    )
-
-    if ratio < 0.72:
-        raise ValueError(
-            "Generated background does not sufficiently "
-            "match the requested primary/secondary palette "
-            f"(match ratio {ratio:.2f})."
-        )
-
-    return {
-        "palette_checked": True,
-        "palette_mode": "theme",
-        "palette_match_ratio": ratio,
-    }
 
 
 def build_workflow(
@@ -810,7 +221,8 @@ def build_workflow(
                 for (
                     key,
                     item,
-                ) in value.items()
+                )
+                in value.items()
             }
 
         if isinstance(
@@ -845,8 +257,9 @@ def validate_workflow(
             ]
         )
 
-        if kind not in (
-            object_info
+        if (
+            kind
+            not in object_info
         ):
             raise ComfyUIError(
                 "ComfyUI node "
@@ -885,7 +298,7 @@ def validate_workflow(
                 f"{sorted(missing)}"
             )
 
-        all_fields = {
+        fields = {
             **schema.get(
                 "required",
                 {},
@@ -899,24 +312,33 @@ def validate_workflow(
         for (
             key,
             specification,
-        ) in all_fields.items():
+        ) in fields.items():
             if (
-                key not in inputs
+                key
+                not in inputs
                 or isinstance(
-                    inputs[key],
+                    inputs[
+                        key
+                    ],
                     list,
                 )
             ):
                 continue
 
             options = (
-                specification[0]
+                specification[
+                    0
+                ]
                 if isinstance(
-                    specification[0],
+                    specification[
+                        0
+                    ],
                     list,
                 )
                 else (
-                    specification[1].get(
+                    specification[
+                        1
+                    ].get(
                         "options"
                     )
                     if (
@@ -925,7 +347,9 @@ def validate_workflow(
                         )
                         > 1
                         and isinstance(
-                            specification[1],
+                            specification[
+                                1
+                            ],
                             dict,
                         )
                     )
@@ -1009,16 +433,14 @@ def validate_background(
             )
         )
 
-        people = (
-            detect_people(
+        human_signals = (
+            detect_human_signals(
                 image
             )
         )
 
         palette_result = {
-            "palette_checked": (
-                False
-            ),
+            "palette_checked": False,
         }
 
         if reference_number:
@@ -1031,7 +453,7 @@ def validate_background(
             brief = (
                 document.get(
                     "brief",
-                    {}
+                    {},
                 )
             )
 
@@ -1061,31 +483,70 @@ def validate_background(
 
     if tokens:
         raise ValueError(
-            "Generated background contains "
-            "OCR text: "
+            "Generated background contains OCR text: "
             + ", ".join(
-                tokens[:8]
+                tokens[
+                    :8
+                ]
             )
         )
 
-    if people:
+    if human_signals[
+        "detected"
+    ]:
         raise ValueError(
             "Generated background appears to contain "
-            "a human figure."
+            "a human figure or face."
         )
 
     return {
         "output_path": (
-            str(path)
-        ),
-        "sha256": digest,
-        "width": width,
-        "height": height,
-        "person_detection_count": (
-            len(
-                people
+            str(
+                path
             )
         ),
+        "sha256": (
+            digest
+        ),
+        "width": (
+            width
+        ),
+        "height": (
+            height
+        ),
+
+        "person_detection_count": (
+            len(
+                human_signals[
+                    "people"
+                ]
+            )
+        ),
+
+        "face_detection_count": (
+            len(
+                human_signals[
+                    "faces"
+                ]
+            )
+        ),
+
+        "profile_detection_count": (
+            len(
+                human_signals[
+                    "profiles"
+                ]
+            )
+        ),
+
+        "upper_body_detection_count": (
+            len(
+                human_signals[
+                    "upper_bodies"
+                ]
+            )
+        ),
+
         **palette_result,
     }
 
@@ -1103,6 +564,7 @@ class ComfyUIClient:
                         "/"
                     )
                 ),
+
                 timeout=(
                     httpx.Timeout(
                         60,
@@ -1175,7 +637,7 @@ class ComfyUIClient:
             )
         ).json()
 
-        info = (
+        object_info = (
             await self.request(
                 "GET",
                 "/object_info",
@@ -1195,16 +657,19 @@ class ComfyUIClient:
                     0,
                     "readiness",
                 ),
-                info,
+                object_info,
             )
 
         return {
-            "status": "available",
+            "status": (
+                "available"
+            ),
             "version": (
                 stats.get(
                     "system",
-                    {}
-                ).get(
+                    {},
+                )
+                .get(
                     "comfyui_version"
                 )
             ),
@@ -1242,12 +707,8 @@ class ComfyUIClient:
             "POST",
             "/free",
             json={
-                "unload_models": (
-                    True
-                ),
-                "free_memory": (
-                    True
-                ),
+                "unload_models": True,
+                "free_memory": True,
             },
         )
 
@@ -1300,7 +761,8 @@ class ComfyUIClient:
                             * 1024
                         )
                     )
-                    for device in devices
+                    for device
+                    in devices
                 )
             ):
                 logger.info(
@@ -1338,9 +800,7 @@ class ComfyUIClient:
                 "GET",
                 "/history",
                 params={
-                    "max_items": (
-                        1000
-                    )
+                    "max_items": 1000,
                 },
             )
         ).json()
@@ -1360,28 +820,40 @@ class ComfyUIClient:
             entry[
                 "prompt"
             ]
-            for entry in (
-                history.values()
+            for entry
+            in history.values()
+            if (
+                "prompt"
+                in entry
             )
-            if "prompt" in entry
         ]
 
         matches = {
-            item[1]
-            for item in entries
+            item[
+                1
+            ]
+            for item
+            in entries
             if (
-                len(item)
+                len(
+                    item
+                )
                 > 3
-                and item[3].get(
+                and item[
+                    3
+                ].get(
                     "programme_request_id"
                 )
                 == request_id
             )
         }
 
-        if len(
-            matches
-        ) > 1:
+        if (
+            len(
+                matches
+            )
+            > 1
+        ):
             raise SubmissionUncertain(
                 "Multiple remote jobs match "
                 "the submission."
@@ -1406,11 +878,14 @@ class ComfyUIClient:
             engine_id
         )
 
-        if direction_id not in {
-            "A",
-            "B",
-            "C",
-        }:
+        if (
+            direction_id
+            not in {
+                "A",
+                "B",
+                "C",
+            }
+        ):
             raise ValueError(
                 "Direction must be A, B or C."
             )
@@ -1452,7 +927,9 @@ class ComfyUIClient:
                     encoding="utf-8"
                 )
             )
-            if record_path.exists()
+            if (
+                record_path.exists()
+            )
             else None
         )
 
@@ -1505,36 +982,75 @@ class ComfyUIClient:
             )
         )
 
-        seed = (
-            secrets.randbits(
-                63
+        if (
+            retrying_rejected_candidate
+        ):
+            seed = (
+                secrets.randbits(
+                    63
+                )
             )
-            if retrying_rejected_candidate
-            else (
+
+        elif previous:
+            seed = (
                 previous[
                     "seed"
                 ]
-                if previous
-                else secrets.randbits(
+            )
+
+        else:
+            seed = (
+                secrets.randbits(
                     63
                 )
+            )
+
+        document = (
+            load_prompts_document(
+                reference_number
+            )
+        )
+
+        brief = (
+            document.get(
+                "brief",
+                {},
+            )
+        )
+
+        primary_colour = (
+            brief.get(
+                "primary_colour"
+            )
+        )
+
+        secondary_colour = (
+            brief.get(
+                "secondary_colour"
             )
         )
 
         actual_positive_prompt = (
             build_engine_prompt(
-                engine_id,
                 positive_prompt,
+                primary_colour,
+                secondary_colour,
             )
         )
 
         actual_negative_prompt = (
-            (
-                f"{BACKGROUND_ONLY_NEGATIVE}, "
-                f"{negative_prompt}"
-            )
-            .strip(
-                ", "
+            ", ".join(
+                value
+                for value
+                in (
+                    BACKGROUND_ONLY_NEGATIVE,
+                    negative_prompt,
+                    palette_negative_contract(
+                        primary_colour,
+                        secondary_colour,
+                    ),
+                )
+                if value
             )
         )
 
@@ -1558,13 +1074,18 @@ class ComfyUIClient:
                 json.dumps(
                     workflow,
                     sort_keys=True,
-                ).encode()
+                ).encode(
+                    "utf-8"
+                )
             ).hexdigest()
         )
 
         if (
             previous
             and not retrying_rejected_candidate
+            and previous.get(
+                "workflow_sha256"
+            )
             and previous[
                 "workflow_sha256"
             ]
@@ -1586,7 +1107,9 @@ class ComfyUIClient:
             else []
         )
 
-        if retrying_rejected_candidate:
+        if (
+            retrying_rejected_candidate
+        ):
             rejected_attempts.append(
                 {
                     "attempt_count": (
@@ -1628,7 +1151,9 @@ class ComfyUIClient:
             "direction_id": (
                 direction_id
             ),
-            "seed": seed,
+            "seed": (
+                seed
+            ),
             "workflow_sha256": (
                 fingerprint
             ),
@@ -1637,8 +1162,23 @@ class ComfyUIClient:
                     uuid.uuid4()
                 )
             ),
-            "status": "prepared",
-            "attempt_count": 1,
+            "status": (
+                "prepared"
+            ),
+            "attempt_count": (
+                (
+                    previous.get(
+                        "attempt_count",
+                        1,
+                    )
+                    + 1
+                )
+                if (
+                    retrying_rejected_candidate
+                    and previous
+                )
+                else 1
+            ),
             "positive_prompt": (
                 actual_positive_prompt
             ),
@@ -1653,9 +1193,9 @@ class ComfyUIClient:
             "adaptations": (
                 [
                     (
-                        "Negative prompt omitted: "
-                        "FLUX.2 Klein BasicGuider "
-                        "has no negative input."
+                        "Negative prompt omitted because "
+                        "the configured FLUX workflow "
+                        "does not expose negative conditioning."
                     )
                 ]
                 if (
@@ -1670,28 +1210,19 @@ class ComfyUIClient:
         }
 
         if (
+            rejected_attempts
+        ):
+            record[
+                "rejected_attempts"
+            ] = (
+                rejected_attempts
+            )
+
+        if (
             previous
             and not retrying_rejected_candidate
         ):
-            record = (
-                previous
-            )
-
-        elif (
-            retrying_rejected_candidate
-        ):
-            record.update(
-                attempt_count=(
-                    previous.get(
-                        "attempt_count",
-                        1,
-                    )
-                    + 1
-                ),
-                rejected_attempts=(
-                    rejected_attempts
-                ),
-            )
+            record = previous
 
         prompt_id = (
             record.get(
@@ -1712,14 +1243,18 @@ class ComfyUIClient:
                 )
             )
 
-            if prompt_id is None:
+            if (
+                prompt_id is None
+            ):
                 raise SubmissionUncertain(
                     "Submission outcome is unknown; "
                     "inspect ComfyUI history."
                 )
 
-        if not prompt_id:
-            info = (
+        if (
+            not prompt_id
+        ):
+            object_info = (
                 await self.request(
                     "GET",
                     "/object_info",
@@ -1728,7 +1263,7 @@ class ComfyUIClient:
 
             validate_workflow(
                 workflow,
-                info,
+                object_info,
             )
 
             queue = (
@@ -1802,7 +1337,9 @@ class ComfyUIClient:
             prompt_id=(
                 prompt_id
             ),
-            status="submitted",
+            status=(
+                "submitted"
+            ),
         )
 
         write_json(
@@ -1824,10 +1361,8 @@ class ComfyUIClient:
 
         deadline = (
             time.monotonic()
-            + (
-                settings
-                .comfyui_generation_timeout_seconds
-            )
+            + settings
+            .comfyui_generation_timeout_seconds
         )
 
         while True:
@@ -1858,7 +1393,9 @@ class ComfyUIClient:
                     == "error"
                 ):
                     record.update(
-                        status="failed",
+                        status=(
+                            "failed"
+                        ),
                         error=(
                             "ComfyUI execution failed; "
                             "see remote history."
@@ -1879,8 +1416,10 @@ class ComfyUIClient:
                         ]
                     )
 
-                if status.get(
-                    "completed"
+                if (
+                    status.get(
+                        "completed"
+                    )
                 ):
                     break
 
@@ -1898,9 +1437,9 @@ class ComfyUIClient:
             )
 
         save_nodes = [
-            node
+            node_id
             for (
-                node,
+                node_id,
                 item,
             ) in workflow.items()
             if (
@@ -1913,14 +1452,16 @@ class ComfyUIClient:
 
         images = [
             image
-            for node in save_nodes
-            for image in (
+            for node_id
+            in save_nodes
+            for image
+            in (
                 history.get(
                     "outputs",
                     {},
                 )
                 .get(
-                    node,
+                    node_id,
                     {},
                 )
                 .get(
@@ -1935,7 +1476,9 @@ class ComfyUIClient:
                 images
             )
             != 1
-            or images[0].get(
+            or images[
+                0
+            ].get(
                 "type"
             )
             != "output"
@@ -1946,7 +1489,9 @@ class ComfyUIClient:
             )
 
         descriptor = (
-            images[0]
+            images[
+                0
+            ]
         )
 
         response = (
@@ -1996,9 +1541,13 @@ class ComfyUIClient:
 
             except ValueError as error:
                 record.update(
-                    status="rejected",
+                    status=(
+                        "rejected"
+                    ),
                     rejection_reason=(
-                        str(error)
+                        str(
+                            error
+                        )
                     ),
                     remote_image=(
                         descriptor
@@ -2011,7 +1560,9 @@ class ComfyUIClient:
                 )
 
                 raise ComfyUIError(
-                    str(error)
+                    str(
+                        error
+                    )
                 ) from error
 
             if (
@@ -2043,7 +1594,9 @@ class ComfyUIClient:
 
         record.update(
             validation,
-            status="complete",
+            status=(
+                "complete"
+            ),
             output_path=(
                 str(
                     image_path
@@ -2064,13 +1617,21 @@ class ComfyUIClient:
             "reference=%s "
             "engine=%s "
             "direction=%s "
-            "sha256=%s",
+            "sha256=%s "
+            "palette_mode=%s "
+            "palette_ratio=%s",
             reference_number,
             engine_id,
             direction_id,
             record[
                 "sha256"
             ],
+            record.get(
+                "palette_mode"
+            ),
+            record.get(
+                "palette_match_ratio"
+            ),
         )
 
         return {

@@ -63,6 +63,11 @@ NEUTRAL_NAMES = {
     "silver",
 }
 
+MAX_OFF_PALETTE_RATIO = 0.10
+MIN_PRIMARY_COLOUR_RATIO = 0.06
+MIN_SECONDARY_COLOUR_RATIO = 0.015
+MIN_BLACK_WHITE_RATIO = 0.90
+MAX_HUE_DISTANCE = 16
 
 BACKGROUND_ONLY_NEGATIVE = (
     "(person:2.0), "
@@ -652,8 +657,10 @@ def validate_palette(
 
         if (
             monochrome_ratio
-            < 0.94
+            < MIN_BLACK_WHITE_RATIO
         ):
+
+        
             raise ValueError(
                 "Generated background left the requested "
                 "black-and-white palette "
@@ -739,7 +746,7 @@ def validate_palette(
             continue
 
         best_name = None
-        best_distance = None
+        best_distance <= None
 
         for (
             name,
@@ -783,7 +790,7 @@ def validate_palette(
     # unrelated colour scheme.
     if (
         off_palette_ratio
-        > 0.05
+        > MAX_OFF_PALETTE_RATIO
     ):
         raise ValueError(
             "Generated background contains too much "
@@ -811,7 +818,7 @@ def validate_palette(
         # a pink+white, blue+white, red+white etc. brief.
         if (
             primary_ratio
-            < 0.10
+            < MIN_PRIMARY_COLOUR_RATIO
         ):
             raise ValueError(
                 "Generated background does not visibly "
@@ -838,7 +845,7 @@ def validate_palette(
 
         if (
             secondary_ratio
-            < 0.04
+            < MIN_SECONDARY_COLOUR_RATIO
         ):
             raise ValueError(
                 "Generated background does not visibly "

@@ -1,12 +1,22 @@
 import json
 import re
-from datetime import datetime, timezone
+import shutil
+
+from datetime import (
+    datetime,
+    timezone,
+)
+
 from pathlib import Path
 
-from app.config.settings import settings
+from app.config.settings import (
+    settings,
+)
+
 from app.schemas.creative_direction import (
     CreativeDirectionOutput,
 )
+
 from app.schemas.prompts_document import (
     PromptsDocument,
 )
@@ -21,11 +31,15 @@ def validate_reference_number(
     reference_number: str,
 ) -> str:
     normalized_reference = (
-        reference_number.strip().upper()
+        reference_number
+        .strip()
+        .upper()
     )
 
-    if not REFERENCE_PATTERN.fullmatch(
-        normalized_reference
+    if not (
+        REFERENCE_PATTERN.fullmatch(
+            normalized_reference
+        )
     ):
         raise ValueError(
             "Invalid reference number format."
@@ -49,11 +63,56 @@ def get_job_directory(
     )
 
 
+def get_archive_job_directory(
+    reference_number: str,
+) -> Path:
+    safe_reference = (
+        validate_reference_number(
+            reference_number
+        )
+    )
+
+    return (
+        settings.prompt_archive_path
+        / safe_reference
+    )
+
+
+def _mirror_file(
+    source: Path,
+    reference_number: str,
+) -> Path:
+    destination_directory = (
+        get_archive_job_directory(
+            reference_number
+        )
+    )
+
+    destination_directory.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    destination = (
+        destination_directory
+        / source.name
+    )
+
+    shutil.copy2(
+        source,
+        destination,
+    )
+
+    return destination
+
+
 def get_job_metadata_path(
     reference_number: str,
 ) -> Path:
     return (
-        get_job_directory(reference_number)
+        get_job_directory(
+            reference_number
+        )
         / "job.json"
     )
 
@@ -63,8 +122,10 @@ def initialize_job(
     input_sha256: str,
     brief: dict,
 ) -> None:
-    job_directory = get_job_directory(
-        reference_number
+    job_directory = (
+        get_job_directory(
+            reference_number
+        )
     )
 
     job_directory.mkdir(
@@ -72,8 +133,17 @@ def initialize_job(
         exist_ok=True,
     )
 
+    get_archive_job_directory(
+        reference_number
+    ).mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
     persist_brief(
-        reference_number=reference_number,
+        reference_number=(
+            reference_number
+        ),
         brief=brief,
     )
 
@@ -81,9 +151,15 @@ def initialize_job(
         "reference_number": (
             reference_number
         ),
-        "input_sha256": input_sha256,
-        "status": "processing",
-        "current_stage": "created",
+        "input_sha256": (
+            input_sha256
+        ),
+        "status": (
+            "processing"
+        ),
+        "current_stage": (
+            "created"
+        ),
         "created_at": (
             datetime.now(
                 timezone.utc
@@ -107,8 +183,10 @@ def persist_job_metadata(
     reference_number: str,
     metadata: dict,
 ) -> Path:
-    job_directory = get_job_directory(
-        reference_number
+    job_directory = (
+        get_job_directory(
+            reference_number
+        )
     )
 
     job_directory.mkdir(
@@ -121,7 +199,9 @@ def persist_job_metadata(
         / "job.json"
     )
 
-    metadata["updated_at"] = (
+    metadata[
+        "updated_at"
+    ] = (
         datetime.now(
             timezone.utc
         ).isoformat()
@@ -139,6 +219,11 @@ def persist_job_metadata(
             sort_keys=True,
         )
 
+    _mirror_file(
+        metadata_path,
+        reference_number,
+    )
+
     return metadata_path
 
 
@@ -151,9 +236,11 @@ def load_job_metadata(
         )
     )
 
-    if not metadata_path.exists():
+    if not (
+        metadata_path.exists()
+    ):
         raise FileNotFoundError(
-            f"Job metadata not found for "
+            "Job metadata not found for "
             f"{reference_number}."
         )
 
@@ -161,7 +248,9 @@ def load_job_metadata(
         "r",
         encoding="utf-8",
     ) as file:
-        return json.load(file)
+        return json.load(
+            file
+        )
 
 
 def update_job_status(
@@ -170,17 +259,23 @@ def update_job_status(
     current_stage: str,
     error: str | None = None,
 ) -> None:
-    metadata = load_job_metadata(
-        reference_number
+    metadata = (
+        load_job_metadata(
+            reference_number
+        )
     )
 
-    metadata["status"] = status
+    metadata[
+        "status"
+    ] = status
 
-    metadata["current_stage"] = (
-        current_stage
-    )
+    metadata[
+        "current_stage"
+    ] = current_stage
 
-    metadata["error"] = error
+    metadata[
+        "error"
+    ] = error
 
     persist_job_metadata(
         reference_number,
@@ -192,8 +287,10 @@ def persist_brief(
     reference_number: str,
     brief: dict,
 ) -> Path:
-    job_directory = get_job_directory(
-        reference_number
+    job_directory = (
+        get_job_directory(
+            reference_number
+        )
     )
 
     job_directory.mkdir(
@@ -218,6 +315,11 @@ def persist_brief(
             sort_keys=True,
         )
 
+    _mirror_file(
+        brief_path,
+        reference_number,
+    )
+
     return brief_path
 
 
@@ -231,9 +333,11 @@ def load_brief(
         / "brief.json"
     )
 
-    if not brief_path.exists():
+    if not (
+        brief_path.exists()
+    ):
         raise FileNotFoundError(
-            f"Brief not found for "
+            "Brief not found for "
             f"{reference_number}."
         )
 
@@ -241,7 +345,9 @@ def load_brief(
         "r",
         encoding="utf-8",
     ) as file:
-        return json.load(file)
+        return json.load(
+            file
+        )
 
 
 def get_direction_checkpoint_path(
@@ -249,7 +355,9 @@ def get_direction_checkpoint_path(
     direction_id: str,
 ) -> Path:
     normalized_id = (
-        direction_id.strip().lower()
+        direction_id
+        .strip()
+        .lower()
     )
 
     if normalized_id not in {
@@ -265,7 +373,11 @@ def get_direction_checkpoint_path(
         get_job_directory(
             reference_number
         )
-        / f"direction-{normalized_id}.json"
+        / (
+            f"direction-"
+            f"{normalized_id}"
+            ".json"
+        )
     )
 
 
@@ -299,6 +411,11 @@ def persist_direction_checkpoint(
             indent=2,
         )
 
+    _mirror_file(
+        checkpoint_path,
+        reference_number,
+    )
+
     return checkpoint_path
 
 
@@ -313,26 +430,38 @@ def load_direction_checkpoint(
         )
     )
 
-    if not checkpoint_path.exists():
+    if not (
+        checkpoint_path.exists()
+    ):
         return None
 
     with checkpoint_path.open(
         "r",
         encoding="utf-8",
     ) as file:
-        data = json.load(file)
+        data = json.load(
+            file
+        )
 
     return (
         CreativeDirectionOutput
-        .model_validate(data)
+        .model_validate(
+            data
+        )
     )
 
 
 def persist_prompts_document(
     document: PromptsDocument,
 ) -> Path:
-    job_directory = get_job_directory(
+    reference_number = (
         document.reference_number
+    )
+
+    job_directory = (
+        get_job_directory(
+            reference_number
+        )
     )
 
     job_directory.mkdir(
@@ -358,6 +487,11 @@ def persist_prompts_document(
             indent=2,
         )
 
+    _mirror_file(
+        prompts_path,
+        reference_number,
+    )
+
     return prompts_path
 
 
@@ -371,9 +505,11 @@ def load_prompts_document(
         / "prompts.json"
     )
 
-    if not prompts_path.exists():
+    if not (
+        prompts_path.exists()
+    ):
         raise FileNotFoundError(
-            f"Prompts document not found for "
+            "Prompts document not found for "
             f"{reference_number}."
         )
 
@@ -381,29 +517,41 @@ def load_prompts_document(
         "r",
         encoding="utf-8",
     ) as file:
-        data = json.load(file)
+        data = json.load(
+            file
+        )
 
-    return PromptsDocument.model_validate(
-        data
+    return (
+        PromptsDocument
+        .model_validate(
+            data
+        )
     )
 
 
 def job_exists(
     reference_number: str,
 ) -> bool:
-    return get_job_directory(
-        reference_number
-    ).exists()
+    return (
+        get_job_directory(
+            reference_number
+        )
+        .exists()
+    )
 
 
 def get_job_status(
     reference_number: str,
 ) -> str:
-    job_directory = get_job_directory(
-        reference_number
+    job_directory = (
+        get_job_directory(
+            reference_number
+        )
     )
 
-    if not job_directory.exists():
+    if not (
+        job_directory.exists()
+    ):
         return "not_found"
 
     metadata_path = (
@@ -412,8 +560,10 @@ def get_job_status(
     )
 
     if metadata_path.exists():
-        metadata = load_job_metadata(
-            reference_number
+        metadata = (
+            load_job_metadata(
+                reference_number
+            )
         )
 
         return metadata.get(

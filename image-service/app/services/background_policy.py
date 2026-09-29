@@ -57,6 +57,20 @@ MIN_UPPER_BODY_SIZE = 70
 
 
 BACKGROUND_ONLY_NEGATIVE = (
+    "(person:2.4), "
+    "(people:2.4), "
+    "(human:2.4), "
+    "(human figure:2.4), "
+    "(character:2.4), "
+    "(fictional character:2.4), "
+    "(hero:2.4), "
+    "(superhero:2.4), "
+    "(masked character:2.4), "
+    "(costumed figure:2.4), "
+    "(mascot:2.4), "
+    "(humanoid:2.4), "
+    "(spiderman:2.5), "
+    "(spider-man:2.5), "
     "(person:2.2), "
     "(people:2.2), "
     "(human:2.2), "
@@ -135,6 +149,19 @@ FORBIDDEN_PROMPT_TERMS = (
     "face",
     "figure",
     "portrait",
+    "character",
+    "characters",
+    "hero",
+    "heroes",
+    "superhero",
+    "superheroes",
+    "spiderman",
+    "spider-man",
+    "masked character",
+    "costume",
+    "costumed",
+    "mascot",
+    "humanoid",
 )
 
 

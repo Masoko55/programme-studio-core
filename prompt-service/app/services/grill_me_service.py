@@ -1,4 +1,5 @@
 import json
+import shutil
 import uuid
 
 from pathlib import Path
@@ -127,6 +128,84 @@ def _path(
     )
 
 
+def _archive_session_directory(
+    session_id: str,
+) -> Path:
+    return (
+        settings.prompt_archive_path
+        / "intake-sessions"
+        / session_id
+    )
+
+
+def _archive_session_path(
+    session_id: str,
+) -> Path:
+    return (
+        _archive_session_directory(
+            session_id
+        )
+        / "session.json"
+    )
+
+
+def _mirror_session(
+    session: GrillMeSession,
+) -> None:
+    destination = (
+        _archive_session_path(
+            session.session_id
+        )
+    )
+
+    destination.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    destination.write_text(
+        session.model_dump_json(
+            indent=2
+        ),
+        encoding="utf-8",
+    )
+
+    for asset_name, asset in (
+        session.assets.items()
+    ):
+        source_value = (
+            asset.get(
+                "path"
+            )
+        )
+
+        if not source_value:
+            continue
+
+        source = Path(
+            source_value
+        )
+
+        if not source.is_file():
+            continue
+
+        archive_assets = (
+            destination.parent
+            / "assets"
+        )
+
+        archive_assets.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        shutil.copy2(
+            source,
+            archive_assets
+            / source.name,
+        )
+
+
 def _save(
     session: GrillMeSession,
 ) -> GrillMeSession:
@@ -146,6 +225,10 @@ def _save(
             indent=2
         ),
         encoding="utf-8",
+    )
+
+    _mirror_session(
+        session
     )
 
     return session
@@ -361,9 +444,7 @@ def evaluate_session(
         ):
             questions.append(
                 _question(
-                    (
-                        "rights_and_consent_confirmed"
-                    ),
+                    "rights_and_consent_confirmed",
                     (
                         "Rights and consent must "
                         "be confirmed before using "
@@ -441,10 +522,7 @@ def create_session_from_form(
             ),
             accessibility_preferences=[
                 "high contrast",
-                (
-                    "clear readable "
-                    "programme text"
-                ),
+                "clear readable programme text",
             ],
         )
     )
@@ -489,9 +567,7 @@ def apply_clarifications(
 
     protected = {
         "timezone",
-        (
-            "accessibility_preferences"
-        ),
+        "accessibility_preferences",
     }
 
     invalid = [
@@ -539,10 +615,7 @@ def apply_clarifications(
         "accessibility_preferences"
     ] = [
         "high contrast",
-        (
-            "clear readable "
-            "programme text"
-        ),
+        "clear readable programme text",
     ]
 
     session.answers = (
@@ -1005,24 +1078,42 @@ def persist_pending_final(
     reference_number: str,
     details: dict,
 ) -> Path:
-    path = (
+    primary_path = (
         settings.programme_data_path
         / reference_number
         / "pending-final.json"
     )
 
-    path.parent.mkdir(
+    primary_path.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
 
-    path.write_text(
-        json.dumps(
-            details,
-            ensure_ascii=False,
-            indent=2,
-        ),
+    payload = json.dumps(
+        details,
+        ensure_ascii=False,
+        indent=2,
+    )
+
+    primary_path.write_text(
+        payload,
         encoding="utf-8",
     )
 
-    return path
+    archive_path = (
+        settings.prompt_archive_path
+        / reference_number
+        / "pending-final.json"
+    )
+
+    archive_path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    archive_path.write_text(
+        payload,
+        encoding="utf-8",
+    )
+
+    return primary_path

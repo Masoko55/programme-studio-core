@@ -1,23 +1,3 @@
-"""Deterministic final programme composition.
-
-The selected image remains the visual background.
-
-Only after selection do we add:
-- title
-- date
-- start time
-- venue
-- programme rows
-- optional approved assets
-
-Timezone remains internal metadata and is NOT rendered.
-
-Every text panel independently analyses the real pixels underneath it:
-- light local background -> dark text
-- dark local background -> light text
-- highly mixed black/white background -> stronger glass panel for readability
-"""
-
 import hashlib
 import io
 from pathlib import Path
@@ -37,9 +17,11 @@ from PIL import (
 from app.config.settings import (
     settings,
 )
+
 from app.schemas.composition import (
     CompositionResult,
 )
+
 from app.services.atomic import (
     write_bytes,
 )
@@ -466,8 +448,6 @@ def choose_panel_style(
         ]
     )
 
-    # Very mixed areas such as black/white stripes
-    # need a stronger glass substrate.
     highly_mixed = (
         variance > 0.07
         or (
@@ -479,7 +459,6 @@ def choose_panel_style(
     if (
         luminance >= 0.52
     ):
-        # light background -> dark typography
         return {
             "text": (
                 18,
@@ -487,7 +466,6 @@ def choose_panel_style(
                 20,
                 255,
             ),
-
             "panel_fill": (
                 255,
                 255,
@@ -498,14 +476,12 @@ def choose_panel_style(
                     else 72
                 ),
             ),
-
             "border": (
                 15,
                 15,
                 18,
                 150,
             ),
-
             "highlight": (
                 255,
                 255,
@@ -514,7 +490,6 @@ def choose_panel_style(
             ),
         }
 
-    # dark background -> light typography
     return {
         "text": (
             246,
@@ -522,7 +497,6 @@ def choose_panel_style(
             246,
             255,
         ),
-
         "panel_fill": (
             0,
             0,
@@ -533,14 +507,12 @@ def choose_panel_style(
                 else 76
             ),
         ),
-
         "border": (
             245,
             245,
             245,
             145,
         ),
-
         "highlight": (
             255,
             255,
@@ -888,6 +860,7 @@ def draw_panel(
             line_height
         )
 
+
 def remove_logo_edge_matte(
     asset: Image.Image,
 ) -> Image.Image:
@@ -1073,12 +1046,6 @@ def mask_asset_shape(
         )
     )
 
-    combined = Image.new(
-        "L",
-        asset.size,
-        0,
-    )
-
     combined_array = np.minimum(
         np.array(
             current_alpha
@@ -1115,6 +1082,83 @@ def draw_asset_glass(
         int,
     ],
 ) -> None:
+    (
+        left,
+        top,
+        right,
+        bottom,
+    ) = box
+
+    width = (
+        right
+        - left
+    )
+
+    height = (
+        bottom
+        - top
+    )
+
+    radius = 28
+
+    background_region = (
+        canvas
+        .crop(
+            box
+        )
+        .filter(
+            ImageFilter.GaussianBlur(
+                radius=5
+            )
+        )
+    )
+
+    mask = Image.new(
+        "L",
+        (
+            width,
+            height,
+        ),
+        0,
+    )
+
+    ImageDraw.Draw(
+        mask
+    ).rounded_rectangle(
+        (
+            0,
+            0,
+            width - 1,
+            height - 1,
+        ),
+        radius=radius,
+        fill=38,
+    )
+
+    blurred_layer = Image.new(
+        "RGBA",
+        canvas.size,
+        (
+            0,
+            0,
+            0,
+            0,
+        ),
+    )
+
+    blurred_layer.paste(
+        background_region,
+        (
+            left,
+            top,
+        ),
+        mask,
+    )
+
+    canvas.alpha_composite(
+        blurred_layer
+    )
+
     statistics = (
         region_statistics(
             canvas,
@@ -1128,34 +1172,70 @@ def draw_asset_glass(
         )
     )
 
-    adjusted_style = {
-        **style,
-        "panel_fill": (
+    glass = Image.new(
+        "RGBA",
+        canvas.size,
+        (
+            0,
+            0,
+            0,
+            0,
+        ),
+    )
+
+    draw = ImageDraw.Draw(
+        glass,
+        "RGBA",
+    )
+
+    draw.rounded_rectangle(
+        box,
+        radius=radius,
+        fill=(
             style[
                 "panel_fill"
             ][
                 :3
             ]
             + (
-                48,
+                14,
             )
         ),
-        "border": (
+        outline=(
             style[
                 "border"
             ][
                 :3
             ]
             + (
-                90,
+                28,
             )
         ),
-    }
+        width=2,
+    )
 
-    liquid_glass_panel(
-        canvas,
-        box,
-        adjusted_style,
+    draw.line(
+        (
+            left
+            + radius,
+            top
+            + 2,
+            right
+            - radius,
+            top
+            + 2,
+        ),
+        fill=(
+            255,
+            255,
+            255,
+            22,
+        ),
+        width=1,
+    )
+
+    canvas.alpha_composite(
+        glass
     )
 
 
@@ -1280,12 +1360,12 @@ def overlay_asset(
 
         inner_width = int(
             zone_width
-            * 0.78
+            * 0.86
         )
 
         inner_height = int(
             zone_height
-            * 0.72
+            * 0.82
         )
 
         asset.thumbnail(
@@ -1330,8 +1410,6 @@ def overlay_asset(
         asset,
         dest=destination,
     )
-
-
 
 
 def validate_layout(
@@ -1436,8 +1514,6 @@ def compose_programme(
         )
     ]
 
-    # IMPORTANT:
-    # timezone intentionally excluded from visible poster.
     metadata = [
         str(
             brief[
@@ -1602,8 +1678,7 @@ def compose_programme(
                 + "_zone"
             ),
             asset_kind=name,
-        )    
-
+        )
 
     path = (
         output_path

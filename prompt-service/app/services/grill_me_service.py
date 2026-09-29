@@ -1,23 +1,18 @@
-"""Persisted Grill-Me questionnaire.
-
-Grill-Me gathers the event brief before creative directions are created.
-
-Timezone is system/session metadata. Grill-Me does not ask the user for it.
-The configured deployment timezone is inserted automatically when a session
-is created.
-
-Programme text is held back until one background is selected.
-"""
-
 import json
 import uuid
+
 from pathlib import Path
 
 from fastapi import UploadFile
 
-from app.config.settings import settings
+from app.config.settings import (
+    settings,
+)
+
 from app.schemas.grill_me import (
     GrillMeAnswers,
+    GrillMeForm,
+    GrillMeQuestion,
     GrillMeSession,
 )
 
@@ -35,7 +30,6 @@ ALLOWED_ASSET_TYPES = {
 }
 
 
-# timezone deliberately excluded
 REQUIRED_FIELDS = (
     "event_type",
     "theme",
@@ -50,6 +44,67 @@ REQUIRED_FIELDS = (
     "programme",
     "output_language",
 )
+
+
+QUESTION_TEXT = {
+    "event_type": (
+        "What type of event is this?"
+    ),
+    "theme": (
+        "What theme should the event follow?"
+    ),
+    "age_group": (
+        "Who is the event intended for?"
+    ),
+    "primary_colour": (
+        "What should the primary colour be?"
+    ),
+    "secondary_colour": (
+        "What should the secondary colour be?"
+    ),
+    "creative_description": (
+        "Please describe the visual mood "
+        "or creative direction more clearly."
+    ),
+    "event_date": (
+        "What is the event date?"
+    ),
+    "start_time": (
+        "What time does the event start?"
+    ),
+    "title_preference": (
+        "What title should appear "
+        "on the final programme?"
+    ),
+    "venue": (
+        "Where is the venue?"
+    ),
+    "programme": (
+        "Please provide at least one "
+        "programme row."
+    ),
+    "output_language": (
+        "What language should be used "
+        "for the final programme?"
+    ),
+    "asset_placement": (
+        "Where should the selected asset "
+        "appear: left or right?"
+    ),
+    "headshot_shape": (
+        "What shape should the headshot use: "
+        "circle, square or rounded?"
+    ),
+    "rights_and_consent_confirmed": (
+        "Please confirm that you have rights "
+        "and consent to use the selected asset."
+    ),
+    "asset_file": (
+        "Please upload the selected asset "
+        "before generation."
+    ),
+}
+
 
 def _directory(
     session_id: str,
@@ -95,25 +150,6 @@ def _save(
 
     return session
 
-def create_session() -> GrillMeSession:
-    session = GrillMeSession(
-        session_id=uuid.uuid4().hex,
-        status="questioning",
-        answers=GrillMeAnswers(
-            timezone=settings.user_timezone,
-            accessibility_preferences=[
-                "high contrast",
-                "clear readable programme text",
-            ],
-        ),
-    )
-
-    return _save(
-        session
-    )
-
-
-
 
 def load_session(
     session_id: str,
@@ -137,187 +173,300 @@ def load_session(
         )
     )
 
-def questions(
+
+def _clean_string(
+    value,
+) -> str | None:
+    if not isinstance(
+        value,
+        str,
+    ):
+        return value
+
+    cleaned = (
+        value.strip()
+    )
+
+    return (
+        cleaned
+        if cleaned
+        else None
+    )
+
+
+def _is_unclear(
+    field: str,
+    value,
+) -> bool:
+    if value is None:
+        return True
+
+    if isinstance(
+        value,
+        str,
+    ):
+        cleaned = (
+            value
+            .strip()
+        )
+
+        if not cleaned:
+            return True
+
+        lowered = (
+            cleaned
+            .lower()
+        )
+
+        vague_values = {
+            "idk",
+            "i don't know",
+            "dont know",
+            "not sure",
+            "unsure",
+            "whatever",
+            "anything",
+            "something",
+            "n/a",
+            "na",
+            "unknown",
+            "tbd",
+            "later",
+        }
+
+        if lowered in vague_values:
+            return True
+
+        if (
+            field
+            == "creative_description"
+            and len(
+                cleaned
+            ) < 8
+        ):
+            return True
+
+    if (
+        field
+        == "programme"
+    ):
+        if not isinstance(
+            value,
+            list,
+        ):
+            return True
+
+        if len(
+            value
+        ) == 0:
+            return True
+
+    return False
+
+
+def _question(
+    field: str,
+    reason: str,
+) -> GrillMeQuestion:
+    return (
+        GrillMeQuestion(
+            field=field,
+            question=(
+                QUESTION_TEXT[
+                    field
+                ]
+            ),
+            reason=reason,
+        )
+    )
+
+
+def evaluate_session(
     session: GrillMeSession,
-) -> list[dict]:
+) -> list[
+    GrillMeQuestion
+]:
     answers = (
         session.answers
         .model_dump()
     )
 
-    prompts = {
-        "event_type": (
-            "What type of event are you creating?"
-        ),
+    questions = []
 
-        "theme": (
-            "What is the event theme?"
-        ),
-
-        "age_group": (
-            "Who is the audience or age group?"
-        ),
-
-        "primary_colour": (
-            "What is the primary suggested colour?"
-        ),
-
-        "secondary_colour": (
-            "What is the secondary suggested colour?"
-        ),
-
-        "creative_description": (
-            "Describe the visual mood and creative direction."
-        ),
-
-        "event_date": (
-            "What is the event date?"
-        ),
-
-        "start_time": (
-            "What is the start time?"
-        ),
-
-        "title_preference": (
-            "What title should appear on the final programme?"
-        ),
-
-        "venue": (
-            "Where is the venue?"
-        ),
-
-        "programme": (
-            "Add up to 15 programme rows."
-        ),
-
-        "output_language": (
-            "What output language should be used?"
-        ),
-    }
-
-    result = [
-        {
-            "field": field,
-            "question": prompts[
-                field
-            ],
-        }
-        for field
-        in REQUIRED_FIELDS
-        if (
+    for field in REQUIRED_FIELDS:
+        value = (
             answers.get(
                 field
             )
-            in (
-                None,
-                "",
+        )
+
+        if _is_unclear(
+            field,
+            value,
+        ):
+            questions.append(
+                _question(
+                    field,
+                    (
+                        "This information is "
+                        "missing or unclear."
+                    ),
+                )
             )
-        )
-    ]
+
+    asset_type = (
+        session.answers.asset_type
+        or "none"
+    )
 
     if (
-        "headshot"
-        in session.assets
-        and not answers.get(
-            "headshot_consent_confirmed"
-        )
+        asset_type
+        != "none"
     ):
-        result.append(
-            {
-                "field": (
-                    "headshot_consent_confirmed"
-                ),
-                "question": (
-                    "Confirm you have rights and "
-                    "consent to use the headshot."
-                ),
-            }
+        if not (
+            session.answers
+            .asset_placement
+        ):
+            questions.append(
+                _question(
+                    "asset_placement",
+                    (
+                        "An asset was selected "
+                        "but no placement was provided."
+                    ),
+                )
+            )
+
+        if (
+            asset_type
+            == "headshot"
+            and not (
+                session.answers
+                .headshot_shape
+            )
+        ):
+            questions.append(
+                _question(
+                    "headshot_shape",
+                    (
+                        "A headshot was selected "
+                        "but no shape was provided."
+                    ),
+                )
+            )
+
+        if not (
+            session.answers
+            .rights_and_consent_confirmed
+        ):
+            questions.append(
+                _question(
+                    (
+                        "rights_and_consent_confirmed"
+                    ),
+                    (
+                        "Rights and consent must "
+                        "be confirmed before using "
+                        "an uploaded asset."
+                    ),
+                )
+            )
+
+        expected_asset = (
+            "headshot"
+            if (
+                asset_type
+                == "headshot"
+            )
+            else "logo"
         )
 
-    if (
-        "headshot"
-        in session.assets
-        and not answers.get(
-            "headshot_shape"
-        )
-    ):
-        result.append(
-            {
-                "field": (
-                    "headshot_shape"
-                ),
-                "question": (
-                    "Choose the headshot shape: "
-                    "circle, square, or rounded."
-                ),
-            }
-        )
+        if (
+            expected_asset
+            not in session.assets
+        ):
+            questions.append(
+                _question(
+                    "asset_file",
+                    (
+                        f"The selected {expected_asset} "
+                        "has not been uploaded yet."
+                    ),
+                )
+            )
 
-    if (
-        "headshot"
-        in session.assets
-        and not answers.get(
-            "headshot_placement"
-        )
-    ):
-        result.append(
-            {
-                "field": (
-                    "headshot_placement"
-                ),
-                "question": (
-                    "Choose the headshot placement: "
-                    "left or right."
-                ),
-            }
-        )
-
-    if (
-        "logo"
-        in session.assets
-        and not answers.get(
-            "logo_consent_confirmed"
-        )
-    ):
-        result.append(
-            {
-                "field": (
-                    "logo_consent_confirmed"
-                ),
-                "question": (
-                    "Confirm you have rights and "
-                    "consent to use the logo."
-                ),
-            }
-        )
-
-    if (
-        "logo"
-        in session.assets
-        and not answers.get(
-            "logo_placement"
-        )
-    ):
-        result.append(
-            {
-                "field": (
-                    "logo_placement"
-                ),
-                "question": (
-                    "Choose the logo placement: "
-                    "left or right."
-                ),
-            }
-        )
-
-    return result
+    return questions
 
 
+def _refresh_status(
+    session: GrillMeSession,
+) -> GrillMeSession:
+    pending = (
+        evaluate_session(
+            session
+        )
+    )
+
+    session.clarification_questions = (
+        pending
+    )
+
+    if pending:
+        session.status = (
+            "clarification_required"
+        )
+
+    else:
+        session.status = (
+            "ready"
+        )
+
+    return _save(
+        session
+    )
 
 
-def update_answers(
+def create_session_from_form(
+    form: GrillMeForm,
+) -> GrillMeSession:
+    payload = (
+        form.model_dump()
+    )
+
+    answers = (
+        GrillMeAnswers(
+            **payload,
+            timezone=(
+                settings.user_timezone
+            ),
+            accessibility_preferences=[
+                "high contrast",
+                (
+                    "clear readable "
+                    "programme text"
+                ),
+            ],
+        )
+    )
+
+    session = (
+        GrillMeSession(
+            session_id=(
+                uuid.uuid4().hex
+            ),
+            status="reviewing",
+            answers=answers,
+        )
+    )
+
+    return _refresh_status(
+        session
+    )
+
+
+def apply_clarifications(
     session_id: str,
-    patch: GrillMeAnswers,
+    values: dict,
 ) -> GrillMeSession:
     session = load_session(
         session_id
@@ -332,50 +481,85 @@ def update_answers(
             "after generation."
         )
 
-    values = (
-        patch.model_dump(
-            exclude_unset=True
-        )
+    allowed = set(
+        GrillMeAnswers
+        .model_fields
+        .keys()
     )
 
-    # timezone is system-managed
-    values.pop(
+    protected = {
         "timezone",
-        None,
-    )
-
-    merged = {
-        **session.answers.model_dump(),
-        **values,
-        "timezone": (
-            session.answers.timezone
-            or settings.user_timezone
+        (
+            "accessibility_preferences"
         ),
     }
 
+    invalid = [
+        key
+        for key
+        in values
+        if (
+            key not in allowed
+            or key in protected
+        )
+    ]
+
+    if invalid:
+        raise ValueError(
+            "Unsupported clarification fields: "
+            + ", ".join(
+                invalid
+            )
+        )
+
+    current = (
+        session.answers
+        .model_dump()
+    )
+
+    for key, value in (
+        values.items()
+    ):
+        current[
+            key
+        ] = (
+            _clean_string(
+                value
+            )
+        )
+
+    current[
+        "timezone"
+    ] = (
+        session.answers.timezone
+        or settings.user_timezone
+    )
+
+    current[
+        "accessibility_preferences"
+    ] = [
+        "high contrast",
+        (
+            "clear readable "
+            "programme text"
+        ),
+    ]
+
     session.answers = (
         GrillMeAnswers
         .model_validate(
-            merged
+            current
         )
     )
 
-    session.status = (
-        "ready"
-        if not questions(
-            session
-        )
-        else "questioning"
-    )
-
-    return _save(
+    return _refresh_status(
         session
     )
 
 
-def append_programme_item(
+async def store_selected_asset(
     session_id: str,
-    item,
+    upload: UploadFile,
 ) -> GrillMeSession:
     session = load_session(
         session_id
@@ -390,74 +574,17 @@ def append_programme_item(
             "after generation."
         )
 
-    rows = [
-        row.model_dump()
-        for row
-        in (
-            session.answers.programme
-            or []
-        )
-    ]
-
-    if len(
-        rows
-    ) >= 15:
-        raise ValueError(
-            "A programme may contain "
-            "at most 15 rows."
-        )
-
-    rows.append(
-        item.model_dump()
+    asset_type = (
+        session.answers.asset_type
     )
 
-    session.answers = (
-        GrillMeAnswers
-        .model_validate(
-            {
-                **session.answers.model_dump(),
-                "programme": rows,
-            }
-        )
-    )
-
-    session.status = (
-        "ready"
-        if not questions(
-            session
-        )
-        else "questioning"
-    )
-
-    return _save(
-        session
-    )
-
-
-async def store_asset(
-    session_id: str,
-    asset_name: str,
-    upload: UploadFile,
-) -> GrillMeSession:
-    if asset_name not in {
+    if asset_type not in {
         "headshot",
         "logo",
     }:
         raise ValueError(
-            "asset_name must be headshot or logo."
-        )
-
-    session = load_session(
-        session_id
-    )
-
-    if session.status in {
-        "generating",
-        "generated",
-    }:
-        raise ValueError(
-            "This Grill-Me session is frozen "
-            "after generation."
+            "The form did not select "
+            "an image or logo."
         )
 
     suffix = (
@@ -478,54 +605,82 @@ async def store_asset(
         + 1
     )
 
-    if len(
-        data
-    ) > MAX_ASSET_BYTES:
+    if (
+        len(
+            data
+        )
+        > MAX_ASSET_BYTES
+    ):
         raise ValueError(
             "Assets must be no larger "
             "than 10 MB."
         )
 
-    asset_path = (
+    assets_directory = (
         _directory(
             session_id
         )
         / "assets"
-        / f"{asset_name}{suffix}"
     )
 
-    asset_path.parent.mkdir(
+    assets_directory.mkdir(
         parents=True,
         exist_ok=True,
+    )
+
+    for existing_name in (
+        "headshot",
+        "logo",
+    ):
+        existing = (
+            session.assets
+            .get(
+                existing_name
+            )
+        )
+
+        if existing:
+            existing_path = (
+                Path(
+                    existing[
+                        "path"
+                    ]
+                )
+            )
+
+            if (
+                existing_path
+                .exists()
+            ):
+                existing_path.unlink()
+
+    asset_path = (
+        assets_directory
+        / (
+            f"{asset_type}"
+            f"{suffix}"
+        )
     )
 
     asset_path.write_bytes(
         data
     )
 
-    session.assets[
-        asset_name
-    ] = {
-        "path": str(
-            asset_path
-        ),
-        "content_type": (
-            upload.content_type
-        ),
-        "original_filename": (
-            upload.filename
-        ),
+    session.assets = {
+        asset_type: {
+            "path": str(
+                asset_path
+            ),
+            "content_type": (
+                upload.content_type
+            ),
+            "original_filename": (
+                upload.filename
+            ),
+        }
     }
 
-    session.status = (
-        "ready"
-        if not questions(
-            session
-        )
-        else "questioning"
-    )
-
-    return _save(
+    return _refresh_status(
         session
     )
 
@@ -542,17 +697,17 @@ def freeze_for_generation(
         session_id
     )
 
-    missing = questions(
-        session
+    pending = (
+        evaluate_session(
+            session
+        )
     )
 
-    if missing:
+    if pending:
         fields = [
-            item[
-                "field"
-            ]
+            item.field
             for item
-            in missing
+            in pending
         ]
 
         raise ValueError(
@@ -567,8 +722,8 @@ def freeze_for_generation(
         == "generated"
     ):
         raise ValueError(
-            "This Grill-Me session has already "
-            "generated backgrounds."
+            "This Grill-Me session has "
+            "already generated backgrounds."
         )
 
     if not (
@@ -641,14 +796,11 @@ def freeze_for_generation(
                 "start_time"
             ]
         ),
-
-        # retained internally for temporal context
         "timezone": (
             answer[
                 "timezone"
             ]
         ),
-
         "output_language": (
             answer[
                 "output_language"
@@ -661,6 +813,31 @@ def freeze_for_generation(
         ),
     }
 
+    asset_type = (
+        answer[
+            "asset_type"
+        ]
+    )
+
+    asset = (
+        session.assets
+        .get(
+            asset_type,
+            {},
+        )
+        if (
+            asset_type
+            != "none"
+        )
+        else {}
+    )
+
+    asset_path = (
+        asset.get(
+            "path"
+        )
+    )
+
     final_details = {
         "session_id": (
             session.session_id
@@ -668,7 +845,6 @@ def freeze_for_generation(
         "reference_number": (
             reference_number
         ),
-
         "event_type": (
             answer[
                 "event_type"
@@ -684,7 +860,6 @@ def freeze_for_generation(
                 "age_group"
             ]
         ),
-
         "primary_colour": (
             answer[
                 "primary_colour"
@@ -695,13 +870,11 @@ def freeze_for_generation(
                 "secondary_colour"
             ]
         ),
-
         "creative_description": (
             answer[
                 "creative_description"
             ]
         ),
-
         "title": (
             answer[
                 "title_preference"
@@ -717,97 +890,91 @@ def freeze_for_generation(
                 "start_time"
             ]
         ),
-
-        # retained in data, not rendered on poster
         "timezone": (
             answer[
                 "timezone"
             ]
         ),
-
         "venue": (
             answer[
                 "venue"
             ]
         ),
-
         "programme": (
             answer[
                 "programme"
             ]
         ),
-
         "output_language": (
             answer[
                 "output_language"
             ]
         ),
-
         "accessibility_preferences": (
             answer[
                 "accessibility_preferences"
             ]
         ),
-
+        "asset_type": (
+            asset_type
+        ),
         "headshot_path": (
-            session.assets
-            .get(
-                "headshot",
-                {},
+            asset_path
+            if (
+                asset_type
+                == "headshot"
             )
-            .get(
-                "path"
-            )
+            else None
         ),
-
         "logo_path": (
-            session.assets
-            .get(
-                "logo",
-                {},
+            asset_path
+            if (
+                asset_type
+                == "logo"
             )
-            .get(
-                "path"
-            )
+            else None
         ),
-
         "headshot_shape": (
             answer.get(
                 "headshot_shape"
             )
-            or "rounded"
+            if (
+                asset_type
+                == "headshot"
+            )
+            else None
         ),
-
         "headshot_placement": (
             answer.get(
-                "headshot_placement"
+                "asset_placement"
             )
-            or "left"
+            if (
+                asset_type
+                == "headshot"
+            )
+            else None
         ),
-
         "logo_placement": (
             answer.get(
-                "logo_placement"
+                "asset_placement"
             )
-            or "right"
+            if (
+                asset_type
+                == "logo"
+            )
+            else None
         ),
-
-        "rights_and_consent_confirmed": bool(
-            (
-                "headshot"
-                not in session.assets
-                or answer.get(
-                    "headshot_consent_confirmed"
+        "rights_and_consent_confirmed": (
+            bool(
+                answer.get(
+                    "rights_and_consent_confirmed"
                 )
             )
-            and
-            (
-                "logo"
-                not in session.assets
-                or answer.get(
-                    "logo_consent_confirmed"
-                )
+            if (
+                asset_type
+                != "none"
             )
+            else True
         ),
     }
 

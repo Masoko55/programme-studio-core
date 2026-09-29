@@ -2,7 +2,9 @@ import json
 import logging
 import re
 
-from app.config.settings import settings
+from app.config.settings import (
+    settings,
+)
 
 from app.schemas.creative_direction import (
     CreativeDirectionOutput,
@@ -10,7 +12,9 @@ from app.schemas.creative_direction import (
     LayoutZone,
 )
 
-from app.services.ollama import generate_text
+from app.services.ollama import (
+    generate_text,
+)
 
 
 logger = logging.getLogger(
@@ -40,6 +44,18 @@ POSITIVE_PROMPT_FORBIDDEN_TERMS = (
     "agenda",
     "schedule",
     "display",
+    "character",
+    "characters",
+    "hero",
+    "heroes",
+    "superhero",
+    "superheroes",
+    "spiderman",
+    "spider-man",
+    "masked person",
+    "masked character",
+    "costume",
+    "costumed",
 )
 
 
@@ -74,14 +90,6 @@ KNOWN_COLOURS = (
 )
 
 
-NEUTRAL_COLOURS = {
-    "black",
-    "white",
-    "grey",
-    "silver",
-}
-
-
 def normalize_colour(
     value: str | None,
 ) -> str | None:
@@ -111,9 +119,11 @@ def requested_palette(
         "primary_colour",
         "secondary_colour",
     ):
-        colour = normalize_colour(
-            brief.get(
-                key
+        colour = (
+            normalize_colour(
+                brief.get(
+                    key
+                )
             )
         )
 
@@ -131,8 +141,10 @@ def requested_palette(
 def positive_palette_description(
     brief: dict,
 ) -> str:
-    colours = requested_palette(
-        brief
+    colours = (
+        requested_palette(
+            brief
+        )
     )
 
     if not colours:
@@ -141,9 +153,11 @@ def positive_palette_description(
             "with balanced tonal variation."
         )
 
-    primary = colours[
-        0
-    ]
+    primary = (
+        colours[
+            0
+        ]
+    )
 
     secondary = (
         colours[
@@ -197,8 +211,10 @@ def palette_negative(
     banned = []
 
     for colour in KNOWN_COLOURS:
-        normalized = normalize_colour(
-            colour
+        normalized = (
+            normalize_colour(
+                colour
+            )
         )
 
         if (
@@ -219,21 +235,27 @@ def palette_negative(
 
 
 def safe_layout() -> LayoutGuidance:
-    return LayoutGuidance(
-        title_zone=LayoutZone(
-            x=0.10,
-            y=0.08,
-            width=0.80,
-            height=0.12,
-        ),
-        programme_zone=LayoutZone(
-            x=0.10,
-            y=0.47,
-            width=0.80,
-            height=0.40,
-        ),
-        headshot_zone=None,
-        logo_zone=None,
+    return (
+        LayoutGuidance(
+            title_zone=(
+                LayoutZone(
+                    x=0.10,
+                    y=0.08,
+                    width=0.80,
+                    height=0.12,
+                )
+            ),
+            programme_zone=(
+                LayoutZone(
+                    x=0.10,
+                    y=0.47,
+                    width=0.80,
+                    height=0.40,
+                )
+            ),
+            headshot_zone=None,
+            logo_zone=None,
+        )
     )
 
 
@@ -244,8 +266,7 @@ def direction_configuration(
     str,
 ]:
     normalized = (
-        direction_id
-        .lower()
+        direction_id.lower()
     )
 
     if normalized not in {
@@ -273,17 +294,11 @@ def direction_configuration(
         role,
     )
 
+
 def fallback_prompt(
     brief: dict,
     role: str,
 ) -> str:
-    theme = (
-        brief.get(
-            "theme"
-        )
-        or "celebration"
-    )
-
     palette = (
         positive_palette_description(
             brief
@@ -292,14 +307,13 @@ def fallback_prompt(
 
     return (
         f"{role} abstract A4 portrait decorative event background, "
-        f"{theme} atmosphere, "
         f"{palette} "
         "strong tonal contrast, "
         "clear separation between light and dark visual regions, "
         "high-contrast composition suitable for readable overlays, "
         "refined layered materials, "
         "controlled lighting, "
-        "elegant abstract forms, "
+        "abstract geometric and environmental motifs, "
         "balanced border details, "
         "subtle depth and texture, "
         "generous visual breathing room, "
@@ -307,15 +321,16 @@ def fallback_prompt(
     )
 
 
-
 def sanitize_positive_prompt(
     value: str,
     brief: dict,
     role: str,
 ) -> str:
-    clauses = re.split(
-        r"[,;.!?]+",
-        value,
+    clauses = (
+        re.split(
+            r"[,;.!?]+",
+            value,
+        )
     )
 
     clean = []
@@ -360,15 +375,14 @@ def sanitize_positive_prompt(
         )
     )
 
-    if (
-        len(
-            result
-        )
-        < 40
-    ):
-        return fallback_prompt(
-            brief,
-            role,
+    if len(
+        result
+    ) < 40:
+        return (
+            fallback_prompt(
+                brief,
+                role,
+            )
         )
 
     palette = (
@@ -383,6 +397,9 @@ def sanitize_positive_prompt(
         )
         + ". "
         + palette
+        + " Use theme references only as abstract visual motifs. "
+        + "Never depict or describe a named person, fictional "
+        + "character, hero, superhero, mascot or humanoid subject."
     )
 
 
@@ -407,6 +424,24 @@ def build_creative_direction_prompt(
         (
             "Put exclusions and unwanted content only in "
             "negative_prompt."
+        ),
+        (
+            "If the event brief mentions a named person, "
+            "fictional character, superhero, mascot, celebrity "
+            "or franchise character, translate that reference "
+            "into abstract motifs, shapes, textures, colours, "
+            "patterns, architecture or atmosphere only."
+        ),
+        (
+            "Never place the named character, person, hero, "
+            "superhero, mascot or humanoid subject itself in "
+            "positive_prompt."
+        ),
+        (
+            "For comic or superhero-inspired themes, use "
+            "abstract comic energy, geometric web patterns, "
+            "speed lines, city geometry and colour relationships "
+            "without depicting any hero or character."
         ),
         (
             "The positive_prompt must describe visual style, "
@@ -437,8 +472,9 @@ def build_creative_direction_prompt(
         (
             "The negative_prompt must exclude people, faces, "
             "human figures, portraits, silhouettes, body parts, "
-            "mannequins, clothing, text, words, letters, numbers, "
-            "logos and watermarks."
+            "mannequins, clothing, characters, heroes, superheroes, "
+            "mascots, costumes, humanoids, text, words, letters, "
+            "numbers, logos and watermarks."
         ),
         (
             "The negative_prompt must exclude colour families "
@@ -481,6 +517,8 @@ def build_creative_direction_prompt(
             "high_contrast": True,
             "readable_overlay_regions": True,
             "background_only": True,
+            "characters_allowed": False,
+            "people_allowed": False,
         },
         "requirements": (
             requirements
@@ -565,9 +603,7 @@ async def generate_creative_direction(
         direction_id.upper()
     )
 
-    direction.role = (
-        role
-    )
+    direction.role = role
 
     direction.positive_prompt = (
         sanitize_positive_prompt(
@@ -585,7 +621,8 @@ async def generate_creative_direction(
     direction.negative_prompt = (
         ", ".join(
             value
-            for value in (
+            for value
+            in (
                 generated_negative.strip(
                     ", "
                 ),
@@ -593,7 +630,13 @@ async def generate_creative_direction(
                     "person, people, human, human figure, "
                     "man, woman, child, face, portrait, "
                     "silhouette, body, head, hands, arms, "
-                    "legs, clothing, mannequin, character"
+                    "legs, clothing, mannequin, character, "
+                    "fictional character, hero, superhero, "
+                    "masked character, mascot, costume, "
+                    "costumed figure, humanoid"
+                ),
+                (
+                    "spiderman, spider-man, spider man"
                 ),
                 (
                     "text, typography, lettering, words, "

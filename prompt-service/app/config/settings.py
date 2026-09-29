@@ -8,7 +8,18 @@ from pydantic_settings import (
 )
 
 
-class Settings(BaseSettings):
+SERVICE_ROOT = (
+    Path(
+        __file__
+    )
+    .resolve()
+    .parents[2]
+)
+
+
+class Settings(
+    BaseSettings
+):
     ollama_base_url: str = (
         "http://192.168.68.115:11434"
     )
@@ -17,19 +28,39 @@ class Settings(BaseSettings):
         "/data/programmes"
     )
 
+    prompt_archive_path: Path = (
+        SERVICE_ROOT
+        / "app"
+        / "data"
+        / "programmes"
+    )
+
     ollama_connect_timeout_seconds: float = 10
     ollama_read_timeout_seconds: float = 900
 
-    direction_a_model: str = "qwen2.5:14b"
-    direction_a_role: str = "elegant"
+    direction_a_model: str = (
+        "qwen2.5:14b"
+    )
 
-    direction_b_model: str = "gemma3:27b"
-    direction_b_role: str = "expressive"
+    direction_a_role: str = (
+        "elegant"
+    )
+
+    direction_b_model: str = (
+        "gemma3:27b"
+    )
+
+    direction_b_role: str = (
+        "expressive"
+    )
 
     direction_c_model: str = (
         "mistral-small3.1:24b"
     )
-    direction_c_role: str = "contemporary"
+
+    direction_c_role: str = (
+        "contemporary"
+    )
 
     comfyui_base_url: str = (
         "http://192.168.68.115:8188"
@@ -44,9 +75,6 @@ class Settings(BaseSettings):
 
     gpu_lease_timeout_seconds: float = 1800
 
-    # Grill-Me no longer asks the user for timezone.
-    # For your local deployment this is injected from
-    # the host when the container starts.
     user_timezone: str = (
         "Africa/Johannesburg"
     )
@@ -63,11 +91,11 @@ class Settings(BaseSettings):
             ZoneInfo(
                 value
             )
+
         except Exception as error:
             raise ValueError(
                 "USER_TIMEZONE must be a valid "
-                "IANA timezone, for example "
-                "Africa/Johannesburg."
+                "IANA timezone."
             ) from error
 
         return value
@@ -81,17 +109,15 @@ class Settings(BaseSettings):
             / ".gpu.lock"
         )
 
-    model_config = SettingsConfigDict(
-        env_file=(
-            Path(
-                __file__
-            )
-            .resolve()
-            .parents[2]
-            / ".env"
-        ),
-        env_file_encoding="utf-8",
-        extra="ignore",
+    model_config = (
+        SettingsConfigDict(
+            env_file=(
+                SERVICE_ROOT
+                / ".env"
+            ),
+            env_file_encoding="utf-8",
+            extra="ignore",
+        )
     )
 
 

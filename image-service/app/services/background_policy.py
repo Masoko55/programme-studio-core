@@ -12,26 +12,101 @@ NAMED_COLOURS = {
     "black": (0, 0, 0),
     "white": (255, 255, 255),
     "grey": (128, 128, 128),
-    "gray": (128, 128, 128),
     "silver": (185, 185, 190),
+    "charcoal": (54, 69, 79),
     "red": (220, 45, 45),
-    "blue": (45, 95, 220),
-    "green": (45, 150, 80),
-    "pink": (235, 115, 170),
-    "purple": (125, 75, 185),
-    "violet": (120, 80, 185),
     "orange": (230, 130, 45),
     "yellow": (230, 195, 45),
-    "gold": (195, 150, 50),
-    "golden": (195, 150, 50),
-    "navy": (25, 45, 100),
+    "lime": (125, 220, 55),
+    "green": (45, 150, 80),
+    "forest green": (34, 100, 55),
+    "mint green": (152, 255, 152),
     "teal": (35, 135, 135),
+    "turquoise": (64, 190, 180),
     "cyan": (55, 170, 190),
+    "aqua": (65, 210, 205),
+    "blue": (45, 95, 220),
+    "sky blue": (90, 175, 235),
+    "royal blue": (55, 80, 210),
+    "navy": (25, 45, 100),
+    "purple": (125, 75, 185),
+    "violet": (120, 80, 185),
+    "lavender": (180, 150, 220),
+    "magenta": (210, 55, 175),
+    "pink": (235, 115, 170),
+    "hot pink": (245, 70, 155),
+    "rose": (215, 90, 130),
+    "coral": (235, 110, 100),
+    "peach": (240, 170, 130),
+    "maroon": (115, 30, 50),
+    "burgundy": (120, 35, 60),
     "brown": (120, 80, 50),
     "beige": (210, 190, 150),
     "cream": (240, 225, 190),
-    "maroon": (115, 30, 50),
-    "burgundy": (120, 35, 60),
+    "champagne": (230, 210, 165),
+    "gold": (195, 150, 50),
+    "rose gold": (190, 120, 115),
+}
+
+
+COLOUR_ALIASES = {
+    "gray": "grey",
+    "light gray": "grey",
+    "light grey": "grey",
+    "dark gray": "charcoal",
+    "dark grey": "charcoal",
+    "off white": "white",
+    "off-white": "white",
+    "ivory": "cream",
+    "golden": "gold",
+    "golden yellow": "gold",
+    "lime green": "lime",
+    "lime-green": "lime",
+    "electric lime": "lime",
+    "electric lime green": "lime",
+    "mint": "mint green",
+    "forest": "forest green",
+    "turquoise blue": "turquoise",
+    "aqua blue": "aqua",
+    "sky": "sky blue",
+    "royal": "royal blue",
+    "dark blue": "navy",
+    "navy blue": "navy",
+    "light blue": "sky blue",
+    "baby blue": "sky blue",
+    "hotpink": "hot pink",
+    "rose pink": "rose",
+    "rose-pink": "rose",
+    "light pink": "pink",
+    "dark pink": "hot pink",
+    "deep pink": "hot pink",
+    "fuchsia": "magenta",
+    "lilac": "lavender",
+    "deep purple": "purple",
+    "light purple": "lavender",
+    "wine": "burgundy",
+    "wine red": "burgundy",
+    "rose-gold": "rose gold",
+}
+
+
+COLOUR_MODIFIERS = {
+    "neon",
+    "fluorescent",
+    "electric",
+    "pastel",
+    "bright",
+    "vibrant",
+    "muted",
+    "soft",
+    "dark",
+    "deep",
+    "light",
+    "metallic",
+    "glowing",
+    "glow",
+    "luminous",
+    "radiant",
 }
 
 
@@ -39,8 +114,8 @@ NEUTRAL_NAMES = {
     "black",
     "white",
     "grey",
-    "gray",
     "silver",
+    "charcoal",
 }
 
 
@@ -48,7 +123,7 @@ MAX_OFF_PALETTE_RATIO = 0.12
 MIN_PRIMARY_COLOUR_RATIO = 0.05
 MIN_SECONDARY_COLOUR_RATIO = 0.008
 MIN_BLACK_WHITE_RATIO = 0.90
-MAX_HUE_DISTANCE = 18
+MAX_HUE_DISTANCE = 20
 
 MIN_HOG_PERSON_WEIGHT = 0.75
 MIN_FACE_SIZE = 42
@@ -71,6 +146,7 @@ BACKGROUND_ONLY_NEGATIVE = (
     "(humanoid:2.4), "
     "(spiderman:2.5), "
     "(spider-man:2.5), "
+    "(spider man:2.5), "
     "(person:2.2), "
     "(people:2.2), "
     "(human:2.2), "
@@ -157,6 +233,7 @@ FORBIDDEN_PROMPT_TERMS = (
     "superheroes",
     "spiderman",
     "spider-man",
+    "spider man",
     "masked character",
     "costume",
     "costumed",
@@ -165,89 +242,276 @@ FORBIDDEN_PROMPT_TERMS = (
 )
 
 
-COLOUR_ALIASES = {
-    "gray": "grey",
-    "golden": "gold",
-}
-
-
-def normalize_colour_name(
+def _clean_colour_text(
     value: str | None,
 ) -> str | None:
     if not value:
         return None
 
-    value = (
-        value
-        .strip()
+    cleaned = (
+        value.strip()
         .lower()
+        .replace("_", " ")
     )
 
-    return (
-        COLOUR_ALIASES.get(
-            value,
-            value,
-        )
+    cleaned = re.sub(
+        r"\s+",
+        " ",
+        cleaned,
     )
 
+    return cleaned or None
 
-def parse_colour(
+
+def _extract_hex_colour(
     value: str | None,
 ) -> tuple[int, int, int] | None:
     if not value:
         return None
 
-    normalized = (
+    match = re.fullmatch(
+        r"#?([0-9a-fA-F]{6})",
+        value.strip(),
+    )
+
+    if not match:
+        return None
+
+    raw = match.group(1)
+
+    return (
+        int(raw[0:2], 16),
+        int(raw[2:4], 16),
+        int(raw[4:6], 16),
+    )
+
+
+def _remove_modifiers(
+    value: str,
+) -> tuple[str, list[str]]:
+    words = value.split()
+
+    modifiers = []
+    remaining = []
+
+    for word in words:
+        if word in COLOUR_MODIFIERS:
+            modifiers.append(word)
+        else:
+            remaining.append(word)
+
+    return (
+        " ".join(remaining).strip(),
+        modifiers,
+    )
+
+
+def colour_descriptor(
+    value: str | None,
+) -> dict:
+    cleaned = _clean_colour_text(
         value
-        .strip()
-        .lower()
     )
 
-    if normalized in NAMED_COLOURS:
-        return (
-            NAMED_COLOURS[
-                normalized
-            ]
+    if not cleaned:
+        return {
+            "raw": value,
+            "cleaned": None,
+            "base_name": None,
+            "rgb": None,
+            "modifiers": [],
+            "modifier_only": False,
+            "is_hex": False,
+        }
+
+    hex_rgb = _extract_hex_colour(
+        cleaned
+    )
+
+    if hex_rgb is not None:
+        return {
+            "raw": value,
+            "cleaned": cleaned,
+            "base_name": cleaned,
+            "rgb": hex_rgb,
+            "modifiers": [],
+            "modifier_only": False,
+            "is_hex": True,
+        }
+
+    alias_direct = COLOUR_ALIASES.get(
+        cleaned
+    )
+
+    if alias_direct:
+        return {
+            "raw": value,
+            "cleaned": cleaned,
+            "base_name": alias_direct,
+            "rgb": NAMED_COLOURS.get(
+                alias_direct
+            ),
+            "modifiers": [],
+            "modifier_only": False,
+            "is_hex": False,
+        }
+
+    base_candidate, modifiers = (
+        _remove_modifiers(
+            cleaned
         )
-
-    hexadecimal = re.fullmatch(
-        r"#?([0-9a-f]{6})",
-        normalized,
     )
 
-    if hexadecimal:
-        raw = (
-            hexadecimal.group(
-                1
+    if not base_candidate:
+        return {
+            "raw": value,
+            "cleaned": cleaned,
+            "base_name": None,
+            "rgb": None,
+            "modifiers": modifiers,
+            "modifier_only": bool(
+                modifiers
+            ),
+            "is_hex": False,
+        }
+
+    base_candidate = (
+        COLOUR_ALIASES.get(
+            base_candidate,
+            base_candidate,
+        )
+    )
+
+    if base_candidate in NAMED_COLOURS:
+        return {
+            "raw": value,
+            "cleaned": cleaned,
+            "base_name": base_candidate,
+            "rgb": NAMED_COLOURS[
+                base_candidate
+            ],
+            "modifiers": modifiers,
+            "modifier_only": False,
+            "is_hex": False,
+        }
+
+    candidates = sorted(
+        set(
+            list(
+                NAMED_COLOURS.keys()
             )
-        )
+            + list(
+                COLOUR_ALIASES.keys()
+            )
+        ),
+        key=len,
+        reverse=True,
+    )
 
-        return (
-            int(
-                raw[0:2],
-                16,
-            ),
-            int(
-                raw[2:4],
-                16,
-            ),
-            int(
-                raw[4:6],
-                16,
-            ),
-        )
-
-    for (
-        name,
-        rgb,
-    ) in NAMED_COLOURS.items():
+    for candidate in candidates:
         if re.search(
-            rf"\b{re.escape(name)}\b",
-            normalized,
+            rf"\b{re.escape(candidate)}\b",
+            cleaned,
         ):
-            return rgb
+            canonical = (
+                COLOUR_ALIASES.get(
+                    candidate,
+                    candidate,
+                )
+            )
 
-    return None
+            if canonical in NAMED_COLOURS:
+                remaining_words = (
+                    cleaned.replace(
+                        candidate,
+                        " ",
+                        1,
+                    )
+                    .strip()
+                    .split()
+                )
+
+                detected_modifiers = [
+                    word
+                    for word
+                    in remaining_words
+                    if word
+                    in COLOUR_MODIFIERS
+                ]
+
+                return {
+                    "raw": value,
+                    "cleaned": cleaned,
+                    "base_name": canonical,
+                    "rgb": NAMED_COLOURS[
+                        canonical
+                    ],
+                    "modifiers": (
+                        modifiers
+                        + detected_modifiers
+                    ),
+                    "modifier_only": False,
+                    "is_hex": False,
+                }
+
+    return {
+        "raw": value,
+        "cleaned": cleaned,
+        "base_name": None,
+        "rgb": None,
+        "modifiers": modifiers,
+        "modifier_only": bool(
+            modifiers
+        ),
+        "is_hex": False,
+    }
+
+
+def normalize_colour_name(
+    value: str | None,
+) -> str | None:
+    descriptor = (
+        colour_descriptor(
+            value
+        )
+    )
+
+    return descriptor[
+        "base_name"
+    ]
+
+
+def parse_colour(
+    value: str | None,
+) -> tuple[int, int, int] | None:
+    descriptor = (
+        colour_descriptor(
+            value
+        )
+    )
+
+    return descriptor[
+        "rgb"
+    ]
+
+
+def _prompt_colour_label(
+    value: str | None,
+) -> str | None:
+    descriptor = (
+        colour_descriptor(
+            value
+        )
+    )
+
+    if not descriptor[
+        "cleaned"
+    ]:
+        return None
+
+    return descriptor[
+        "cleaned"
+    ]
 
 
 def requested_palette_names(
@@ -260,18 +524,22 @@ def requested_palette_names(
         primary_colour,
         secondary_colour,
     ):
-        normalized = (
-            normalize_colour_name(
+        descriptor = (
+            colour_descriptor(
                 value
             )
         )
 
+        name = descriptor[
+            "base_name"
+        ]
+
         if (
-            normalized
-            and normalized not in colours
+            name
+            and name not in colours
         ):
             colours.append(
-                normalized
+                name
             )
 
     return colours
@@ -281,68 +549,124 @@ def palette_prompt_contract(
     primary_colour: str | None,
     secondary_colour: str | None,
 ) -> str:
-    colours = (
-        requested_palette_names(
-            primary_colour,
-            secondary_colour,
+    primary_descriptor = (
+        colour_descriptor(
+            primary_colour
         )
     )
 
-    if not colours:
-        return (
-            "Use one restrained and coherent colour palette."
+    secondary_descriptor = (
+        colour_descriptor(
+            secondary_colour
         )
+    )
 
-    primary = (
-        colours[
-            0
+    primary_label = (
+        _prompt_colour_label(
+            primary_colour
+        )
+    )
+
+    secondary_label = (
+        _prompt_colour_label(
+            secondary_colour
+        )
+    )
+
+    primary_base = (
+        primary_descriptor[
+            "base_name"
         ]
     )
 
-    secondary = (
-        colours[
-            1
+    secondary_base = (
+        secondary_descriptor[
+            "base_name"
         ]
-        if len(
-            colours
-        ) > 1
-        else None
-    )
-
-    palette_text = (
-        f"{primary} and {secondary}"
-        if secondary
-        else primary
     )
 
     statements = [
         (
-            "STRICT COLOUR PALETTE CONTRACT: "
-            f"use {palette_text} as the intended palette."
+            "STRICT COLOUR PALETTE CONTRACT."
         ),
         (
-            f"The primary colour is {primary}. "
-            "It must be clearly visible and visually dominant."
-        ),
-        (
-            "Do not substitute the requested colours with colours "
-            "that merely fit the event theme."
+            "Do not substitute the requested colours "
+            "with colours that merely fit the event theme."
         ),
         (
             "Do not introduce unrelated chromatic accent colours."
         ),
     ]
 
-    if secondary:
+    if (
+        primary_label
+        and primary_base
+    ):
         statements.append(
             (
-                f"The secondary colour is {secondary}. "
+                f"The primary colour is {primary_label}. "
+                "It must be clearly visible and visually dominant."
+            )
+        )
+
+    elif (
+        primary_descriptor[
+            "modifier_only"
+        ]
+    ):
+        modifier_text = " ".join(
+            primary_descriptor[
+                "modifiers"
+            ]
+        )
+
+        statements.append(
+            (
+                f"The requested primary treatment is {modifier_text}. "
+                "This is a colour treatment rather than a specific hue. "
+                "Apply this treatment only to the explicitly requested "
+                "colour family and do not invent unrelated hues."
+            )
+        )
+
+    if (
+        secondary_label
+        and secondary_base
+    ):
+        statements.append(
+            (
+                f"The secondary colour is {secondary_label}. "
                 "It must be visibly present as a supporting colour."
             )
         )
 
+    elif (
+        secondary_descriptor[
+            "modifier_only"
+        ]
+    ):
+        modifier_text = " ".join(
+            secondary_descriptor[
+                "modifiers"
+            ]
+        )
+
+        statements.append(
+            (
+                f"The requested secondary treatment is {modifier_text}. "
+                "Treat it as a visual finish rather than a hue."
+            )
+        )
+
+    measurable_names = (
+        requested_palette_names(
+            primary_colour,
+            secondary_colour,
+        )
+    )
+
     if set(
-        colours
+        measurable_names
     ) == {
         "black",
         "white",
@@ -361,18 +685,33 @@ def palette_prompt_contract(
             ]
         )
 
-    elif (
-        secondary
-        in {
-            "white",
-            "black",
-            "grey",
-        }
+    if (
+        primary_descriptor[
+            "modifier_only"
+        ]
+        and secondary_base
     ):
         statements.append(
             (
-                "Any chromatic colour must remain inside "
-                f"the {primary} colour family."
+                f"Use {secondary_label or secondary_base} as the "
+                "measurable chromatic colour family and apply the "
+                f"{' '.join(primary_descriptor['modifiers'])} "
+                "treatment to it."
+            )
+        )
+
+    if (
+        secondary_descriptor[
+            "modifier_only"
+        ]
+        and primary_base
+    ):
+        statements.append(
+            (
+                f"Use {primary_label or primary_base} as the "
+                "measurable chromatic colour family and apply the "
+                f"{' '.join(secondary_descriptor['modifiers'])} "
+                "treatment where appropriate."
             )
         )
 
@@ -385,62 +724,69 @@ def palette_negative_contract(
     primary_colour: str | None,
     secondary_colour: str | None,
 ) -> str:
-    allowed = set(
-        requested_palette_names(
-            primary_colour,
-            secondary_colour,
-        )
-    )
+    descriptors = [
+        colour_descriptor(
+            primary_colour
+        ),
+        colour_descriptor(
+            secondary_colour
+        ),
+    ]
 
-    banned = []
+    measurable = [
+        descriptor[
+            "base_name"
+        ]
+        for descriptor
+        in descriptors
+        if descriptor[
+            "base_name"
+        ]
+    ]
 
-    for colour in NAMED_COLOURS:
-        normalized = (
-            normalize_colour_name(
-                colour
-            )
-        )
-
-        if (
-            normalized
-            and normalized not in allowed
-            and normalized not in banned
-        ):
-            banned.append(
-                normalized
-            )
-
-    if not banned:
+    if set(
+        measurable
+    ) == {
+        "black",
+        "white",
+    }:
         return (
-            "off-palette colour, colour drift, "
-            "unrequested accent colours"
+            "coloured lighting, coloured tint, chromatic accents, "
+            "off-palette colours, colour drift, "
+            "unrequested accent colours, multicolour palette"
+        )
+
+    if measurable:
+        allowed_text = ", ".join(
+            measurable
+        )
+
+        return (
+            "off-palette colours, colour drift, "
+            "unrequested accent colours, multicolour palette, "
+            "rainbow colours, unrelated hues. "
+            f"Keep chromatic colours inside the requested "
+            f"colour families: {allowed_text}"
         )
 
     return (
-        "off-palette colour, colour drift, "
-        "unrequested accent colours, multicolour palette, "
-        + ", ".join(
-            banned
-        )
+        "off-palette colours, colour drift, "
+        "unrequested accent colours, multicolour palette"
     )
 
 
 def sanitize_background_prompt(
     positive_prompt: str,
 ) -> str:
-    clauses = (
-        re.split(
-            r"[,;.!?]+",
-            positive_prompt,
-        )
+    clauses = re.split(
+        r"[,;.!?]+",
+        positive_prompt,
     )
 
     kept = []
 
     for clause in clauses:
-        clause = (
-            clause.strip()
-        )
+        clause = clause.strip()
 
         if not clause:
             continue
@@ -502,22 +848,18 @@ def build_engine_prompt(
 def _rgb_to_hsv(
     colour: tuple[int, int, int],
 ) -> tuple[int, int, int]:
-    pixel = (
-        np.array(
+    pixel = np.array(
+        [
             [
-                [
-                    colour
-                ]
-            ],
-            dtype=np.uint8,
-        )
+                colour
+            ]
+        ],
+        dtype=np.uint8,
     )
 
-    converted = (
-        cv2.cvtColor(
-            pixel,
-            cv2.COLOR_RGB2HSV,
-        )
+    converted = cv2.cvtColor(
+        pixel,
+        cv2.COLOR_RGB2HSV,
     )
 
     hue, saturation, value = (
@@ -560,28 +902,40 @@ def validate_palette(
     primary_colour: str | None,
     secondary_colour: str | None,
 ) -> dict:
-    primary_name = (
-        normalize_colour_name(
+    primary_descriptor = (
+        colour_descriptor(
             primary_colour
         )
+    )
+
+    secondary_descriptor = (
+        colour_descriptor(
+            secondary_colour
+        )
+    )
+
+    primary_name = (
+        primary_descriptor[
+            "base_name"
+        ]
     )
 
     secondary_name = (
-        normalize_colour_name(
-            secondary_colour
-        )
+        secondary_descriptor[
+            "base_name"
+        ]
     )
 
     primary_rgb = (
-        parse_colour(
-            primary_colour
-        )
+        primary_descriptor[
+            "rgb"
+        ]
     )
 
     secondary_rgb = (
-        parse_colour(
-            secondary_colour
-        )
+        secondary_descriptor[
+            "rgb"
+        ]
     )
 
     requested = [
@@ -600,14 +954,21 @@ def validate_palette(
         for item
         in requested
         if (
-            item[0]
-            and item[1] is not None
+            item[
+                0
+            ]
+            and item[
+                1
+            ] is not None
         )
     ]
 
     if not requested:
         return {
             "palette_checked": False,
+            "reason": (
+                "No measurable colour hue was supplied."
+            ),
         }
 
     sample = (
@@ -624,25 +985,19 @@ def validate_palette(
         )
     )
 
-    rgb_array = (
-        np.array(
-            sample,
-            dtype=np.uint8,
-        )
+    rgb_array = np.array(
+        sample,
+        dtype=np.uint8,
     )
 
-    hsv_array = (
-        cv2.cvtColor(
-            rgb_array,
-            cv2.COLOR_RGB2HSV,
-        )
+    hsv_array = cv2.cvtColor(
+        rgb_array,
+        cv2.COLOR_RGB2HSV,
     )
 
-    pixels = (
-        hsv_array.reshape(
-            -1,
-            3,
-        )
+    pixels = hsv_array.reshape(
+        -1,
+        3,
     )
 
     total = len(
@@ -662,16 +1017,15 @@ def validate_palette(
         "black",
         "white",
     }:
-        saturation = (
-            pixels[
-                :,
-                1
-            ]
-        )
+        saturation = pixels[
+            :,
+            1
+        ]
 
         monochrome_ratio = float(
             np.mean(
-                saturation <= 30
+                saturation
+                <= 30
             )
         )
 
@@ -696,6 +1050,8 @@ def validate_palette(
                 1.0
                 - monochrome_ratio
             ),
+            "primary_colour_ratio": None,
+            "secondary_colour_ratio": None,
         }
 
     chromatic_targets = []
@@ -757,6 +1113,10 @@ def validate_palette(
             neutral_count += 1
             continue
 
+        if not chromatic_targets:
+            neutral_count += 1
+            continue
+
         best_name = None
         best_distance = None
 
@@ -814,6 +1174,7 @@ def validate_palette(
         primary_name
         and primary_name
         not in NEUTRAL_NAMES
+        and primary_rgb is not None
     ):
         primary_ratio = (
             chromatic_counts.get(
@@ -841,6 +1202,7 @@ def validate_palette(
         secondary_name
         and secondary_name
         not in NEUTRAL_NAMES
+        and secondary_rgb is not None
     ):
         secondary_ratio = (
             chromatic_counts.get(
@@ -850,9 +1212,23 @@ def validate_palette(
             / total
         )
 
+        minimum_secondary_ratio = (
+            MIN_SECONDARY_COLOUR_RATIO
+        )
+
+        if (
+            primary_descriptor[
+                "modifier_only"
+            ]
+            and primary_rgb is None
+        ):
+            minimum_secondary_ratio = (
+                MIN_PRIMARY_COLOUR_RATIO
+            )
+
         if (
             secondary_ratio
-            < MIN_SECONDARY_COLOUR_RATIO
+            < minimum_secondary_ratio
         ):
             raise ValueError(
                 "Generated background does not visibly "
@@ -890,6 +1266,34 @@ def validate_palette(
         "chromatic_counts": (
             chromatic_counts
         ),
+        "primary_descriptor": {
+            "raw": primary_descriptor[
+                "raw"
+            ],
+            "base_name": primary_descriptor[
+                "base_name"
+            ],
+            "modifiers": primary_descriptor[
+                "modifiers"
+            ],
+            "modifier_only": primary_descriptor[
+                "modifier_only"
+            ],
+        },
+        "secondary_descriptor": {
+            "raw": secondary_descriptor[
+                "raw"
+            ],
+            "base_name": secondary_descriptor[
+                "base_name"
+            ],
+            "modifiers": secondary_descriptor[
+                "modifiers"
+            ],
+            "modifier_only": secondary_descriptor[
+                "modifier_only"
+            ],
+        },
     }
 
 
@@ -953,19 +1357,15 @@ def _cascade_detect(
 def detect_human_signals(
     image: Image.Image,
 ) -> dict:
-    rgb = (
-        np.array(
-            image.convert(
-                "RGB"
-            )
+    rgb = np.array(
+        image.convert(
+            "RGB"
         )
     )
 
-    bgr = (
-        cv2.cvtColor(
-            rgb,
-            cv2.COLOR_RGB2BGR,
-        )
+    bgr = cv2.cvtColor(
+        rgb,
+        cv2.COLOR_RGB2BGR,
     )
 
     maximum_dimension = max(
@@ -983,23 +1383,19 @@ def detect_human_signals(
             / maximum_dimension
         )
 
-        bgr = (
-            cv2.resize(
-                bgr,
-                None,
-                fx=scale,
-                fy=scale,
-                interpolation=(
-                    cv2.INTER_AREA
-                ),
-            )
+        bgr = cv2.resize(
+            bgr,
+            None,
+            fx=scale,
+            fy=scale,
+            interpolation=(
+                cv2.INTER_AREA
+            ),
         )
 
-    gray = (
-        cv2.cvtColor(
-            bgr,
-            cv2.COLOR_BGR2GRAY,
-        )
+    gray = cv2.cvtColor(
+        bgr,
+        cv2.COLOR_BGR2GRAY,
     )
 
     hog = (
@@ -1075,28 +1471,24 @@ def detect_human_signals(
         )
     )
 
-    faces = (
-        _cascade_detect(
-            frontal_detector,
-            gray,
-            (
-                MIN_FACE_SIZE,
-                MIN_FACE_SIZE,
-            ),
-            6,
-        )
+    faces = _cascade_detect(
+        frontal_detector,
+        gray,
+        (
+            MIN_FACE_SIZE,
+            MIN_FACE_SIZE,
+        ),
+        6,
     )
 
-    profiles = (
-        _cascade_detect(
-            profile_detector,
-            gray,
-            (
-                MIN_PROFILE_SIZE,
-                MIN_PROFILE_SIZE,
-            ),
-            6,
-        )
+    profiles = _cascade_detect(
+        profile_detector,
+        gray,
+        (
+            MIN_PROFILE_SIZE,
+            MIN_PROFILE_SIZE,
+        ),
+        6,
     )
 
     upper_bodies = (

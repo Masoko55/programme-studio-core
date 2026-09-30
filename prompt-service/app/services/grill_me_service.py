@@ -1,4 +1,5 @@
 import json
+import re
 import shutil
 import uuid
 
@@ -45,6 +46,75 @@ REQUIRED_FIELDS = (
     "programme",
     "output_language",
 )
+
+
+COLOUR_MODIFIERS = {
+    "neon",
+    "fluorescent",
+    "electric",
+    "pastel",
+    "bright",
+    "vibrant",
+    "muted",
+    "soft",
+    "dark",
+    "deep",
+    "light",
+    "metallic",
+    "glowing",
+    "glow",
+    "luminous",
+    "radiant",
+}
+
+
+KNOWN_COLOUR_TERMS = {
+    "black",
+    "white",
+    "grey",
+    "gray",
+    "silver",
+    "charcoal",
+    "red",
+    "orange",
+    "yellow",
+    "lime",
+    "lime green",
+    "green",
+    "forest green",
+    "mint green",
+    "teal",
+    "turquoise",
+    "cyan",
+    "aqua",
+    "blue",
+    "sky blue",
+    "royal blue",
+    "navy",
+    "navy blue",
+    "purple",
+    "violet",
+    "lavender",
+    "lilac",
+    "magenta",
+    "fuchsia",
+    "pink",
+    "hot pink",
+    "rose",
+    "rose pink",
+    "coral",
+    "peach",
+    "maroon",
+    "burgundy",
+    "brown",
+    "beige",
+    "cream",
+    "ivory",
+    "champagne",
+    "gold",
+    "golden",
+    "rose gold",
+}
 
 
 QUESTION_TEXT = {
@@ -209,8 +279,10 @@ def _mirror_session(
 def _save(
     session: GrillMeSession,
 ) -> GrillMeSession:
-    directory = _directory(
-        session.session_id
+    directory = (
+        _directory(
+            session.session_id
+        )
     )
 
     directory.mkdir(
@@ -237,8 +309,10 @@ def _save(
 def load_session(
     session_id: str,
 ) -> GrillMeSession:
-    path = _path(
-        session_id
+    path = (
+        _path(
+            session_id
+        )
     )
 
     if not path.exists():
@@ -259,7 +333,7 @@ def load_session(
 
 def _clean_string(
     value,
-) -> str | None:
+):
     if not isinstance(
         value,
         str,
@@ -277,6 +351,130 @@ def _clean_string(
     )
 
 
+def _normalize_colour_text(
+    value: str | None,
+) -> str | None:
+    if not value:
+        return None
+
+    normalized = (
+        value.strip()
+        .lower()
+        .replace("_", " ")
+    )
+
+    normalized = re.sub(
+        r"\s+",
+        " ",
+        normalized,
+    )
+
+    return (
+        normalized
+        if normalized
+        else None
+    )
+
+
+def _is_hex_colour(
+    value: str,
+) -> bool:
+    return bool(
+        re.fullmatch(
+            r"#?[0-9a-fA-F]{6}",
+            value,
+        )
+    )
+
+
+def _colour_contains_known_hue(
+    value: str,
+) -> bool:
+    if _is_hex_colour(
+        value
+    ):
+        return True
+
+    candidates = sorted(
+        KNOWN_COLOUR_TERMS,
+        key=len,
+        reverse=True,
+    )
+
+    for colour in candidates:
+        if re.search(
+            rf"\b{re.escape(colour)}\b",
+            value,
+        ):
+            return True
+
+    return False
+
+
+def _colour_modifier_only(
+    value: str | None,
+) -> bool:
+    normalized = (
+        _normalize_colour_text(
+            value
+        )
+    )
+
+    if not normalized:
+        return False
+
+    if _is_hex_colour(
+        normalized
+    ):
+        return False
+
+    if _colour_contains_known_hue(
+        normalized
+    ):
+        return False
+
+    words = set(
+        normalized.split()
+    )
+
+    return bool(
+        words
+        and words.issubset(
+            COLOUR_MODIFIERS
+        )
+    )
+
+
+def _colour_is_unknown(
+    value: str | None,
+) -> bool:
+    normalized = (
+        _normalize_colour_text(
+            value
+        )
+    )
+
+    if not normalized:
+        return False
+
+    if _is_hex_colour(
+        normalized
+    ):
+        return False
+
+    if _colour_contains_known_hue(
+        normalized
+    ):
+        return False
+
+    if _colour_modifier_only(
+        normalized
+    ):
+        return False
+
+    return True
+
+
 def _is_unclear(
     field: str,
     value,
@@ -289,16 +487,14 @@ def _is_unclear(
         str,
     ):
         cleaned = (
-            value
-            .strip()
+            value.strip()
         )
 
         if not cleaned:
             return True
 
         lowered = (
-            cleaned
-            .lower()
+            cleaned.lower()
         )
 
         vague_values = {
@@ -350,18 +546,80 @@ def _is_unclear(
 def _question(
     field: str,
     reason: str,
+    question: str | None = None,
 ) -> GrillMeQuestion:
     return (
         GrillMeQuestion(
             field=field,
             question=(
-                QUESTION_TEXT[
+                question
+                or QUESTION_TEXT[
                     field
                 ]
             ),
             reason=reason,
         )
     )
+
+
+def _colour_question(
+    field: str,
+    value: str | None,
+) -> GrillMeQuestion | None:
+    if _colour_modifier_only(
+        value
+    ):
+        normalized = (
+            _normalize_colour_text(
+                value
+            )
+            or ""
+        )
+
+        return (
+            _question(
+                field,
+                (
+                    "A colour style was provided "
+                    "without a measurable base hue."
+                ),
+                (
+                    f"Which {normalized} colour should "
+                    f"the {field.replace('_', ' ')} be? "
+                    "For example neon pink, neon blue, "
+                    "neon purple or neon green."
+                ),
+            )
+        )
+
+    if _colour_is_unknown(
+        value
+    ):
+        normalized = (
+            _normalize_colour_text(
+                value
+            )
+            or str(
+                value
+            )
+        )
+
+        return (
+            _question(
+                field,
+                (
+                    "The colour could not be mapped "
+                    "to a known colour family."
+                ),
+                (
+                    f"What base colour should '{normalized}' "
+                    "belong to? You can also provide a "
+                    "six-digit hex colour such as #FF00FF."
+                ),
+            )
+        )
+
+    return None
 
 
 def evaluate_session(
@@ -395,6 +653,36 @@ def evaluate_session(
                         "missing or unclear."
                     ),
                 )
+            )
+
+    existing_fields = {
+        item.field
+        for item
+        in questions
+    }
+
+    for colour_field in (
+        "primary_colour",
+        "secondary_colour",
+    ):
+        if (
+            colour_field
+            in existing_fields
+        ):
+            continue
+
+        question = (
+            _colour_question(
+                colour_field,
+                answers.get(
+                    colour_field
+                ),
+            )
+        )
+
+        if question is not None:
+            questions.append(
+                question
             )
 
     asset_type = (
@@ -502,8 +790,10 @@ def _refresh_status(
             "ready"
         )
 
-    return _save(
-        session
+    return (
+        _save(
+            session
+        )
     )
 
 
@@ -537,8 +827,10 @@ def create_session_from_form(
         )
     )
 
-    return _refresh_status(
-        session
+    return (
+        _refresh_status(
+            session
+        )
     )
 
 
@@ -546,8 +838,10 @@ def apply_clarifications(
     session_id: str,
     values: dict,
 ) -> GrillMeSession:
-    session = load_session(
-        session_id
+    session = (
+        load_session(
+            session_id
+        )
     )
 
     if session.status in {
@@ -625,8 +919,10 @@ def apply_clarifications(
         )
     )
 
-    return _refresh_status(
-        session
+    return (
+        _refresh_status(
+            session
+        )
     )
 
 
@@ -634,8 +930,10 @@ async def store_selected_asset(
     session_id: str,
     upload: UploadFile,
 ) -> GrillMeSession:
-    session = load_session(
-        session_id
+    session = (
+        load_session(
+            session_id
+        )
     )
 
     if session.status in {
@@ -648,7 +946,8 @@ async def store_selected_asset(
         )
 
     asset_type = (
-        session.answers.asset_type
+        session.answers
+        .asset_type
     )
 
     if asset_type not in {
@@ -673,9 +972,11 @@ async def store_selected_asset(
             "Assets must be JPEG or PNG files."
         )
 
-    data = await upload.read(
-        MAX_ASSET_BYTES
-        + 1
+    data = (
+        await upload.read(
+            MAX_ASSET_BYTES
+            + 1
+        )
     )
 
     if (
@@ -713,12 +1014,10 @@ async def store_selected_asset(
         )
 
         if existing:
-            existing_path = (
-                Path(
-                    existing[
-                        "path"
-                    ]
-                )
+            existing_path = Path(
+                existing[
+                    "path"
+                ]
             )
 
             if (
@@ -753,8 +1052,10 @@ async def store_selected_asset(
         }
     }
 
-    return _refresh_status(
-        session
+    return (
+        _refresh_status(
+            session
+        )
     )
 
 
@@ -766,8 +1067,10 @@ def freeze_for_generation(
     dict,
     dict,
 ]:
-    session = load_session(
-        session_id
+    session = (
+        load_session(
+            session_id
+        )
     )
 
     pending = (
@@ -1061,8 +1364,10 @@ def freeze_for_generation(
 def mark_generated(
     session_id: str,
 ) -> None:
-    session = load_session(
-        session_id
+    session = (
+        load_session(
+            session_id
+        )
     )
 
     session.status = (

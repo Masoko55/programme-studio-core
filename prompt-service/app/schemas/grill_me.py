@@ -8,6 +8,13 @@ from pydantic import (
 )
 
 
+AssetPlacement = Literal[
+    "left",
+    "center",
+    "right",
+]
+
+
 class ProgrammeItem(
     BaseModel
 ):
@@ -65,10 +72,9 @@ class GrillMeForm(
         "logo",
     ] = "none"
 
-    asset_placement: Literal[
-        "left",
-        "right",
-    ] | None = None
+    asset_placement: (
+        AssetPlacement | None
+    ) = None
 
     headshot_shape: Literal[
         "circle",
@@ -92,7 +98,8 @@ class GrillMeForm(
             value is not None
             and len(
                 value
-            ) > 15
+            )
+            > 15
         ):
             raise ValueError(
                 "A programme may contain "
@@ -100,6 +107,47 @@ class GrillMeForm(
             )
 
         return value
+
+    @field_validator(
+        "asset_placement",
+        mode="before",
+    )
+    @classmethod
+    def normalize_asset_placement(
+        cls,
+        value,
+    ):
+        if value is None:
+            return None
+
+        if not isinstance(
+            value,
+            str,
+        ):
+            return value
+
+        normalized = (
+            value.strip()
+            .lower()
+        )
+
+        aliases = {
+            "centre": "center",
+            "middle": "center",
+            "top left": "left",
+            "top-left": "left",
+            "top center": "center",
+            "top centre": "center",
+            "top-center": "center",
+            "top-centre": "center",
+            "top right": "right",
+            "top-right": "right",
+        }
+
+        return aliases.get(
+            normalized,
+            normalized,
+        )
 
     @model_validator(
         mode="after"
@@ -186,10 +234,9 @@ class GrillMeAnswers(
         "logo",
     ] = "none"
 
-    asset_placement: Literal[
-        "left",
-        "right",
-    ] | None = None
+    asset_placement: (
+        AssetPlacement | None
+    ) = None
 
     headshot_shape: Literal[
         "circle",
@@ -213,7 +260,8 @@ class GrillMeAnswers(
             value is not None
             and len(
                 value
-            ) > 15
+            )
+            > 15
         ):
             raise ValueError(
                 "A programme may contain "
@@ -221,6 +269,71 @@ class GrillMeAnswers(
             )
 
         return value
+
+    @field_validator(
+        "asset_placement",
+        mode="before",
+    )
+    @classmethod
+    def normalize_asset_placement(
+        cls,
+        value,
+    ):
+        if value is None:
+            return None
+
+        if not isinstance(
+            value,
+            str,
+        ):
+            return value
+
+        normalized = (
+            value.strip()
+            .lower()
+        )
+
+        aliases = {
+            "centre": "center",
+            "middle": "center",
+            "top left": "left",
+            "top-left": "left",
+            "top center": "center",
+            "top centre": "center",
+            "top-center": "center",
+            "top-centre": "center",
+            "top right": "right",
+            "top-right": "right",
+        }
+
+        return aliases.get(
+            normalized,
+            normalized,
+        )
+
+    @model_validator(
+        mode="after"
+    )
+    def validate_asset_options(
+        self,
+    ):
+        if (
+            self.asset_type
+            == "none"
+        ):
+            self.asset_placement = None
+            self.headshot_shape = None
+            self.rights_and_consent_confirmed = None
+
+            return self
+
+        if (
+            self.asset_type
+            == "logo"
+        ):
+            self.headshot_shape = None
+
+        return self
 
 
 class GrillMeQuestion(

@@ -232,8 +232,8 @@ def _standard_palette_instruction(
                 f"Use {secondary} as a clearly visible supporting "
                 "colour in several separate regions. "
                 "Do not introduce unrelated hues. "
-                "Neutral black, white or grey may appear only where "
-                "needed for contrast."
+                "Use black or grey only where needed for contrast. "
+                "Do not introduce white or near-white."
             )
 
         return (
@@ -290,8 +290,8 @@ def _sd35_palette_instruction(
                 f"area should read clearly as {primary}. "
                 f"Approximately 20 to 30 percent should read clearly "
                 f"as {secondary}. "
-                "The remaining area may use neutral black, white or grey "
-                "only for contrast. "
+                "The remaining area may use neutral black or grey only for "
+                "contrast. Do not introduce white or near-white. "
                 f"Use broad unmistakable {primary} fields. "
                 f"Use broad unmistakable {secondary} bands, shapes, "
                 "lines or accents in multiple places. "
@@ -317,7 +317,8 @@ def _sd35_palette_instruction(
                 "Reduce decorative complexity. "
                 "Reduce coloured lighting. "
                 "Avoid hue shifts caused by glow or reflections. "
-                "Use neutral black, white or grey only where needed. "
+                "Use neutral black or grey only where needed. "
+                "Do not introduce white or near-white. "
                 "No unrelated chromatic colours."
             )
 
@@ -428,7 +429,8 @@ def _sd35_minimal_recovery_prompt(
             "bands, lines, gradients and shapes across several areas. "
             f"{primary} must remain the dominant chromatic colour. "
             f"{secondary} must remain clearly visible and measurable. "
-            "Use black, white and grey only as neutral contrast. "
+            "Use black and grey only as neutral contrast. "
+            "Do not introduce white or near-white. "
             "Strong tonal contrast. "
             "Simple geometric composition. "
             "Minimal decorative complexity. "
@@ -452,7 +454,8 @@ def _sd35_minimal_recovery_prompt(
             "Abstract A4 portrait decorative event background only. "
             f"Large simple {primary} colour fields dominating the "
             "composition. "
-            "Use black, white and grey only as neutral contrast. "
+            "Use black and grey only as neutral contrast. "
+            "Do not introduce white or near-white. "
             "Strong tonal contrast. "
             "Simple geometric composition. "
             "No unrelated chromatic colours. "

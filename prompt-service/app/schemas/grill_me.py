@@ -34,6 +34,12 @@ class GrillMeForm(
 
     creative_description: str | None = None
 
+    background_subject: str | None = None
+    background_style: str | None = None
+    background_motifs: str | None = None
+    background_exclusions: str | None = None
+    background_composition: str | None = None
+
     theme_reference_treatment: (
         str | None
     ) = None
@@ -142,6 +148,12 @@ class GrillMeAnswers(
     secondary_colour: str | None = None
 
     creative_description: str | None = None
+
+    background_subject: str | None = None
+    background_style: str | None = None
+    background_motifs: str | None = None
+    background_exclusions: str | None = None
+    background_composition: str | None = None
 
     theme_reference_treatment: (
         str | None

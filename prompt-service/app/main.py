@@ -273,6 +273,33 @@ async def get_grill_me_session(
         ) from error
 
 
+@app.get(
+    "/v1/grill-me/sessions/"
+    "{session_id}/next-question"
+)
+async def get_next_grill_me_question(
+    session_id: str,
+):
+    try:
+        session = load_session(session_id)
+        pending = evaluate_session(session)
+        return {
+            "session_id": session.session_id,
+            "status": session.status,
+            "next_question": (
+                pending[0].model_dump()
+                if pending
+                else None
+            ),
+            "ready_to_generate": not pending,
+        }
+    except FileNotFoundError as error:
+        raise HTTPException(
+            status_code=404,
+            detail=str(error),
+        ) from error
+
+
 @app.post(
     "/v1/grill-me/sessions/"
     "{session_id}/clarify"

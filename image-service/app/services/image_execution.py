@@ -42,7 +42,11 @@ def _candidate_record(
         / reference_number
         / "backgrounds"
         / engine_id
-        / f"image-{direction_id.lower()}.json"
+        / (
+            f"image-"
+            f"{direction_id.lower()}"
+            ".json"
+        )
     )
 
     try:
@@ -63,14 +67,18 @@ def _candidate_was_rejected(
     engine_id: str,
     direction_id: str,
 ) -> bool:
-    record = _candidate_record(
-        reference_number,
-        engine_id,
-        direction_id,
+    record = (
+        _candidate_record(
+            reference_number,
+            engine_id,
+            direction_id,
+        )
     )
 
     return (
-        record.get("status")
+        record.get(
+            "status"
+        )
         == "rejected"
         and bool(
             record.get(
@@ -85,10 +93,12 @@ def _rejection_reason(
     engine_id: str,
     direction_id: str,
 ) -> str:
-    record = _candidate_record(
-        reference_number,
-        engine_id,
-        direction_id,
+    record = (
+        _candidate_record(
+            reference_number,
+            engine_id,
+            direction_id,
+        )
     )
 
     return str(
@@ -110,7 +120,9 @@ def _normalise_colour(
 def _is_palette_failure(
     reason: str,
 ) -> bool:
-    reason_lower = reason.lower()
+    reason_lower = (
+        reason.lower()
+    )
 
     terms = (
         "monochrome",
@@ -121,7 +133,9 @@ def _is_palette_failure(
         "primary ratio",
         "secondary ratio",
         "off-palette",
-        "unrequested",
+        "unrequested white",
+        "unrequested colour",
+        "colours that were not requested",
     )
 
     return any(
@@ -133,7 +147,9 @@ def _is_palette_failure(
 def _is_human_failure(
     reason: str,
 ) -> bool:
-    reason_lower = reason.lower()
+    reason_lower = (
+        reason.lower()
+    )
 
     terms = (
         "human",
@@ -155,7 +171,9 @@ def _is_human_failure(
 def _is_text_failure(
     reason: str,
 ) -> bool:
-    reason_lower = reason.lower()
+    reason_lower = (
+        reason.lower()
+    )
 
     terms = (
         "ocr",
@@ -176,7 +194,9 @@ def _is_text_failure(
 def _is_quality_failure(
     reason: str,
 ) -> bool:
-    reason_lower = reason.lower()
+    reason_lower = (
+        reason.lower()
+    )
 
     terms = (
         "visual quality",
@@ -187,10 +207,14 @@ def _is_quality_failure(
         "moire",
         "glitch",
         "corrupt",
+        "degenerate",
+        "blank",
+        "flat colour",
         "flat or blank",
         "insufficient visual structure",
-        "directional dominance",
-        "full-span",
+        "central title/programme region",
+        "too visually dense",
+        "overlay",
     )
 
     return any(
@@ -201,36 +225,43 @@ def _is_quality_failure(
 
 def _retry_strength_instruction(
     effective_retry: int,
-    recovery_wave: int,
 ) -> str:
-    if effective_retry >= 15:
+    if effective_retry >= 16:
         return (
-            "MAXIMUM RETRY ENFORCEMENT. "
-            "Previous generations repeatedly failed deterministic QA. "
-            "Use the simplest coherent composition that satisfies every "
-            "constraint literally. Remove unnecessary effects, complex "
-            "materials, decorative noise and ambiguous visual forms. "
-            "Prioritise valid requested colours, clean rendering, "
-            "background-only structure and reliable composition over "
-            "creative complexity."
+            "MAXIMUM COMPLIANCE RETRY. "
+            "Many previous generations failed deterministic QA. "
+            "Use the simplest possible coherent professional event "
+            "background that satisfies every requirement literally. "
+            "Remove unnecessary materials, reflections, complicated "
+            "lighting, texture noise and ambiguous decorative effects. "
+            "Prioritise deterministic palette compliance, clean geometry, "
+            "background-only structure and usable overlay space."
+        )
+
+    if effective_retry >= 13:
+        return (
+            "EXTREME RECOVERY RETRY. "
+            "Previous first-wave and recovery candidates still failed QA. "
+            "Simplify the composition aggressively. Use large coherent "
+            "forms, restrained detail, clean surfaces and literal "
+            "constraint compliance."
         )
 
     if effective_retry >= 10:
         return (
             "SECOND-WAVE STRICT RECOVERY. "
-            "The first complete generation wave failed QA. "
-            "Simplify the design substantially. Obey all palette, "
-            "human-free, text-free and image-quality requirements "
-            "literally. Avoid unnecessary lighting effects, material "
-            "effects, reflections and complex visual noise."
+            "The first complete generation wave exhausted all attempts. "
+            "Reduce creative complexity substantially. Obey palette, "
+            "human-free, text-free, visual-quality and overlay-space "
+            "requirements literally."
         )
 
     if effective_retry >= 7:
         return (
             "VERY STRICT RETRY. "
-            "Previous candidates continued to fail QA. "
-            "Use cleaner larger forms, fewer effects, simpler materials "
-            "and more literal compliance with every validation rule."
+            "Previous candidates repeatedly failed QA. "
+            "Use cleaner larger forms, fewer visual effects, simpler "
+            "materials and stronger literal compliance."
         )
 
     if effective_retry >= 4:
@@ -238,21 +269,20 @@ def _retry_strength_instruction(
             "STRICT RETRY. "
             "Strengthen compliance beyond the previous attempt. "
             "Reduce unnecessary complexity and make every required "
-            "visual constraint unmistakable in the rendered pixels."
+            "constraint obvious in the rendered image."
         )
 
     if effective_retry >= 2:
         return (
             "ENHANCED RETRY. "
             "The previous candidate failed QA. "
-            "Apply the correction more strongly and make the requested "
-            "constraints visually explicit."
+            "Apply the required correction substantially more strongly."
         )
 
     return (
         "RETRY CORRECTION. "
         "The previous candidate failed deterministic QA. "
-        "Correct the detected violation explicitly."
+        "Correct the identified violation explicitly."
     )
 
 
@@ -261,61 +291,63 @@ def _standard_palette_instruction(
     secondary_colour: str | None,
     retry_number: int,
 ) -> str:
-    primary = _normalise_colour(
-        primary_colour
+    primary = (
+        _normalise_colour(
+            primary_colour
+        )
     )
 
-    secondary = _normalise_colour(
-        secondary_colour
+    secondary = (
+        _normalise_colour(
+            secondary_colour
+        )
     )
 
-    if primary and secondary:
+    if (
+        primary
+        and secondary
+    ):
         if retry_number >= 7:
             return (
                 "EXTREME PALETTE ENFORCEMENT. "
-                f"Use only {primary} and {secondary}. "
-                f"Make {primary} occupy most major surfaces. "
-                f"Make {secondary} occupy clearly visible supporting "
-                "regions in several areas. "
-                "Every visible neutral or chromatic family not explicitly "
-                "requested is forbidden. Shadows, highlights, depth and "
-                "contrast must remain tonal variations of the requested "
-                "colour families."
+                f"Use only {primary} and {secondary} colour families. "
+                f"{primary} must dominate the large areas. "
+                f"{secondary} must appear in several clear supporting "
+                "regions. Every other visible colour family is forbidden. "
+                "Highlights, depth and shadows must remain tonal variants "
+                "of those requested colours rather than becoming white, "
+                "grey, silver, cream, black or another hue."
             )
 
         if retry_number >= 4:
             return (
                 "STRICT PALETTE RECOVERY. "
-                f"Use {primary} as the dominant visible colour across "
-                "most large surfaces. "
-                f"Use {secondary} as a clearly visible supporting "
-                "colour in several separate regions. "
-                "Do not introduce any other colour family, including "
-                "unrequested black, white, grey, silver, green, cyan, "
-                "purple, pink, orange, yellow, brown or unrelated hues. "
-                "Shading must remain inside the requested colour families."
+                f"Use {primary} as the dominant visible colour. "
+                f"Use {secondary} as a clearly visible supporting colour. "
+                "Do not introduce a third colour family. "
+                "Do not use unrequested neutral highlights or shadows."
             )
 
         return (
             "STRICT COLOUR CORRECTION. "
             f"The primary colour is {primary}. "
             f"The secondary colour is {secondary}. "
-            f"Make {primary} visibly dominant and make {secondary} "
-            "clearly visible as repeated supporting accents. "
-            "Every other visible colour family is forbidden."
+            f"Make {primary} visibly dominant and {secondary} "
+            "clearly visible in repeated supporting areas. "
+            "Every additional colour family is forbidden."
         )
 
     if primary:
         return (
             "STRICT COLOUR CORRECTION. "
-            f"Make {primary} unmistakably visible and dominant. "
-            "Do not introduce any other visible colour family."
+            f"Use {primary} as the requested visible colour family. "
+            "Do not introduce any unrelated visible colour family."
         )
 
     return (
         "STRICT COLOUR CORRECTION. "
-        "Obey the requested palette exactly and remove every "
-        "unrequested colour family."
+        "Obey the requested palette exactly and remove "
+        "unrequested colour families."
     )
 
 
@@ -323,65 +355,75 @@ def _sdxl_recovery_instruction(
     primary_colour: str | None,
     secondary_colour: str | None,
     effective_retry: int,
-) -> tuple[str, str]:
-    primary = _normalise_colour(
-        primary_colour
-    )
-
-    secondary = _normalise_colour(
-        secondary_colour
-    )
-
-    palette_text = (
-        f"Use only {primary} and {secondary}."
-        if primary and secondary
-        else (
-            f"Use only {primary}."
-            if primary
-            else (
-                "Use only the explicitly "
-                "requested palette."
-            )
+) -> tuple[
+    str,
+    str,
+]:
+    primary = (
+        _normalise_colour(
+            primary_colour
         )
     )
+
+    secondary = (
+        _normalise_colour(
+            secondary_colour
+        )
+    )
+
+    if (
+        primary
+        and secondary
+    ):
+        palette = (
+            f"Use only {primary} and {secondary} colour families."
+        )
+    elif primary:
+        palette = (
+            f"Use only the {primary} colour family."
+        )
+    else:
+        palette = (
+            "Use only the explicitly requested colour palette."
+        )
 
     if effective_retry >= 10:
         positive = (
-            "SDXL SECOND-WAVE FLAT-COLOUR RECOVERY. "
-            f"{palette_text} "
-            "Render a clean graphic event background using matte flat "
-            "colour surfaces and controlled tonal variants inside the "
-            "requested colour families only. Use simple architectural, "
-            "geometric or abstract forms. Use colour-area contrast rather "
-            "than white highlights, grey shading, metallic reflections, "
-            "photorealistic illumination or neutral shadows. "
-            "No realistic lighting. No specular highlights. "
-            "No colourless reflections. No neutral depth shading. "
-            "The result must remain a coherent designed background."
+            "SDXL SECOND-WAVE FLAT GRAPHIC RECOVERY. "
+            f"{palette} "
+            "Use matte graphic illustration with large clean colour areas, "
+            "simple architectural or geometric forms and restrained details. "
+            "Create depth only using darker and lighter tonal variants "
+            "inside the requested colour families. "
+            "No realistic lighting. No white highlights. No grey highlights. "
+            "No silver surfaces. No cream highlights. No neutral shading. "
+            "No metallic reflections. No photographic materials."
         )
+
     elif effective_retry >= 5:
         positive = (
-            "SDXL STRICT GRAPHIC PALETTE RECOVERY. "
-            f"{palette_text} "
-            "Prefer clean flat graphic surfaces. Remove realistic "
-            "illumination, photographic shadows, bright neutral highlights, "
-            "metallic materials, reflective surfaces and colourless glow. "
-            "Create depth only through requested-colour tonal variation."
+            "SDXL STRICT GRAPHIC RECOVERY. "
+            f"{palette} "
+            "Prefer clean flat graphic surfaces. Remove photorealistic "
+            "lighting, neutral highlights, metallic materials, reflective "
+            "surfaces and colourless glow. Create depth only through "
+            "requested-colour tonal variation."
         )
+
     else:
         positive = (
             "SDXL PALETTE RECOVERY. "
-            f"{palette_text} "
-            "Keep highlights and shadows inside the requested colour "
-            "families. Avoid neutral lighting and reflective colour drift."
+            f"{palette} "
+            "Keep highlights, shadows and depth inside the requested "
+            "colour families. Avoid neutral lighting and reflections."
         )
 
     negative = (
-        "white highlight, grey highlight, gray highlight, silver highlight, "
-        "cream highlight, beige highlight, neutral shadow, grey shadow, "
-        "gray shadow, silver material, metallic reflection, neutral "
-        "reflection, photographic lighting, studio lighting, white glow, "
-        "colourless glow, photorealistic shading, neutral gradient"
+        "white highlight, off-white highlight, grey highlight, gray highlight, "
+        "silver highlight, cream highlight, beige highlight, neutral shadow, "
+        "grey shadow, gray shadow, neutral reflection, silver material, "
+        "metallic reflection, photographic lighting, studio lighting, "
+        "white glow, colourless glow, neutral gradient, photorealistic shading"
     )
 
     return (
@@ -395,57 +437,57 @@ def _sd35_palette_instruction(
     secondary_colour: str | None,
     retry_number: int,
 ) -> str:
-    primary = _normalise_colour(
-        primary_colour
+    primary = (
+        _normalise_colour(
+            primary_colour
+        )
     )
 
-    secondary = _normalise_colour(
-        secondary_colour
+    secondary = (
+        _normalise_colour(
+            secondary_colour
+        )
     )
 
-    if primary and secondary:
+    if (
+        primary
+        and secondary
+    ):
         if retry_number >= 6:
             return (
                 "SD3.5 EMERGENCY PALETTE RECOVERY. "
-                "Create a simple abstract background with very large "
+                "Create a simple coherent event background with large "
                 "clean colour regions. "
-                f"Approximately 65 percent of the visible chromatic area "
-                f"should read clearly as {primary}. "
-                f"Approximately 25 to 35 percent should read clearly "
-                f"as {secondary}. "
+                f"Approximately 65 percent should read as {primary}. "
+                f"Approximately 25 to 35 percent should read as {secondary}. "
                 f"Use only {primary} and {secondary}. "
-                "Do not add white, black, grey, silver or any third "
-                "chromatic hue unless explicitly requested. "
+                "No unrequested neutral fills. "
+                "No third colour family. "
                 "Avoid colour-changing glow, reflections, iridescence "
-                "and multicolour gradients. "
-                "Colour compliance is more important than complexity."
+                "and complex multicolour gradients."
             )
 
         if retry_number >= 3:
             return (
                 "SD3.5 STRICT TWO-COLOUR RECOVERY. "
                 f"Make {primary} cover most major visible surfaces. "
-                f"Make {secondary} clearly visible in multiple substantial "
-                "supporting regions. "
+                f"Make {secondary} clearly visible across multiple "
+                "substantial supporting regions. "
                 f"Use only {primary} and {secondary}. "
-                "No third colour family, no neutral fills unless explicitly "
-                "requested and no coloured lighting drift."
+                "No third colour family and no neutral colour drift."
             )
 
         return (
             "SD3.5 PALETTE CORRECTION. "
             f"Use a strong {primary} dominant base and clearly visible "
             f"{secondary} supporting accents. "
-            f"Both {primary} and {secondary} must appear as actual "
-            "rendered surface colours. "
-            "Do not replace either colour with a neighbouring hue "
-            "and do not introduce any additional colour family."
+            "Both colours must be actual rendered surface colours."
         )
 
     if primary:
         return (
             "SD3.5 PALETTE CORRECTION. "
-            f"Use {primary} as the only visible colour family."
+            f"Use {primary} as the requested colour family."
         )
 
     return (
@@ -456,16 +498,19 @@ def _sd35_palette_instruction(
 
 def _human_instruction(
     retry_number: int,
-) -> tuple[str, str]:
+) -> tuple[
+    str,
+    str,
+]:
     if retry_number >= 4:
         positive = (
             "STRICT HUMAN-FREE RECOVERY. "
             "Use only abstract geometry, environmental forms, patterns, "
             "architecture, materials and ornamental shapes. "
             "Do not arrange shapes into heads, faces, torsos, limbs, "
-            "bodies, silhouettes, poses or character-like structures. "
-            "Avoid a central figure-like subject."
+            "bodies, silhouettes, poses or character-like structures."
         )
+
     else:
         positive = (
             "STRICT HUMAN-FREE CORRECTION. "
@@ -485,7 +530,10 @@ def _human_instruction(
     )
 
 
-def _text_instruction() -> tuple[str, str]:
+def _text_instruction() -> tuple[
+    str,
+    str,
+]:
     return (
         (
             "STRICT TEXT-FREE CORRECTION. "
@@ -501,35 +549,75 @@ def _text_instruction() -> tuple[str, str]:
 
 def _quality_instruction(
     effective_retry: int,
-) -> tuple[str, str]:
+) -> tuple[
+    str,
+    str,
+]:
     if effective_retry >= 10:
         positive = (
             "SECOND-WAVE IMAGE QUALITY RECOVERY. "
             "Produce a clean coherent rendered background with stable "
-            "continuous forms and intentional visual structure. "
-            "Use large clean shapes and smooth coherent surfaces. "
-            "Do not create raster-like repetition, repeated scan lines, "
-            "full-frame striping, digital corruption or blank flat output."
+            "continuous visual forms. Use large intentional shapes, "
+            "clean surfaces and controlled detail. "
+            "No raster-like repetition, no dense scanlines, no image-wide "
+            "striping, no digital interference, no corrupted textures, "
+            "no blank field and no degenerate output."
         )
+
     elif effective_retry >= 5:
         positive = (
             "STRICT IMAGE QUALITY RECOVERY. "
-            "Use coherent shapes and clean continuous surfaces. "
-            "Avoid excessive repetitive lines, raster textures, banding "
-            "and degenerate flat fields."
+            "Use coherent shapes and clean surfaces. "
+            "Avoid repetitive raster textures, banding, scanline patterns, "
+            "glitches and degenerate flat fields."
         )
+
     else:
         positive = (
             "IMAGE QUALITY CORRECTION. "
-            "Render a coherent designed background rather than scanline, "
-            "banded, corrupted, blank or degenerate output."
+            "Render a coherent designed event background rather than "
+            "scanline, banded, corrupted, blank or degenerate output."
         )
 
     negative = (
         "scanlines, scan lines, horizontal scanlines, vertical scanlines, "
         "raster banding, horizontal banding, vertical banding, repetitive "
-        "full-frame stripes, moire, glitch, corrupted texture, broken "
-        "render, digital interference, blank image, empty flat field"
+        "full-frame stripes, digital interference, moire, glitch, corrupted "
+        "texture, broken render, blank image, empty flat field"
+    )
+
+    return (
+        positive,
+        negative,
+    )
+
+
+def _composition_instruction(
+    effective_retry: int,
+) -> tuple[
+    str,
+    str,
+]:
+    if effective_retry >= 10:
+        positive = (
+            "SECOND-WAVE OVERLAY-SPACE RECOVERY. "
+            "Move detailed artwork strongly toward the outer edges, "
+            "side margins and lower perimeter. Preserve a broad calm "
+            "central field for later title and programme overlays. "
+            "Keep the middle of the page visually restrained."
+        )
+
+    else:
+        positive = (
+            "OVERLAY-SPACE CORRECTION. "
+            "Reduce detail in the central title and programme area. "
+            "Move architectural, line and decorative detail toward "
+            "the borders, corners and lower edges."
+        )
+
+    negative = (
+        "dense central composition, central clutter, busy centre, "
+        "full-frame detail, centre-filled architecture, centre-filled pattern"
     )
 
     return (
@@ -542,48 +630,50 @@ def _sd35_minimal_recovery_prompt(
     primary_colour: str | None,
     secondary_colour: str | None,
 ) -> str:
-    primary = _normalise_colour(
-        primary_colour
+    primary = (
+        _normalise_colour(
+            primary_colour
+        )
     )
 
-    secondary = _normalise_colour(
-        secondary_colour
+    secondary = (
+        _normalise_colour(
+            secondary_colour
+        )
     )
 
-    if primary and secondary:
+    if (
+        primary
+        and secondary
+    ):
         return (
             "Abstract A4 portrait decorative event background only. "
-            f"Large coherent {primary} colour fields dominate the "
-            "composition. "
-            f"Large clearly visible {secondary} supporting geometric "
-            "forms appear across several areas. "
+            f"Large coherent {primary} colour fields dominate the page. "
+            f"Clearly visible {secondary} geometric and architectural "
+            "supporting forms appear near borders and lower edges. "
             f"Use only {primary} and {secondary}. "
-            "No third colour family and no unrequested neutral fills. "
-            "Strong contrast must come only from tonal variation inside "
-            "the requested colours. "
+            "No third colour family. "
+            "Keep the central area calm and open. "
             "Use coherent geometric shapes, not repetitive raster lines. "
-            "No scanlines. No banding. No glitch patterns. "
+            "No scanlines. No banding. No glitch texture. "
             "No people. No faces. No characters. No silhouettes. "
-            "No text. No letters. No numbers. No logos. No watermark. "
-            "Leave clean quiet regions for later overlays."
+            "No text. No letters. No numbers. No logos. No watermark."
         )
 
     if primary:
         return (
             "Abstract A4 portrait decorative event background only. "
-            f"Use only the requested {primary} colour family with tonal "
-            "variation inside that family. "
-            "Use coherent geometric shapes and surfaces. "
-            "No scanlines, banding, glitch textures, people, faces, "
-            "characters, text, letters, numbers, logos or watermark."
+            f"Use the requested {primary} colour family. "
+            "Use coherent shapes and a calm centre. "
+            "No scanlines, banding, glitches, people, faces, "
+            "characters, text, logos or watermark."
         )
 
     return (
         "Abstract A4 portrait decorative event background only. "
-        "Simple coherent geometric composition using only the explicitly "
-        "requested palette. No scanlines, banding or glitch textures. "
-        "No people, faces, characters, text, letters, numbers, logos "
-        "or watermark."
+        "Use a simple coherent geometric composition with a calm centre. "
+        "No scanlines, banding, glitches, people, faces, characters, "
+        "text, logos or watermark."
     )
 
 
@@ -596,7 +686,10 @@ def _strengthen_prompts(
     retry_number: int,
     engine_id: str,
     recovery_wave: int,
-) -> tuple[str, str]:
+) -> tuple[
+    str,
+    str,
+]:
     positive_additions = []
     negative_additions = []
 
@@ -624,6 +717,13 @@ def _strengthen_prompts(
         )
     )
 
+    composition_failure = (
+        "central title/programme region"
+        in reason.lower()
+        or "too visually dense"
+        in reason.lower()
+    )
+
     effective_retry = (
         retry_number
         + (
@@ -635,13 +735,20 @@ def _strengthen_prompts(
         )
     )
 
+    #
+    # Every retry receives stronger instructions.
+    #
     positive_additions.append(
         _retry_strength_instruction(
-            effective_retry,
-            recovery_wave,
+            effective_retry
         )
     )
 
+    #
+    # SD3.5 gets a minimal recovery base after repeated
+    # palette failures, but quality failures remain handled
+    # with the normal base prompt so we can explicitly correct them.
+    #
     if (
         engine_id
         == settings.engine_3_id
@@ -659,10 +766,10 @@ def _strengthen_prompts(
         positive_prompt += (
             " "
             + _retry_strength_instruction(
-                effective_retry,
-                recovery_wave,
+                effective_retry
             )
         )
+
     else:
         positive_prompt = (
             base_positive_prompt.rstrip(
@@ -682,6 +789,7 @@ def _strengthen_prompts(
                         effective_retry,
                     )
                 )
+
             else:
                 positive_additions.append(
                     _standard_palette_instruction(
@@ -691,21 +799,28 @@ def _strengthen_prompts(
                     )
                 )
 
+        #
+        # SDXL gets a dedicated recovery strategy because
+        # it tends to invent white/grey/silver highlights.
+        #
         if (
             engine_id
             == settings.engine_2_id
             and (
                 palette_failure
                 or quality_failure
+                or composition_failure
             )
         ):
             (
                 sdxl_positive,
                 sdxl_negative,
-            ) = _sdxl_recovery_instruction(
-                primary_colour,
-                secondary_colour,
-                effective_retry,
+            ) = (
+                _sdxl_recovery_instruction(
+                    primary_colour,
+                    secondary_colour,
+                    effective_retry,
+                )
             )
 
             positive_additions.append(
@@ -720,8 +835,10 @@ def _strengthen_prompts(
             (
                 positive_human,
                 negative_human,
-            ) = _human_instruction(
-                effective_retry
+            ) = (
+                _human_instruction(
+                    effective_retry
+                )
             )
 
             positive_additions.append(
@@ -736,7 +853,9 @@ def _strengthen_prompts(
             (
                 positive_text,
                 negative_text,
-            ) = _text_instruction()
+            ) = (
+                _text_instruction()
+            )
 
             positive_additions.append(
                 positive_text
@@ -750,8 +869,10 @@ def _strengthen_prompts(
             (
                 positive_quality,
                 negative_quality,
-            ) = _quality_instruction(
-                effective_retry
+            ) = (
+                _quality_instruction(
+                    effective_retry
+                )
             )
 
             positive_additions.append(
@@ -762,32 +883,58 @@ def _strengthen_prompts(
                 negative_quality
             )
 
-        reason_lower = reason.lower()
+        if composition_failure:
+            (
+                positive_composition,
+                negative_composition,
+            ) = (
+                _composition_instruction(
+                    effective_retry
+                )
+            )
+
+            positive_additions.append(
+                positive_composition
+            )
+
+            negative_additions.append(
+                negative_composition
+            )
+
+        reason_lower = (
+            reason.lower()
+        )
 
         if (
-            "secondary" in reason_lower
+            "secondary"
+            in reason_lower
             and secondary_colour
         ):
-            secondary = _normalise_colour(
-                secondary_colour
+            secondary = (
+                _normalise_colour(
+                    secondary_colour
+                )
             )
 
             positive_additions.append(
                 (
                     "MANDATORY SECONDARY COLOUR REQUIREMENT. "
                     f"Render {secondary} as actual visible surface colour "
-                    "in several substantial regions. Do not make it a tiny "
-                    "highlight and do not hide it inside lighting or "
-                    "reflections."
+                    "in several substantial regions. "
+                    "Do not make it a tiny highlight and do not hide it "
+                    "inside lighting or reflections."
                 )
             )
 
         if (
-            "primary" in reason_lower
+            "primary"
+            in reason_lower
             and primary_colour
         ):
-            primary = _normalise_colour(
-                primary_colour
+            primary = (
+                _normalise_colour(
+                    primary_colour
+                )
             )
 
             positive_additions.append(
@@ -802,9 +949,9 @@ def _strengthen_prompts(
             positive_additions.append(
                 (
                     f"RECOVERY WAVE {recovery_wave}. "
-                    "A complete previous generation wave exhausted all "
-                    "allowed attempts. Simplify the image further and obey "
-                    "all deterministic validation requirements literally."
+                    "A complete earlier generation wave exhausted its "
+                    "attempts. Simplify the image further and obey every "
+                    "deterministic validation requirement literally."
                 )
             )
 
@@ -853,6 +1000,14 @@ def _strengthen_prompts(
                 "repetitive vertical lines, digital interference, moire, "
                 "glitch, corrupted image, broken texture, blank image, "
                 "flat empty field"
+            )
+        )
+
+    if composition_failure:
+        negative_additions.append(
+            (
+                "dense central composition, busy centre, central clutter, "
+                "full-frame decoration, centre-filled architecture"
             )
         )
 
@@ -928,7 +1083,9 @@ async def _prepare_engine(
             not own
             or any(
                 (
-                    entry[3]
+                    entry[
+                        3
+                    ]
                     .get(
                         "programme_request_id"
                     )
@@ -943,10 +1100,15 @@ async def _prepare_engine(
                 "ComfyUI has another active job; "
                 "retry later."
             )
-    else:
-        await client.release_models()
 
-    return output.engine_id
+    else:
+        await (
+            client.release_models()
+        )
+
+    return (
+        output.engine_id
+    )
 
 
 async def _attempt_output_wave(
@@ -959,10 +1121,15 @@ async def _attempt_output_wave(
     primary_colour: str | None,
     secondary_colour: str | None,
     recovery_wave: int,
-) -> tuple[bool, int]:
-    direction = get_direction(
-        document,
-        output.direction_id,
+) -> tuple[
+    bool,
+    int,
+]:
+    direction = (
+        get_direction(
+            document,
+            output.direction_id,
+        )
     )
 
     base_positive_prompt = (
@@ -986,6 +1153,9 @@ async def _attempt_output_wave(
         base_negative_prompt
     )
 
+    #
+    # Recovery wave begins stronger than the clean first attempt.
+    #
     if recovery_wave > 0:
         last_reason = (
             _rejection_reason(
@@ -1002,15 +1172,17 @@ async def _attempt_output_wave(
         (
             positive_prompt,
             negative_prompt,
-        ) = _strengthen_prompts(
-            base_positive_prompt,
-            base_negative_prompt,
-            last_reason,
-            primary_colour,
-            secondary_colour,
-            1,
-            output.engine_id,
-            recovery_wave,
+        ) = (
+            _strengthen_prompts(
+                base_positive_prompt,
+                base_negative_prompt,
+                last_reason,
+                primary_colour,
+                secondary_colour,
+                1,
+                output.engine_id,
+                recovery_wave,
+            )
         )
 
     generated = 0
@@ -1039,13 +1211,17 @@ async def _attempt_output_wave(
                 )
             )
 
-            output.seed = result[
-                "seed"
-            ]
+            output.seed = (
+                result[
+                    "seed"
+                ]
+            )
 
-            output.prompt_id = result[
-                "prompt_id"
-            ]
+            output.prompt_id = (
+                result[
+                    "prompt_id"
+                ]
+            )
 
             output.workflow_sha256 = (
                 result[
@@ -1058,8 +1234,12 @@ async def _attempt_output_wave(
                 output.engine_id,
                 output.direction_id,
                 "complete",
-                result["output_path"],
-                result["sha256"],
+                result[
+                    "output_path"
+                ],
+                result[
+                    "sha256"
+                ],
             )
 
             logger.info(
@@ -1072,11 +1252,17 @@ async def _attempt_output_wave(
                 reference_number,
                 output.engine_id,
                 output.direction_id,
-                result["reused"],
+                result[
+                    "reused"
+                ],
                 recovery_wave,
             )
 
-            if not result["reused"]:
+            if not (
+                result[
+                    "reused"
+                ]
+            ):
                 generated = 1
 
             return (
@@ -1102,7 +1288,9 @@ async def _attempt_output_wave(
                     output.engine_id,
                     output.direction_id,
                 )
-                or str(error)
+                or str(
+                    error
+                )
             )
 
             if (
@@ -1146,18 +1334,29 @@ async def _attempt_output_wave(
                 + 1
             )
 
+            #
+            # IMPORTANT:
+            #
+            # Every retry starts from the original clean prompt,
+            # then receives a stronger correction level.
+            #
+            # We do not append retry text onto the previous retry
+            # prompt, avoiding an endlessly duplicated prompt.
+            #
             (
                 positive_prompt,
                 negative_prompt,
-            ) = _strengthen_prompts(
-                base_positive_prompt,
-                base_negative_prompt,
-                reason,
-                primary_colour,
-                secondary_colour,
-                next_retry,
-                output.engine_id,
-                recovery_wave,
+            ) = (
+                _strengthen_prompts(
+                    base_positive_prompt,
+                    base_negative_prompt,
+                    reason,
+                    primary_colour,
+                    secondary_colour,
+                    next_retry,
+                    output.engine_id,
+                    recovery_wave,
+                )
             )
 
             delay_seconds = min(
@@ -1294,8 +1493,10 @@ async def execute_image_job(
     max_outputs: int | None = None,
 ):
     async with GPULease():
-        state = load_image_job_state(
-            reference_number
+        state = (
+            load_image_job_state(
+                reference_number
+            )
         )
 
         document = (
@@ -1304,23 +1505,33 @@ async def execute_image_job(
             )
         )
 
-        brief = document.get(
-            "brief",
-            {},
+        brief = (
+            document.get(
+                "brief",
+                {},
+            )
         )
 
-        primary_colour = brief.get(
-            "primary_colour"
+        primary_colour = (
+            brief.get(
+                "primary_colour"
+            )
         )
 
-        secondary_colour = brief.get(
-            "secondary_colour"
+        secondary_colour = (
+            brief.get(
+                "secondary_colour"
+            )
         )
 
         expected = [
             (
-                step["engine_id"],
-                step["direction"],
+                step[
+                    "engine_id"
+                ],
+                step[
+                    "direction"
+                ],
             )
             for step in (
                 build_execution_plan(
@@ -1346,10 +1557,14 @@ async def execute_image_job(
                 "and create a new reference number."
             )
 
-        state.status = "processing"
+        state.status = (
+            "processing"
+        )
+
         state.current_stage = (
             "generating_backgrounds"
         )
+
         state.error = None
 
         persist_image_job_state(
@@ -1360,9 +1575,11 @@ async def execute_image_job(
             async with httpx.AsyncClient(
                 timeout=60
             ) as http:
-                response = await http.get(
-                    settings.ollama_base_url
-                    + "/api/ps"
+                response = (
+                    await http.get(
+                        settings.ollama_base_url
+                        + "/api/ps"
+                    )
                 )
 
                 response.raise_for_status()
@@ -1382,7 +1599,22 @@ async def execute_image_job(
                 current_engine = None
                 stopped_for_max_outputs = False
 
+                first_wave_failures = []
+
                 try:
+                    #
+                    # ======================================
+                    # WAVE 0
+                    # ======================================
+                    #
+                    # Each candidate gets 9 attempts:
+                    #
+                    #   attempt 1
+                    #   + 8 retries
+                    #
+                    # If exhausted, remember it and continue
+                    # through every other engine/direction.
+                    #
                     for output in state.outputs:
                         if (
                             output.status
@@ -1434,15 +1666,215 @@ async def execute_image_job(
                             newly_generated
                         )
 
+                        if not complete:
+                            first_wave_failures.append(
+                                output
+                            )
+
                         if (
                             max_outputs
                             is not None
                             and generated
                             >= max_outputs
                         ):
-                            stopped_for_max_outputs = True
+                            stopped_for_max_outputs = (
+                                True
+                            )
+
                             break
 
+                    #
+                    # ======================================
+                    # RECOVERY WAVES
+                    # ======================================
+                    #
+                    # Only begin AFTER all ordinary candidates
+                    # have completed their first wave.
+                    #
+                    if (
+                        not stopped_for_max_outputs
+                        and first_wave_failures
+                        and (
+                            settings
+                            .failed_candidate_recovery_waves
+                            > 0
+                        )
+                    ):
+                        logger.warning(
+                            "event=failed_candidate_recovery_wave_start "
+                            "reference=%s "
+                            "failed_candidates=%s "
+                            "attempts_per_candidate=%s "
+                            "configured_waves=%s",
+                            reference_number,
+                            len(
+                                first_wave_failures
+                            ),
+                            (
+                                settings
+                                .max_candidate_retries
+                                + 1
+                            ),
+                            settings
+                            .failed_candidate_recovery_waves,
+                        )
+
+                        state.current_stage = (
+                            "retrying_exhausted_candidates"
+                        )
+
+                        persist_image_job_state(
+                            state
+                        )
+
+                        queue = (
+                            await client.request(
+                                "GET",
+                                "/queue",
+                            )
+                        ).json()
+
+                        if (
+                            not queue.get(
+                                "queue_running"
+                            )
+                            and not queue.get(
+                                "queue_pending"
+                            )
+                        ):
+                            await (
+                                client.release_models()
+                            )
+
+                        current_engine = None
+
+                        recovery_failures = (
+                            first_wave_failures
+                        )
+
+                        for recovery_wave in range(
+                            1,
+                            (
+                                settings
+                                .failed_candidate_recovery_waves
+                                + 1
+                            ),
+                        ):
+                            if not recovery_failures:
+                                break
+
+                            next_failures = []
+
+                            logger.warning(
+                                "event=failed_candidate_recovery_round "
+                                "reference=%s "
+                                "recovery_wave=%s "
+                                "candidates=%s",
+                                reference_number,
+                                recovery_wave,
+                                len(
+                                    recovery_failures
+                                ),
+                            )
+
+                            for output in (
+                                recovery_failures
+                            ):
+                                #
+                                # Re-arm this output for another
+                                # full 9-attempt wave.
+                                #
+                                update_output(
+                                    state,
+                                    output.engine_id,
+                                    output.direction_id,
+                                    "pending",
+                                    error=None,
+                                )
+
+                                current_engine = (
+                                    await _prepare_engine(
+                                        client,
+                                        reference_number,
+                                        output,
+                                        current_engine,
+                                    )
+                                )
+
+                                state.current_stage = (
+                                    f"recovery-"
+                                    f"{recovery_wave}:"
+                                    f"{output.engine_id}:"
+                                    f"{output.direction_id}"
+                                )
+
+                                persist_image_job_state(
+                                    state
+                                )
+
+                                (
+                                    complete,
+                                    newly_generated,
+                                ) = (
+                                    await _attempt_output_wave(
+                                        client=client,
+                                        state=state,
+                                        document=document,
+                                        output=output,
+                                        reference_number=(
+                                            reference_number
+                                        ),
+                                        primary_colour=(
+                                            primary_colour
+                                        ),
+                                        secondary_colour=(
+                                            secondary_colour
+                                        ),
+                                        recovery_wave=(
+                                            recovery_wave
+                                        ),
+                                    )
+                                )
+
+                                generated += (
+                                    newly_generated
+                                )
+
+                                if not complete:
+                                    next_failures.append(
+                                        output
+                                    )
+
+                                if (
+                                    max_outputs
+                                    is not None
+                                    and generated
+                                    >= max_outputs
+                                ):
+                                    stopped_for_max_outputs = (
+                                        True
+                                    )
+
+                                    break
+
+                            recovery_failures = (
+                                next_failures
+                            )
+
+                            if (
+                                stopped_for_max_outputs
+                            ):
+                                break
+
+                        logger.warning(
+                            "event=failed_candidate_recovery_wave_complete "
+                            "reference=%s "
+                            "remaining_failed=%s",
+                            reference_number,
+                            len(
+                                recovery_failures
+                            ),
+                        )
 
                 finally:
                     queue = (
@@ -1460,7 +1892,9 @@ async def execute_image_job(
                             "queue_pending"
                         )
                     ):
-                        await client.release_models()
+                        await (
+                            client.release_models()
+                        )
 
             completed = (
                 state.completed_outputs
@@ -1468,26 +1902,36 @@ async def execute_image_job(
 
             failed = sum(
                 1
-                for output in state.outputs
-                if output.status
-                == "failed"
+                for output
+                in state.outputs
+                if (
+                    output.status
+                    == "failed"
+                )
             )
 
             pending = sum(
                 1
-                for output in state.outputs
-                if output.status
-                == "pending"
+                for output
+                in state.outputs
+                if (
+                    output.status
+                    == "pending"
+                )
             )
 
             if (
                 stopped_for_max_outputs
                 and pending > 0
             ):
-                state.status = "processing"
+                state.status = (
+                    "processing"
+                )
+
                 state.current_stage = (
                     "generation_paused"
                 )
+
                 state.error = (
                     f"Generation paused after "
                     f"{generated} new outputs; "
@@ -1508,12 +1952,14 @@ async def execute_image_job(
                     state.current_stage = (
                         "backgrounds_complete"
                     )
+
                     state.error = None
 
                 else:
                     state.current_stage = (
                         "backgrounds_complete_with_failures"
                     )
+
                     state.error = (
                         f"{completed}/"
                         f"{state.total_outputs} "
@@ -1523,10 +1969,14 @@ async def execute_image_job(
                     )
 
             else:
-                state.status = "failed"
+                state.status = (
+                    "failed"
+                )
+
                 state.current_stage = (
                     "generation_failed"
                 )
+
                 state.error = (
                     "No valid background candidates "
                     "were produced."
@@ -1539,10 +1989,14 @@ async def execute_image_job(
             return state
 
         except Exception as error:
-            state.status = "failed"
+            state.status = (
+                "failed"
+            )
+
             state.current_stage = (
                 "generation_failed"
             )
+
             state.error = str(
                 error
             )

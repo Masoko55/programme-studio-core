@@ -155,11 +155,13 @@ QUESTION_TEXT = {
     ),
     "background_exclusions": (
         "What must the background avoid besides text and people? "
-        "For example no buildings, no florals, no metallic effects or no busy centre."
+        "For example no buildings, no florals, no metallic effects "
+        "or no busy centre."
     ),
     "background_composition": (
         "Where should the visual detail sit while preserving clear overlay space? "
-        "For example around the border, in the lower corners, or on the side edges."
+        "For example around the border, in the lower corners, "
+        "or on the side edges."
     ),
     "theme_reference_treatment": (
         "Which visual traits from the reference "
@@ -187,8 +189,9 @@ QUESTION_TEXT = {
         "for the final programme?"
     ),
     "asset_placement": (
-        "Where should the selected asset "
-        "appear: left or right?"
+        "Where should the selected asset be placed at the top "
+        "of the programme: left, center, or right? "
+        "All title, event details and programme text will appear below it."
     ),
     "headshot_shape": (
         "What shape should the headshot use: "
@@ -752,6 +755,35 @@ def _semantic_questions(
     return questions
 
 
+def _asset_placement_question(
+    asset_type: str,
+) -> GrillMeQuestion:
+    asset_label = (
+        "headshot"
+        if asset_type
+        == "headshot"
+        else "logo"
+    )
+
+    return (
+        _question(
+            "asset_placement",
+            (
+                f"A {asset_label} is being used, so Grill-Me must "
+                "clarify its horizontal position before layout generation. "
+                "The asset always sits at the top and all programme text "
+                "flows underneath it."
+            ),
+            (
+                f"Where should the {asset_label} be placed at the top "
+                "of the programme: left, center, or right? "
+                "All title, event details and programme text will appear "
+                "below the asset."
+            ),
+        )
+    )
+
+
 def evaluate_session(
     session: GrillMeSession,
 ) -> list[
@@ -850,23 +882,42 @@ def evaluate_session(
         or "none"
     )
 
+    #
+    # Asset-specific questions only exist when the user
+    # actually selected a headshot or logo.
+    #
     if (
         asset_type
         != "none"
     ):
+        #
+        # Placement MUST be answered through Grill-Me.
+        #
+        # Vertical position is fixed:
+        #     TOP
+        #
+        # Grill-Me only asks:
+        #     left / center / right
+        #
+        # All text comes underneath the asset.
+        #
         if not (
             session.answers
             .asset_placement
         ):
-            questions.append(
-                _question(
-                    "asset_placement",
-                    (
-                        "An asset was selected "
-                        "but no placement was provided."
-                    ),
+            if (
+                "asset_placement"
+                not in existing_fields
+            ):
+                questions.append(
+                    _asset_placement_question(
+                        asset_type
+                    )
                 )
-            )
+
+                existing_fields.add(
+                    "asset_placement"
+                )
 
         if (
             asset_type
@@ -876,30 +927,46 @@ def evaluate_session(
                 .headshot_shape
             )
         ):
-            questions.append(
-                _question(
-                    "headshot_shape",
-                    (
-                        "A headshot was selected "
-                        "but no shape was provided."
-                    ),
+            if (
+                "headshot_shape"
+                not in existing_fields
+            ):
+                questions.append(
+                    _question(
+                        "headshot_shape",
+                        (
+                            "A headshot was selected "
+                            "but no shape was provided."
+                        ),
+                    )
                 )
-            )
+
+                existing_fields.add(
+                    "headshot_shape"
+                )
 
         if not (
             session.answers
             .rights_and_consent_confirmed
         ):
-            questions.append(
-                _question(
-                    "rights_and_consent_confirmed",
-                    (
-                        "Rights and consent must "
-                        "be confirmed before using "
-                        "an uploaded asset."
-                    ),
+            if (
+                "rights_and_consent_confirmed"
+                not in existing_fields
+            ):
+                questions.append(
+                    _question(
+                        "rights_and_consent_confirmed",
+                        (
+                            "Rights and consent must "
+                            "be confirmed before using "
+                            "an uploaded asset."
+                        ),
+                    )
                 )
-            )
+
+                existing_fields.add(
+                    "rights_and_consent_confirmed"
+                )
 
         expected_asset = (
             "headshot"
@@ -914,15 +981,23 @@ def evaluate_session(
             expected_asset
             not in session.assets
         ):
-            questions.append(
-                _question(
-                    "asset_file",
-                    (
-                        f"The selected {expected_asset} "
-                        "has not been uploaded yet."
-                    ),
+            if (
+                "asset_file"
+                not in existing_fields
+            ):
+                questions.append(
+                    _question(
+                        "asset_file",
+                        (
+                            f"The selected {expected_asset} "
+                            "has not been uploaded yet."
+                        ),
+                    )
                 )
-            )
+
+                existing_fields.add(
+                    "asset_file"
+                )
 
     return questions
 
@@ -1147,7 +1222,7 @@ async def store_selected_asset(
     ):
         raise ValueError(
             "The form did not select "
-            "an image or logo."
+            "a headshot or logo."
         )
 
     suffix = (
@@ -1320,6 +1395,52 @@ def freeze_for_generation(
         .model_dump()
     )
 
+    asset_type = (
+        answer[
+            "asset_type"
+        ]
+    )
+
+    asset_placement = (
+        answer.get(
+            "asset_placement"
+        )
+        if (
+            asset_type
+            != "none"
+        )
+        else None
+    )
+
+    #
+    # The vertical position is deliberately fixed.
+    #
+    # The user only chooses horizontal placement:
+    #
+    #     left
+    #     center
+    #     right
+    #
+    # Every text block starts underneath this top asset area.
+    #
+    asset_vertical_position = (
+        "top"
+        if (
+            asset_type
+            != "none"
+        )
+        else None
+    )
+
+    text_flow = (
+        "below_asset"
+        if (
+            asset_type
+            != "none"
+        )
+        else "standard"
+    )
+
     background_brief = {
         "event_type": (
             answer[
@@ -1351,11 +1472,31 @@ def freeze_for_generation(
                 "creative_description"
             ]
         ),
-        "background_subject": answer["background_subject"],
-        "background_style": answer["background_style"],
-        "background_motifs": answer["background_motifs"],
-        "background_exclusions": answer["background_exclusions"],
-        "background_composition": answer["background_composition"],
+        "background_subject": (
+            answer[
+                "background_subject"
+            ]
+        ),
+        "background_style": (
+            answer[
+                "background_style"
+            ]
+        ),
+        "background_motifs": (
+            answer[
+                "background_motifs"
+            ]
+        ),
+        "background_exclusions": (
+            answer[
+                "background_exclusions"
+            ]
+        ),
+        "background_composition": (
+            answer[
+                "background_composition"
+            ]
+        ),
         "theme_reference_treatment": (
             answer.get(
                 "theme_reference_treatment"
@@ -1394,13 +1535,24 @@ def freeze_for_generation(
                 "accessibility_preferences"
             ]
         ),
-    }
 
-    asset_type = (
-        answer[
-            "asset_type"
-        ]
-    )
+        #
+        # Asset layout is also given to the
+        # creative-direction/background agents.
+        #
+        "asset_type": (
+            asset_type
+        ),
+        "asset_placement": (
+            asset_placement
+        ),
+        "asset_vertical_position": (
+            asset_vertical_position
+        ),
+        "text_flow": (
+            text_flow
+        ),
+    }
 
     asset = (
         session.assets
@@ -1458,11 +1610,31 @@ def freeze_for_generation(
                 "creative_description"
             ]
         ),
-        "background_subject": answer["background_subject"],
-        "background_style": answer["background_style"],
-        "background_motifs": answer["background_motifs"],
-        "background_exclusions": answer["background_exclusions"],
-        "background_composition": answer["background_composition"],
+        "background_subject": (
+            answer[
+                "background_subject"
+            ]
+        ),
+        "background_style": (
+            answer[
+                "background_style"
+            ]
+        ),
+        "background_motifs": (
+            answer[
+                "background_motifs"
+            ]
+        ),
+        "background_exclusions": (
+            answer[
+                "background_exclusions"
+            ]
+        ),
+        "background_composition": (
+            answer[
+                "background_composition"
+            ]
+        ),
         "theme_reference_treatment": (
             answer.get(
                 "theme_reference_treatment"
@@ -1511,9 +1683,26 @@ def freeze_for_generation(
                 "accessibility_preferences"
             ]
         ),
+
+        #
+        # Generic asset information.
+        #
         "asset_type": (
             asset_type
         ),
+        "asset_placement": (
+            asset_placement
+        ),
+        "asset_vertical_position": (
+            asset_vertical_position
+        ),
+        "text_flow": (
+            text_flow
+        ),
+
+        #
+        # Asset paths.
+        #
         "headshot_path": (
             asset_path
             if (
@@ -1530,6 +1719,10 @@ def freeze_for_generation(
             )
             else None
         ),
+
+        #
+        # Headshot-only options.
+        #
         "headshot_shape": (
             answer.get(
                 "headshot_shape"
@@ -1541,25 +1734,56 @@ def freeze_for_generation(
             else None
         ),
         "headshot_placement": (
-            answer.get(
-                "asset_placement"
-            )
+            asset_placement
             if (
                 asset_type
                 == "headshot"
             )
             else None
         ),
+
+        #
+        # Logo-only placement.
+        #
         "logo_placement": (
-            answer.get(
-                "asset_placement"
-            )
+            asset_placement
             if (
                 asset_type
                 == "logo"
             )
             else None
         ),
+
+        #
+        # Explicit downstream layout contract.
+        #
+        "layout_contract": {
+            "asset": {
+                "enabled": (
+                    asset_type
+                    != "none"
+                ),
+                "type": (
+                    asset_type
+                ),
+                "vertical_position": (
+                    asset_vertical_position
+                ),
+                "horizontal_position": (
+                    asset_placement
+                ),
+            },
+            "text": {
+                "flow": (
+                    text_flow
+                ),
+                "must_begin_below_asset": (
+                    asset_type
+                    != "none"
+                ),
+            },
+        },
+
         "rights_and_consent_confirmed": (
             bool(
                 answer.get(

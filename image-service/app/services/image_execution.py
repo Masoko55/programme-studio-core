@@ -1380,7 +1380,6 @@ async def execute_image_job(
             async with ComfyUIClient() as client:
                 generated = 0
                 current_engine = None
-                first_wave_failures = []
                 stopped_for_max_outputs = False
 
                 try:
@@ -1435,11 +1434,6 @@ async def execute_image_job(
                             newly_generated
                         )
 
-                        if not complete:
-                            first_wave_failures.append(
-                                output
-                            )
-
                         if (
                             max_outputs
                             is not None
@@ -1449,174 +1443,6 @@ async def execute_image_job(
                             stopped_for_max_outputs = True
                             break
 
-                    if (
-                        not stopped_for_max_outputs
-                        and first_wave_failures
-                        and (
-                            settings
-                            .failed_candidate_recovery_waves
-                            > 0
-                        )
-                    ):
-                        logger.warning(
-                            "event=failed_candidate_recovery_wave_start "
-                            "reference=%s "
-                            "failed_candidates=%s "
-                            "attempts_per_candidate=%s",
-                            reference_number,
-                            len(
-                                first_wave_failures
-                            ),
-                            (
-                                settings.max_candidate_retries
-                                + 1
-                            ),
-                        )
-
-                        state.current_stage = (
-                            "retrying_exhausted_candidates"
-                        )
-
-                        persist_image_job_state(
-                            state
-                        )
-
-                        queue = (
-                            await client.request(
-                                "GET",
-                                "/queue",
-                            )
-                        ).json()
-
-                        if (
-                            not queue.get(
-                                "queue_running"
-                            )
-                            and not queue.get(
-                                "queue_pending"
-                            )
-                        ):
-                            await client.release_models()
-
-                        current_engine = None
-                        recovery_failures = (
-                            first_wave_failures
-                        )
-
-                        for recovery_wave in range(
-                            1,
-                            (
-                                settings
-                                .failed_candidate_recovery_waves
-                                + 1
-                            ),
-                        ):
-                            if not recovery_failures:
-                                break
-
-                            next_failures = []
-
-                            logger.warning(
-                                "event=failed_candidate_recovery_round "
-                                "reference=%s "
-                                "recovery_wave=%s "
-                                "candidates=%s",
-                                reference_number,
-                                recovery_wave,
-                                len(
-                                    recovery_failures
-                                ),
-                            )
-
-                            for output in (
-                                recovery_failures
-                            ):
-                                update_output(
-                                    state,
-                                    output.engine_id,
-                                    output.direction_id,
-                                    "pending",
-                                    error=None,
-                                )
-
-                                current_engine = (
-                                    await _prepare_engine(
-                                        client,
-                                        reference_number,
-                                        output,
-                                        current_engine,
-                                    )
-                                )
-
-                                state.current_stage = (
-                                    f"recovery-"
-                                    f"{recovery_wave}:"
-                                    f"{output.engine_id}:"
-                                    f"{output.direction_id}"
-                                )
-
-                                persist_image_job_state(
-                                    state
-                                )
-
-                                (
-                                    complete,
-                                    newly_generated,
-                                ) = (
-                                    await _attempt_output_wave(
-                                        client=client,
-                                        state=state,
-                                        document=document,
-                                        output=output,
-                                        reference_number=(
-                                            reference_number
-                                        ),
-                                        primary_colour=(
-                                            primary_colour
-                                        ),
-                                        secondary_colour=(
-                                            secondary_colour
-                                        ),
-                                        recovery_wave=(
-                                            recovery_wave
-                                        ),
-                                    )
-                                )
-
-                                generated += (
-                                    newly_generated
-                                )
-
-                                if not complete:
-                                    next_failures.append(
-                                        output
-                                    )
-
-                                if (
-                                    max_outputs
-                                    is not None
-                                    and generated
-                                    >= max_outputs
-                                ):
-                                    stopped_for_max_outputs = True
-                                    break
-
-                            recovery_failures = (
-                                next_failures
-                            )
-
-                            if stopped_for_max_outputs:
-                                break
-
-                        logger.warning(
-                            "event=failed_candidate_recovery_wave_complete "
-                            "reference=%s "
-                            "remaining_failed=%s",
-                            reference_number,
-                            len(
-                                recovery_failures
-                            ),
-                        )
 
                 finally:
                     queue = (

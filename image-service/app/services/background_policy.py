@@ -130,7 +130,12 @@ DARK_CHROMATIC_NAMES = {
 
 # All non-requested colours now share one budget.
 # This includes unrequested white, black, grey and chromatic hues.
-MAX_OFF_PALETTE_RATIO = 0.05
+# Permit natural antialiasing, shading and dark line work, while rejecting
+# substantial colours outside the client palette. White receives a separate,
+# stricter limit when it was not requested. The allowance covers minor
+# antialiasing only; visible white fields still fail validation.
+MAX_OFF_PALETTE_RATIO = 0.12
+MAX_UNREQUESTED_WHITE_RATIO = 0.08
 
 MIN_PRIMARY_COLOUR_RATIO = 0.05
 MIN_SECONDARY_COLOUR_RATIO = 0.008
@@ -754,6 +759,15 @@ def palette_prompt_contract(
             )
         )
 
+    if "white" not in requested_names:
+        statements.append(
+            (
+                "White, off-white, ivory and near-white are not "
+                "requested and must not appear as backgrounds, fills, "
+                "line work or highlights."
+            )
+        )
+
     if (
         requested_names
         == {
@@ -825,8 +839,15 @@ def palette_negative_contract(
             "rainbow colours, unrelated hues"
         )
 
+    white_exclusion = (
+        "white, off-white, ivory, near-white highlights, "
+        if "white" not in measurable
+        else ""
+    )
+
     return (
-        "off-palette colours, colour drift, "
+        white_exclusion
+        + "off-palette colours, colour drift, "
         "unrequested accent colours, multicolour palette, "
         "rainbow colours, unrelated hues. "
         "Do not add any neutral or chromatic colour family "
@@ -1147,6 +1168,38 @@ def _nearest_named_colour(
     return best_name
 
 
+def validate_visual_quality(
+    image: Image.Image,
+) -> dict:
+    """Reject full-frame scanline corruption without penalising artwork."""
+    sample = np.array(
+        image.convert("RGB").resize(
+            (128, 176),
+            Image.Resampling.LANCZOS,
+        ),
+        dtype=np.uint8,
+    )
+    grey = cv2.cvtColor(sample, cv2.COLOR_RGB2GRAY).astype(np.float32)
+    row_delta = np.mean(np.abs(np.diff(grey, axis=0)), axis=1)
+    column_delta = np.mean(np.abs(np.diff(grey, axis=1)), axis=0)
+    row_roughness = float(np.mean(row_delta >= 7.0))
+    column_roughness = float(np.mean(column_delta >= 7.0))
+
+    if (
+        row_roughness >= 0.78
+        and row_roughness >= column_roughness + 0.30
+        and float(np.mean(row_delta)) >= 8.0
+    ):
+        raise ValueError(
+            "Generated background failed visual quality: "
+            "full-frame horizontal scanline artifact detected."
+        )
+
+    return {
+        "row_roughness": row_roughness,
+        "column_roughness": column_roughness,
+    }
+
 def validate_palette(
     image: Image.Image,
     primary_colour: str | None,
@@ -1269,6 +1322,28 @@ def validate_palette(
         requested_names
         & NEUTRAL_NAMES
     )
+
+    if "white" not in requested_names:
+        saturation = hsv_pixels[:, 1]
+        value = hsv_pixels[:, 2]
+        unrequested_white_ratio = float(
+            np.mean(
+                (saturation <= 30)
+                & (value >= 220)
+            )
+        )
+
+        if (
+            unrequested_white_ratio
+            > MAX_UNREQUESTED_WHITE_RATIO
+        ):
+            raise ValueError(
+                "Generated background contains too much "
+                "unrequested white or near-white "
+                f"(ratio {unrequested_white_ratio:.2f})."
+            )
+    else:
+        unrequested_white_ratio = 0.0
 
     if (
         requested_names
@@ -1655,6 +1730,9 @@ def validate_palette(
         ),
         "off_palette_ratio": (
             off_palette_ratio
+        ),
+        "unrequested_white_ratio": (
+            unrequested_white_ratio
         ),
         "primary_colour_ratio": (
             primary_ratio

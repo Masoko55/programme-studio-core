@@ -34,6 +34,10 @@ class GrillMeForm(
 
     creative_description: str | None = None
 
+    theme_reference_treatment: (
+        str | None
+    ) = None
+
     event_date: str | None = None
     start_time: str | None = None
 
@@ -108,12 +112,6 @@ class GrillMeForm(
             return self
 
         if (
-            self.asset_placement
-            is None
-        ):
-            return self
-
-        if (
             self.asset_type
             == "logo"
         ):
@@ -144,6 +142,10 @@ class GrillMeAnswers(
     secondary_colour: str | None = None
 
     creative_description: str | None = None
+
+    theme_reference_treatment: (
+        str | None
+    ) = None
 
     event_date: str | None = None
     start_time: str | None = None
@@ -240,6 +242,10 @@ class GrillMeSession(
         GrillMeQuestion
     ] = Field(
         default_factory=list
+    )
+
+    creative_context: dict = Field(
+        default_factory=dict
     )
 
     assets: dict[

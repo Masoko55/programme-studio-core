@@ -119,11 +119,25 @@ NEUTRAL_NAMES = {
 }
 
 
+DARK_CHROMATIC_NAMES = {
+    "navy",
+    "forest green",
+    "maroon",
+    "burgundy",
+    "brown",
+}
+
+
 MAX_OFF_PALETTE_RATIO = 0.12
 MIN_PRIMARY_COLOUR_RATIO = 0.05
 MIN_SECONDARY_COLOUR_RATIO = 0.008
 MIN_BLACK_WHITE_RATIO = 0.90
 MAX_HUE_DISTANCE = 20
+DARK_MAX_HUE_DISTANCE = 26
+DARK_MIN_SATURATION = 22
+DARK_MIN_VALUE = 10
+STANDARD_MIN_SATURATION = 42
+STANDARD_MIN_VALUE = 32
 
 MIN_HOG_PERSON_WEIGHT = 0.75
 MIN_FACE_SIZE = 42
@@ -296,12 +310,18 @@ def _remove_modifiers(
 
     for word in words:
         if word in COLOUR_MODIFIERS:
-            modifiers.append(word)
+            modifiers.append(
+                word
+            )
         else:
-            remaining.append(word)
+            remaining.append(
+                word
+            )
 
     return (
-        " ".join(remaining).strip(),
+        " ".join(
+            remaining
+        ).strip(),
         modifiers,
     )
 
@@ -309,8 +329,10 @@ def _remove_modifiers(
 def colour_descriptor(
     value: str | None,
 ) -> dict:
-    cleaned = _clean_colour_text(
-        value
+    cleaned = (
+        _clean_colour_text(
+            value
+        )
     )
 
     if not cleaned:
@@ -324,11 +346,16 @@ def colour_descriptor(
             "is_hex": False,
         }
 
-    hex_rgb = _extract_hex_colour(
-        cleaned
+    hex_rgb = (
+        _extract_hex_colour(
+            cleaned
+        )
     )
 
-    if hex_rgb is not None:
+    if (
+        hex_rgb
+        is not None
+    ):
         return {
             "raw": value,
             "cleaned": cleaned,
@@ -339,8 +366,10 @@ def colour_descriptor(
             "is_hex": True,
         }
 
-    alias_direct = COLOUR_ALIASES.get(
-        cleaned
+    alias_direct = (
+        COLOUR_ALIASES.get(
+            cleaned
+        )
     )
 
     if alias_direct:
@@ -348,15 +377,20 @@ def colour_descriptor(
             "raw": value,
             "cleaned": cleaned,
             "base_name": alias_direct,
-            "rgb": NAMED_COLOURS.get(
-                alias_direct
+            "rgb": (
+                NAMED_COLOURS.get(
+                    alias_direct
+                )
             ),
             "modifiers": [],
             "modifier_only": False,
             "is_hex": False,
         }
 
-    base_candidate, modifiers = (
+    (
+        base_candidate,
+        modifiers,
+    ) = (
         _remove_modifiers(
             cleaned
         )
@@ -382,14 +416,19 @@ def colour_descriptor(
         )
     )
 
-    if base_candidate in NAMED_COLOURS:
+    if (
+        base_candidate
+        in NAMED_COLOURS
+    ):
         return {
             "raw": value,
             "cleaned": cleaned,
             "base_name": base_candidate,
-            "rgb": NAMED_COLOURS[
-                base_candidate
-            ],
+            "rgb": (
+                NAMED_COLOURS[
+                    base_candidate
+                ]
+            ),
             "modifiers": modifiers,
             "modifier_only": False,
             "is_hex": False,
@@ -420,7 +459,10 @@ def colour_descriptor(
                 )
             )
 
-            if canonical in NAMED_COLOURS:
+            if (
+                canonical
+                in NAMED_COLOURS
+            ):
                 remaining_words = (
                     cleaned.replace(
                         candidate,
@@ -435,17 +477,21 @@ def colour_descriptor(
                     word
                     for word
                     in remaining_words
-                    if word
-                    in COLOUR_MODIFIERS
+                    if (
+                        word
+                        in COLOUR_MODIFIERS
+                    )
                 ]
 
                 return {
                     "raw": value,
                     "cleaned": cleaned,
                     "base_name": canonical,
-                    "rgb": NAMED_COLOURS[
-                        canonical
-                    ],
+                    "rgb": (
+                        NAMED_COLOURS[
+                            canonical
+                        ]
+                    ),
                     "modifiers": (
                         modifiers
                         + detected_modifiers
@@ -470,29 +516,25 @@ def colour_descriptor(
 def normalize_colour_name(
     value: str | None,
 ) -> str | None:
-    descriptor = (
+    return (
         colour_descriptor(
             value
-        )
+        )[
+            "base_name"
+        ]
     )
-
-    return descriptor[
-        "base_name"
-    ]
 
 
 def parse_colour(
     value: str | None,
 ) -> tuple[int, int, int] | None:
-    descriptor = (
+    return (
         colour_descriptor(
             value
-        )
+        )[
+            "rgb"
+        ]
     )
-
-    return descriptor[
-        "rgb"
-    ]
 
 
 def _prompt_colour_label(
@@ -504,14 +546,18 @@ def _prompt_colour_label(
         )
     )
 
-    if not descriptor[
-        "cleaned"
-    ]:
+    if not (
+        descriptor[
+            "cleaned"
+        ]
+    ):
         return None
 
-    return descriptor[
-        "cleaned"
-    ]
+    return (
+        descriptor[
+            "cleaned"
+        ]
+    )
 
 
 def requested_palette_names(
@@ -530,9 +576,11 @@ def requested_palette_names(
             )
         )
 
-        name = descriptor[
-            "base_name"
-        ]
+        name = (
+            descriptor[
+                "base_name"
+            ]
+        )
 
         if (
             name
@@ -614,10 +662,12 @@ def palette_prompt_contract(
             "modifier_only"
         ]
     ):
-        modifier_text = " ".join(
-            primary_descriptor[
-                "modifiers"
-            ]
+        modifier_text = (
+            " ".join(
+                primary_descriptor[
+                    "modifiers"
+                ]
+            )
         )
 
         statements.append(
@@ -645,10 +695,12 @@ def palette_prompt_contract(
             "modifier_only"
         ]
     ):
-        modifier_text = " ".join(
-            secondary_descriptor[
-                "modifiers"
-            ]
+        modifier_text = (
+            " ".join(
+                secondary_descriptor[
+                    "modifiers"
+                ]
+            )
         )
 
         statements.append(
@@ -665,12 +717,15 @@ def palette_prompt_contract(
         )
     )
 
-    if set(
-        measurable_names
-    ) == {
-        "black",
-        "white",
-    }:
+    if (
+        set(
+            measurable_names
+        )
+        == {
+            "black",
+            "white",
+        }
+    ):
         statements.extend(
             [
                 (
@@ -715,8 +770,10 @@ def palette_prompt_contract(
             )
         )
 
-    return " ".join(
-        statements
+    return (
+        " ".join(
+            statements
+        )
     )
 
 
@@ -739,17 +796,22 @@ def palette_negative_contract(
         ]
         for descriptor
         in descriptors
-        if descriptor[
-            "base_name"
-        ]
+        if (
+            descriptor[
+                "base_name"
+            ]
+        )
     ]
 
-    if set(
-        measurable
-    ) == {
-        "black",
-        "white",
-    }:
+    if (
+        set(
+            measurable
+        )
+        == {
+            "black",
+            "white",
+        }
+    ):
         return (
             "coloured lighting, coloured tint, chromatic accents, "
             "off-palette colours, colour drift, "
@@ -757,8 +819,10 @@ def palette_negative_contract(
         )
 
     if measurable:
-        allowed_text = ", ".join(
-            measurable
+        allowed_text = (
+            ", ".join(
+                measurable
+            )
         )
 
         return (
@@ -786,7 +850,9 @@ def sanitize_background_prompt(
     kept = []
 
     for clause in clauses:
-        clause = clause.strip()
+        clause = (
+            clause.strip()
+        )
 
         if not clause:
             continue
@@ -801,7 +867,9 @@ def sanitize_background_prompt(
             in FORBIDDEN_PROMPT_TERMS
         )
 
-        if not contains_forbidden:
+        if not (
+            contains_forbidden
+        ):
             kept.append(
                 clause
             )
@@ -846,8 +914,16 @@ def build_engine_prompt(
 
 
 def _rgb_to_hsv(
-    colour: tuple[int, int, int],
-) -> tuple[int, int, int]:
+    colour: tuple[
+        int,
+        int,
+        int,
+    ],
+) -> tuple[
+    int,
+    int,
+    int,
+]:
     pixel = np.array(
         [
             [
@@ -857,9 +933,11 @@ def _rgb_to_hsv(
         dtype=np.uint8,
     )
 
-    converted = cv2.cvtColor(
-        pixel,
-        cv2.COLOR_RGB2HSV,
+    converted = (
+        cv2.cvtColor(
+            pixel,
+            cv2.COLOR_RGB2HSV,
+        )
     )
 
     hue, saturation, value = (
@@ -894,6 +972,86 @@ def _hue_distance(
     return min(
         raw,
         180 - raw,
+    )
+
+
+def _is_dark_target(
+    name: str,
+    rgb: tuple[
+        int,
+        int,
+        int,
+    ],
+) -> bool:
+    if (
+        name
+        in DARK_CHROMATIC_NAMES
+    ):
+        return True
+
+    _, _, value = (
+        _rgb_to_hsv(
+            rgb
+        )
+    )
+
+    return (
+        value
+        <= 125
+    )
+
+
+def _target_hue_limit(
+    name: str,
+    rgb: tuple[
+        int,
+        int,
+        int,
+    ],
+) -> int:
+    if (
+        _is_dark_target(
+            name,
+            rgb,
+        )
+    ):
+        return (
+            DARK_MAX_HUE_DISTANCE
+        )
+
+    return (
+        MAX_HUE_DISTANCE
+    )
+
+
+def _pixel_can_match_target(
+    saturation: int,
+    value: int,
+    name: str,
+    rgb: tuple[
+        int,
+        int,
+        int,
+    ],
+) -> bool:
+    if (
+        _is_dark_target(
+            name,
+            rgb,
+        )
+    ):
+        return (
+            saturation
+            >= DARK_MIN_SATURATION
+            and value
+            >= DARK_MIN_VALUE
+        )
+
+    return (
+        saturation
+        >= STANDARD_MIN_SATURATION
+        and value
+        >= STANDARD_MIN_VALUE
     )
 
 
@@ -959,7 +1117,8 @@ def validate_palette(
             ]
             and item[
                 1
-            ] is not None
+            ]
+            is not None
         )
     ]
 
@@ -985,19 +1144,25 @@ def validate_palette(
         )
     )
 
-    rgb_array = np.array(
-        sample,
-        dtype=np.uint8,
+    rgb_array = (
+        np.array(
+            sample,
+            dtype=np.uint8,
+        )
     )
 
-    hsv_array = cv2.cvtColor(
-        rgb_array,
-        cv2.COLOR_RGB2HSV,
+    hsv_array = (
+        cv2.cvtColor(
+            rgb_array,
+            cv2.COLOR_RGB2HSV,
+        )
     )
 
-    pixels = hsv_array.reshape(
-        -1,
-        3,
+    pixels = (
+        hsv_array.reshape(
+            -1,
+            3,
+        )
     )
 
     total = len(
@@ -1008,19 +1173,24 @@ def validate_palette(
         name
         for (
             name,
-            _
+            _,
         )
         in requested
     }
 
-    if requested_names == {
-        "black",
-        "white",
-    }:
-        saturation = pixels[
-            :,
-            1
-        ]
+    if (
+        requested_names
+        == {
+            "black",
+            "white",
+        }
+    ):
+        saturation = (
+            pixels[
+                :,
+                1
+            ]
+        )
 
         monochrome_ratio = float(
             np.mean(
@@ -1042,7 +1212,9 @@ def validate_palette(
 
         return {
             "palette_checked": True,
-            "palette_mode": "black-white",
+            "palette_mode": (
+                "black-white"
+            ),
             "palette_match_ratio": (
                 monochrome_ratio
             ),
@@ -1071,18 +1243,30 @@ def validate_palette(
             )
 
             chromatic_targets.append(
-                (
-                    name,
-                    hue,
-                )
+                {
+                    "name": name,
+                    "rgb": rgb_value,
+                    "hue": hue,
+                    "dark": (
+                        _is_dark_target(
+                            name,
+                            rgb_value,
+                        )
+                    ),
+                    "hue_limit": (
+                        _target_hue_limit(
+                            name,
+                            rgb_value,
+                        )
+                    ),
+                }
             )
 
     chromatic_counts = {
-        name: 0
-        for (
-            name,
-            _
-        )
+        target[
+            "name"
+        ]: 0
+        for target
         in chromatic_targets
     }
 
@@ -1106,47 +1290,66 @@ def validate_palette(
             value
         )
 
-        if (
-            saturation <= 42
-            or value <= 32
-        ):
+        eligible_targets = [
+            target
+            for target
+            in chromatic_targets
+            if (
+                _pixel_can_match_target(
+                    saturation,
+                    value,
+                    target[
+                        "name"
+                    ],
+                    target[
+                        "rgb"
+                    ],
+                )
+            )
+        ]
+
+        if not eligible_targets:
             neutral_count += 1
             continue
 
-        if not chromatic_targets:
-            neutral_count += 1
-            continue
-
-        best_name = None
+        best_target = None
         best_distance = None
 
-        for (
-            name,
-            target_hue,
-        ) in chromatic_targets:
+        for target in (
+            eligible_targets
+        ):
             distance = (
                 _hue_distance(
                     hue,
-                    target_hue,
+                    target[
+                        "hue"
+                    ],
                 )
             )
 
             if (
-                best_distance is None
+                best_distance
+                is None
                 or distance
                 < best_distance
             ):
-                best_name = name
+                best_target = target
                 best_distance = distance
 
         if (
-            best_name is not None
-            and best_distance is not None
+            best_target
+            is not None
             and best_distance
-            <= MAX_HUE_DISTANCE
+            is not None
+            and best_distance
+            <= best_target[
+                "hue_limit"
+            ]
         ):
             chromatic_counts[
-                best_name
+                best_target[
+                    "name"
+                ]
             ] += 1
 
         else:
@@ -1174,7 +1377,8 @@ def validate_palette(
         primary_name
         and primary_name
         not in NEUTRAL_NAMES
-        and primary_rgb is not None
+        and primary_rgb
+        is not None
     ):
         primary_ratio = (
             chromatic_counts.get(
@@ -1202,7 +1406,8 @@ def validate_palette(
         secondary_name
         and secondary_name
         not in NEUTRAL_NAMES
-        and secondary_rgb is not None
+        and secondary_rgb
+        is not None
     ):
         secondary_ratio = (
             chromatic_counts.get(
@@ -1220,7 +1425,8 @@ def validate_palette(
             primary_descriptor[
                 "modifier_only"
             ]
-            and primary_rgb is None
+            and primary_rgb
+            is None
         ):
             minimum_secondary_ratio = (
                 MIN_PRIMARY_COLOUR_RATIO
@@ -1250,7 +1456,9 @@ def validate_palette(
 
     return {
         "palette_checked": True,
-        "palette_mode": "strict-theme",
+        "palette_mode": (
+            "strict-theme"
+        ),
         "palette_match_ratio": (
             palette_match_ratio
         ),
@@ -1267,32 +1475,48 @@ def validate_palette(
             chromatic_counts
         ),
         "primary_descriptor": {
-            "raw": primary_descriptor[
-                "raw"
-            ],
-            "base_name": primary_descriptor[
-                "base_name"
-            ],
-            "modifiers": primary_descriptor[
-                "modifiers"
-            ],
-            "modifier_only": primary_descriptor[
-                "modifier_only"
-            ],
+            "raw": (
+                primary_descriptor[
+                    "raw"
+                ]
+            ),
+            "base_name": (
+                primary_descriptor[
+                    "base_name"
+                ]
+            ),
+            "modifiers": (
+                primary_descriptor[
+                    "modifiers"
+                ]
+            ),
+            "modifier_only": (
+                primary_descriptor[
+                    "modifier_only"
+                ]
+            ),
         },
         "secondary_descriptor": {
-            "raw": secondary_descriptor[
-                "raw"
-            ],
-            "base_name": secondary_descriptor[
-                "base_name"
-            ],
-            "modifiers": secondary_descriptor[
-                "modifiers"
-            ],
-            "modifier_only": secondary_descriptor[
-                "modifier_only"
-            ],
+            "raw": (
+                secondary_descriptor[
+                    "raw"
+                ]
+            ),
+            "base_name": (
+                secondary_descriptor[
+                    "base_name"
+                ]
+            ),
+            "modifiers": (
+                secondary_descriptor[
+                    "modifiers"
+                ]
+            ),
+            "modifier_only": (
+                secondary_descriptor[
+                    "modifier_only"
+                ]
+            ),
         },
     }
 
@@ -1311,7 +1535,9 @@ def _load_cascade(
         )
     )
 
-    if classifier.empty():
+    if (
+        classifier.empty()
+    ):
         return None
 
     return classifier
@@ -1320,12 +1546,23 @@ def _load_cascade(
 def _cascade_detect(
     classifier,
     gray: np.ndarray,
-    minimum_size: tuple[int, int],
+    minimum_size: tuple[
+        int,
+        int,
+    ],
     minimum_neighbors: int,
 ) -> list[
-    tuple[int, int, int, int]
+    tuple[
+        int,
+        int,
+        int,
+        int,
+    ]
 ]:
-    if classifier is None:
+    if (
+        classifier
+        is None
+    ):
         return []
 
     results = (
@@ -1357,15 +1594,19 @@ def _cascade_detect(
 def detect_human_signals(
     image: Image.Image,
 ) -> dict:
-    rgb = np.array(
-        image.convert(
-            "RGB"
+    rgb = (
+        np.array(
+            image.convert(
+                "RGB"
+            )
         )
     )
 
-    bgr = cv2.cvtColor(
-        rgb,
-        cv2.COLOR_RGB2BGR,
+    bgr = (
+        cv2.cvtColor(
+            rgb,
+            cv2.COLOR_RGB2BGR,
+        )
     )
 
     maximum_dimension = max(
@@ -1383,19 +1624,23 @@ def detect_human_signals(
             / maximum_dimension
         )
 
-        bgr = cv2.resize(
-            bgr,
-            None,
-            fx=scale,
-            fy=scale,
-            interpolation=(
-                cv2.INTER_AREA
-            ),
+        bgr = (
+            cv2.resize(
+                bgr,
+                None,
+                fx=scale,
+                fy=scale,
+                interpolation=(
+                    cv2.INTER_AREA
+                ),
+            )
         )
 
-    gray = cv2.cvtColor(
-        bgr,
-        cv2.COLOR_BGR2GRAY,
+    gray = (
+        cv2.cvtColor(
+            bgr,
+            cv2.COLOR_BGR2GRAY,
+        )
     )
 
     hog = (
@@ -1406,7 +1651,10 @@ def detect_human_signals(
         cv2.HOGDescriptor_getDefaultPeopleDetector()
     )
 
-    rectangles, weights = (
+    (
+        rectangles,
+        weights,
+    ) = (
         hog.detectMultiScale(
             bgr,
             winStride=(
@@ -1431,8 +1679,10 @@ def detect_human_signals(
         rectangles,
         weights,
     ):
-        numeric_weight = float(
-            weight
+        numeric_weight = (
+            float(
+                weight
+            )
         )
 
         if (
@@ -1471,24 +1721,28 @@ def detect_human_signals(
         )
     )
 
-    faces = _cascade_detect(
-        frontal_detector,
-        gray,
-        (
-            MIN_FACE_SIZE,
-            MIN_FACE_SIZE,
-        ),
-        6,
+    faces = (
+        _cascade_detect(
+            frontal_detector,
+            gray,
+            (
+                MIN_FACE_SIZE,
+                MIN_FACE_SIZE,
+            ),
+            6,
+        )
     )
 
-    profiles = _cascade_detect(
-        profile_detector,
-        gray,
-        (
-            MIN_PROFILE_SIZE,
-            MIN_PROFILE_SIZE,
-        ),
-        6,
+    profiles = (
+        _cascade_detect(
+            profile_detector,
+            gray,
+            (
+                MIN_PROFILE_SIZE,
+                MIN_PROFILE_SIZE,
+            ),
+            6,
+        )
     )
 
     upper_bodies = (

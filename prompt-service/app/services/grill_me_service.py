@@ -18,6 +18,10 @@ from app.schemas.grill_me import (
     GrillMeSession,
 )
 
+from app.services.grill_me_semantic import (
+    review_creative_context,
+)
+
 
 MAX_ASSET_BYTES = (
     10
@@ -137,6 +141,10 @@ QUESTION_TEXT = {
         "Please describe the visual mood "
         "or creative direction more clearly."
     ),
+    "theme_reference_treatment": (
+        "Which visual traits from the reference "
+        "should influence the background?"
+    ),
     "event_date": (
         "What is the event date?"
     ),
@@ -240,7 +248,7 @@ def _mirror_session(
         encoding="utf-8",
     )
 
-    for asset_name, asset in (
+    for _, asset in (
         session.assets.items()
     ):
         source_value = (
@@ -360,7 +368,10 @@ def _normalize_colour_text(
     normalized = (
         value.strip()
         .lower()
-        .replace("_", " ")
+        .replace(
+            "_",
+            " ",
+        )
     )
 
     normalized = re.sub(
@@ -390,8 +401,10 @@ def _is_hex_colour(
 def _colour_contains_known_hue(
     value: str,
 ) -> bool:
-    if _is_hex_colour(
-        value
+    if (
+        _is_hex_colour(
+            value
+        )
     ):
         return True
 
@@ -423,13 +436,17 @@ def _colour_modifier_only(
     if not normalized:
         return False
 
-    if _is_hex_colour(
-        normalized
+    if (
+        _is_hex_colour(
+            normalized
+        )
     ):
         return False
 
-    if _colour_contains_known_hue(
-        normalized
+    if (
+        _colour_contains_known_hue(
+            normalized
+        )
     ):
         return False
 
@@ -457,18 +474,24 @@ def _colour_is_unknown(
     if not normalized:
         return False
 
-    if _is_hex_colour(
-        normalized
+    if (
+        _is_hex_colour(
+            normalized
+        )
     ):
         return False
 
-    if _colour_contains_known_hue(
-        normalized
+    if (
+        _colour_contains_known_hue(
+            normalized
+        )
     ):
         return False
 
-    if _colour_modifier_only(
-        normalized
+    if (
+        _colour_modifier_only(
+            normalized
+        )
     ):
         return False
 
@@ -513,7 +536,10 @@ def _is_unclear(
             "later",
         }
 
-        if lowered in vague_values:
+        if (
+            lowered
+            in vague_values
+        ):
             return True
 
         if (
@@ -521,7 +547,8 @@ def _is_unclear(
             == "creative_description"
             and len(
                 cleaned
-            ) < 8
+            )
+            < 8
         ):
             return True
 
@@ -535,9 +562,12 @@ def _is_unclear(
         ):
             return True
 
-        if len(
-            value
-        ) == 0:
+        if (
+            len(
+                value
+            )
+            == 0
+        ):
             return True
 
     return False
@@ -566,8 +596,10 @@ def _colour_question(
     field: str,
     value: str | None,
 ) -> GrillMeQuestion | None:
-    if _colour_modifier_only(
-        value
+    if (
+        _colour_modifier_only(
+            value
+        )
     ):
         normalized = (
             _normalize_colour_text(
@@ -592,8 +624,10 @@ def _colour_question(
             )
         )
 
-    if _colour_is_unknown(
-        value
+    if (
+        _colour_is_unknown(
+            value
+        )
     ):
         normalized = (
             _normalize_colour_text(
@@ -622,6 +656,82 @@ def _colour_question(
     return None
 
 
+def _semantic_questions(
+    session: GrillMeSession,
+) -> list[
+    GrillMeQuestion
+]:
+    items = (
+        session.creative_context.get(
+            "clarification_questions",
+            [],
+        )
+        if session.creative_context
+        else []
+    )
+
+    questions = []
+
+    for item in items:
+        if not isinstance(
+            item,
+            dict,
+        ):
+            continue
+
+        field = (
+            str(
+                item.get(
+                    "field"
+                )
+                or ""
+            )
+            .strip()
+        )
+
+        question = (
+            str(
+                item.get(
+                    "question"
+                )
+                or ""
+            )
+            .strip()
+        )
+
+        reason = (
+            str(
+                item.get(
+                    "reason"
+                )
+                or ""
+            )
+            .strip()
+        )
+
+        if not (
+            field
+            and question
+        ):
+            continue
+
+        questions.append(
+            GrillMeQuestion(
+                field=field,
+                question=question,
+                reason=(
+                    reason
+                    or (
+                        "The creative intent "
+                        "needs clarification."
+                    )
+                ),
+            )
+        )
+
+    return questions
+
+
 def evaluate_session(
     session: GrillMeSession,
 ) -> list[
@@ -634,16 +744,20 @@ def evaluate_session(
 
     questions = []
 
-    for field in REQUIRED_FIELDS:
+    for field in (
+        REQUIRED_FIELDS
+    ):
         value = (
             answers.get(
                 field
             )
         )
 
-        if _is_unclear(
-            field,
-            value,
+        if (
+            _is_unclear(
+                field,
+                value,
+            )
         ):
             questions.append(
                 _question(
@@ -680,10 +794,36 @@ def evaluate_session(
             )
         )
 
-        if question is not None:
+        if (
+            question
+            is not None
+        ):
             questions.append(
                 question
             )
+
+            existing_fields.add(
+                colour_field
+            )
+
+    for item in (
+        _semantic_questions(
+            session
+        )
+    ):
+        if (
+            item.field
+            in existing_fields
+        ):
+            continue
+
+        questions.append(
+            item
+        )
+
+        existing_fields.add(
+            item.field
+        )
 
     asset_type = (
         session.answers.asset_type
@@ -767,6 +907,18 @@ def evaluate_session(
     return questions
 
 
+def _run_semantic_review(
+    session: GrillMeSession,
+) -> None:
+    session.creative_context = (
+        review_creative_context(
+            session.answers.model_dump(
+                mode="json"
+            )
+        )
+    )
+
+
 def _refresh_status(
     session: GrillMeSession,
 ) -> GrillMeSession:
@@ -827,6 +979,10 @@ def create_session_from_form(
         )
     )
 
+    _run_semantic_review(
+        session
+    )
+
     return (
         _refresh_status(
             session
@@ -844,10 +1000,13 @@ def apply_clarifications(
         )
     )
 
-    if session.status in {
-        "generating",
-        "generated",
-    }:
+    if (
+        session.status
+        in {
+            "generating",
+            "generated",
+        }
+    ):
         raise ValueError(
             "This Grill-Me session is frozen "
             "after generation."
@@ -869,8 +1028,10 @@ def apply_clarifications(
         for key
         in values
         if (
-            key not in allowed
-            or key in protected
+            key
+            not in allowed
+            or key
+            in protected
         )
     ]
 
@@ -919,6 +1080,10 @@ def apply_clarifications(
         )
     )
 
+    _run_semantic_review(
+        session
+    )
+
     return (
         _refresh_status(
             session
@@ -936,10 +1101,13 @@ async def store_selected_asset(
         )
     )
 
-    if session.status in {
-        "generating",
-        "generated",
-    }:
+    if (
+        session.status
+        in {
+            "generating",
+            "generated",
+        }
+    ):
         raise ValueError(
             "This Grill-Me session is frozen "
             "after generation."
@@ -950,10 +1118,13 @@ async def store_selected_asset(
         .asset_type
     )
 
-    if asset_type not in {
-        "headshot",
-        "logo",
-    }:
+    if (
+        asset_type
+        not in {
+            "headshot",
+            "logo",
+        }
+    ):
         raise ValueError(
             "The form did not select "
             "an image or logo."
@@ -967,7 +1138,10 @@ async def store_selected_asset(
         )
     )
 
-    if suffix is None:
+    if (
+        suffix
+        is None
+    ):
         raise ValueError(
             "Assets must be JPEG or PNG files."
         )
@@ -1157,6 +1331,14 @@ def freeze_for_generation(
                 "creative_description"
             ]
         ),
+        "theme_reference_treatment": (
+            answer.get(
+                "theme_reference_treatment"
+            )
+        ),
+        "grill_me_context": (
+            session.creative_context
+        ),
         "title_preference": (
             answer[
                 "title_preference"
@@ -1250,6 +1432,14 @@ def freeze_for_generation(
             answer[
                 "creative_description"
             ]
+        ),
+        "theme_reference_treatment": (
+            answer.get(
+                "theme_reference_treatment"
+            )
+        ),
+        "grill_me_context": (
+            session.creative_context
         ),
         "title": (
             answer[

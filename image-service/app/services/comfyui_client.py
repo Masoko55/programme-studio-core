@@ -33,6 +33,7 @@ from app.services.background_policy import (
     detect_human_signals,
     palette_negative_contract,
     validate_palette,
+    validate_visual_quality,
 )
 
 from app.services.job_persistence import (
@@ -439,6 +440,10 @@ def validate_background(
             )
         )
 
+        quality_result = validate_visual_quality(
+            image
+        )
+
         palette_result = {
             "palette_checked": False,
         }
@@ -547,6 +552,7 @@ def validate_background(
             )
         ),
 
+        **quality_result,
         **palette_result,
     }
 

@@ -129,6 +129,7 @@ DARK_CHROMATIC_NAMES = {
 
 
 MAX_OFF_PALETTE_RATIO = 0.12
+MAX_UNREQUESTED_WHITE_RATIO = 0.015
 MIN_PRIMARY_COLOUR_RATIO = 0.05
 MIN_SECONDARY_COLOUR_RATIO = 0.008
 MIN_BLACK_WHITE_RATIO = 0.90
@@ -717,6 +718,12 @@ def palette_prompt_contract(
         )
     )
 
+    if "white" not in measurable_names:
+        statements.append(
+            "White, off-white, ivory and near-white are not requested and "
+            "must not appear as backgrounds, fills, line work or highlights."
+        )
+
     if (
         set(
             measurable_names
@@ -825,8 +832,14 @@ def palette_negative_contract(
             )
         )
 
+        white_exclusion = (
+            "white, off-white, ivory, near-white highlights, "
+            if "white" not in measurable else ""
+        )
+
         return (
-            "off-palette colours, colour drift, "
+            white_exclusion
+            + "off-palette colours, colour drift, "
             "unrequested accent colours, multicolour palette, "
             "rainbow colours, unrelated hues. "
             f"Keep chromatic colours inside the requested "
@@ -1178,6 +1191,20 @@ def validate_palette(
         in requested
     }
 
+    if "white" not in requested_names:
+        saturation = pixels[:, 1]
+        value = pixels[:, 2]
+        unrequested_white_ratio = float(
+            np.mean((saturation <= 30) & (value >= 220))
+        )
+        if unrequested_white_ratio > MAX_UNREQUESTED_WHITE_RATIO:
+            raise ValueError(
+                "Generated background contains too much unrequested white "
+                f"or near-white (ratio {unrequested_white_ratio:.2f})."
+            )
+    else:
+        unrequested_white_ratio = 0.0
+
     if (
         requested_names
         == {
@@ -1471,6 +1498,7 @@ def validate_palette(
         "secondary_colour_ratio": (
             secondary_ratio
         ),
+        "unrequested_white_ratio": unrequested_white_ratio,
         "chromatic_counts": (
             chromatic_counts
         ),

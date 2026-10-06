@@ -295,6 +295,65 @@ def direction_configuration(
     )
 
 
+def composition_variant(
+    direction_id: str,
+) -> str:
+    variants = {
+        "a": (
+            "Create a balanced border-led composition with detail around the "
+            "outer edges and a calm central field."
+        ),
+        "b": (
+            "Create an asymmetric corner-led composition with visual weight "
+            "anchored at opposite corners and a calm overlay field."
+        ),
+        "c": (
+            "Create a structured side-led composition with vertical or diagonal "
+            "detail at the edges and a calm central overlay field."
+        ),
+    }
+    return variants[direction_id.lower()]
+
+
+def background_design_summary(
+    brief: dict,
+) -> str:
+    return (
+        "Main subject: " + str(brief.get("background_subject") or "abstract event motifs")
+        + ". Style: " + str(brief.get("background_style") or "refined event artwork")
+        + ". Motifs: " + str(brief.get("background_motifs") or "subtle decorative forms")
+        + ". Avoid: " + str(brief.get("background_exclusions") or "unrelated imagery")
+        + ". Requested composition: "
+        + str(brief.get("background_composition") or "quiet upper and lower overlay zones")
+        + "."
+    )
+
+
+def background_positive_requirements(
+    brief: dict,
+) -> str:
+    return (
+        "Main visual subject: "
+        + str(brief.get("background_subject") or "abstract event motifs")
+        + ". Visual style: "
+        + str(brief.get("background_style") or "refined event artwork")
+        + ". Required motifs: "
+        + str(brief.get("background_motifs") or "subtle decorative forms")
+        + ". Composition: "
+        + str(brief.get("background_composition") or "quiet upper and lower overlay zones")
+        + "."
+    )
+
+
+def background_negative_constraints(
+    brief: dict,
+) -> str:
+    return str(
+        brief.get("background_exclusions")
+        or "unrelated generic imagery"
+    ).strip()
+
+
 def fallback_prompt(
     brief: dict,
     role: str,
@@ -317,7 +376,8 @@ def fallback_prompt(
         "balanced border details, "
         "subtle depth and texture, "
         "generous visual breathing room, "
-        "quiet upper and central regions reserved for later composition."
+        "quiet upper and central regions reserved for later composition. "
+        + background_design_summary(brief)
     )
 
 
@@ -397,6 +457,8 @@ def sanitize_positive_prompt(
         )
         + ". "
         + palette
+        + " "
+        + background_positive_requirements(brief)
         + " Use theme references only as abstract visual motifs. "
         + "Never depict or describe a named person, fictional "
         + "character, hero, superhero, mascot or humanoid subject."
@@ -481,6 +543,13 @@ def build_creative_direction_prompt(
             "outside the requested palette."
         ),
         (
+            "Follow the requested background subject, style, motifs, exclusions "
+            "and composition exactly; do not substitute unrelated generic artwork."
+        ),
+        (
+            "Apply this deliberate composition variation: " + composition_variant(direction_id)
+        ),
+        (
             "Leave visually quiet regions suitable for title "
             "and programme overlays added later."
         ),
@@ -497,6 +566,10 @@ def build_creative_direction_prompt(
         "direction_id": (
             direction_id.upper()
         ),
+        "composition_variant": composition_variant(direction_id),
+        "background_design_summary": background_design_summary(brief),
+        "background_positive_requirements": background_positive_requirements(brief),
+        "background_negative_constraints": background_negative_constraints(brief),
         "creative_role": (
             role
         ),
@@ -644,6 +717,9 @@ async def generate_creative_direction(
                     "signature, logo, watermark, signage"
                 ),
                 palette_negative(
+                    brief
+                ),
+                background_negative_constraints(
                     brief
                 ),
             )

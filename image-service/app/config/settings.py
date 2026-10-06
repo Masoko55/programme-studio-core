@@ -56,11 +56,29 @@ class Settings(
         )
     )
 
+    # Initial generation + 8 retries = 9 attempts.
     max_candidate_retries: int = (
         Field(
             default=8,
             ge=0,
             le=12,
+        )
+    )
+
+    # Once every engine/direction has completed its first pass,
+    # exhausted candidates receive another complete retry wave.
+    #
+    # 1 recovery wave means:
+    #
+    # first wave    = 9 attempts
+    # recovery wave = 9 attempts
+    # maximum       = 18 attempts
+    #
+    failed_candidate_recovery_waves: int = (
+        Field(
+            default=1,
+            ge=0,
+            le=3,
         )
     )
 

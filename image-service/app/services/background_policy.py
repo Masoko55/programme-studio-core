@@ -128,17 +128,25 @@ DARK_CHROMATIC_NAMES = {
 }
 
 
-MAX_OFF_PALETTE_RATIO = 0.12
-MAX_UNREQUESTED_WHITE_RATIO = 0.015
+# All non-requested colours now share one budget.
+# This includes unrequested white, black, grey and chromatic hues.
+MAX_OFF_PALETTE_RATIO = 0.05
+
 MIN_PRIMARY_COLOUR_RATIO = 0.05
 MIN_SECONDARY_COLOUR_RATIO = 0.008
+
 MIN_BLACK_WHITE_RATIO = 0.90
+
 MAX_HUE_DISTANCE = 20
 DARK_MAX_HUE_DISTANCE = 26
+
 DARK_MIN_SATURATION = 22
 DARK_MIN_VALUE = 10
+
 STANDARD_MIN_SATURATION = 42
 STANDARD_MIN_VALUE = 32
+
+NEUTRAL_MAX_SATURATION = 34
 
 MIN_HOG_PERSON_WEIGHT = 0.75
 MIN_FACE_SIZE = 42
@@ -162,10 +170,6 @@ BACKGROUND_ONLY_NEGATIVE = (
     "(spiderman:2.5), "
     "(spider-man:2.5), "
     "(spider man:2.5), "
-    "(person:2.2), "
-    "(people:2.2), "
-    "(human:2.2), "
-    "(human figure:2.2), "
     "(man:2.2), "
     "(woman:2.2), "
     "(child:2.2), "
@@ -173,7 +177,6 @@ BACKGROUND_ONLY_NEGATIVE = (
     "(portrait:2.2), "
     "(body:2.2), "
     "(silhouette:2.2), "
-    "(character:2.2), "
     "(head:2.2), "
     "(hands:2.2), "
     "(arms:2.2), "
@@ -264,9 +267,13 @@ def _clean_colour_text(
         return None
 
     cleaned = (
-        value.strip()
+        value
+        .strip()
         .lower()
-        .replace("_", " ")
+        .replace(
+            "_",
+            " ",
+        )
     )
 
     cleaned = re.sub(
@@ -280,7 +287,11 @@ def _clean_colour_text(
 
 def _extract_hex_colour(
     value: str | None,
-) -> tuple[int, int, int] | None:
+) -> tuple[
+    int,
+    int,
+    int,
+] | None:
     if not value:
         return None
 
@@ -292,25 +303,40 @@ def _extract_hex_colour(
     if not match:
         return None
 
-    raw = match.group(1)
+    raw = match.group(
+        1
+    )
 
     return (
-        int(raw[0:2], 16),
-        int(raw[2:4], 16),
-        int(raw[4:6], 16),
+        int(
+            raw[0:2],
+            16,
+        ),
+        int(
+            raw[2:4],
+            16,
+        ),
+        int(
+            raw[4:6],
+            16,
+        ),
     )
 
 
 def _remove_modifiers(
     value: str,
-) -> tuple[str, list[str]]:
-    words = value.split()
-
+) -> tuple[
+    str,
+    list[str],
+]:
     modifiers = []
     remaining = []
 
-    for word in words:
-        if word in COLOUR_MODIFIERS:
+    for word in value.split():
+        if (
+            word
+            in COLOUR_MODIFIERS
+        ):
             modifiers.append(
                 word
             )
@@ -462,44 +488,47 @@ def colour_descriptor(
 
             if (
                 canonical
-                in NAMED_COLOURS
+                not in NAMED_COLOURS
             ):
-                remaining_words = (
-                    cleaned.replace(
-                        candidate,
-                        " ",
-                        1,
-                    )
-                    .strip()
-                    .split()
+                continue
+
+            remaining_words = (
+                cleaned
+                .replace(
+                    candidate,
+                    " ",
+                    1,
                 )
+                .strip()
+                .split()
+            )
 
-                detected_modifiers = [
+            detected_modifiers = [
+                word
+                for word
+                in remaining_words
+                if (
                     word
-                    for word
-                    in remaining_words
-                    if (
-                        word
-                        in COLOUR_MODIFIERS
-                    )
-                ]
+                    in COLOUR_MODIFIERS
+                )
+            ]
 
-                return {
-                    "raw": value,
-                    "cleaned": cleaned,
-                    "base_name": canonical,
-                    "rgb": (
-                        NAMED_COLOURS[
-                            canonical
-                        ]
-                    ),
-                    "modifiers": (
-                        modifiers
-                        + detected_modifiers
-                    ),
-                    "modifier_only": False,
-                    "is_hex": False,
-                }
+            return {
+                "raw": value,
+                "cleaned": cleaned,
+                "base_name": canonical,
+                "rgb": (
+                    NAMED_COLOURS[
+                        canonical
+                    ]
+                ),
+                "modifiers": (
+                    modifiers
+                    + detected_modifiers
+                ),
+                "modifier_only": False,
+                "is_hex": False,
+            }
 
     return {
         "raw": value,
@@ -528,7 +557,11 @@ def normalize_colour_name(
 
 def parse_colour(
     value: str | None,
-) -> tuple[int, int, int] | None:
+) -> tuple[
+    int,
+    int,
+    int,
+] | None:
     return (
         colour_descriptor(
             value
@@ -547,17 +580,11 @@ def _prompt_colour_label(
         )
     )
 
-    if not (
-        descriptor[
-            "cleaned"
-        ]
-    ):
-        return None
-
     return (
         descriptor[
             "cleaned"
         ]
+        or None
     )
 
 
@@ -571,14 +598,10 @@ def requested_palette_names(
         primary_colour,
         secondary_colour,
     ):
-        descriptor = (
+        name = (
             colour_descriptor(
                 value
-            )
-        )
-
-        name = (
-            descriptor[
+            )[
                 "base_name"
             ]
         )
@@ -634,16 +657,29 @@ def palette_prompt_contract(
         ]
     )
 
+    measurable_names = (
+        requested_palette_names(
+            primary_colour,
+            secondary_colour,
+        )
+    )
+
+    requested_names = set(
+        measurable_names
+    )
+
     statements = [
+        "STRICT COLOUR PALETTE CONTRACT.",
         (
-            "STRICT COLOUR PALETTE CONTRACT."
+            "Use only the explicitly requested colour families."
         ),
         (
-            "Do not substitute the requested colours "
-            "with colours that merely fit the event theme."
+            "Do not substitute the requested colours with colours "
+            "that merely fit the event theme."
         ),
         (
-            "Do not introduce unrelated chromatic accent colours."
+            "Do not introduce any additional chromatic colour "
+            "or neutral colour that was not requested."
         ),
     ]
 
@@ -663,20 +699,17 @@ def palette_prompt_contract(
             "modifier_only"
         ]
     ):
-        modifier_text = (
-            " ".join(
-                primary_descriptor[
-                    "modifiers"
-                ]
-            )
+        modifier_text = " ".join(
+            primary_descriptor[
+                "modifiers"
+            ]
         )
 
         statements.append(
             (
                 f"The requested primary treatment is {modifier_text}. "
-                "This is a colour treatment rather than a specific hue. "
-                "Apply this treatment only to the explicitly requested "
-                "colour family and do not invent unrelated hues."
+                "Apply that treatment only to an explicitly requested "
+                "colour family and do not invent a new hue."
             )
         )
 
@@ -696,38 +729,33 @@ def palette_prompt_contract(
             "modifier_only"
         ]
     ):
-        modifier_text = (
-            " ".join(
-                secondary_descriptor[
-                    "modifiers"
-                ]
-            )
+        modifier_text = " ".join(
+            secondary_descriptor[
+                "modifiers"
+            ]
         )
 
         statements.append(
             (
                 f"The requested secondary treatment is {modifier_text}. "
-                "Treat it as a visual finish rather than a hue."
+                "Treat it as a finish rather than a new hue."
             )
         )
 
-    measurable_names = (
-        requested_palette_names(
-            primary_colour,
-            secondary_colour,
-        )
-    )
-
-    if "white" not in measurable_names:
+    if measurable_names:
         statements.append(
-            "White, off-white, ivory and near-white are not requested and "
-            "must not appear as backgrounds, fills, line work or highlights."
+            (
+                "No other visible colour family is allowed. "
+                "The only allowed named colour families are: "
+                + ", ".join(
+                    measurable_names
+                )
+                + "."
+            )
         )
 
     if (
-        set(
-            measurable_names
-        )
+        requested_names
         == {
             "black",
             "white",
@@ -737,9 +765,6 @@ def palette_prompt_contract(
             [
                 (
                     "This design must remain strictly achromatic."
-                ),
-                (
-                    "Use black, white and neutral grey only."
                 ),
                 (
                     "No coloured lighting or coloured tint."
@@ -756,7 +781,7 @@ def palette_prompt_contract(
         statements.append(
             (
                 f"Use {secondary_label or secondary_base} as the "
-                "measurable chromatic colour family and apply the "
+                "measurable colour family and apply the "
                 f"{' '.join(primary_descriptor['modifiers'])} "
                 "treatment to it."
             )
@@ -771,16 +796,14 @@ def palette_prompt_contract(
         statements.append(
             (
                 f"Use {primary_label or primary_base} as the "
-                "measurable chromatic colour family and apply the "
+                "measurable colour family and apply the "
                 f"{' '.join(secondary_descriptor['modifiers'])} "
                 "treatment where appropriate."
             )
         )
 
-    return (
-        " ".join(
-            statements
-        )
+    return " ".join(
+        statements
     )
 
 
@@ -788,67 +811,31 @@ def palette_negative_contract(
     primary_colour: str | None,
     secondary_colour: str | None,
 ) -> str:
-    descriptors = [
-        colour_descriptor(
-            primary_colour
-        ),
-        colour_descriptor(
-            secondary_colour
-        ),
-    ]
-
-    measurable = [
-        descriptor[
-            "base_name"
-        ]
-        for descriptor
-        in descriptors
-        if (
-            descriptor[
-                "base_name"
-            ]
+    measurable = (
+        requested_palette_names(
+            primary_colour,
+            secondary_colour,
         )
-    ]
+    )
 
-    if (
-        set(
-            measurable
-        )
-        == {
-            "black",
-            "white",
-        }
-    ):
+    if not measurable:
         return (
-            "coloured lighting, coloured tint, chromatic accents, "
             "off-palette colours, colour drift, "
-            "unrequested accent colours, multicolour palette"
-        )
-
-    if measurable:
-        allowed_text = (
-            ", ".join(
-                measurable
-            )
-        )
-
-        white_exclusion = (
-            "white, off-white, ivory, near-white highlights, "
-            if "white" not in measurable else ""
-        )
-
-        return (
-            white_exclusion
-            + "off-palette colours, colour drift, "
             "unrequested accent colours, multicolour palette, "
-            "rainbow colours, unrelated hues. "
-            f"Keep chromatic colours inside the requested "
-            f"colour families: {allowed_text}"
+            "rainbow colours, unrelated hues"
         )
 
     return (
         "off-palette colours, colour drift, "
-        "unrequested accent colours, multicolour palette"
+        "unrequested accent colours, multicolour palette, "
+        "rainbow colours, unrelated hues. "
+        "Do not add any neutral or chromatic colour family "
+        "that was not requested. "
+        "Keep every visible colour inside the requested "
+        "colour families: "
+        + ", ".join(
+            measurable
+        )
     )
 
 
@@ -880,9 +867,7 @@ def sanitize_background_prompt(
             in FORBIDDEN_PROMPT_TERMS
         )
 
-        if not (
-            contains_forbidden
-        ):
+        if not contains_forbidden:
             kept.append(
                 clause
             )
@@ -946,19 +931,19 @@ def _rgb_to_hsv(
         dtype=np.uint8,
     )
 
-    converted = (
-        cv2.cvtColor(
-            pixel,
-            cv2.COLOR_RGB2HSV,
-        )
+    converted = cv2.cvtColor(
+        pixel,
+        cv2.COLOR_RGB2HSV,
     )
 
-    hue, saturation, value = (
-        converted[
-            0,
-            0,
-        ]
-    )
+    (
+        hue,
+        saturation,
+        value,
+    ) = converted[
+        0,
+        0,
+    ]
 
     return (
         int(
@@ -1068,6 +1053,100 @@ def _pixel_can_match_target(
     )
 
 
+def _matches_requested_neutral(
+    saturation: int,
+    value: int,
+    requested_neutrals: set[str],
+) -> str | None:
+    if (
+        saturation
+        > NEUTRAL_MAX_SATURATION
+    ):
+        return None
+
+    checks = (
+        (
+            "black",
+            value <= 55,
+        ),
+        (
+            "charcoal",
+            35 <= value <= 105,
+        ),
+        (
+            "grey",
+            80 <= value <= 185,
+        ),
+        (
+            "silver",
+            145 <= value <= 225,
+        ),
+        (
+            "white",
+            value >= 215,
+        ),
+    )
+
+    for (
+        name,
+        matches,
+    ) in checks:
+        if (
+            name
+            in requested_neutrals
+            and matches
+        ):
+            return name
+
+    return None
+
+
+def _nearest_named_colour(
+    rgb: np.ndarray,
+) -> str:
+    pixel = rgb.astype(
+        np.int32
+    )
+
+    best_name = "unknown"
+    best_distance = None
+
+    for (
+        name,
+        reference,
+    ) in NAMED_COLOURS.items():
+        ref = np.asarray(
+            reference,
+            dtype=np.int32,
+        )
+
+        distance = int(
+            np.sum(
+                (
+                    pixel
+                    - ref
+                )
+                ** 2
+            )
+        )
+
+        if (
+            best_distance
+            is None
+            or distance
+            < best_distance
+        ):
+            best_distance = (
+                distance
+            )
+
+            best_name = (
+                name
+            )
+
+    return best_name
+
+
 def validate_palette(
     image: Image.Image,
     primary_colour: str | None,
@@ -1125,12 +1204,8 @@ def validate_palette(
         for item
         in requested
         if (
-            item[
-                0
-            ]
-            and item[
-                1
-            ]
+            item[0]
+            and item[1]
             is not None
         )
     ]
@@ -1157,29 +1232,28 @@ def validate_palette(
         )
     )
 
-    rgb_array = (
-        np.array(
-            sample,
-            dtype=np.uint8,
-        )
+    rgb_array = np.array(
+        sample,
+        dtype=np.uint8,
     )
 
-    hsv_array = (
-        cv2.cvtColor(
-            rgb_array,
-            cv2.COLOR_RGB2HSV,
-        )
+    hsv_array = cv2.cvtColor(
+        rgb_array,
+        cv2.COLOR_RGB2HSV,
     )
 
-    pixels = (
-        hsv_array.reshape(
-            -1,
-            3,
-        )
+    hsv_pixels = hsv_array.reshape(
+        -1,
+        3,
+    )
+
+    rgb_pixels = rgb_array.reshape(
+        -1,
+        3,
     )
 
     total = len(
-        pixels
+        hsv_pixels
     )
 
     requested_names = {
@@ -1191,19 +1265,10 @@ def validate_palette(
         in requested
     }
 
-    if "white" not in requested_names:
-        saturation = pixels[:, 1]
-        value = pixels[:, 2]
-        unrequested_white_ratio = float(
-            np.mean((saturation <= 30) & (value >= 220))
-        )
-        if unrequested_white_ratio > MAX_UNREQUESTED_WHITE_RATIO:
-            raise ValueError(
-                "Generated background contains too much unrequested white "
-                f"or near-white (ratio {unrequested_white_ratio:.2f})."
-            )
-    else:
-        unrequested_white_ratio = 0.0
+    requested_neutrals = (
+        requested_names
+        & NEUTRAL_NAMES
+    )
 
     if (
         requested_names
@@ -1213,7 +1278,7 @@ def validate_palette(
         }
     ):
         saturation = (
-            pixels[
+            hsv_pixels[
                 :,
                 1
             ]
@@ -1222,7 +1287,7 @@ def validate_palette(
         monochrome_ratio = float(
             np.mean(
                 saturation
-                <= 30
+                <= NEUTRAL_MAX_SATURATION
             )
         )
 
@@ -1251,6 +1316,7 @@ def validate_palette(
             ),
             "primary_colour_ratio": None,
             "secondary_colour_ratio": None,
+            "unrequested_colour_breakdown": {},
         }
 
     chromatic_targets = []
@@ -1263,7 +1329,11 @@ def validate_palette(
             name
             not in NEUTRAL_NAMES
         ):
-            hue, _, _ = (
+            (
+                hue,
+                _,
+                _,
+            ) = (
                 _rgb_to_hsv(
                     rgb_value
                 )
@@ -1274,12 +1344,6 @@ def validate_palette(
                     "name": name,
                     "rgb": rgb_value,
                     "hue": hue,
-                    "dark": (
-                        _is_dark_target(
-                            name,
-                            rgb_value,
-                        )
-                    ),
                     "hue_limit": (
                         _target_hue_limit(
                             name,
@@ -1289,22 +1353,32 @@ def validate_palette(
                 }
             )
 
-    chromatic_counts = {
-        target[
-            "name"
-        ]: 0
-        for target
-        in chromatic_targets
+    requested_counts = {
+        name: 0
+        for (
+            name,
+            _,
+        )
+        in requested
     }
 
-    neutral_count = 0
     off_palette_count = 0
 
+    off_palette_named_counts: dict[
+        str,
+        int,
+    ] = {}
+
     for (
-        hue,
-        saturation,
-        value,
-    ) in pixels:
+        index,
+        (
+            hue,
+            saturation,
+            value,
+        ),
+    ) in enumerate(
+        hsv_pixels
+    ):
         hue = int(
             hue
         )
@@ -1316,6 +1390,30 @@ def validate_palette(
         value = int(
             value
         )
+
+        neutral_match = (
+            _matches_requested_neutral(
+                saturation,
+                value,
+                requested_neutrals,
+            )
+        )
+
+        if (
+            neutral_match
+            is not None
+        ):
+            requested_counts[
+                neutral_match
+            ] = (
+                requested_counts.get(
+                    neutral_match,
+                    0,
+                )
+                + 1
+            )
+
+            continue
 
         eligible_targets = [
             target
@@ -1334,10 +1432,6 @@ def validate_palette(
                 )
             )
         ]
-
-        if not eligible_targets:
-            neutral_count += 1
-            continue
 
         best_target = None
         best_distance = None
@@ -1360,8 +1454,13 @@ def validate_palette(
                 or distance
                 < best_distance
             ):
-                best_target = target
-                best_distance = distance
+                best_target = (
+                    target
+                )
+
+                best_distance = (
+                    distance
+                )
 
         if (
             best_target
@@ -1373,42 +1472,110 @@ def validate_palette(
                 "hue_limit"
             ]
         ):
-            chromatic_counts[
+            requested_counts[
                 best_target[
                     "name"
                 ]
-            ] += 1
+            ] = (
+                requested_counts.get(
+                    best_target[
+                        "name"
+                    ],
+                    0,
+                )
+                + 1
+            )
 
-        else:
-            off_palette_count += 1
+            continue
+
+        off_palette_count += 1
+
+        nearest = (
+            _nearest_named_colour(
+                rgb_pixels[
+                    index
+                ]
+            )
+        )
+
+        off_palette_named_counts[
+            nearest
+        ] = (
+            off_palette_named_counts.get(
+                nearest,
+                0,
+            )
+            + 1
+        )
 
     off_palette_ratio = (
         off_palette_count
         / total
     )
 
+    breakdown = {
+        name: (
+            count
+            / total
+        )
+        for (
+            name,
+            count,
+        )
+        in sorted(
+            off_palette_named_counts.items(),
+            key=(
+                lambda item:
+                item[1]
+            ),
+            reverse=True,
+        )
+    }
+
     if (
         off_palette_ratio
         > MAX_OFF_PALETTE_RATIO
     ):
+        top_unrequested = [
+            (
+                f"{name}="
+                f"{ratio:.2f}"
+            )
+            for (
+                name,
+                ratio,
+            )
+            in list(
+                breakdown.items()
+            )[
+                :4
+            ]
+        ]
+
+        details = (
+            ", ".join(
+                top_unrequested
+            )
+            or "unclassified"
+        )
+
         raise ValueError(
-            "Generated background contains too much "
-            "off-palette colour "
+            "Generated background contains colours "
+            "that were not requested "
             f"(off-palette ratio "
-            f"{off_palette_ratio:.2f})."
+            f"{off_palette_ratio:.2f}; "
+            f"strongest matches: {details})."
         )
 
     primary_ratio = None
 
     if (
         primary_name
-        and primary_name
-        not in NEUTRAL_NAMES
         and primary_rgb
         is not None
     ):
         primary_ratio = (
-            chromatic_counts.get(
+            requested_counts.get(
                 primary_name,
                 0,
             )
@@ -1416,7 +1583,9 @@ def validate_palette(
         )
 
         if (
-            primary_ratio
+            primary_name
+            not in NEUTRAL_NAMES
+            and primary_ratio
             < MIN_PRIMARY_COLOUR_RATIO
         ):
             raise ValueError(
@@ -1431,13 +1600,11 @@ def validate_palette(
 
     if (
         secondary_name
-        and secondary_name
-        not in NEUTRAL_NAMES
         and secondary_rgb
         is not None
     ):
         secondary_ratio = (
-            chromatic_counts.get(
+            requested_counts.get(
                 secondary_name,
                 0,
             )
@@ -1460,7 +1627,9 @@ def validate_palette(
             )
 
         if (
-            secondary_ratio
+            secondary_name
+            not in NEUTRAL_NAMES
+            and secondary_ratio
             < minimum_secondary_ratio
         ):
             raise ValueError(
@@ -1472,19 +1641,14 @@ def validate_palette(
             )
 
     palette_match_ratio = (
-        (
-            neutral_count
-            + sum(
-                chromatic_counts.values()
-            )
-        )
-        / total
+        1.0
+        - off_palette_ratio
     )
 
     return {
         "palette_checked": True,
         "palette_mode": (
-            "strict-theme"
+            "strict-requested-colours-only"
         ),
         "palette_match_ratio": (
             palette_match_ratio
@@ -1498,9 +1662,11 @@ def validate_palette(
         "secondary_colour_ratio": (
             secondary_ratio
         ),
-        "unrequested_white_ratio": unrequested_white_ratio,
-        "chromatic_counts": (
-            chromatic_counts
+        "requested_colour_counts": (
+            requested_counts
+        ),
+        "unrequested_colour_breakdown": (
+            breakdown
         ),
         "primary_descriptor": {
             "raw": (
@@ -1622,19 +1788,15 @@ def _cascade_detect(
 def detect_human_signals(
     image: Image.Image,
 ) -> dict:
-    rgb = (
-        np.array(
-            image.convert(
-                "RGB"
-            )
+    rgb = np.array(
+        image.convert(
+            "RGB"
         )
     )
 
-    bgr = (
-        cv2.cvtColor(
-            rgb,
-            cv2.COLOR_RGB2BGR,
-        )
+    bgr = cv2.cvtColor(
+        rgb,
+        cv2.COLOR_RGB2BGR,
     )
 
     maximum_dimension = max(
@@ -1652,23 +1814,19 @@ def detect_human_signals(
             / maximum_dimension
         )
 
-        bgr = (
-            cv2.resize(
-                bgr,
-                None,
-                fx=scale,
-                fy=scale,
-                interpolation=(
-                    cv2.INTER_AREA
-                ),
-            )
+        bgr = cv2.resize(
+            bgr,
+            None,
+            fx=scale,
+            fy=scale,
+            interpolation=(
+                cv2.INTER_AREA
+            ),
         )
 
-    gray = (
-        cv2.cvtColor(
-            bgr,
-            cv2.COLOR_BGR2GRAY,
-        )
+    gray = cv2.cvtColor(
+        bgr,
+        cv2.COLOR_BGR2GRAY,
     )
 
     hog = (
@@ -1707,10 +1865,8 @@ def detect_human_signals(
         rectangles,
         weights,
     ):
-        numeric_weight = (
-            float(
-                weight
-            )
+        numeric_weight = float(
+            weight
         )
 
         if (

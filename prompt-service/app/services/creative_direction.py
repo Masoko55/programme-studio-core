@@ -2,24 +2,16 @@ import json
 import logging
 import re
 
-from app.config.settings import (
-    settings,
-)
-
+from app.config.settings import settings
 from app.schemas.creative_direction import (
     CreativeDirectionOutput,
     LayoutGuidance,
     LayoutZone,
 )
-
-from app.services.ollama import (
-    generate_text,
-)
+from app.services.ollama import generate_text
 
 
-logger = logging.getLogger(
-    "uvicorn.error"
-)
+logger = logging.getLogger("uvicorn.error")
 
 
 POSITIVE_PROMPT_FORBIDDEN_TERMS = (
@@ -62,6 +54,20 @@ POSITIVE_PROMPT_FORBIDDEN_TERMS = (
 COLOUR_ALIASES = {
     "gray": "grey",
     "golden": "gold",
+    "navy blue": "navy",
+    "royal": "royal blue",
+    "sky": "sky blue",
+    "baby blue": "sky blue",
+    "light blue": "sky blue",
+    "dark blue": "navy",
+    "hotpink": "hot pink",
+    "rose pink": "rose",
+    "rose-pink": "rose",
+    "fuchsia": "magenta",
+    "lilac": "lavender",
+    "wine": "burgundy",
+    "wine red": "burgundy",
+    "rose-gold": "rose gold",
 }
 
 
@@ -70,23 +76,39 @@ KNOWN_COLOURS = (
     "white",
     "grey",
     "silver",
+    "charcoal",
     "red",
-    "blue",
-    "green",
-    "pink",
-    "purple",
-    "violet",
     "orange",
     "yellow",
-    "gold",
+    "lime",
+    "green",
+    "forest green",
+    "mint green",
+    "teal",
+    "turquoise",
+    "cyan",
+    "aqua",
+    "blue",
+    "sky blue",
+    "royal blue",
+    "navy",
+    "purple",
+    "violet",
+    "lavender",
+    "magenta",
+    "pink",
+    "hot pink",
+    "rose",
+    "coral",
+    "peach",
+    "maroon",
+    "burgundy",
     "brown",
     "beige",
     "cream",
-    "navy",
-    "teal",
-    "cyan",
-    "maroon",
-    "burgundy",
+    "champagne",
+    "gold",
+    "rose gold",
 )
 
 
@@ -100,13 +122,21 @@ def normalize_colour(
         value
         .strip()
         .lower()
+        .replace(
+            "_",
+            " ",
+        )
     )
 
-    return (
-        COLOUR_ALIASES.get(
-            normalized,
-            normalized,
-        )
+    normalized = re.sub(
+        r"\s+",
+        " ",
+        normalized,
+    )
+
+    return COLOUR_ALIASES.get(
+        normalized,
+        normalized,
     )
 
 
@@ -119,11 +149,9 @@ def requested_palette(
         "primary_colour",
         "secondary_colour",
     ):
-        colour = (
-            normalize_colour(
-                brief.get(
-                    key
-                )
+        colour = normalize_colour(
+            brief.get(
+                key
             )
         )
 
@@ -141,10 +169,8 @@ def requested_palette(
 def positive_palette_description(
     brief: dict,
 ) -> str:
-    colours = (
-        requested_palette(
-            brief
-        )
+    colours = requested_palette(
+        brief
     )
 
     if not colours:
@@ -153,16 +179,10 @@ def positive_palette_description(
             "with balanced tonal variation."
         )
 
-    primary = (
-        colours[
-            0
-        ]
-    )
+    primary = colours[0]
 
     secondary = (
-        colours[
-            1
-        ]
+        colours[1]
         if len(
             colours
         ) > 1
@@ -179,10 +199,9 @@ def positive_palette_description(
         }
     ):
         return (
-            "A strictly achromatic palette of black, "
-            "white and neutral grayscale, with black "
-            "as the dominant visual colour and white "
-            "providing clean tonal contrast."
+            "A strictly achromatic palette of black and white, "
+            "with tonal variation only inside those requested "
+            "neutral colours."
         )
 
     if secondary:
@@ -190,72 +209,62 @@ def positive_palette_description(
             f"A controlled {primary} and {secondary} palette, "
             f"with {primary} clearly dominant throughout the "
             f"composition and {secondary} used as the supporting "
-            "colour."
+            "colour. No third colour family is allowed."
         )
 
     return (
-        f"A controlled {primary} palette with {primary} "
-        "clearly dominant throughout the composition."
+        f"A controlled {primary} palette with {primary} clearly "
+        "dominant throughout the composition. "
+        "No additional colour family is allowed."
     )
 
 
 def palette_negative(
     brief: dict,
 ) -> str:
-    allowed = set(
-        requested_palette(
-            brief
-        )
+    colours = requested_palette(
+        brief
     )
 
-    banned = []
-
-    for colour in KNOWN_COLOURS:
-        normalized = (
-            normalize_colour(
-                colour
-            )
+    if not colours:
+        return (
+            "off-palette colours, colour drift, "
+            "unrequested accent colours, multicolour palette, "
+            "unrelated hues"
         )
-
-        if (
-            normalized not in allowed
-            and normalized not in banned
-        ):
-            banned.append(
-                normalized
-            )
 
     return (
         "off-palette colours, colour drift, "
         "unrequested accent colours, multicolour palette, "
+        "unrelated hues, any neutral or chromatic colour family "
+        "outside the requested palette. "
+        "The only requested colour families are: "
         + ", ".join(
-            banned
+            colours
         )
     )
 
 
 def safe_layout() -> LayoutGuidance:
-    return (
-        LayoutGuidance(
-            title_zone=(
-                LayoutZone(
-                    x=0.10,
-                    y=0.08,
-                    width=0.80,
-                    height=0.12,
-                )
-            ),
-            programme_zone=(
-                LayoutZone(
-                    x=0.10,
-                    y=0.47,
-                    width=0.80,
-                    height=0.40,
-                )
-            ),
-            headshot_zone=None,
-            logo_zone=None,
-        )
+    return LayoutGuidance(
+        title_zone=(
+            LayoutZone(
+                x=0.10,
+                y=0.08,
+                width=0.80,
+                height=0.12,
+            )
+        ),
+        programme_zone=(
+            LayoutZone(
+                x=0.10,
+                y=0.47,
+                width=0.80,
+                height=0.40,
+            )
+        ),
+        headshot_zone=None,
+        logo_zone=None,
     )
 
 
@@ -300,31 +309,63 @@ def composition_variant(
 ) -> str:
     variants = {
         "a": (
-            "Create a balanced border-led composition with detail around the "
-            "outer edges and a calm central field."
+            "Create a balanced border-led composition with detail "
+            "around the outer edges and a calm central field."
         ),
         "b": (
-            "Create an asymmetric corner-led composition with visual weight "
-            "anchored at opposite corners and a calm overlay field."
+            "Create an asymmetric corner-led composition with visual "
+            "weight anchored at opposite corners and a calm overlay field."
         ),
         "c": (
-            "Create a structured side-led composition with vertical or diagonal "
-            "detail at the edges and a calm central overlay field."
+            "Create a structured side-led composition with vertical "
+            "or diagonal detail at the edges and a calm central overlay field."
         ),
     }
-    return variants[direction_id.lower()]
+
+    return variants[
+        direction_id.lower()
+    ]
 
 
 def background_design_summary(
     brief: dict,
 ) -> str:
     return (
-        "Main subject: " + str(brief.get("background_subject") or "abstract event motifs")
-        + ". Style: " + str(brief.get("background_style") or "refined event artwork")
-        + ". Motifs: " + str(brief.get("background_motifs") or "subtle decorative forms")
-        + ". Avoid: " + str(brief.get("background_exclusions") or "unrelated imagery")
+        "Main subject: "
+        + str(
+            brief.get(
+                "background_subject"
+            )
+            or "abstract event motifs"
+        )
+        + ". Style: "
+        + str(
+            brief.get(
+                "background_style"
+            )
+            or "refined event artwork"
+        )
+        + ". Motifs: "
+        + str(
+            brief.get(
+                "background_motifs"
+            )
+            or "subtle decorative forms"
+        )
+        + ". Avoid: "
+        + str(
+            brief.get(
+                "background_exclusions"
+            )
+            or "unrelated imagery"
+        )
         + ". Requested composition: "
-        + str(brief.get("background_composition") or "quiet upper and lower overlay zones")
+        + str(
+            brief.get(
+                "background_composition"
+            )
+            or "quiet upper and lower overlay zones"
+        )
         + "."
     )
 
@@ -334,13 +375,33 @@ def background_positive_requirements(
 ) -> str:
     return (
         "Main visual subject: "
-        + str(brief.get("background_subject") or "abstract event motifs")
+        + str(
+            brief.get(
+                "background_subject"
+            )
+            or "abstract event motifs"
+        )
         + ". Visual style: "
-        + str(brief.get("background_style") or "refined event artwork")
+        + str(
+            brief.get(
+                "background_style"
+            )
+            or "refined event artwork"
+        )
         + ". Required motifs: "
-        + str(brief.get("background_motifs") or "subtle decorative forms")
+        + str(
+            brief.get(
+                "background_motifs"
+            )
+            or "subtle decorative forms"
+        )
         + ". Composition: "
-        + str(brief.get("background_composition") or "quiet upper and lower overlay zones")
+        + str(
+            brief.get(
+                "background_composition"
+            )
+            or "quiet upper and lower overlay zones"
+        )
         + "."
     )
 
@@ -349,7 +410,9 @@ def background_negative_constraints(
     brief: dict,
 ) -> str:
     return str(
-        brief.get("background_exclusions")
+        brief.get(
+            "background_exclusions"
+        )
         or "unrelated generic imagery"
     ).strip()
 
@@ -377,7 +440,9 @@ def fallback_prompt(
         "subtle depth and texture, "
         "generous visual breathing room, "
         "quiet upper and central regions reserved for later composition. "
-        + background_design_summary(brief)
+        + background_design_summary(
+            brief
+        )
     )
 
 
@@ -386,11 +451,9 @@ def sanitize_positive_prompt(
     brief: dict,
     role: str,
 ) -> str:
-    clauses = (
-        re.split(
-            r"[,;.!?]+",
-            value,
-        )
+    clauses = re.split(
+        r"[,;.!?]+",
+        value,
     )
 
     clean = []
@@ -429,20 +492,16 @@ def sanitize_positive_prompt(
                 clause
             )
 
-    result = (
-        ", ".join(
-            clean
-        )
+    result = ", ".join(
+        clean
     )
 
     if len(
         result
     ) < 40:
-        return (
-            fallback_prompt(
-                brief,
-                role,
-            )
+        return fallback_prompt(
+            brief,
+            role,
         )
 
     palette = (
@@ -458,7 +517,9 @@ def sanitize_positive_prompt(
         + ". "
         + palette
         + " "
-        + background_positive_requirements(brief)
+        + background_positive_requirements(
+            brief
+        )
         + " Use theme references only as abstract visual motifs. "
         + "Never depict or describe a named person, fictional "
         + "character, hero, superhero, mascot or humanoid subject."
@@ -472,90 +533,81 @@ def build_creative_direction_prompt(
     correction_error: str | None = None,
 ) -> str:
     requirements = [
+        "Use the supplied event brief as the source of truth.",
+        "Create visual background artwork rather than a finished poster.",
+        "Keep the positive_prompt purely descriptive.",
+        "Put exclusions and unwanted content only in negative_prompt.",
         (
-            "Use the supplied event brief as the source "
-            "of truth."
+            "If the event brief mentions a named person, fictional "
+            "character, superhero, mascot, celebrity or franchise "
+            "character, translate that reference into abstract motifs, "
+            "shapes, textures, colours, patterns, architecture or "
+            "atmosphere only."
         ),
         (
-            "Create visual background artwork rather than "
-            "a finished poster."
+            "Never place the named character, person, hero, superhero, "
+            "mascot or humanoid subject itself in positive_prompt."
         ),
         (
-            "Keep the positive_prompt purely descriptive."
+            "For comic or superhero-inspired themes, use abstract comic "
+            "energy, geometric web patterns, speed lines, city geometry "
+            "and colour relationships without depicting any hero or character."
         ),
         (
-            "Put exclusions and unwanted content only in "
-            "negative_prompt."
+            "The positive_prompt must describe visual style, composition, "
+            "materials, lighting, atmosphere and the requested colour palette."
         ),
         (
-            "If the event brief mentions a named person, "
-            "fictional character, superhero, mascot, celebrity "
-            "or franchise character, translate that reference "
-            "into abstract motifs, shapes, textures, colours, "
-            "patterns, architecture or atmosphere only."
+            "The requested primary colour must be clearly visible and dominant."
         ),
         (
-            "Never place the named character, person, hero, "
-            "superhero, mascot or humanoid subject itself in "
-            "positive_prompt."
+            "The requested secondary colour must support the primary colour."
         ),
         (
-            "For comic or superhero-inspired themes, use "
-            "abstract comic energy, geometric web patterns, "
-            "speed lines, city geometry and colour relationships "
-            "without depicting any hero or character."
+            "Do not introduce any visible colour family that is not explicitly "
+            "requested. Tonal variation should remain inside the requested "
+            "colour families."
         ),
         (
-            "The positive_prompt must describe visual style, "
-            "composition, materials, lighting, atmosphere and "
-            "the requested colour palette."
+            "The background must use strong tonal contrast with clearly "
+            "separated light and dark values without inventing "
+            "unrequested colours for contrast."
         ),
         (
-            "The requested primary colour must be clearly "
-            "visible and dominant."
+            "The background must remain visually readable when adaptive "
+            "dark or light programme text is placed over it later."
         ),
         (
-            "The requested secondary colour must support "
-            "the primary colour."
+            "Do not make the whole image uniformly pale, uniformly dark, "
+            "washed out or low contrast."
         ),
         (
-            "The background must use strong tonal contrast "
-            "with clearly separated light and dark values."
+            "The negative_prompt must exclude people, faces, human figures, "
+            "portraits, silhouettes, body parts, mannequins, clothing, "
+            "characters, heroes, superheroes, mascots, costumes, humanoids, "
+            "text, words, letters, numbers, logos and watermarks."
         ),
         (
-            "The background must remain visually readable "
-            "when adaptive dark or light programme text is "
-            "placed over it later."
+            "The negative_prompt must exclude every colour family outside "
+            "the requested palette without accidentally banning the requested "
+            "colour names themselves."
         ),
         (
-            "Do not make the whole image uniformly pale, "
-            "uniformly dark, washed out or low contrast."
+            "Follow the requested background subject, style, motifs, "
+            "exclusions and composition exactly; do not substitute "
+            "unrelated generic artwork."
         ),
         (
-            "The negative_prompt must exclude people, faces, "
-            "human figures, portraits, silhouettes, body parts, "
-            "mannequins, clothing, characters, heroes, superheroes, "
-            "mascots, costumes, humanoids, text, words, letters, "
-            "numbers, logos and watermarks."
+            "Apply this deliberate composition variation: "
+            + composition_variant(
+                direction_id
+            )
         ),
         (
-            "The negative_prompt must exclude colour families "
-            "outside the requested palette."
+            "Leave visually quiet regions suitable for title and "
+            "programme overlays added later."
         ),
-        (
-            "Follow the requested background subject, style, motifs, exclusions "
-            "and composition exactly; do not substitute unrelated generic artwork."
-        ),
-        (
-            "Apply this deliberate composition variation: " + composition_variant(direction_id)
-        ),
-        (
-            "Leave visually quiet regions suitable for title "
-            "and programme overlays added later."
-        ),
-        (
-            "Return JSON matching the supplied output schema."
-        ),
+        "Return JSON matching the supplied output schema.",
     ]
 
     payload = {
@@ -566,16 +618,28 @@ def build_creative_direction_prompt(
         "direction_id": (
             direction_id.upper()
         ),
-        "composition_variant": composition_variant(direction_id),
-        "background_design_summary": background_design_summary(brief),
-        "background_positive_requirements": background_positive_requirements(brief),
-        "background_negative_constraints": background_negative_constraints(brief),
-        "creative_role": (
-            role
+        "composition_variant": (
+            composition_variant(
+                direction_id
+            )
         ),
-        "event_brief": (
-            brief
+        "background_design_summary": (
+            background_design_summary(
+                brief
+            )
         ),
+        "background_positive_requirements": (
+            background_positive_requirements(
+                brief
+            )
+        ),
+        "background_negative_constraints": (
+            background_negative_constraints(
+                brief
+            )
+        ),
+        "creative_role": role,
+        "event_brief": brief,
         "positive_palette_description": (
             positive_palette_description(
                 brief
@@ -593,9 +657,7 @@ def build_creative_direction_prompt(
             "characters_allowed": False,
             "people_allowed": False,
         },
-        "requirements": (
-            requirements
-        ),
+        "requirements": requirements,
         "output_schema": (
             CreativeDirectionOutput
             .model_json_schema()
@@ -642,9 +704,7 @@ async def generate_creative_direction(
     prompt = (
         build_creative_direction_prompt(
             brief=brief,
-            direction_id=(
-                direction_id
-            ),
+            direction_id=direction_id,
             role=role,
             correction_error=(
                 correction_error

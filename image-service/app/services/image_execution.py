@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
@@ -149,11 +151,14 @@ def _is_palette_failure(
         "primary ratio",
         "secondary ratio",
         "off-palette",
+        "unrequested",
     )
 
     return any(
-        term in reason_lower
-        for term in terms
+        term
+        in reason_lower
+        for term
+        in terms
     )
 
 
@@ -174,8 +179,10 @@ def _is_human_failure(
     )
 
     return any(
-        term in reason_lower
-        for term in terms
+        term
+        in reason_lower
+        for term
+        in terms
     )
 
 
@@ -195,8 +202,10 @@ def _is_text_failure(
     )
 
     return any(
-        term in reason_lower
-        for term in terms
+        term
+        in reason_lower
+        for term
+        in terms
     )
 
 
@@ -227,33 +236,37 @@ def _standard_palette_instruction(
         ):
             return (
                 "STRICT PALETTE RECOVERY. "
-                f"Use {primary} as the dominant visible colour across "
-                "most large surfaces. "
+                f"Use {primary} as the dominant visible colour "
+                "across most large surfaces. "
                 f"Use {secondary} as a clearly visible supporting "
                 "colour in several separate regions. "
-                "Do not introduce unrelated hues. "
-                "Use black or grey only where needed for contrast. "
-                "Do not introduce white or near-white."
+                "Do not introduce any other colour family, including "
+                "unrequested black, white, grey, silver, green, cyan, "
+                "purple, pink, orange, yellow, brown or other unrelated hues. "
+                "Shading must remain inside the requested colour families "
+                "rather than becoming a new colour."
             )
 
         return (
             "STRICT COLOUR CORRECTION. "
             f"The primary colour is {primary}. "
             f"The secondary colour is {secondary}. "
-            f"Make {primary} visibly dominant and make {secondary} "
-            "clearly visible as repeated supporting accents."
+            f"Make {primary} visibly dominant and make "
+            f"{secondary} clearly visible as repeated supporting accents. "
+            "Every other visible colour family is forbidden."
         )
 
     if primary:
         return (
             "STRICT COLOUR CORRECTION. "
-            f"Make {primary} unmistakably visible and dominant."
+            f"Make {primary} unmistakably visible and dominant. "
+            "Do not introduce any other visible colour family."
         )
 
     return (
         "STRICT COLOUR CORRECTION. "
         "Obey the requested palette exactly and remove "
-        "unrequested chromatic colours."
+        "every unrequested colour family."
     )
 
 
@@ -286,22 +299,17 @@ def _sd35_palette_instruction(
                 "SD3.5 EMERGENCY PALETTE RECOVERY. "
                 "Create a simple abstract background with very large "
                 "clean colour regions. "
-                f"Approximately 60 percent of the visible chromatic "
-                f"area should read clearly as {primary}. "
-                f"Approximately 20 to 30 percent should read clearly "
+                f"Approximately 65 percent of the visible chromatic area "
+                f"should read clearly as {primary}. "
+                f"Approximately 25 to 35 percent should read clearly "
                 f"as {secondary}. "
-                "The remaining area may use neutral black or grey only for "
-                "contrast. Do not introduce white or near-white. "
-                f"Use broad unmistakable {primary} fields. "
-                f"Use broad unmistakable {secondary} bands, shapes, "
-                "lines or accents in multiple places. "
-                "Do not use coloured reflections, rainbow effects, "
-                "multicolour gradients, amber light, cyan light, blue "
-                "light, red light, pink light or unrelated hues unless "
-                "they are explicitly one of the requested colours. "
-                "Prefer simple geometric composition over decorative "
-                "complexity. "
-                "Colour compliance is more important than style detail."
+                f"Use only {primary} and {secondary}. "
+                "Do not add white, black, grey, silver or any third "
+                "chromatic hue unless it was explicitly requested. "
+                "Avoid colour-changing glow, reflections, iridescence "
+                "and multicolour gradients. "
+                "Colour compliance is more important than "
+                "decorative complexity."
             )
 
         if (
@@ -310,16 +318,12 @@ def _sd35_palette_instruction(
         ):
             return (
                 "SD3.5 STRICT TWO-COLOUR RECOVERY. "
-                f"Make {primary} cover most of the major visible "
-                "surfaces and remain unmistakably dominant. "
-                f"Make {secondary} clearly visible in multiple large "
-                "supporting regions, not tiny accents. "
-                "Reduce decorative complexity. "
-                "Reduce coloured lighting. "
-                "Avoid hue shifts caused by glow or reflections. "
-                "Use neutral black or grey only where needed. "
-                "Do not introduce white or near-white. "
-                "No unrelated chromatic colours."
+                f"Make {primary} cover most major visible surfaces. "
+                f"Make {secondary} clearly visible in multiple substantial "
+                "supporting regions. "
+                f"Use only {primary} and {secondary}. "
+                "No third colour family, no neutral fills unless explicitly "
+                "requested, no coloured lighting drift."
             )
 
         return (
@@ -327,20 +331,21 @@ def _sd35_palette_instruction(
             f"Use a strong {primary} dominant base and clearly visible "
             f"{secondary} supporting accents. "
             f"Both {primary} and {secondary} must appear as actual "
-            "rendered surface colours rather than only lighting effects. "
-            "Do not replace either colour with a neighbouring hue."
+            "rendered surface colours. "
+            "Do not replace either colour with a neighbouring hue "
+            "and do not introduce any additional colour family."
         )
 
     if primary:
         return (
             "SD3.5 PALETTE CORRECTION. "
-            f"Use {primary} as a broad, unmistakable rendered surface "
-            "colour across the image."
+            f"Use {primary} as the only visible colour family "
+            "across the image."
         )
 
     return (
         "SD3.5 PALETTE CORRECTION. "
-        "Use only the requested chromatic palette and neutral tones."
+        "Use only the explicitly requested palette."
     )
 
 
@@ -391,8 +396,9 @@ def _text_instruction() -> tuple[
     return (
         (
             "STRICT TEXT-FREE CORRECTION. "
-            "Do not render readable characters, pseudo-letters, words, "
-            "numbers, logos, labels, signs, typography or writing."
+            "Do not render readable characters, pseudo-letters, "
+            "words, numbers, logos, labels, signs, typography "
+            "or writing."
         ),
         (
             "text, typography, words, letters, numbers, writing, "
@@ -423,49 +429,35 @@ def _sd35_minimal_recovery_prompt(
     ):
         return (
             "Abstract A4 portrait decorative event background only. "
-            f"Large simple {primary} colour fields dominating the "
-            "composition. "
+            f"Large simple {primary} colour fields dominate "
+            "the composition. "
             f"Large clearly visible {secondary} supporting geometric "
-            "bands, lines, gradients and shapes across several areas. "
-            f"{primary} must remain the dominant chromatic colour. "
-            f"{secondary} must remain clearly visible and measurable. "
-            "Use black and grey only as neutral contrast. "
-            "Do not introduce white or near-white. "
-            "Strong tonal contrast. "
+            "bands, lines and shapes appear across several areas. "
+            f"Use only {primary} and {secondary}; no third colour family "
+            "and no unrequested neutral fills. "
+            "Strong tonal contrast must come from tonal variation "
+            "inside the requested colours. "
             "Simple geometric composition. "
             "Minimal decorative complexity. "
-            "No unrelated colours. "
-            "No coloured environmental lighting. "
-            "No rainbow gradient. "
-            "No people. "
-            "No faces. "
-            "No characters. "
-            "No silhouettes. "
-            "No text. "
-            "No letters. "
-            "No numbers. "
-            "No logos. "
-            "No watermark. "
+            "No people. No faces. No characters. No silhouettes. "
+            "No text. No letters. No numbers. No logos. No watermark. "
             "Leave clean quiet regions for later programme overlays."
         )
 
     if primary:
         return (
             "Abstract A4 portrait decorative event background only. "
-            f"Large simple {primary} colour fields dominating the "
-            "composition. "
-            "Use black and grey only as neutral contrast. "
-            "Do not introduce white or near-white. "
-            "Strong tonal contrast. "
-            "Simple geometric composition. "
-            "No unrelated chromatic colours. "
+            f"Use only the requested {primary} colour family with "
+            "tonal variation inside that family. "
+            "Strong tonal contrast. Simple geometric composition. "
             "No people, faces, characters, text, letters, numbers, "
             "logos or watermark."
         )
 
     return (
         "Abstract A4 portrait decorative event background only. "
-        "Simple geometric composition using only the requested palette. "
+        "Simple geometric composition using only the explicitly "
+        "requested palette. "
         "Strong tonal contrast. "
         "No people, faces, characters, text, letters, numbers, "
         "logos or watermark."
@@ -480,6 +472,7 @@ def _strengthen_prompts(
     secondary_colour: str | None,
     retry_number: int,
     engine_id: str,
+    recovery_wave: int,
 ) -> tuple[
     str,
     str,
@@ -505,11 +498,22 @@ def _strengthen_prompts(
         )
     )
 
+    effective_retry = (
+        retry_number
+        + (
+            recovery_wave
+            * (
+                settings.max_candidate_retries
+                + 1
+            )
+        )
+    )
+
     if (
         engine_id
         == settings.engine_3_id
         and palette_failure
-        and retry_number
+        and effective_retry
         >= 6
     ):
         positive_prompt = (
@@ -521,8 +525,7 @@ def _strengthen_prompts(
 
     else:
         positive_prompt = (
-            base_positive_prompt
-            .rstrip(
+            base_positive_prompt.rstrip(
                 ". "
             )
         )
@@ -536,7 +539,7 @@ def _strengthen_prompts(
                     _sd35_palette_instruction(
                         primary_colour,
                         secondary_colour,
-                        retry_number,
+                        effective_retry,
                     )
                 )
 
@@ -545,7 +548,7 @@ def _strengthen_prompts(
                     _standard_palette_instruction(
                         primary_colour,
                         secondary_colour,
-                        retry_number,
+                        effective_retry,
                     )
                 )
 
@@ -555,7 +558,7 @@ def _strengthen_prompts(
                 negative_human,
             ) = (
                 _human_instruction(
-                    retry_number
+                    effective_retry
                 )
             )
 
@@ -583,9 +586,13 @@ def _strengthen_prompts(
                 negative_text
             )
 
+        reason_lower = (
+            reason.lower()
+        )
+
         if (
             "secondary"
-            in reason.lower()
+            in reason_lower
             and secondary_colour
         ):
             secondary = (
@@ -597,16 +604,16 @@ def _strengthen_prompts(
             positive_additions.append(
                 (
                     "MANDATORY SECONDARY COLOUR REQUIREMENT. "
-                    f"Render {secondary} as actual visible surface colour "
-                    "in several substantial regions. "
-                    "Do not make it a tiny highlight. "
-                    "Do not hide it inside lighting or reflections."
+                    f"Render {secondary} as actual visible surface "
+                    "colour in several substantial regions. "
+                    "Do not make it a tiny highlight and do not hide "
+                    "it inside lighting or reflections."
                 )
             )
 
         if (
             "primary"
-            in reason.lower()
+            in reason_lower
             and primary_colour
         ):
             primary = (
@@ -618,12 +625,27 @@ def _strengthen_prompts(
             positive_additions.append(
                 (
                     "MANDATORY PRIMARY COLOUR REQUIREMENT. "
-                    f"Render {primary} as actual visible surface colour "
-                    "across large portions of the composition."
+                    f"Render {primary} as actual visible surface "
+                    "colour across large portions of the composition."
                 )
             )
 
-        if not positive_additions:
+        if (
+            recovery_wave
+            > 0
+        ):
+            positive_additions.append(
+                (
+                    "SECOND-PASS RECOVERY. "
+                    "The first nine generation attempts failed QA. "
+                    "Simplify the composition and obey every "
+                    "validation requirement literally."
+                )
+            )
+
+        if not (
+            positive_additions
+        ):
             positive_additions.append(
                 (
                     "STRICT RETRY CORRECTION. "
@@ -641,16 +663,17 @@ def _strengthen_prompts(
         )
 
     negative_prompt = (
-        base_negative_prompt
-        .strip()
+        base_negative_prompt.strip()
     )
 
     if palette_failure:
         negative_additions.append(
             (
                 "off-palette colours, colour drift, unrelated hues, "
-                "multicolour lighting, rainbow gradient, coloured "
-                "reflections, unrequested chromatic accents"
+                "third colour, extra colour, multicolour lighting, "
+                "rainbow gradient, coloured reflections, "
+                "unrequested chromatic accents, unrequested black, "
+                "unrequested white, unrequested grey, unrequested silver"
             )
         )
 
@@ -658,7 +681,7 @@ def _strengthen_prompts(
         engine_id
         == settings.engine_3_id
         and palette_failure
-        and retry_number
+        and effective_retry
         >= 3
     ):
         negative_additions.append(
@@ -684,6 +707,418 @@ def _strengthen_prompts(
     return (
         positive_prompt,
         corrected_negative,
+    )
+
+
+async def _prepare_engine(
+    client: ComfyUIClient,
+    reference_number: str,
+    output,
+    current_engine: str | None,
+) -> str:
+    if (
+        current_engine
+        == output.engine_id
+    ):
+        return (
+            current_engine
+        )
+
+    queue = (
+        await client.request(
+            "GET",
+            "/queue",
+        )
+    ).json()
+
+    entries = (
+        queue.get(
+            "queue_running",
+            [],
+        )
+        + queue.get(
+            "queue_pending",
+            [],
+        )
+    )
+
+    own_path = (
+        settings.programme_data_path
+        / reference_number
+        / "backgrounds"
+        / output.engine_id
+        / (
+            "image-"
+            f"{output.direction_id.lower()}"
+            ".json"
+        )
+    )
+
+    own = (
+        json.loads(
+            own_path.read_text(
+                encoding="utf-8"
+            )
+        )
+        if own_path.exists()
+        else {}
+    )
+
+    if entries:
+        if (
+            not own
+            or any(
+                (
+                    entry[
+                        3
+                    ]
+                    .get(
+                        "programme_request_id"
+                    )
+                    != own.get(
+                        "request_id"
+                    )
+                )
+                for entry
+                in entries
+            )
+        ):
+            raise RuntimeError(
+                "ComfyUI has another active job; "
+                "retry later."
+            )
+
+    else:
+        await (
+            client.release_models()
+        )
+
+    return (
+        output.engine_id
+    )
+
+
+async def _attempt_output_wave(
+    *,
+    client: ComfyUIClient,
+    state,
+    document: dict,
+    output,
+    reference_number: str,
+    primary_colour: str | None,
+    secondary_colour: str | None,
+    recovery_wave: int,
+) -> tuple[
+    bool,
+    int,
+]:
+    direction = (
+        get_direction(
+            document,
+            output.direction_id,
+        )
+    )
+
+    base_positive_prompt = (
+        direction[
+            "positive_prompt"
+        ]
+    )
+
+    base_negative_prompt = (
+        direction.get(
+            "negative_prompt",
+            "",
+        )
+    )
+
+    positive_prompt = (
+        base_positive_prompt
+    )
+
+    negative_prompt = (
+        base_negative_prompt
+    )
+
+    if (
+        recovery_wave
+        > 0
+    ):
+        last_reason = (
+            _rejection_reason(
+                reference_number,
+                output.engine_id,
+                output.direction_id,
+            )
+            or output.error
+            or (
+                "Previous attempt wave exhausted."
+            )
+        )
+
+        (
+            positive_prompt,
+            negative_prompt,
+        ) = (
+            _strengthen_prompts(
+                base_positive_prompt,
+                base_negative_prompt,
+                last_reason,
+                primary_colour,
+                secondary_colour,
+                1,
+                output.engine_id,
+                recovery_wave,
+            )
+        )
+
+    generated = 0
+
+    for retry_count in range(
+        settings.max_candidate_retries
+        + 1
+    ):
+        try:
+            result = (
+                await get_engine(
+                    output.engine_id
+                ).generate(
+                    reference_number=(
+                        reference_number
+                    ),
+                    direction_id=(
+                        output.direction_id
+                    ),
+                    positive_prompt=(
+                        positive_prompt
+                    ),
+                    negative_prompt=(
+                        negative_prompt
+                    ),
+                )
+            )
+
+            output.seed = (
+                result[
+                    "seed"
+                ]
+            )
+
+            output.prompt_id = (
+                result[
+                    "prompt_id"
+                ]
+            )
+
+            output.workflow_sha256 = (
+                result[
+                    "workflow_sha256"
+                ]
+            )
+
+            update_output(
+                state,
+                output.engine_id,
+                output.direction_id,
+                "complete",
+                result[
+                    "output_path"
+                ],
+                result[
+                    "sha256"
+                ],
+            )
+
+            logger.info(
+                "event=candidate_complete "
+                "reference=%s "
+                "engine=%s "
+                "direction=%s "
+                "reused=%s "
+                "recovery_wave=%s",
+                reference_number,
+                output.engine_id,
+                output.direction_id,
+                result[
+                    "reused"
+                ],
+                recovery_wave,
+            )
+
+            if not (
+                result[
+                    "reused"
+                ]
+            ):
+                generated = 1
+
+            return (
+                True,
+                generated,
+            )
+
+        except ComfyUIError as error:
+            rejected = (
+                _candidate_was_rejected(
+                    reference_number,
+                    output.engine_id,
+                    output.direction_id,
+                )
+            )
+
+            if not rejected:
+                raise
+
+            reason = (
+                _rejection_reason(
+                    reference_number,
+                    output.engine_id,
+                    output.direction_id,
+                )
+                or str(
+                    error
+                )
+            )
+
+            if (
+                retry_count
+                >= settings.max_candidate_retries
+            ):
+                update_output(
+                    state,
+                    output.engine_id,
+                    output.direction_id,
+                    "failed",
+                    error=reason,
+                )
+
+                logger.error(
+                    "event=candidate_exhausted "
+                    "reference=%s "
+                    "engine=%s "
+                    "direction=%s "
+                    "attempts=%s "
+                    "recovery_wave=%s "
+                    "reason=%s",
+                    reference_number,
+                    output.engine_id,
+                    output.direction_id,
+                    (
+                        settings.max_candidate_retries
+                        + 1
+                    ),
+                    recovery_wave,
+                    reason,
+                )
+
+                return (
+                    False,
+                    0,
+                )
+
+            next_retry = (
+                retry_count
+                + 1
+            )
+
+            (
+                positive_prompt,
+                negative_prompt,
+            ) = (
+                _strengthen_prompts(
+                    base_positive_prompt,
+                    base_negative_prompt,
+                    reason,
+                    primary_colour,
+                    secondary_colour,
+                    next_retry,
+                    output.engine_id,
+                    recovery_wave,
+                )
+            )
+
+            delay_seconds = min(
+                2
+                ** retry_count,
+                settings
+                .max_candidate_retry_delay_seconds,
+            )
+
+            logger.warning(
+                "event=candidate_retry "
+                "reference=%s "
+                "engine=%s "
+                "direction=%s "
+                "retry=%s/%s "
+                "recovery_wave=%s "
+                "delay_seconds=%s "
+                "reason=%s",
+                reference_number,
+                output.engine_id,
+                output.direction_id,
+                next_retry,
+                settings.max_candidate_retries,
+                recovery_wave,
+                delay_seconds,
+                reason,
+            )
+
+            if (
+                output.engine_id
+                == settings.engine_3_id
+                and _is_palette_failure(
+                    reason
+                )
+            ):
+                effective_retry = (
+                    next_retry
+                    + (
+                        recovery_wave
+                        * (
+                            settings
+                            .max_candidate_retries
+                            + 1
+                        )
+                    )
+                )
+
+                logger.info(
+                    "event=sd35_palette_recovery "
+                    "reference=%s "
+                    "direction=%s "
+                    "retry=%s "
+                    "recovery_wave=%s "
+                    "mode=%s",
+                    reference_number,
+                    output.direction_id,
+                    next_retry,
+                    recovery_wave,
+                    (
+                        "minimal"
+                        if (
+                            effective_retry
+                            >= 6
+                        )
+                        else (
+                            "strict"
+                            if (
+                                effective_retry
+                                >= 3
+                            )
+                            else (
+                                "normal"
+                            )
+                        )
+                    ),
+                )
+
+            await asyncio.sleep(
+                delay_seconds
+            )
+
+    return (
+        False,
+        0,
     )
 
 
@@ -751,7 +1186,10 @@ async def execute_image_job(
             in state.outputs
         ]
 
-        if actual != expected:
+        if (
+            actual
+            != expected
+        ):
             raise ValueError(
                 "Historical engine plan differs from the "
                 "current configuration. Preserve this job "
@@ -798,88 +1236,40 @@ async def execute_image_job(
                     )
 
             async with ComfyUIClient() as client:
-                current_engine = None
                 generated = 0
+                current_engine = None
+                first_wave_failures = []
+
+                stopped_for_max_outputs = (
+                    False
+                )
 
                 try:
+                    #
+                    # FIRST WAVE
+                    #
+                    # Every output receives:
+                    #
+                    # initial attempt + 8 retries = 9 attempts.
+                    #
+                    # If it exhausts all 9, remember it and move
+                    # on. Do NOT immediately spend another 9.
+                    #
                     for output in state.outputs:
                         if (
-                            current_engine
-                            != output.engine_id
+                            output.status
+                            == "complete"
                         ):
-                            queue = (
-                                await client.request(
-                                    "GET",
-                                    "/queue",
-                                )
-                            ).json()
+                            continue
 
-                            entries = (
-                                queue.get(
-                                    "queue_running",
-                                    [],
-                                )
-                                + queue.get(
-                                    "queue_pending",
-                                    [],
-                                )
+                        current_engine = (
+                            await _prepare_engine(
+                                client,
+                                reference_number,
+                                output,
+                                current_engine,
                             )
-
-                            own_path = (
-                                settings.programme_data_path
-                                / reference_number
-                                / "backgrounds"
-                                / output.engine_id
-                                / (
-                                    "image-"
-                                    f"{output.direction_id.lower()}"
-                                    ".json"
-                                )
-                            )
-
-                            own = (
-                                json.loads(
-                                    own_path.read_text(
-                                        encoding="utf-8"
-                                    )
-                                )
-                                if own_path.exists()
-                                else {}
-                            )
-
-                            if entries:
-                                if (
-                                    not own
-                                    or any(
-                                        (
-                                            entry[
-                                                3
-                                            ]
-                                            .get(
-                                                "programme_request_id"
-                                            )
-                                            != own.get(
-                                                "request_id"
-                                            )
-                                        )
-                                        for entry
-                                        in entries
-                                    )
-                                ):
-                                    raise RuntimeError(
-                                        "ComfyUI has another active "
-                                        "job; retry later."
-                                    )
-
-                            else:
-                                await (
-                                    client
-                                    .release_models()
-                                )
-
-                            current_engine = (
-                                output.engine_id
-                            )
+                        )
 
                         state.current_stage = (
                             f"{output.engine_id}:"
@@ -890,245 +1280,36 @@ async def execute_image_job(
                             state
                         )
 
-                        direction = (
-                            get_direction(
-                                document,
-                                output.direction_id,
+                        (
+                            complete,
+                            newly_generated,
+                        ) = (
+                            await _attempt_output_wave(
+                                client=client,
+                                state=state,
+                                document=document,
+                                output=output,
+                                reference_number=(
+                                    reference_number
+                                ),
+                                primary_colour=(
+                                    primary_colour
+                                ),
+                                secondary_colour=(
+                                    secondary_colour
+                                ),
+                                recovery_wave=0,
                             )
                         )
 
-                        base_positive_prompt = (
-                            direction[
-                                "positive_prompt"
-                            ]
+                        generated += (
+                            newly_generated
                         )
 
-                        base_negative_prompt = (
-                            direction.get(
-                                "negative_prompt",
-                                "",
+                        if not complete:
+                            first_wave_failures.append(
+                                output
                             )
-                        )
-
-                        positive_prompt = (
-                            base_positive_prompt
-                        )
-
-                        negative_prompt = (
-                            base_negative_prompt
-                        )
-
-                        candidate_complete = False
-
-                        for retry_count in range(
-                            settings.max_candidate_retries
-                            + 1
-                        ):
-                            try:
-                                result = (
-                                    await get_engine(
-                                        output.engine_id
-                                    ).generate(
-                                        reference_number=(
-                                            reference_number
-                                        ),
-                                        direction_id=(
-                                            output.direction_id
-                                        ),
-                                        positive_prompt=(
-                                            positive_prompt
-                                        ),
-                                        negative_prompt=(
-                                            negative_prompt
-                                        ),
-                                    )
-                                )
-
-                                output.seed = (
-                                    result[
-                                        "seed"
-                                    ]
-                                )
-
-                                output.prompt_id = (
-                                    result[
-                                        "prompt_id"
-                                    ]
-                                )
-
-                                output.workflow_sha256 = (
-                                    result[
-                                        "workflow_sha256"
-                                    ]
-                                )
-
-                                update_output(
-                                    state,
-                                    output.engine_id,
-                                    output.direction_id,
-                                    "complete",
-                                    result[
-                                        "output_path"
-                                    ],
-                                    result[
-                                        "sha256"
-                                    ],
-                                )
-
-                                logger.info(
-                                    "event=candidate_complete "
-                                    "reference=%s "
-                                    "engine=%s "
-                                    "direction=%s "
-                                    "reused=%s",
-                                    reference_number,
-                                    output.engine_id,
-                                    output.direction_id,
-                                    result[
-                                        "reused"
-                                    ],
-                                )
-
-                                if not (
-                                    result[
-                                        "reused"
-                                    ]
-                                ):
-                                    generated += 1
-
-                                candidate_complete = True
-
-                                break
-
-                            except ComfyUIError as error:
-                                rejected = (
-                                    _candidate_was_rejected(
-                                        reference_number,
-                                        output.engine_id,
-                                        output.direction_id,
-                                    )
-                                )
-
-                                if not rejected:
-                                    raise
-
-                                reason = (
-                                    _rejection_reason(
-                                        reference_number,
-                                        output.engine_id,
-                                        output.direction_id,
-                                    )
-                                    or str(
-                                        error
-                                    )
-                                )
-
-                                if (
-                                    retry_count
-                                    >= settings.max_candidate_retries
-                                ):
-                                    update_output(
-                                        state,
-                                        output.engine_id,
-                                        output.direction_id,
-                                        "failed",
-                                        error=reason,
-                                    )
-
-                                    logger.error(
-                                        "event=candidate_exhausted "
-                                        "reference=%s "
-                                        "engine=%s "
-                                        "direction=%s "
-                                        "attempts=%s "
-                                        "reason=%s",
-                                        reference_number,
-                                        output.engine_id,
-                                        output.direction_id,
-                                        (
-                                            settings
-                                            .max_candidate_retries
-                                            + 1
-                                        ),
-                                        reason,
-                                    )
-
-                                    break
-
-                                next_retry = (
-                                    retry_count
-                                    + 1
-                                )
-
-                                (
-                                    positive_prompt,
-                                    negative_prompt,
-                                ) = (
-                                    _strengthen_prompts(
-                                        base_positive_prompt,
-                                        base_negative_prompt,
-                                        reason,
-                                        primary_colour,
-                                        secondary_colour,
-                                        next_retry,
-                                        output.engine_id,
-                                    )
-                                )
-
-                                delay_seconds = min(
-                                    2
-                                    ** retry_count,
-                                    settings
-                                    .max_candidate_retry_delay_seconds,
-                                )
-
-                                logger.warning(
-                                    "event=candidate_retry "
-                                    "reference=%s "
-                                    "engine=%s "
-                                    "direction=%s "
-                                    "retry=%s/%s "
-                                    "delay_seconds=%s "
-                                    "reason=%s",
-                                    reference_number,
-                                    output.engine_id,
-                                    output.direction_id,
-                                    next_retry,
-                                    settings.max_candidate_retries,
-                                    delay_seconds,
-                                    reason,
-                                )
-
-                                if (
-                                    output.engine_id
-                                    == settings.engine_3_id
-                                    and _is_palette_failure(
-                                        reason
-                                    )
-                                ):
-                                    logger.info(
-                                        "event=sd35_palette_recovery "
-                                        "reference=%s "
-                                        "direction=%s "
-                                        "retry=%s "
-                                        "mode=%s",
-                                        reference_number,
-                                        output.direction_id,
-                                        next_retry,
-                                        (
-                                            "minimal"
-                                            if next_retry >= 6
-                                            else (
-                                                "strict"
-                                                if next_retry >= 3
-                                                else "normal"
-                                            )
-                                        ),
-                                    )
-
-                                await asyncio.sleep(
-                                    delay_seconds
-                                )
 
                         if (
                             max_outputs
@@ -1136,12 +1317,196 @@ async def execute_image_job(
                             and generated
                             >= max_outputs
                         ):
+                            stopped_for_max_outputs = (
+                                True
+                            )
+
                             break
 
-                        if not (
-                            candidate_complete
+                    #
+                    # SECOND WAVE
+                    #
+                    # This block starts only after all other
+                    # normal engine/direction work has finished.
+                    #
+                    if (
+                        not stopped_for_max_outputs
+                        and first_wave_failures
+                        and (
+                            settings
+                            .failed_candidate_recovery_waves
+                            > 0
+                        )
+                    ):
+                        logger.warning(
+                            "event=failed_candidate_recovery_wave_start "
+                            "reference=%s "
+                            "failed_candidates=%s "
+                            "attempts_per_candidate=%s",
+                            reference_number,
+                            len(
+                                first_wave_failures
+                            ),
+                            (
+                                settings.max_candidate_retries
+                                + 1
+                            ),
+                        )
+
+                        state.current_stage = (
+                            "retrying_exhausted_candidates"
+                        )
+
+                        persist_image_job_state(
+                            state
+                        )
+
+                        queue = (
+                            await client.request(
+                                "GET",
+                                "/queue",
+                            )
+                        ).json()
+
+                        if (
+                            not queue.get(
+                                "queue_running"
+                            )
+                            and not queue.get(
+                                "queue_pending"
+                            )
                         ):
-                            continue
+                            await (
+                                client
+                                .release_models()
+                            )
+
+                        current_engine = None
+
+                        recovery_failures = (
+                            first_wave_failures
+                        )
+
+                        for recovery_wave in range(
+                            1,
+                            (
+                                settings
+                                .failed_candidate_recovery_waves
+                                + 1
+                            ),
+                        ):
+                            if not (
+                                recovery_failures
+                            ):
+                                break
+
+                            next_failures = []
+
+                            logger.warning(
+                                "event=failed_candidate_recovery_round "
+                                "reference=%s "
+                                "recovery_wave=%s "
+                                "candidates=%s",
+                                reference_number,
+                                recovery_wave,
+                                len(
+                                    recovery_failures
+                                ),
+                            )
+
+                            for output in (
+                                recovery_failures
+                            ):
+                                update_output(
+                                    state,
+                                    output.engine_id,
+                                    output.direction_id,
+                                    "pending",
+                                    error=None,
+                                )
+
+                                current_engine = (
+                                    await _prepare_engine(
+                                        client,
+                                        reference_number,
+                                        output,
+                                        current_engine,
+                                    )
+                                )
+
+                                state.current_stage = (
+                                    f"recovery-{recovery_wave}:"
+                                    f"{output.engine_id}:"
+                                    f"{output.direction_id}"
+                                )
+
+                                persist_image_job_state(
+                                    state
+                                )
+
+                                (
+                                    complete,
+                                    newly_generated,
+                                ) = (
+                                    await _attempt_output_wave(
+                                        client=client,
+                                        state=state,
+                                        document=document,
+                                        output=output,
+                                        reference_number=(
+                                            reference_number
+                                        ),
+                                        primary_colour=(
+                                            primary_colour
+                                        ),
+                                        secondary_colour=(
+                                            secondary_colour
+                                        ),
+                                        recovery_wave=(
+                                            recovery_wave
+                                        ),
+                                    )
+                                )
+
+                                generated += (
+                                    newly_generated
+                                )
+
+                                if not complete:
+                                    next_failures.append(
+                                        output
+                                    )
+
+                                if (
+                                    max_outputs
+                                    is not None
+                                    and generated
+                                    >= max_outputs
+                                ):
+                                    stopped_for_max_outputs = (
+                                        True
+                                    )
+
+                                    break
+
+                            recovery_failures = (
+                                next_failures
+                            )
+
+                            if (
+                                stopped_for_max_outputs
+                            ):
+                                break
+
+                        logger.warning(
+                            "event=failed_candidate_recovery_wave_complete "
+                            "reference=%s "
+                            "remaining_failed=%s",
+                            reference_number,
+                            len(
+                                recovery_failures
+                            ),
+                        )
 
                 finally:
                     queue = (
@@ -1188,7 +1553,31 @@ async def execute_image_job(
                 )
             )
 
-            if completed > 0:
+            if (
+                stopped_for_max_outputs
+                and pending
+                > 0
+            ):
+                state.status = (
+                    "processing"
+                )
+
+                state.current_stage = (
+                    "generation_paused"
+                )
+
+                state.error = (
+                    f"Generation paused after "
+                    f"{generated} new outputs; "
+                    f"{completed}/"
+                    f"{state.total_outputs} "
+                    "candidates complete."
+                )
+
+            elif (
+                completed
+                > 0
+            ):
                 state.status = (
                     "awaiting_selection"
                 )

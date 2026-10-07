@@ -3,12 +3,16 @@ import logging
 import re
 
 from app.config.settings import settings
+
 from app.schemas.creative_direction import (
     CreativeDirectionOutput,
     LayoutGuidance,
     LayoutZone,
 )
-from app.services.ollama import generate_text
+
+from app.services.ollama import (
+    generate_text,
+)
 
 
 logger = logging.getLogger(
@@ -121,7 +125,8 @@ def normalize_colour(
         return None
 
     normalized = (
-        value.strip()
+        value
+        .strip()
         .lower()
         .replace(
             "_",
@@ -135,9 +140,11 @@ def normalize_colour(
         normalized,
     )
 
-    return COLOUR_ALIASES.get(
-        normalized,
-        normalized,
+    return (
+        COLOUR_ALIASES.get(
+            normalized,
+            normalized,
+        )
     )
 
 
@@ -160,7 +167,8 @@ def requested_palette(
 
         if (
             colour
-            and colour not in colours
+            and colour
+            not in colours
         ):
             colours.append(
                 colour
@@ -196,8 +204,7 @@ def positive_palette_description(
         ]
         if len(
             colours
-        )
-        > 1
+        ) > 1
         else None
     )
 
@@ -262,10 +269,33 @@ def palette_negative(
 def _asset_zone(
     placement: str,
 ) -> LayoutZone:
-    placement = (
-        placement
+    normalized = (
+        str(
+            placement
+            or "center"
+        )
         .strip()
         .lower()
+    )
+
+    aliases = {
+        "centre": "center",
+        "middle": "center",
+        "top-left": "left",
+        "top left": "left",
+        "top-center": "center",
+        "top centre": "center",
+        "top center": "center",
+        "top-centre": "center",
+        "top-right": "right",
+        "top right": "right",
+    }
+
+    normalized = (
+        aliases.get(
+            normalized,
+            normalized,
+        )
     )
 
     positions = {
@@ -274,28 +304,45 @@ def _asset_zone(
         "right": 0.70,
     }
 
-    x = positions.get(
-        placement,
-        0.39,
+    x = (
+        positions.get(
+            normalized,
+            0.39,
+        )
     )
 
-    return LayoutZone(
-        x=x,
-        y=0.045,
-        width=0.22,
-        height=0.16,
+    return (
+        LayoutZone(
+            x=x,
+            y=0.045,
+            width=0.22,
+            height=0.16,
+        )
     )
 
 
 def asset_layout_description(
     brief: dict,
 ) -> str:
-    asset_type = str(
-        brief.get(
-            "asset_type"
+    """
+    This description is for the LLM's layout reasoning only.
+
+    IMPORTANT:
+    It must never be appended directly to positive_prompt because
+    it contains layout terminology such as title/programme/text,
+    which the image-prompt validator intentionally forbids.
+    """
+
+    asset_type = (
+        str(
+            brief.get(
+                "asset_type"
+            )
+            or "none"
         )
-        or "none"
-    ).lower()
+        .strip()
+        .lower()
+    )
 
     if (
         asset_type
@@ -305,42 +352,58 @@ def asset_layout_description(
         }
     ):
         return (
-            "No uploaded asset is being used. "
-            "Use the normal title and programme layout."
+            "No uploaded asset is enabled. "
+            "Use the standard layout zones."
         )
 
-    placement = str(
-        brief.get(
-            "asset_placement"
+    placement = (
+        str(
+            brief.get(
+                "asset_placement"
+            )
+            or "center"
         )
-        or "center"
-    ).lower()
+        .strip()
+        .lower()
+    )
 
     return (
-        f"A {asset_type} will be added at the top-{placement} "
-        "of the final programme. "
-        "Keep that top asset region visually quiet. "
-        "The title, event details and programme text must all begin "
-        "underneath the asset rather than beside it or above it."
+        f"The {asset_type} occupies a reserved top-{placement} "
+        "layout zone. All other content zones begin underneath "
+        "the reserved asset area."
     )
 
 
 def safe_layout(
     brief: dict,
 ) -> LayoutGuidance:
-    asset_type = str(
-        brief.get(
-            "asset_type"
-        )
-        or "none"
-    ).lower()
+    """
+    Layout coordinates are deterministic.
 
-    asset_placement = str(
-        brief.get(
-            "asset_placement"
+    We do not trust an LLM to calculate asset placement coordinates.
+    """
+
+    asset_type = (
+        str(
+            brief.get(
+                "asset_type"
+            )
+            or "none"
         )
-        or "center"
-    ).lower()
+        .strip()
+        .lower()
+    )
+
+    asset_placement = (
+        str(
+            brief.get(
+                "asset_placement"
+            )
+            or "center"
+        )
+        .strip()
+        .lower()
+    )
 
     if (
         asset_type
@@ -356,72 +419,84 @@ def safe_layout(
         )
 
         #
-        # The complete text hierarchy starts
-        # underneath the top asset.
+        # Asset:
+        # y = 0.045 -> 0.205
         #
-        title_zone = LayoutZone(
-            x=0.10,
-            y=0.245,
-            width=0.80,
-            height=0.12,
+        # Content begins below it.
+        #
+        title_zone = (
+            LayoutZone(
+                x=0.10,
+                y=0.245,
+                width=0.80,
+                height=0.12,
+            )
         )
 
-        programme_zone = LayoutZone(
-            x=0.10,
-            y=0.43,
-            width=0.80,
-            height=0.47,
+        programme_zone = (
+            LayoutZone(
+                x=0.10,
+                y=0.43,
+                width=0.80,
+                height=0.47,
+            )
         )
 
         if (
             asset_type
             == "headshot"
         ):
-            return LayoutGuidance(
+            return (
+                LayoutGuidance(
+                    title_zone=(
+                        title_zone
+                    ),
+                    programme_zone=(
+                        programme_zone
+                    ),
+                    headshot_zone=(
+                        asset_zone
+                    ),
+                    logo_zone=None,
+                )
+            )
+
+        return (
+            LayoutGuidance(
                 title_zone=(
                     title_zone
                 ),
                 programme_zone=(
                     programme_zone
                 ),
-                headshot_zone=(
+                headshot_zone=None,
+                logo_zone=(
                     asset_zone
                 ),
-                logo_zone=None,
             )
-
-        return LayoutGuidance(
-            title_zone=(
-                title_zone
-            ),
-            programme_zone=(
-                programme_zone
-            ),
-            headshot_zone=None,
-            logo_zone=(
-                asset_zone
-            ),
         )
 
-    return LayoutGuidance(
-        title_zone=(
-            LayoutZone(
-                x=0.10,
-                y=0.08,
-                width=0.80,
-                height=0.12,
-            )
-        ),
-        programme_zone=(
-            LayoutZone(
-                x=0.10,
-                y=0.47,
-                width=0.80,
-                height=0.40,
-            )
-        ),
-        headshot_zone=None,
-        logo_zone=None,
+    return (
+        LayoutGuidance(
+            title_zone=(
+                LayoutZone(
+                    x=0.10,
+                    y=0.08,
+                    width=0.80,
+                    height=0.12,
+                )
+            ),
+            programme_zone=(
+                LayoutZone(
+                    x=0.10,
+                    y=0.47,
+                    width=0.80,
+                    height=0.40,
+                )
+            ),
+            headshot_zone=None,
+            logo_zone=None,
+        )
     )
 
 
@@ -432,7 +507,8 @@ def direction_configuration(
     str,
 ]:
     normalized = (
-        direction_id.lower()
+        direction_id
+        .lower()
     )
 
     if (
@@ -474,22 +550,31 @@ def composition_variant(
         ),
         "b": (
             "Create an asymmetric corner-led composition with visual "
-            "weight anchored at opposite corners and a calm overlay field."
+            "weight anchored at opposite corners and a calm central field."
         ),
         "c": (
             "Create a structured side-led composition with vertical "
-            "or diagonal detail at the edges and a calm central overlay field."
+            "or diagonal detail at the edges and a calm central field."
         ),
     }
 
-    return variants[
-        direction_id.lower()
-    ]
+    return (
+        variants[
+            direction_id.lower()
+        ]
+    )
 
 
 def background_design_summary(
     brief: dict,
 ) -> str:
+    """
+    Used inside the meta-prompt supplied to the creative model.
+
+    It may contain layout information because it is not itself the
+    diffusion positive prompt.
+    """
+
     return (
         "Main subject: "
         + str(
@@ -524,9 +609,9 @@ def background_design_summary(
             brief.get(
                 "background_composition"
             )
-            or "quiet upper and lower overlay zones"
+            or "detail near outer edges with a calm central field"
         )
-        + ". Asset layout: "
+        + ". Layout contract: "
         + asset_layout_description(
             brief
         )
@@ -537,6 +622,22 @@ def background_design_summary(
 def background_positive_requirements(
     brief: dict,
 ) -> str:
+    """
+    SAFE FOR APPENDING TO THE DIFFUSION POSITIVE PROMPT.
+
+    Do not put:
+      title
+      programme
+      program
+      text
+      logo
+      headshot
+      asset
+    into this string.
+
+    Layout zones are handled separately in safe_layout().
+    """
+
     return (
         "Main visual subject: "
         + str(
@@ -564,24 +665,27 @@ def background_positive_requirements(
             brief.get(
                 "background_composition"
             )
-            or "quiet upper and lower overlay zones"
+            or (
+                "decorative detail near outer edges "
+                "with a calm open central field"
+            )
         )
-        + ". "
-        + asset_layout_description(
-            brief
-        )
+        + "."
     )
 
 
 def background_negative_constraints(
     brief: dict,
 ) -> str:
-    return str(
-        brief.get(
-            "background_exclusions"
+    return (
+        str(
+            brief.get(
+                "background_exclusions"
+            )
+            or "unrelated generic imagery"
         )
-        or "unrelated generic imagery"
-    ).strip()
+        .strip()
+    )
 
 
 def fallback_prompt(
@@ -598,18 +702,35 @@ def fallback_prompt(
         f"{role} abstract A4 portrait decorative event background, "
         f"{palette} "
         "strong tonal contrast, "
-        "clear separation between light and dark visual regions, "
-        "high-contrast composition suitable for readable overlays, "
+        "clear tonal separation, "
         "refined layered materials, "
         "controlled lighting, "
         "abstract geometric and environmental motifs, "
         "balanced border details, "
         "subtle depth and texture, "
         "generous visual breathing room, "
-        "quiet upper and central regions reserved for later composition. "
-        + background_design_summary(
-            brief
+        "calm upper and central regions, "
+        + str(
+            brief.get(
+                "background_subject"
+            )
+            or "abstract event motifs"
         )
+        + ", "
+        + str(
+            brief.get(
+                "background_style"
+            )
+            or "refined event artwork"
+        )
+        + ", "
+        + str(
+            brief.get(
+                "background_motifs"
+            )
+            or "subtle decorative forms"
+        )
+        + "."
     )
 
 
@@ -659,8 +780,10 @@ def sanitize_positive_prompt(
                 clause
             )
 
-    result = ", ".join(
-        clean
+    result = (
+        ", ".join(
+            clean
+        )
     )
 
     if (
@@ -669,7 +792,7 @@ def sanitize_positive_prompt(
         )
         < 40
     ):
-        return (
+        result = (
             fallback_prompt(
                 brief,
                 role,
@@ -682,7 +805,7 @@ def sanitize_positive_prompt(
         )
     )
 
-    return (
+    result = (
         result.rstrip(
             ". "
         )
@@ -692,9 +815,67 @@ def sanitize_positive_prompt(
         + background_positive_requirements(
             brief
         )
-        + " Use theme references only as abstract visual motifs. "
-        + "Never depict or describe a named person, fictional "
-        + "character, hero, superhero, mascot or humanoid subject."
+        + " Theme references are represented through abstract "
+        + "geometry, patterns, materials, architecture, atmosphere "
+        + "and colour relationships."
+    )
+
+    #
+    # Final defensive sanitisation.
+    #
+    # Because deterministic content is appended above, run another
+    # pass to make sure forbidden rendering concepts were not
+    # accidentally reintroduced.
+    #
+    clauses = re.split(
+        r"[,;.!?]+",
+        result,
+    )
+
+    clean_final = []
+
+    for clause in clauses:
+        clause = (
+            clause.strip()
+        )
+
+        if not clause:
+            continue
+
+        blocked = any(
+            re.search(
+                rf"\b{re.escape(term)}\b",
+                clause,
+                re.IGNORECASE,
+            )
+            for term
+            in POSITIVE_PROMPT_FORBIDDEN_TERMS
+        )
+
+        if not blocked:
+            clean_final.append(
+                clause
+            )
+
+    final_prompt = (
+        ", ".join(
+            clean_final
+        )
+        .strip()
+    )
+
+    if (
+        len(
+            final_prompt
+        )
+        < 40
+    ):
+        raise ValueError(
+            "Sanitised positive prompt became too short."
+        )
+
+    return (
+        final_prompt
     )
 
 
@@ -704,6 +885,24 @@ def build_creative_direction_prompt(
     role: str,
     correction_error: str | None = None,
 ) -> str:
+    asset_type = (
+        str(
+            brief.get(
+                "asset_type"
+            )
+            or "none"
+        )
+        .lower()
+    )
+
+    asset_enabled = (
+        asset_type
+        in {
+            "headshot",
+            "logo",
+        }
+    )
+
     requirements = [
         (
             "Use the supplied event brief as the source of truth."
@@ -712,90 +911,80 @@ def build_creative_direction_prompt(
             "Create visual background artwork rather than a finished poster."
         ),
         (
-            "Keep the positive_prompt purely descriptive."
+            "Keep positive_prompt purely visual and descriptive."
         ),
         (
-            "Put exclusions and unwanted content only in negative_prompt."
+            "Never mention title, programme, text, logo, headshot, "
+            "schedule, agenda or typography inside positive_prompt."
         ),
         (
-            "If the event brief mentions a named person, fictional "
-            "character, superhero, mascot, celebrity or franchise "
-            "character, translate that reference into abstract motifs, "
-            "shapes, textures, colours, patterns, architecture or "
-            "atmosphere only."
+            "Put exclusions and unwanted rendering concepts only "
+            "inside negative_prompt."
         ),
         (
-            "Never place the named character, person, hero, superhero, "
-            "mascot or humanoid subject itself in positive_prompt."
+            "If the event brief uses a recognizable person, fictional "
+            "character, superhero, mascot, celebrity or franchise, "
+            "translate the reference into abstract geometry, materials, "
+            "patterns, architecture, atmosphere and colour relationships."
         ),
         (
-            "For comic or superhero-inspired themes, use abstract comic "
-            "energy, geometric web patterns, speed lines, city geometry "
-            "and colour relationships without depicting any hero or character."
+            "Never place the referenced person or character itself "
+            "inside positive_prompt."
         ),
         (
-            "The positive_prompt must describe visual style, composition, "
-            "materials, lighting, atmosphere and the requested colour palette."
+            "The requested primary colour must be clearly visible "
+            "and dominant."
         ),
         (
-            "The requested primary colour must be clearly visible and dominant."
+            "The requested secondary colour must visibly support "
+            "the primary colour."
         ),
         (
-            "The requested secondary colour must support the primary colour."
+            "Do not introduce visible colour families that were not "
+            "explicitly requested."
         ),
         (
-            "Do not introduce any visible colour family that is not explicitly "
-            "requested. Tonal variation should remain inside the requested "
-            "colour families."
+            "Use strong tonal contrast without inventing an "
+            "unrequested colour family."
         ),
         (
-            "The background must use strong tonal contrast without inventing "
-            "unrequested colours for contrast."
+            "Follow background subject, style, motifs, exclusions "
+            "and composition exactly."
         ),
         (
-            "The background must remain visually readable when adaptive "
-            "programme text is placed over it later."
-        ),
-        (
-            "Do not make the whole image uniformly pale, uniformly dark, "
-            "washed out or low contrast."
-        ),
-        (
-            "The negative_prompt must exclude people, faces, human figures, "
-            "portraits, silhouettes, body parts, mannequins, clothing, "
-            "characters, heroes, superheroes, mascots, costumes, humanoids, "
-            "text, words, letters, numbers, logos and watermarks."
-        ),
-        (
-            "The negative_prompt must exclude every colour family outside "
-            "the requested palette without accidentally banning the requested "
-            "colour names themselves."
-        ),
-        (
-            "Follow the requested background subject, style, motifs, "
-            "exclusions and composition exactly."
-        ),
-        (
-            "Apply this deliberate composition variation: "
+            "Apply this composition variation: "
             + composition_variant(
                 direction_id
             )
         ),
         (
-            "Leave visually quiet regions suitable for title and "
-            "programme overlays added later."
+            "Preserve calm visual regions through the composition."
         ),
         (
-            "If an uploaded asset is enabled, reserve a quiet asset area "
-            "at the requested top-left, top-center or top-right position."
+            "Layout coordinates must follow the supplied layout contract."
         ),
         (
-            "If an uploaded asset is enabled, all title, event-detail and "
-            "programme text zones must begin underneath the asset. "
-            "Do not place text beside the asset or above it."
+            "Return JSON matching the supplied output schema."
         ),
-        "Return JSON matching the supplied output schema.",
     ]
+
+    if asset_enabled:
+        requirements.extend(
+            [
+                (
+                    "A reserved top layout zone is required for "
+                    f"the selected {asset_type}."
+                ),
+                (
+                    "All non-asset layout zones must begin below "
+                    "the reserved top asset zone."
+                ),
+                (
+                    "Do not describe the reserved asset inside "
+                    "positive_prompt; it belongs only in layout_guidance."
+                ),
+            ]
+        )
 
     payload = {
         "task": (
@@ -826,11 +1015,11 @@ def build_creative_direction_prompt(
             )
         ),
         "asset_layout_contract": {
+            "enabled": (
+                asset_enabled
+            ),
             "asset_type": (
-                brief.get(
-                    "asset_type",
-                    "none",
-                )
+                asset_type
             ),
             "horizontal_placement": (
                 brief.get(
@@ -842,7 +1031,7 @@ def build_creative_direction_prompt(
                     "asset_vertical_position"
                 )
             ),
-            "text_flow": (
+            "flow": (
                 brief.get(
                     "text_flow"
                 )
@@ -853,8 +1042,12 @@ def build_creative_direction_prompt(
                 )
             ),
         },
-        "creative_role": role,
-        "event_brief": brief,
+        "creative_role": (
+            role
+        ),
+        "event_brief": (
+            brief
+        ),
         "positive_palette_description": (
             positive_palette_description(
                 brief
@@ -871,22 +1064,19 @@ def build_creative_direction_prompt(
             "background_only": True,
             "characters_allowed": False,
             "people_allowed": False,
-            "asset_position_is_top": (
-                brief.get(
-                    "asset_type",
-                    "none",
-                )
-                != "none"
+            "asset_enabled": (
+                asset_enabled
             ),
-            "text_below_asset": (
-                brief.get(
-                    "asset_type",
-                    "none",
-                )
-                != "none"
+            "asset_position_is_top": (
+                asset_enabled
+            ),
+            "content_below_asset": (
+                asset_enabled
             ),
         },
-        "requirements": requirements,
+        "requirements": (
+            requirements
+        ),
         "output_schema": (
             CreativeDirectionOutput
             .model_json_schema()
@@ -901,15 +1091,18 @@ def build_creative_direction_prompt(
                 correction_error
             ),
             "instruction": (
-                "Return a corrected creative direction that "
-                "satisfies the schema and validation requirements."
+                "Return a corrected creative direction. "
+                "Fix the exact validation problem while preserving "
+                "the original event brief."
             ),
         }
 
-    return json.dumps(
-        payload,
-        ensure_ascii=False,
-        indent=2,
+    return (
+        json.dumps(
+            payload,
+            ensure_ascii=False,
+            indent=2,
+        )
     )
 
 
@@ -933,7 +1126,9 @@ async def generate_creative_direction(
     prompt = (
         build_creative_direction_prompt(
             brief=brief,
-            direction_id=direction_id,
+            direction_id=(
+                direction_id
+            ),
             role=role,
             correction_error=(
                 correction_error
@@ -965,7 +1160,9 @@ async def generate_creative_direction(
         direction_id.upper()
     )
 
-    direction.role = role
+    direction.role = (
+        role
+    )
 
     direction.positive_prompt = (
         sanitize_positive_prompt(
@@ -1005,11 +1202,15 @@ async def generate_creative_direction(
                     "letters, numbers, writing, calligraphy, "
                     "signature, logo, watermark, signage"
                 ),
-                palette_negative(
-                    brief
+                (
+                    palette_negative(
+                        brief
+                    )
                 ),
-                background_negative_constraints(
-                    brief
+                (
+                    background_negative_constraints(
+                        brief
+                    )
                 ),
             )
             if value
@@ -1017,10 +1218,9 @@ async def generate_creative_direction(
     )
 
     #
-    # Never trust the LLM to calculate layout coordinates.
+    # LLM layout output is ignored.
     #
-    # We deterministically replace its layout guidance with
-    # the Grill-Me asset-layout contract.
+    # The user's Grill-Me placement answer is the source of truth.
     #
     direction.layout_guidance = (
         safe_layout(
@@ -1034,4 +1234,6 @@ async def generate_creative_direction(
         model,
     )
 
-    return direction
+    return (
+        direction
+    )

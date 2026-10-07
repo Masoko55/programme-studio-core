@@ -14,23 +14,29 @@
     }
   },
   "16": {
-    "class_type": "CLIPTextEncode",
+    "class_type": "CLIPTextEncodeSD3",
     "inputs": {
-      "text": "${positive_prompt}",
       "clip": [
         "54",
         0
-      ]
+      ],
+      "clip_l": "${positive_prompt}",
+      "clip_g": "${positive_prompt}",
+      "t5xxl": "${positive_prompt}",
+      "empty_padding": "none"
     }
   },
   "40": {
-    "class_type": "CLIPTextEncode",
+    "class_type": "CLIPTextEncodeSD3",
     "inputs": {
-      "text": "${negative_prompt}",
       "clip": [
         "54",
         0
-      ]
+      ],
+      "clip_l": "${negative_prompt}",
+      "clip_g": "${negative_prompt}",
+      "t5xxl": "${negative_prompt}",
+      "empty_padding": "none"
     }
   },
   "53": {
@@ -45,10 +51,10 @@
     "class_type": "KSampler",
     "inputs": {
       "seed": "${seed}",
-      "steps": 28,
-      "cfg": 4.5,
+      "steps": 30,
+      "cfg": 5.0,
       "sampler_name": "euler",
-      "scheduler": "sgm_uniform",
+      "scheduler": "simple",
       "denoise": 1.0,
       "model": [
         "4",

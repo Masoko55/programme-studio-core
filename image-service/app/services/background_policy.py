@@ -8,6 +8,10 @@ import numpy as np
 
 from PIL import Image
 
+from app.services.visual_quality import (
+    validate_visual_quality,
+)
+
 
 NAMED_COLOURS = {
     "black": (0, 0, 0),
@@ -129,29 +133,6 @@ DARK_CHROMATIC_NAMES = {
 }
 
 
-# Strict tonal families.
-#
-# These are intentionally narrow. They allow dark/light tonal
-# variants of an explicitly requested colour without turning the
-# validator into a general "similar colour" matcher.
-#
-# Examples:
-#
-#   royal blue -> blue / royal blue / navy
-#   red        -> red / maroon / burgundy
-#
-# But royal blue does NOT permit:
-#
-#   sky blue
-#   cyan
-#   aqua
-#   turquoise
-#   purple
-#   white
-#   silver
-#   grey
-#
-# Unrequested neutral colours therefore remain rejected.
 COLOUR_FAMILIES = {
     "red": {
         "red",
@@ -289,36 +270,39 @@ COLOUR_FAMILIES = {
 
 
 MAX_OFF_PALETTE_RATIO = 0.05
+
 MIN_PRIMARY_COLOUR_RATIO = 0.05
+
 MIN_SECONDARY_COLOUR_RATIO = 0.008
+
 MIN_BLACK_WHITE_RATIO = 0.90
 
+
 MAX_HUE_DISTANCE = 20
+
 DARK_MAX_HUE_DISTANCE = 26
 
+
 DARK_MIN_SATURATION = 22
+
 DARK_MIN_VALUE = 10
 
+
 STANDARD_MIN_SATURATION = 42
+
 STANDARD_MIN_VALUE = 32
+
 
 NEUTRAL_MAX_SATURATION = 34
 
-MIN_HOG_PERSON_WEIGHT = 0.75
-MIN_FACE_SIZE = 42
-MIN_PROFILE_SIZE = 46
-MIN_UPPER_BODY_SIZE = 70
 
-QUALITY_SAMPLE_WIDTH = 256
-QUALITY_SAMPLE_HEIGHT = 352
-QUALITY_EDGE_THRESHOLD = 30.0
-QUALITY_DIRECTIONAL_MULTIPLIER = 2.75
-MAX_DIRECTIONAL_EDGE_DOMINANCE = 0.82
-MIN_DIRECTIONAL_EDGE_DENSITY = 0.16
-MIN_FULL_SPAN_LINE_RATIO = 0.18
-MAX_SINGLE_QUANTISED_COLOUR_RATIO = 0.965
-MIN_FLAT_IMAGE_EDGE_DENSITY = 0.010
-MIN_FLAT_IMAGE_ENTROPY = 2.10
+MIN_HOG_PERSON_WEIGHT = 0.75
+
+MIN_FACE_SIZE = 42
+
+MIN_PROFILE_SIZE = 46
+
+MIN_UPPER_BODY_SIZE = 70
 
 
 BACKGROUND_ONLY_NEGATIVE = (
@@ -398,9 +382,10 @@ BACKGROUND_ONLY_SUFFIX = (
     "Do not generate full-frame scanlines, raster banding, repetitive "
     "horizontal or vertical line corruption, moire, glitch artefacts, "
     "broken image textures or blank flat image fields. "
-    "Use coherent abstract patterns, materials, textures, ornament, "
-    "lines, gradients, shapes, architecture and environmental design "
-    "elements only. "
+    "Do not generate a featureless full-page gradient, plain colour wash, "
+    "grain-only texture or noise-only image. "
+    "Use coherent abstract patterns, ornament, lines, shapes, architecture "
+    "and environmental design elements. "
     "Preserve visually quiet regions for later title and programme text."
 )
 
@@ -446,7 +431,10 @@ def _clean_colour_text(
     cleaned = (
         value.strip()
         .lower()
-        .replace("_", " ")
+        .replace(
+            "_",
+            " ",
+        )
     )
 
     cleaned = re.sub(
@@ -455,12 +443,19 @@ def _clean_colour_text(
         cleaned,
     )
 
-    return cleaned or None
+    return (
+        cleaned
+        or None
+    )
 
 
 def _extract_hex_colour(
     value: str | None,
-) -> tuple[int, int, int] | None:
+) -> tuple[
+    int,
+    int,
+    int,
+] | None:
     if not value:
         return None
 
@@ -472,29 +467,62 @@ def _extract_hex_colour(
     if not match:
         return None
 
-    raw = match.group(1)
+    raw = (
+        match.group(
+            1
+        )
+    )
 
     return (
-        int(raw[0:2], 16),
-        int(raw[2:4], 16),
-        int(raw[4:6], 16),
+        int(
+            raw[
+                0:2
+            ],
+            16,
+        ),
+        int(
+            raw[
+                2:4
+            ],
+            16,
+        ),
+        int(
+            raw[
+                4:6
+            ],
+            16,
+        ),
     )
 
 
 def _remove_modifiers(
     value: str,
-) -> tuple[str, list[str]]:
+) -> tuple[
+    str,
+    list[str],
+]:
     modifiers = []
     remaining = []
 
-    for word in value.split():
-        if word in COLOUR_MODIFIERS:
-            modifiers.append(word)
+    for word in (
+        value.split()
+    ):
+        if (
+            word
+            in COLOUR_MODIFIERS
+        ):
+            modifiers.append(
+                word
+            )
         else:
-            remaining.append(word)
+            remaining.append(
+                word
+            )
 
     return (
-        " ".join(remaining).strip(),
+        " ".join(
+            remaining
+        ).strip(),
         modifiers,
     )
 
@@ -502,7 +530,11 @@ def _remove_modifiers(
 def colour_descriptor(
     value: str | None,
 ) -> dict:
-    cleaned = _clean_colour_text(value)
+    cleaned = (
+        _clean_colour_text(
+            value
+        )
+    )
 
     if not cleaned:
         return {
@@ -515,9 +547,16 @@ def colour_descriptor(
             "is_hex": False,
         }
 
-    hex_rgb = _extract_hex_colour(cleaned)
+    hex_rgb = (
+        _extract_hex_colour(
+            cleaned
+        )
+    )
 
-    if hex_rgb is not None:
+    if (
+        hex_rgb
+        is not None
+    ):
         return {
             "raw": value,
             "cleaned": cleaned,
@@ -528,21 +567,34 @@ def colour_descriptor(
             "is_hex": True,
         }
 
-    alias_direct = COLOUR_ALIASES.get(cleaned)
+    alias_direct = (
+        COLOUR_ALIASES.get(
+            cleaned
+        )
+    )
 
     if alias_direct:
         return {
             "raw": value,
             "cleaned": cleaned,
             "base_name": alias_direct,
-            "rgb": NAMED_COLOURS.get(alias_direct),
+            "rgb": (
+                NAMED_COLOURS.get(
+                    alias_direct
+                )
+            ),
             "modifiers": [],
             "modifier_only": False,
             "is_hex": False,
         }
 
-    base_candidate, modifiers = _remove_modifiers(
-        cleaned
+    (
+        base_candidate,
+        modifiers,
+    ) = (
+        _remove_modifiers(
+            cleaned
+        )
     )
 
     if not base_candidate:
@@ -552,30 +604,49 @@ def colour_descriptor(
             "base_name": None,
             "rgb": None,
             "modifiers": modifiers,
-            "modifier_only": bool(modifiers),
+            "modifier_only": bool(
+                modifiers
+            ),
             "is_hex": False,
         }
 
-    base_candidate = COLOUR_ALIASES.get(
-        base_candidate,
-        base_candidate,
+    base_candidate = (
+        COLOUR_ALIASES.get(
+            base_candidate,
+            base_candidate,
+        )
     )
 
-    if base_candidate in NAMED_COLOURS:
+    if (
+        base_candidate
+        in NAMED_COLOURS
+    ):
         return {
             "raw": value,
             "cleaned": cleaned,
-            "base_name": base_candidate,
-            "rgb": NAMED_COLOURS[base_candidate],
-            "modifiers": modifiers,
+            "base_name": (
+                base_candidate
+            ),
+            "rgb": (
+                NAMED_COLOURS[
+                    base_candidate
+                ]
+            ),
+            "modifiers": (
+                modifiers
+            ),
             "modifier_only": False,
             "is_hex": False,
         }
 
     candidates = sorted(
         set(
-            list(NAMED_COLOURS.keys())
-            + list(COLOUR_ALIASES.keys())
+            list(
+                NAMED_COLOURS.keys()
+            )
+            + list(
+                COLOUR_ALIASES.keys()
+            )
         ),
         key=len,
         reverse=True,
@@ -588,12 +659,17 @@ def colour_descriptor(
         ):
             continue
 
-        canonical = COLOUR_ALIASES.get(
-            candidate,
-            candidate,
+        canonical = (
+            COLOUR_ALIASES.get(
+                candidate,
+                candidate,
+            )
         )
 
-        if canonical not in NAMED_COLOURS:
+        if (
+            canonical
+            not in NAMED_COLOURS
+        ):
             continue
 
         remaining_words = (
@@ -608,16 +684,29 @@ def colour_descriptor(
 
         detected_modifiers = [
             word
-            for word in remaining_words
-            if word in COLOUR_MODIFIERS
+            for word
+            in remaining_words
+            if (
+                word
+                in COLOUR_MODIFIERS
+            )
         ]
 
         return {
             "raw": value,
             "cleaned": cleaned,
-            "base_name": canonical,
-            "rgb": NAMED_COLOURS[canonical],
-            "modifiers": modifiers + detected_modifiers,
+            "base_name": (
+                canonical
+            ),
+            "rgb": (
+                NAMED_COLOURS[
+                    canonical
+                ]
+            ),
+            "modifiers": (
+                modifiers
+                + detected_modifiers
+            ),
             "modifier_only": False,
             "is_hex": False,
         }
@@ -628,36 +717,103 @@ def colour_descriptor(
         "base_name": None,
         "rgb": None,
         "modifiers": modifiers,
-        "modifier_only": bool(modifiers),
+        "modifier_only": bool(
+            modifiers
+        ),
         "is_hex": False,
     }
+
+
+def constrain_to_requested_palette(
+    image: Image.Image,
+    primary_colour: str | None,
+    secondary_colour: str | None,
+) -> Image.Image:
+    """Map an engine output to the supplied colour families.
+
+    SDXL and SD3.5 regularly introduce white and neutral surfaces despite a
+    two-colour prompt.  This keeps their composition and luminance structure
+    while making every rendered pixel a tonal variation of a requested colour.
+    """
+    descriptors = [
+        colour_descriptor(value)
+        for value in (primary_colour, secondary_colour)
+    ]
+    targets = [
+        item["rgb"]
+        for item in descriptors
+        if item["rgb"] is not None
+    ]
+    if not targets:
+        return image.convert("RGB")
+
+    rgb = np.asarray(image.convert("RGB"), dtype=np.uint8)
+    hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
+    value = hsv[:, :, 2].astype(np.float32) / 255.0
+    saturation = hsv[:, :, 1]
+    source_hue = hsv[:, :, 0].astype(np.float32)
+
+    target_rgb = np.asarray(targets, dtype=np.float32)
+    target_hsv = cv2.cvtColor(
+        target_rgb.astype(np.uint8).reshape(1, -1, 3),
+        cv2.COLOR_RGB2HSV,
+    ).reshape(-1, 3)
+    target_hue = target_hsv[:, 0].astype(np.float32)
+
+    hue_delta = np.abs(source_hue[:, :, None] - target_hue[None, None, :])
+    hue_delta = np.minimum(hue_delta, 180.0 - hue_delta)
+    target_index = np.argmin(hue_delta, axis=2)
+    # Neutrals have no usable hue.  Make them part of the primary field.
+    target_index[saturation < 28] = 0
+
+    selected = target_rgb[target_index]
+    # Preserve dark/light design structure without creating white or grey.
+    tonal_scale = 0.20 + (0.80 * value[:, :, None])
+    constrained = np.clip(selected * tonal_scale, 0, 255).astype(np.uint8)
+    return Image.fromarray(constrained, mode="RGB")
 
 
 def normalize_colour_name(
     value: str | None,
 ) -> str | None:
-    return colour_descriptor(
-        value
-    )["base_name"]
+    return (
+        colour_descriptor(
+            value
+        )[
+            "base_name"
+        ]
+    )
 
 
 def parse_colour(
     value: str | None,
-) -> tuple[int, int, int] | None:
-    return colour_descriptor(
-        value
-    )["rgb"]
+) -> tuple[
+    int,
+    int,
+    int,
+] | None:
+    return (
+        colour_descriptor(
+            value
+        )[
+            "rgb"
+        ]
+    )
 
 
 def _prompt_colour_label(
     value: str | None,
 ) -> str | None:
-    descriptor = colour_descriptor(
-        value
+    descriptor = (
+        colour_descriptor(
+            value
+        )
     )
 
     return (
-        descriptor["cleaned"]
+        descriptor[
+            "cleaned"
+        ]
         or None
     )
 
@@ -675,14 +831,19 @@ def requested_palette_names(
         name = (
             colour_descriptor(
                 value
-            )["base_name"]
+            )[
+                "base_name"
+            ]
         )
 
         if (
             name
-            and name not in colours
+            and name
+            not in colours
         ):
-            colours.append(name)
+            colours.append(
+                name
+            )
 
     return colours
 
@@ -691,33 +852,47 @@ def palette_prompt_contract(
     primary_colour: str | None,
     secondary_colour: str | None,
 ) -> str:
-    primary_descriptor = colour_descriptor(
-        primary_colour
+    primary_descriptor = (
+        colour_descriptor(
+            primary_colour
+        )
     )
 
-    secondary_descriptor = colour_descriptor(
-        secondary_colour
+    secondary_descriptor = (
+        colour_descriptor(
+            secondary_colour
+        )
     )
 
-    primary_label = _prompt_colour_label(
-        primary_colour
+    primary_label = (
+        _prompt_colour_label(
+            primary_colour
+        )
     )
 
-    secondary_label = _prompt_colour_label(
-        secondary_colour
+    secondary_label = (
+        _prompt_colour_label(
+            secondary_colour
+        )
     )
 
-    primary_base = primary_descriptor[
-        "base_name"
-    ]
+    primary_base = (
+        primary_descriptor[
+            "base_name"
+        ]
+    )
 
-    secondary_base = secondary_descriptor[
-        "base_name"
-    ]
+    secondary_base = (
+        secondary_descriptor[
+            "base_name"
+        ]
+    )
 
-    measurable_names = requested_palette_names(
-        primary_colour,
-        secondary_colour,
+    measurable_names = (
+        requested_palette_names(
+            primary_colour,
+            secondary_colour,
+        )
     )
 
     requested_names = set(
@@ -725,8 +900,12 @@ def palette_prompt_contract(
     )
 
     statements = [
-        "STRICT COLOUR PALETTE CONTRACT.",
-        "Use only the explicitly requested colour families.",
+        (
+            "STRICT COLOUR PALETTE CONTRACT."
+        ),
+        (
+            "Use only the explicitly requested colour families."
+        ),
         (
             "Do not substitute the requested colours with colours "
             "that merely fit the event theme."
@@ -748,9 +927,11 @@ def palette_prompt_contract(
             )
         )
 
-    elif primary_descriptor[
-        "modifier_only"
-    ]:
+    elif (
+        primary_descriptor[
+            "modifier_only"
+        ]
+    ):
         modifier_text = " ".join(
             primary_descriptor[
                 "modifiers"
@@ -776,9 +957,11 @@ def palette_prompt_contract(
             )
         )
 
-    elif secondary_descriptor[
-        "modifier_only"
-    ]:
+    elif (
+        secondary_descriptor[
+            "modifier_only"
+        ]
+    ):
         modifier_text = " ".join(
             secondary_descriptor[
                 "modifiers"
@@ -797,19 +980,28 @@ def palette_prompt_contract(
             (
                 "No other visible colour family is allowed. "
                 "The only allowed named colour families are: "
-                + ", ".join(measurable_names)
+                + ", ".join(
+                    measurable_names
+                )
                 + "."
             )
         )
 
-    if requested_names == {
-        "black",
-        "white",
-    }:
+    if (
+        requested_names
+        == {
+            "black",
+            "white",
+        }
+    ):
         statements.extend(
             [
-                "This design must remain strictly achromatic.",
-                "No coloured lighting or coloured tint.",
+                (
+                    "This design must remain strictly achromatic."
+                ),
+                (
+                    "No coloured lighting or coloured tint."
+                ),
             ]
         )
 
@@ -852,9 +1044,11 @@ def palette_negative_contract(
     primary_colour: str | None,
     secondary_colour: str | None,
 ) -> str:
-    measurable = requested_palette_names(
-        primary_colour,
-        secondary_colour,
+    measurable = (
+        requested_palette_names(
+            primary_colour,
+            secondary_colour,
+        )
     )
 
     if not measurable:
@@ -872,7 +1066,9 @@ def palette_negative_contract(
         "that was not requested. "
         "Keep every visible colour inside the requested "
         "colour families: "
-        + ", ".join(measurable)
+        + ", ".join(
+            measurable
+        )
     )
 
 
@@ -887,7 +1083,9 @@ def sanitize_background_prompt(
     kept = []
 
     for clause in clauses:
-        clause = clause.strip()
+        clause = (
+            clause.strip()
+        )
 
         if not clause:
             continue
@@ -898,14 +1096,21 @@ def sanitize_background_prompt(
                 clause,
                 re.IGNORECASE,
             )
-            for term in FORBIDDEN_PROMPT_TERMS
+            for term
+            in FORBIDDEN_PROMPT_TERMS
         )
 
-        if not contains_forbidden:
-            kept.append(clause)
+        if not (
+            contains_forbidden
+        ):
+            kept.append(
+                clause
+            )
 
     return (
-        ", ".join(kept)
+        ", ".join(
+            kept
+        )
         or (
             "refined abstract decorative background "
             "with generous negative space"
@@ -918,13 +1123,17 @@ def build_engine_prompt(
     primary_colour: str | None,
     secondary_colour: str | None,
 ) -> str:
-    visual = sanitize_background_prompt(
-        positive_prompt
+    visual = (
+        sanitize_background_prompt(
+            positive_prompt
+        )
     )
 
-    palette = palette_prompt_contract(
-        primary_colour,
-        secondary_colour,
+    palette = (
+        palette_prompt_contract(
+            primary_colour,
+            secondary_colour,
+        )
     )
 
     return (
@@ -938,26 +1147,53 @@ def build_engine_prompt(
 
 
 def _rgb_to_hsv(
-    colour: tuple[int, int, int],
-) -> tuple[int, int, int]:
+    colour: tuple[
+        int,
+        int,
+        int,
+    ],
+) -> tuple[
+    int,
+    int,
+    int,
+]:
     pixel = np.array(
-        [[colour]],
+        [
+            [
+                colour
+            ]
+        ],
         dtype=np.uint8,
     )
 
-    converted = cv2.cvtColor(
-        pixel,
-        cv2.COLOR_RGB2HSV,
+    converted = (
+        cv2.cvtColor(
+            pixel,
+            cv2.COLOR_RGB2HSV,
+        )
     )
 
-    hue, saturation, value = (
-        converted[0, 0]
+    (
+        hue,
+        saturation,
+        value,
+    ) = (
+        converted[
+            0,
+            0,
+        ]
     )
 
     return (
-        int(hue),
-        int(saturation),
-        int(value),
+        int(
+            hue
+        ),
+        int(
+            saturation
+        ),
+        int(
+            value
+        ),
     )
 
 
@@ -966,51 +1202,85 @@ def _hue_distance(
     second: int,
 ) -> int:
     raw = abs(
-        first - second
+        first
+        - second
     )
 
     return min(
         raw,
-        180 - raw,
+        180
+        - raw,
     )
 
 
 def _is_dark_target(
     name: str,
-    rgb: tuple[int, int, int],
+    rgb: tuple[
+        int,
+        int,
+        int,
+    ],
 ) -> bool:
-    if name in DARK_CHROMATIC_NAMES:
+    if (
+        name
+        in DARK_CHROMATIC_NAMES
+    ):
         return True
 
-    _, _, value = _rgb_to_hsv(
-        rgb
+    (
+        _,
+        _,
+        value,
+    ) = (
+        _rgb_to_hsv(
+            rgb
+        )
     )
 
-    return value <= 125
+    return (
+        value
+        <= 125
+    )
 
 
 def _target_hue_limit(
     name: str,
-    rgb: tuple[int, int, int],
+    rgb: tuple[
+        int,
+        int,
+        int,
+    ],
 ) -> int:
-    if _is_dark_target(
-        name,
-        rgb,
+    if (
+        _is_dark_target(
+            name,
+            rgb,
+        )
     ):
-        return DARK_MAX_HUE_DISTANCE
+        return (
+            DARK_MAX_HUE_DISTANCE
+        )
 
-    return MAX_HUE_DISTANCE
+    return (
+        MAX_HUE_DISTANCE
+    )
 
 
 def _pixel_can_match_target(
     saturation: int,
     value: int,
     name: str,
-    rgb: tuple[int, int, int],
+    rgb: tuple[
+        int,
+        int,
+        int,
+    ],
 ) -> bool:
-    if _is_dark_target(
-        name,
-        rgb,
+    if (
+        _is_dark_target(
+            name,
+            rgb,
+        )
     ):
         return (
             saturation
@@ -1032,7 +1302,10 @@ def _matches_requested_neutral(
     value: int,
     requested_neutrals: set[str],
 ) -> str | None:
-    if saturation > NEUTRAL_MAX_SATURATION:
+    if (
+        saturation
+        > NEUTRAL_MAX_SATURATION
+    ):
         return None
 
     checks = (
@@ -1042,15 +1315,21 @@ def _matches_requested_neutral(
         ),
         (
             "charcoal",
-            35 <= value <= 105,
+            35
+            <= value
+            <= 105,
         ),
         (
             "grey",
-            80 <= value <= 185,
+            80
+            <= value
+            <= 185,
         ),
         (
             "silver",
-            145 <= value <= 225,
+            145
+            <= value
+            <= 225,
         ),
         (
             "white",
@@ -1058,12 +1337,18 @@ def _matches_requested_neutral(
         ),
     )
 
-    for name, matches in checks:
+    for (
+        name,
+        matches,
+    ) in checks:
         if (
-            name in requested_neutrals
+            name
+            in requested_neutrals
             and matches
         ):
-            return name
+            return (
+                name
+            )
 
     return None
 
@@ -1071,14 +1356,22 @@ def _matches_requested_neutral(
 def _nearest_named_colour(
     rgb: np.ndarray,
 ) -> str:
-    pixel = rgb.astype(
-        np.int32
+    pixel = (
+        rgb.astype(
+            np.int32
+        )
     )
 
-    best_name = "unknown"
+    best_name = (
+        "unknown"
+    )
+
     best_distance = None
 
-    for name, reference in (
+    for (
+        name,
+        reference,
+    ) in (
         NAMED_COLOURS.items()
     ):
         ref = np.asarray(
@@ -1089,339 +1382,51 @@ def _nearest_named_colour(
         distance = int(
             np.sum(
                 (
-                    pixel - ref
+                    pixel
+                    - ref
                 )
                 ** 2
             )
         )
 
         if (
-            best_distance is None
-            or distance < best_distance
+            best_distance
+            is None
+            or distance
+            < best_distance
         ):
-            best_distance = distance
-            best_name = name
-
-    return best_name
-
-
-def _image_entropy(
-    gray: np.ndarray,
-) -> float:
-    histogram = cv2.calcHist(
-        [gray],
-        [0],
-        None,
-        [256],
-        [0, 256],
-    ).reshape(-1)
-
-    total = float(
-        np.sum(histogram)
-    )
-
-    if total <= 0:
-        return 0.0
-
-    probabilities = (
-        histogram[
-            histogram > 0
-        ]
-        / total
-    )
-
-    return float(
-        -np.sum(
-            probabilities
-            * np.log2(
-                probabilities
+            best_distance = (
+                distance
             )
-        )
-    )
 
-
-def _largest_quantised_colour_ratio(
-    rgb: np.ndarray,
-) -> float:
-    quantised = (
-        rgb
-        // 32
-    ).reshape(
-        -1,
-        3,
-    )
-
-    _, counts = np.unique(
-        quantised,
-        axis=0,
-        return_counts=True,
-    )
-
-    if len(counts) == 0:
-        return 1.0
-
-    return float(
-        np.max(counts)
-        / np.sum(counts)
-    )
-
-
-def validate_visual_quality(
-    image: Image.Image,
-) -> dict:
-    sample = (
-        image.convert(
-            "RGB"
-        )
-        .resize(
-            (
-                QUALITY_SAMPLE_WIDTH,
-                QUALITY_SAMPLE_HEIGHT,
-            ),
-            Image.Resampling.LANCZOS,
-        )
-    )
-
-    rgb = np.array(
-        sample,
-        dtype=np.uint8,
-    )
-
-    gray = cv2.cvtColor(
-        rgb,
-        cv2.COLOR_RGB2GRAY,
-    )
-
-    gray_float = gray.astype(
-        np.float32
-    )
-
-    sobel_x = np.abs(
-        cv2.Sobel(
-            gray_float,
-            cv2.CV_32F,
-            1,
-            0,
-            ksize=3,
-        )
-    )
-
-    sobel_y = np.abs(
-        cv2.Sobel(
-            gray_float,
-            cv2.CV_32F,
-            0,
-            1,
-            ksize=3,
-        )
-    )
-
-    magnitude = np.hypot(
-        sobel_x,
-        sobel_y,
-    )
-
-    edge_mask = (
-        magnitude
-        >= QUALITY_EDGE_THRESHOLD
-    )
-
-    edge_density = float(
-        np.mean(
-            edge_mask
-        )
-    )
-
-    horizontal_mask = (
-        (
-            sobel_y
-            >= QUALITY_EDGE_THRESHOLD
-        )
-        & (
-            sobel_y
-            > (
-                sobel_x
-                * QUALITY_DIRECTIONAL_MULTIPLIER
+            best_name = (
+                name
             )
-        )
+
+    return (
+        best_name
     )
-
-    vertical_mask = (
-        (
-            sobel_x
-            >= QUALITY_EDGE_THRESHOLD
-        )
-        & (
-            sobel_x
-            > (
-                sobel_y
-                * QUALITY_DIRECTIONAL_MULTIPLIER
-            )
-        )
-    )
-
-    horizontal_density = float(
-        np.mean(
-            horizontal_mask
-        )
-    )
-
-    vertical_density = float(
-        np.mean(
-            vertical_mask
-        )
-    )
-
-    strongest_directional_density = max(
-        horizontal_density,
-        vertical_density,
-    )
-
-    directional_edge_dominance = (
-        strongest_directional_density
-        / max(
-            edge_density,
-            1e-6,
-        )
-    )
-
-    horizontal_row_coverage = np.mean(
-        horizontal_mask,
-        axis=1,
-    )
-
-    vertical_column_coverage = np.mean(
-        vertical_mask,
-        axis=0,
-    )
-
-    horizontal_full_span_ratio = float(
-        np.mean(
-            horizontal_row_coverage
-            >= 0.55
-        )
-    )
-
-    vertical_full_span_ratio = float(
-        np.mean(
-            vertical_column_coverage
-            >= 0.55
-        )
-    )
-
-    full_span_line_ratio = max(
-        horizontal_full_span_ratio,
-        vertical_full_span_ratio,
-    )
-
-    entropy = _image_entropy(
-        gray
-    )
-
-    largest_colour_ratio = (
-        _largest_quantised_colour_ratio(
-            rgb
-        )
-    )
-
-    if (
-        edge_density
-        >= MIN_DIRECTIONAL_EDGE_DENSITY
-        and directional_edge_dominance
-        >= MAX_DIRECTIONAL_EDGE_DOMINANCE
-        and full_span_line_ratio
-        >= MIN_FULL_SPAN_LINE_RATIO
-    ):
-        axis = (
-            "horizontal"
-            if (
-                horizontal_density
-                >= vertical_density
-            )
-            else "vertical"
-        )
-
-        raise ValueError(
-            "Generated background failed visual quality validation: "
-            f"excessive repetitive {axis} scanline or raster-band "
-            "structure was detected "
-            f"(edge density {edge_density:.2f}, "
-            f"directional dominance "
-            f"{directional_edge_dominance:.2f}, "
-            f"full-span ratio "
-            f"{full_span_line_ratio:.2f})."
-        )
-
-    if (
-        largest_colour_ratio
-        >= MAX_SINGLE_QUANTISED_COLOUR_RATIO
-        and edge_density
-        < MIN_FLAT_IMAGE_EDGE_DENSITY
-    ):
-        raise ValueError(
-            "Generated background failed visual quality validation: "
-            "the image is effectively a flat or blank colour field "
-            f"(dominant quantised colour ratio "
-            f"{largest_colour_ratio:.2f}, "
-            f"edge density {edge_density:.3f})."
-        )
-
-    if (
-        entropy
-        < MIN_FLAT_IMAGE_ENTROPY
-        and edge_density
-        < MIN_FLAT_IMAGE_EDGE_DENSITY
-    ):
-        raise ValueError(
-            "Generated background failed visual quality validation: "
-            "the image contains insufficient visual structure "
-            f"(entropy {entropy:.2f}, "
-            f"edge density {edge_density:.3f})."
-        )
-
-    return {
-        "visual_quality_checked": True,
-        "visual_quality_passed": True,
-        "edge_density": edge_density,
-        "horizontal_edge_density": (
-            horizontal_density
-        ),
-        "vertical_edge_density": (
-            vertical_density
-        ),
-        "directional_edge_dominance": (
-            directional_edge_dominance
-        ),
-        "full_span_line_ratio": (
-            full_span_line_ratio
-        ),
-        "image_entropy": entropy,
-        "largest_quantised_colour_ratio": (
-            largest_colour_ratio
-        ),
-    }
 
 
 def _colour_family_members(
     name: str | None,
 ) -> set[str]:
-    """
-    Return the strict accepted tonal family for a named colour.
-    """
-
     if not name:
         return set()
 
-    if name in NEUTRAL_NAMES:
+    if (
+        name
+        in NEUTRAL_NAMES
+    ):
         return {
-            name,
+            name
         }
 
     return set(
         COLOUR_FAMILIES.get(
             name,
             {
-                name,
+                name
             },
         )
     )
@@ -1432,18 +1437,10 @@ def _nearest_requested_family(
     pixel_rgb: np.ndarray,
     requested_targets: list[dict],
 ) -> str | None:
-    """
-    Resolve the nearest named pixel colour into an explicitly
-    requested tonal family.
-
-    Family membership is checked before RGB distance. This is
-    deliberate: a cyan or sky-blue pixel must not become valid
-    merely because its hue is close to royal blue.
-    """
-
     candidates = [
         target
-        for target in requested_targets
+        for target
+        in requested_targets
         if (
             nearest_name
             in target[
@@ -1455,11 +1452,14 @@ def _nearest_requested_family(
     if not candidates:
         return None
 
-    pixel = pixel_rgb.astype(
-        np.int32
+    pixel = (
+        pixel_rgb.astype(
+            np.int32
+        )
     )
 
     best_name = None
+
     best_distance = None
 
     for target in candidates:
@@ -1481,16 +1481,24 @@ def _nearest_requested_family(
         )
 
         if (
-            best_distance is None
+            best_distance
+            is None
             or distance
             < best_distance
         ):
-            best_distance = distance
-            best_name = target[
-                "name"
-            ]
+            best_distance = (
+                distance
+            )
 
-    return best_name
+            best_name = (
+                target[
+                    "name"
+                ]
+            )
+
+    return (
+        best_name
+    )
 
 
 def validate_palette(
@@ -1555,10 +1563,16 @@ def validate_palette(
 
     requested = [
         item
-        for item in requested
+        for item
+        in requested
         if (
-            item[0]
-            and item[1] is not None
+            item[
+                0
+            ]
+            and item[
+                1
+            ]
+            is not None
         )
     ]
 
@@ -1589,19 +1603,25 @@ def validate_palette(
         dtype=np.uint8,
     )
 
-    hsv_array = cv2.cvtColor(
-        rgb_array,
-        cv2.COLOR_RGB2HSV,
+    hsv_array = (
+        cv2.cvtColor(
+            rgb_array,
+            cv2.COLOR_RGB2HSV,
+        )
     )
 
-    hsv_pixels = hsv_array.reshape(
-        -1,
-        3,
+    hsv_pixels = (
+        hsv_array.reshape(
+            -1,
+            3,
+        )
     )
 
-    rgb_pixels = rgb_array.reshape(
-        -1,
-        3,
+    rgb_pixels = (
+        rgb_array.reshape(
+            -1,
+            3,
+        )
     )
 
     total = len(
@@ -1623,13 +1643,13 @@ def validate_palette(
         & NEUTRAL_NAMES
     )
 
-    #
-    # Strict black/white mode.
-    #
-    if requested_names == {
-        "black",
-        "white",
-    }:
+    if (
+        requested_names
+        == {
+            "black",
+            "white",
+        }
+    ):
         saturation = (
             hsv_pixels[
                 :,
@@ -1683,10 +1703,17 @@ def validate_palette(
         rgb_value,
         descriptor,
     ) in requested:
-        if name in NEUTRAL_NAMES:
+        if (
+            name
+            in NEUTRAL_NAMES
+        ):
             continue
 
-        hue, _, _ = (
+        (
+            hue,
+            _,
+            _,
+        ) = (
             _rgb_to_hsv(
                 rgb_value
             )
@@ -1694,10 +1721,18 @@ def validate_palette(
 
         requested_targets.append(
             {
-                "name": name,
-                "rgb": rgb_value,
-                "hue": hue,
-                "descriptor": descriptor,
+                "name": (
+                    name
+                ),
+                "rgb": (
+                    rgb_value
+                ),
+                "hue": (
+                    hue
+                ),
+                "descriptor": (
+                    descriptor
+                ),
                 "family_members": (
                     _colour_family_members(
                         name
@@ -1728,10 +1763,13 @@ def validate_palette(
         int,
     ] = {}
 
-    for index, (
-        hue,
-        saturation,
-        value,
+    for (
+        index,
+        (
+            hue,
+            saturation,
+            value,
+        ),
     ) in enumerate(
         hsv_pixels
     ):
@@ -1753,9 +1791,6 @@ def validate_palette(
             ]
         )
 
-        #
-        # Explicitly requested neutral colours.
-        #
         neutral_match = (
             _matches_requested_neutral(
                 saturation,
@@ -1764,7 +1799,10 @@ def validate_palette(
             )
         )
 
-        if neutral_match is not None:
+        if (
+            neutral_match
+            is not None
+        ):
             requested_counts[
                 neutral_match
             ] = (
@@ -1793,9 +1831,6 @@ def validate_palette(
             )
         )
 
-        #
-        # Named colours use strict family membership.
-        #
         family_match = (
             _nearest_requested_family(
                 nearest,
@@ -1804,7 +1839,10 @@ def validate_palette(
             )
         )
 
-        if family_match is not None:
+        if (
+            family_match
+            is not None
+        ):
             requested_counts[
                 family_match
             ] = (
@@ -1827,10 +1865,6 @@ def validate_palette(
 
             continue
 
-        #
-        # Explicit hexadecimal colours have no named family.
-        # For hex input only, retain controlled hue matching.
-        #
         hex_targets = [
             target
             for target
@@ -1855,9 +1889,12 @@ def validate_palette(
         ]
 
         best_hex_target = None
+
         best_hex_distance = None
 
-        for target in hex_targets:
+        for target in (
+            hex_targets
+        ):
             distance = (
                 _hue_distance(
                     hue,
@@ -1878,7 +1915,10 @@ def validate_palette(
                 )
             )
 
-            if distance > limit:
+            if (
+                distance
+                > limit
+            ):
                 continue
 
             if (
@@ -1887,12 +1927,18 @@ def validate_palette(
                 or distance
                 < best_hex_distance
             ):
-                best_hex_target = target
+                best_hex_target = (
+                    target
+                )
+
                 best_hex_distance = (
                     distance
                 )
 
-        if best_hex_target is not None:
+        if (
+            best_hex_target
+            is not None
+        ):
             requested_counts[
                 best_hex_target[
                     "name"
@@ -1919,10 +1965,9 @@ def validate_palette(
 
             continue
 
-        #
-        # Anything reaching here is genuinely foreign.
-        #
-        off_palette_count += 1
+        off_palette_count += (
+            1
+        )
 
         off_palette_named_counts[
             nearest
@@ -1944,9 +1989,18 @@ def validate_palette(
             count
             / total
         )
-        for name, count in sorted(
+        for (
+            name,
+            count,
+        )
+        in sorted(
             off_palette_named_counts.items(),
-            key=lambda item: item[1],
+            key=(
+                lambda item:
+                item[
+                    1
+                ]
+            ),
             reverse=True,
         )
     }
@@ -1956,9 +2010,18 @@ def validate_palette(
             count
             / total
         )
-        for name, count in sorted(
+        for (
+            name,
+            count,
+        )
+        in sorted(
             accepted_tonal_counts.items(),
-            key=lambda item: item[1],
+            key=(
+                lambda item:
+                item[
+                    1
+                ]
+            ),
             reverse=True,
         )
     }
@@ -1968,10 +2031,19 @@ def validate_palette(
         > MAX_OFF_PALETTE_RATIO
     ):
         top_unrequested = [
-            f"{name}={ratio:.2f}"
-            for name, ratio in list(
+            (
+                f"{name}="
+                f"{ratio:.2f}"
+            )
+            for (
+                name,
+                ratio,
+            )
+            in list(
                 breakdown.items()
-            )[:6]
+            )[
+                :6
+            ]
         ]
 
         details = (
@@ -2041,7 +2113,8 @@ def validate_palette(
             primary_descriptor[
                 "modifier_only"
             ]
-            and primary_rgb is None
+            and primary_rgb
+            is None
         ):
             minimum_secondary_ratio = (
                 MIN_PRIMARY_COLOUR_RATIO
@@ -2068,34 +2141,45 @@ def validate_palette(
 
     return {
         **quality_result,
+
         "palette_checked": True,
+
         "palette_mode": (
             "strict-requested-colour-families"
         ),
+
         "palette_match_ratio": (
             palette_match_ratio
         ),
+
         "off_palette_ratio": (
             off_palette_ratio
         ),
+
         "primary_colour_ratio": (
             primary_ratio
         ),
+
         "secondary_colour_ratio": (
             secondary_ratio
         ),
+
         "requested_colour_counts": (
             requested_counts
         ),
+
         "requested_colour_family_counts": (
             requested_counts
         ),
+
         "accepted_tonal_breakdown": (
             tonal_breakdown
         ),
+
         "unrequested_colour_breakdown": (
             breakdown
         ),
+
         "primary_descriptor": {
             "raw": (
                 primary_descriptor[
@@ -2123,6 +2207,7 @@ def validate_palette(
                 ]
             ),
         },
+
         "secondary_descriptor": {
             "raw": (
                 secondary_descriptor[
@@ -2167,10 +2252,14 @@ def _load_cascade(
         )
     )
 
-    if classifier.empty():
+    if (
+        classifier.empty()
+    ):
         return None
 
-    return classifier
+    return (
+        classifier
+    )
 
 
 def _cascade_detect(
@@ -2189,7 +2278,10 @@ def _cascade_detect(
         int,
     ]
 ]:
-    if classifier is None:
+    if (
+        classifier
+        is None
+    ):
         return []
 
     results = (
@@ -2207,10 +2299,14 @@ def _cascade_detect(
 
     return [
         tuple(
-            int(value)
-            for value in rectangle
+            int(
+                value
+            )
+            for value
+            in rectangle
         )
-        for rectangle in results
+        for rectangle
+        in results
     ]
 
 
@@ -2223,16 +2319,23 @@ def detect_human_signals(
         )
     )
 
-    bgr = cv2.cvtColor(
-        rgb,
-        cv2.COLOR_RGB2BGR,
+    bgr = (
+        cv2.cvtColor(
+            rgb,
+            cv2.COLOR_RGB2BGR,
+        )
     )
 
     maximum_dimension = max(
-        bgr.shape[:2]
+        bgr.shape[
+            :2
+        ]
     )
 
-    if maximum_dimension > 1280:
+    if (
+        maximum_dimension
+        > 1280
+    ):
         scale = (
             1280.0
             / maximum_dimension
@@ -2248,18 +2351,25 @@ def detect_human_signals(
             ),
         )
 
-    gray = cv2.cvtColor(
-        bgr,
-        cv2.COLOR_BGR2GRAY,
+    gray = (
+        cv2.cvtColor(
+            bgr,
+            cv2.COLOR_BGR2GRAY,
+        )
     )
 
-    hog = cv2.HOGDescriptor()
+    hog = (
+        cv2.HOGDescriptor()
+    )
 
     hog.setSVMDetector(
         cv2.HOGDescriptor_getDefaultPeopleDetector()
     )
 
-    rectangles, weights = (
+    (
+        rectangles,
+        weights,
+    ) = (
         hog.detectMultiScale(
             bgr,
             winStride=(
@@ -2275,9 +2385,13 @@ def detect_human_signals(
     )
 
     people = []
+
     people_weights = []
 
-    for rectangle, weight in zip(
+    for (
+        rectangle,
+        weight,
+    ) in zip(
         rectangles,
         weights,
     ):
@@ -2291,8 +2405,11 @@ def detect_human_signals(
         ):
             people.append(
                 tuple(
-                    int(value)
-                    for value in rectangle
+                    int(
+                        value
+                    )
+                    for value
+                    in rectangle
                 )
             )
 
@@ -2318,24 +2435,28 @@ def detect_human_signals(
         )
     )
 
-    faces = _cascade_detect(
-        frontal_detector,
-        gray,
-        (
-            MIN_FACE_SIZE,
-            MIN_FACE_SIZE,
-        ),
-        6,
+    faces = (
+        _cascade_detect(
+            frontal_detector,
+            gray,
+            (
+                MIN_FACE_SIZE,
+                MIN_FACE_SIZE,
+            ),
+            6,
+        )
     )
 
-    profiles = _cascade_detect(
-        profile_detector,
-        gray,
-        (
-            MIN_PROFILE_SIZE,
-            MIN_PROFILE_SIZE,
-        ),
-        6,
+    profiles = (
+        _cascade_detect(
+            profile_detector,
+            gray,
+            (
+                MIN_PROFILE_SIZE,
+                MIN_PROFILE_SIZE,
+            ),
+            6,
+        )
     )
 
     upper_bodies = (
@@ -2351,7 +2472,9 @@ def detect_human_signals(
     )
 
     strong_upper_body_signal = (
-        len(upper_bodies)
+        len(
+            upper_bodies
+        )
         >= 2
     )
 
@@ -2363,17 +2486,25 @@ def detect_human_signals(
     )
 
     return {
-        "people": people,
+        "people": (
+            people
+        ),
         "people_weights": (
             people_weights
         ),
-        "faces": faces,
-        "profiles": profiles,
+        "faces": (
+            faces
+        ),
+        "profiles": (
+            profiles
+        ),
         "upper_bodies": (
             upper_bodies
         ),
         "strong_upper_body_signal": (
             strong_upper_body_signal
         ),
-        "detected": detected,
+        "detected": (
+            detected
+        ),
     }

@@ -8,12 +8,6 @@ import httpx
 
 from app.config.settings import settings
 
-from app.services.background_policy import (
-    NAMED_COLOURS,
-    _colour_family_members,
-    requested_palette_names,
-)
-
 from app.engines.registry import (
     get_engine,
 )
@@ -331,104 +325,6 @@ def _retry_strength_instruction(
     )
 
 
-def _allowed_palette_names(
-    primary_colour: str | None,
-    secondary_colour: str | None,
-) -> set[str]:
-    """
-    Return every named tonal colour that is valid for the
-    requested primary and secondary colour families.
-    """
-
-    allowed = set()
-
-    for name in requested_palette_names(
-        primary_colour,
-        secondary_colour,
-    ):
-        allowed.update(
-            _colour_family_members(
-                name
-            )
-        )
-
-    return allowed
-
-
-def _forbidden_palette_names(
-    primary_colour: str | None,
-    secondary_colour: str | None,
-) -> list[str]:
-    """
-    Return named colours that are NOT part of either requested
-    family.
-
-    This means recovery prompts remain correct for any future
-    palette.
-
-    Example:
-        royal blue + red
-
-    allowed:
-        royal blue
-        blue
-        navy
-        red
-        maroon
-        burgundy
-
-    rejected:
-        white
-        grey
-        silver
-        cyan
-        purple
-        green
-        etc.
-    """
-
-    allowed = (
-        _allowed_palette_names(
-            primary_colour,
-            secondary_colour,
-        )
-    )
-
-    return sorted(
-        name
-        for name
-        in NAMED_COLOURS
-        if name not in allowed
-    )
-
-
-def _palette_negative_prompt(
-    primary_colour: str | None,
-    secondary_colour: str | None,
-) -> str:
-    forbidden = (
-        _forbidden_palette_names(
-            primary_colour,
-            secondary_colour,
-        )
-    )
-
-    if not forbidden:
-        return (
-            "colour drift, third colour family, "
-            "multicolour palette, rainbow palette"
-        )
-
-    return (
-        "unrequested colour family, colour drift, "
-        "third colour family, multicolour palette, "
-        "rainbow palette, "
-        + ", ".join(
-            forbidden
-        )
-    )
-
-
 def _initial_engine_prompts(
     engine_id: str,
     base_positive_prompt: str,
@@ -440,26 +336,34 @@ def _initial_engine_prompts(
     str,
 ]:
     """
-    Engine-specific attempt-zero adaptation.
-
-    FLUX:
-        Preserve the original creative prompt because FLUX is
-        currently obeying palette requirements reliably.
-
-    SDXL / SD3.5:
-        Start in strict palette mode immediately rather than
-        waiting for several failed generations.
+    Engine-specific attempt-zero prompt adaptation.
     """
 
+    positive = (
+        base_positive_prompt
+    )
+
+    negative = (
+        base_negative_prompt
+    )
+
+    #
+    # FLUX already performs well. Do not unnecessarily
+    # disturb its initial creative prompt.
+    #
     if (
         engine_id
-        == settings.engine_1_id
+        != settings.engine_2_id
     ):
         return (
-            base_positive_prompt,
-            base_negative_prompt,
+            positive,
+            negative,
         )
 
+    #
+    # SDXL has been repeatedly drifting toward white,
+    # silver, cream and grey. Start strict immediately.
+    #
     primary = (
         _normalise_colour(
             primary_colour
@@ -472,87 +376,85 @@ def _initial_engine_prompts(
         )
     )
 
-    engine_label = (
-        "SDXL"
-        if (
-            engine_id
-            == settings.engine_2_id
-        )
-        else "SD3.5"
-    )
-
-    positive = (
-        base_positive_prompt.rstrip(
-            ". "
-        )
-    )
-
     if (
         primary
         and secondary
     ):
         positive += (
-            f". {engine_label} STRICT REQUESTED-PALETTE MODE. "
-            f"The only visible colour families are {primary} "
-            f"and {secondary}. "
-            f"Use {primary} as the dominant large-area colour. "
-            f"Use {secondary} as a clearly visible supporting "
-            "large-area colour. "
-            f"Render several separate substantial {secondary} regions. "
-            "Do not use a third colour family. "
-            "All shadows and highlights must remain tonal members "
-            "of the requested colour families. "
-            "Use matte graphic surfaces, broad clean forms and "
-            "controlled geometry. "
-            "Avoid reflective materials, metallic materials, "
-            "coloured illumination, glow, bloom and iridescence."
+            ". SDXL STRICT TWO-COLOUR GRAPHIC MODE. "
+            f"Render using only the {primary} and {secondary} "
+            "colour families. "
+            f"Use {primary} across most large visible surfaces. "
+            f"Use {secondary} across several substantial supporting "
+            "regions. Use matte graphic illustration, clean geometric "
+            "forms and flat or gently tonal surfaces. "
+            "Create depth exclusively using darker or lighter tonal "
+            "variants inside those two requested colour families. "
+            "Use colour-area contrast rather than neutral highlights. "
+            "No third colour family."
         )
 
     elif primary:
         positive += (
-            f". {engine_label} STRICT REQUESTED-PALETTE MODE. "
-            f"Use only the {primary} colour family. "
-            "All shadows and highlights must remain inside that "
-            "same requested family."
+            ". SDXL STRICT SINGLE-PALETTE GRAPHIC MODE. "
+            f"Use only tonal variations belonging to {primary}. "
+            "Use clean matte graphic surfaces and geometric forms."
         )
 
     else:
         positive += (
-            f". {engine_label} STRICT REQUESTED-PALETTE MODE. "
-            "Obey the explicitly requested colour palette."
+            ". SDXL STRICT GRAPHIC MODE. "
+            "Use only the explicitly requested colour palette."
         )
 
-    palette_negative = (
-        _palette_negative_prompt(
-            primary_colour,
-            secondary_colour,
+    requested = {
+        value
+        for value
+        in (
+            primary,
+            secondary,
         )
-    )
+        if value
+    }
 
-    negative = (
-        ", ".join(
-            value
-            for value
-            in (
-                base_negative_prompt.strip(
-                    ", "
-                ),
-                palette_negative,
-                (
-                    "metallic reflection, chrome, steel, "
-                    "colourless reflection, coloured lighting, "
-                    "studio rim light, glow, bloom, iridescent, "
-                    "holographic, pearlescent"
-                ),
+    forbidden_neutrals = [
+        colour
+        for colour
+        in (
+            "white",
+            "off-white",
+            "ivory",
+            "cream",
+            "beige",
+            "silver",
+            "grey",
+            "gray",
+            "charcoal",
+            "black",
+        )
+        if colour
+        not in requested
+    ]
+
+    if forbidden_neutrals:
+        negative += (
+            ", "
+            + ", ".join(
+                forbidden_neutrals
             )
-            if value
+            + ", neutral highlight, neutral shadow, "
+            + "metallic highlight, metallic reflection, "
+            + "colourless reflection, studio lighting, "
+            + "white rim light, white glow, "
+            + "silver surface, grey surface, "
+            + "cream surface, beige surface"
         )
-    )
 
     return (
         positive,
         negative,
     )
+
 
 def _standard_palette_instruction(
     primary_colour: str | None,
@@ -769,121 +671,6 @@ def _quality_instruction(
     )
 
 
-def _minimal_two_colour_recovery_prompt(
-    *,
-    base_positive_prompt: str,
-    primary_colour: str | None,
-    secondary_colour: str | None,
-    engine_id: str,
-    effective_retry: int,
-) -> tuple[str, str]:
-    """
-    Late deterministic palette recovery.
-
-    This intentionally does NOT copy the complete original
-    positive prompt back into the request.
-
-    At this stage palette correctness and clean composition are
-    more important than preserving every stylistic adjective from
-    the failed prompt.
-    """
-
-    primary = (
-        _normalise_colour(
-            primary_colour
-        )
-    )
-
-    secondary = (
-        _normalise_colour(
-            secondary_colour
-        )
-    )
-
-    engine_label = (
-        "SDXL"
-        if (
-            engine_id
-            == settings.engine_2_id
-        )
-        else "SD3.5"
-    )
-
-    if not primary:
-        primary = (
-            "the requested primary colour"
-        )
-
-    if not secondary:
-        secondary = (
-            "the requested secondary colour"
-        )
-
-    positive = (
-        f"{engine_label} STRICT LITERAL PALETTE RECOVERY. "
-        "Create a clean A4 portrait abstract decorative event "
-        "background with a calm central region and visual detail "
-        "around the outer edges and lower corners. "
-        f"Use {primary} across approximately 65 to 75 percent "
-        "of the visible image. "
-        f"Use {secondary} across approximately 20 to 30 percent "
-        "of the visible image. "
-        f"Create multiple large solid {secondary} areas. "
-        f"Do not reduce {secondary} to tiny accents, thin lines, "
-        "reflections or hidden shadows. "
-        f"The central quiet region must stay inside the {primary} "
-        "colour family. "
-        "Use broad matte surfaces, simple graphic geometry, "
-        "controlled abstract line work and coherent architectural "
-        "or environmental shapes. "
-        "Shadows must be darker tonal members of the requested "
-        "families. "
-        "Highlights must be lighter tonal members of the requested "
-        "families. "
-        "No third colour family. "
-        "No unrequested neutral colour. "
-        "No metallic surfaces. "
-        "No chrome. "
-        "No coloured illumination. "
-        "No glow. "
-        "No bloom. "
-        "No iridescence. "
-        "No photographic lighting. "
-        "No people, faces, characters, humanoids, text, letters, "
-        "numbers, logos or readable symbols. "
-        "The image must remain visually structured and usable as "
-        "an event background."
-    )
-
-    negative = (
-        ", ".join(
-            value
-            for value
-            in (
-                _palette_negative_prompt(
-                    primary_colour,
-                    secondary_colour,
-                ),
-                (
-                    "metallic, chrome, steel, coloured lighting, "
-                    "colourless reflection, reflective material, "
-                    "glow, bloom, iridescent, holographic, "
-                    "pearlescent, person, people, face, portrait, "
-                    "human, character, superhero, text, typography, "
-                    "letters, numbers, logo, watermark, signage, "
-                    "scanlines, raster lines, moire, glitch, "
-                    "corrupted texture"
-                ),
-            )
-            if value
-        )
-    )
-
-    return (
-        positive,
-        negative,
-    )
-
 def _strengthen_prompts(
     base_positive_prompt: str,
     base_negative_prompt: str,
@@ -964,73 +751,6 @@ def _strengthen_prompts(
         )
     )
 
-    #
-    # After repeated palette failures, SDXL and SD3.5 move
-    # from descriptive prompting to a short literal palette
-    # contract.
-    #
-    literal_palette_recovery = bool(
-        palette_failure
-        and effective_retry >= 4
-        and engine_id
-        in {
-            settings.engine_2_id,
-            settings.engine_3_id,
-        }
-        and primary_colour
-        and secondary_colour
-    )
-
-    if literal_palette_recovery:
-        (
-            positive_prompt,
-            strict_negative_prompt,
-        ) = (
-            _minimal_two_colour_recovery_prompt(
-                base_positive_prompt=(
-                    base_positive_prompt
-                ),
-                primary_colour=(
-                    primary_colour
-                ),
-                secondary_colour=(
-                    secondary_colour
-                ),
-                engine_id=(
-                    engine_id
-                ),
-                effective_retry=(
-                    effective_retry
-                ),
-            )
-        )
-
-        negative_prompt = (
-            ", ".join(
-                value
-                for value
-                in (
-                    base_negative_prompt.strip(
-                        ", "
-                    ),
-                    strict_negative_prompt,
-                )
-                if value
-            )
-        )
-
-        logger.info(
-            "event=literal_palette_recovery "
-            "engine=%s "
-            "effective_retry=%s "
-            "primary=%s "
-            "secondary=%s",
-            engine_id,
-            effective_retry,
-            primary_colour,
-            secondary_colour,
-        )
-
     if palette_failure:
         if (
             engine_id
@@ -1078,7 +798,6 @@ def _strengthen_prompts(
             effective_retry >= 6
             and primary
             and secondary
-            and not literal_palette_recovery
         ):
             positive_prompt = (
                 "Abstract A4 portrait decorative event background. "
@@ -1220,31 +939,9 @@ def _strengthen_prompts(
             (
                 "MANDATORY SECONDARY COLOUR REQUIREMENT. "
                 f"Render {secondary} as actual visible surface colour "
-                "in several substantial separate regions. "
-                f"Do not hide {secondary} inside shadows, reflections, "
-                "thin outlines or tiny accents. "
-                f"Several large visible areas must immediately read "
-                f"as {secondary}."
+                "in several substantial separate regions."
             )
         )
-
-        if (
-            effective_retry >= 6
-            and engine_id
-            in {
-                settings.engine_2_id,
-                settings.engine_3_id,
-            }
-        ):
-            positive_additions.append(
-                (
-                    "SECONDARY COLOUR AREA RECOVERY. "
-                    f"Dedicate roughly 25 to 35 percent of the image "
-                    f"to large solid {secondary} surfaces. "
-                    "Use separate blocks or structural regions rather "
-                    "than thin lines."
-                )
-            )
 
     if (
         "primary"
@@ -1261,6 +958,16 @@ def _strengthen_prompts(
             (
                 "MANDATORY PRIMARY COLOUR REQUIREMENT. "
                 f"Render {primary} across large visible surfaces."
+            )
+        )
+
+    if recovery_wave > 0:
+        positive_additions.append(
+            (
+                f"RECOVERY WAVE {recovery_wave}. "
+                "A complete previous nine-attempt generation wave "
+                "failed. Simplify the image and satisfy every "
+                "validation requirement literally."
             )
         )
 
@@ -1890,6 +1597,8 @@ async def execute_image_job(
                     False
                 )
 
+                first_wave_failures = []
+
                 try:
                     #
                     # =====================================
@@ -1950,6 +1659,11 @@ async def execute_image_job(
                             newly_generated
                         )
 
+                        if not complete:
+                            first_wave_failures.append(
+                                output
+                            )
+
                         if (
                             max_outputs
                             is not None
@@ -1963,20 +1677,196 @@ async def execute_image_job(
                             break
 
                     #
-                    # No second recovery wave.
+                    # =====================================
+                    # RECOVERY WAVES
+                    # =====================================
                     #
-                    # Each engine/direction receives exactly:
+                    # Failed candidates are retried only after
+                    # every engine/direction has finished its
+                    # first nine-attempt wave.
                     #
-                    #   1 initial attempt
-                    #   + settings.max_candidate_retries
-                    #
-                    # With the default value of 8 this is a maximum
-                    # of 9 attempts total.
-                    #
-                    # Exhausted candidates remain failed while the
-                    # workflow continues to the remaining candidates.
-                    #
+                    if (
+                        not stopped_for_max_outputs
+                        and first_wave_failures
+                        and (
+                            settings
+                            .failed_candidate_recovery_waves
+                            > 0
+                        )
+                    ):
+                        logger.warning(
+                            "event=failed_candidate_recovery_wave_start "
+                            "reference=%s "
+                            "failed_candidates=%s "
+                            "attempts_per_candidate=%s "
+                            "configured_waves=%s",
+                            reference_number,
+                            len(
+                                first_wave_failures
+                            ),
+                            (
+                                settings
+                                .max_candidate_retries
+                                + 1
+                            ),
+                            settings
+                            .failed_candidate_recovery_waves,
+                        )
 
+                        state.current_stage = (
+                            "retrying_exhausted_candidates"
+                        )
+
+                        persist_image_job_state(
+                            state
+                        )
+
+                        queue = (
+                            await client.request(
+                                "GET",
+                                "/queue",
+                            )
+                        ).json()
+
+                        if (
+                            not queue.get(
+                                "queue_running"
+                            )
+                            and not queue.get(
+                                "queue_pending"
+                            )
+                        ):
+                            await (
+                                client.release_models()
+                            )
+
+                        current_engine = None
+
+                        recovery_failures = (
+                            first_wave_failures
+                        )
+
+                        for recovery_wave in range(
+                            1,
+                            (
+                                settings
+                                .failed_candidate_recovery_waves
+                                + 1
+                            ),
+                        ):
+                            if (
+                                not recovery_failures
+                            ):
+                                break
+
+                            next_failures = []
+
+                            logger.warning(
+                                "event=failed_candidate_recovery_round "
+                                "reference=%s "
+                                "recovery_wave=%s "
+                                "candidates=%s",
+                                reference_number,
+                                recovery_wave,
+                                len(
+                                    recovery_failures
+                                ),
+                            )
+
+                            for output in (
+                                recovery_failures
+                            ):
+                                update_output(
+                                    state,
+                                    output.engine_id,
+                                    output.direction_id,
+                                    "pending",
+                                    error=None,
+                                )
+
+                                current_engine = (
+                                    await _prepare_engine(
+                                        client,
+                                        reference_number,
+                                        output,
+                                        current_engine,
+                                    )
+                                )
+
+                                state.current_stage = (
+                                    f"recovery-"
+                                    f"{recovery_wave}:"
+                                    f"{output.engine_id}:"
+                                    f"{output.direction_id}"
+                                )
+
+                                persist_image_job_state(
+                                    state
+                                )
+
+                                (
+                                    complete,
+                                    newly_generated,
+                                ) = (
+                                    await _attempt_output_wave(
+                                        client=client,
+                                        state=state,
+                                        document=document,
+                                        output=output,
+                                        reference_number=(
+                                            reference_number
+                                        ),
+                                        primary_colour=(
+                                            primary_colour
+                                        ),
+                                        secondary_colour=(
+                                            secondary_colour
+                                        ),
+                                        recovery_wave=(
+                                            recovery_wave
+                                        ),
+                                    )
+                                )
+
+                                generated += (
+                                    newly_generated
+                                )
+
+                                if not complete:
+                                    next_failures.append(
+                                        output
+                                    )
+
+                                if (
+                                    max_outputs
+                                    is not None
+                                    and generated
+                                    >= max_outputs
+                                ):
+                                    stopped_for_max_outputs = (
+                                        True
+                                    )
+
+                                    break
+
+                            recovery_failures = (
+                                next_failures
+                            )
+
+                            if (
+                                stopped_for_max_outputs
+                            ):
+                                break
+
+                        logger.warning(
+                            "event=failed_candidate_recovery_wave_complete "
+                            "reference=%s "
+                            "remaining_failed=%s",
+                            reference_number,
+                            len(
+                                recovery_failures
+                            ),
+                        )
 
                 finally:
                     queue = (

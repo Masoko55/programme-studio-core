@@ -63,20 +63,17 @@ class Settings(
         le=30,
     )
 
-    # Deprecated compatibility setting.
+    # Once every engine/direction has completed its first pass,
+    # failed candidates receive another complete retry wave.
     #
-    # Candidate generation is now deliberately single-wave:
-    #
-    #   1 initial generation
-    #   + 8 retries
-    #   = 9 attempts maximum per engine/direction
-    #
-    # Exhausted candidates remain failed and are NOT restarted
-    # after the other engines finish.
+    # 1 recovery wave:
+    #   first pass    = 9 attempts
+    #   recovery pass = 9 attempts
+    #   max total     = 18 attempts
     failed_candidate_recovery_waves: int = Field(
-        default=0,
+        default=1,
         ge=0,
-        le=0,
+        le=3,
     )
 
     # -----------------------------

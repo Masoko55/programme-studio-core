@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 
 import httpx
 
@@ -454,6 +455,40 @@ def _palette_negative_prompt(
 # ============================================================
 # Initial engine prompts
 # ============================================================
+
+
+def _bounded_engine_prompt(
+    prompt: str,
+    limit: int,
+) -> str:
+    """Keep diffusion recovery prompts decisive instead of cumulative."""
+    compact = " ".join(str(prompt or "").split())
+    if len(compact) <= limit:
+        return compact
+
+    clauses = [
+        clause.strip()
+        for clause in re.split(r"(?<=[.!?])\s+|,\s*", compact)
+        if clause.strip()
+    ]
+    selected = []
+    seen = set()
+    size = 0
+    for clause in clauses:
+        key = clause.casefold()
+        if key in seen:
+            continue
+        separator = 2 if selected else 0
+        if selected and size + separator + len(clause) > limit:
+            continue
+        if not selected and len(clause) > limit:
+            selected.append(clause[:limit].rsplit(" ", 1)[0])
+            break
+        selected.append(clause)
+        seen.add(key)
+        size += separator + len(clause)
+
+    return ", ".join(selected)
 
 
 def _compact_engine_subject(
@@ -1306,12 +1341,17 @@ def _strengthen_prompts(
             )
         )
 
+        recovery_base_negative = (
+            negative_prompt
+            if engine_id in {settings.engine_2_id, settings.engine_3_id}
+            else base_negative_prompt
+        )
         negative_prompt = (
             ", ".join(
                 value
                 for value
                 in (
-                    base_negative_prompt.strip(
+                    recovery_base_negative.strip(
                         ", "
                     ),
                     structural_negative,
@@ -1375,12 +1415,17 @@ def _strengthen_prompts(
             )
         )
 
+        recovery_base_negative = (
+            negative_prompt
+            if engine_id in {settings.engine_2_id, settings.engine_3_id}
+            else base_negative_prompt
+        )
         negative_prompt = (
             ", ".join(
                 value
                 for value
                 in (
-                    base_negative_prompt.strip(
+                    recovery_base_negative.strip(
                         ", "
                     ),
                     strict_negative_prompt,
@@ -1670,6 +1715,12 @@ def _strengthen_prompts(
             if value
         )
     )
+
+    if engine_id in {settings.engine_2_id, settings.engine_3_id}:
+        # SDXL and SD3.5 regress when their text encoders receive a stack of
+        # every historical correction. Keep the current correction compact.
+        positive_prompt = _bounded_engine_prompt(positive_prompt, 1600)
+        negative_prompt = _bounded_engine_prompt(negative_prompt, 1400)
 
     return (
         positive_prompt,

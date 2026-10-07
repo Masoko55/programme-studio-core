@@ -565,56 +565,25 @@ def composition_variant(
     )
 
 
+def _background_inspiration(brief: dict) -> str:
+    """Return the user's plain-language visual idea for direction prompts."""
+    return str(
+        brief.get("background_inspiration")
+        or brief.get("grill_me_context", {}).get("background_generation_summary")
+        or "an elegant abstract event background"
+    ).strip()
+
+
 def background_design_summary(
     brief: dict,
 ) -> str:
-    """
-    Used inside the meta-prompt supplied to the creative model.
-
-    It may contain layout information because it is not itself the
-    diffusion positive prompt.
-    """
-
+    """Describe the user's visual request for the creative-direction model."""
     return (
-        "Main subject: "
-        + str(
-            brief.get(
-                "background_subject"
-            )
-            or "abstract event motifs"
-        )
-        + ". Style: "
-        + str(
-            brief.get(
-                "background_style"
-            )
-            or "refined event artwork"
-        )
-        + ". Motifs: "
-        + str(
-            brief.get(
-                "background_motifs"
-            )
-            or "subtle decorative forms"
-        )
-        + ". Avoid: "
-        + str(
-            brief.get(
-                "background_exclusions"
-            )
-            or "unrelated imagery"
-        )
-        + ". Requested composition: "
-        + str(
-            brief.get(
-                "background_composition"
-            )
-            or "detail near outer edges with a calm central field"
-        )
-        + ". Layout contract: "
-        + asset_layout_description(
-            brief
-        )
+        "User background inspiration: "
+        + _background_inspiration(brief)
+        + ". Preserve a calm open central field and keep decorative detail "
+        "toward the outer edges. Layout contract: "
+        + asset_layout_description(brief)
         + "."
     )
 
@@ -622,114 +591,32 @@ def background_design_summary(
 def background_positive_requirements(
     brief: dict,
 ) -> str:
-    """
-    SAFE FOR APPENDING TO THE DIFFUSION POSITIVE PROMPT.
-
-    Do not put:
-      title
-      programme
-      program
-      text
-      logo
-      headshot
-      asset
-    into this string.
-
-    Layout zones are handled separately in safe_layout().
-    """
-
+    """Safe positive-prompt material derived from the Grill-Me answer."""
     return (
-        "Main visual subject: "
-        + str(
-            brief.get(
-                "background_subject"
-            )
-            or "abstract event motifs"
-        )
-        + ". Visual style: "
-        + str(
-            brief.get(
-                "background_style"
-            )
-            or "refined event artwork"
-        )
-        + ". Required motifs: "
-        + str(
-            brief.get(
-                "background_motifs"
-            )
-            or "subtle decorative forms"
-        )
-        + ". Composition: "
-        + str(
-            brief.get(
-                "background_composition"
-            )
-            or (
-                "decorative detail near outer edges "
-                "with a calm open central field"
-            )
-        )
-        + "."
+        "Make the visual subject clearly recognizable as: "
+        + _background_inspiration(brief)
+        + ". Keep decoration at the outer edges and lower corners, "
+        "with a calm open central field."
     )
 
 
 def background_negative_constraints(
     brief: dict,
 ) -> str:
-    return (
-        str(
-            brief.get(
-                "background_exclusions"
-            )
-            or "unrelated generic imagery"
-        )
-        .strip()
-    )
+    return "unrelated generic imagery, crowded centre, readable text, people, characters"
 
 
 def fallback_prompt(
     brief: dict,
     role: str,
 ) -> str:
-    palette = (
-        positive_palette_description(
-            brief
-        )
-    )
-
+    palette = positive_palette_description(brief)
     return (
-        f"{role} abstract A4 portrait decorative event background, "
-        f"{palette} "
-        "strong tonal contrast, "
-        "clear tonal separation, "
-        "refined layered materials, "
-        "controlled lighting, "
-        "abstract geometric and environmental motifs, "
-        "balanced border details, "
-        "subtle depth and texture, "
-        "generous visual breathing room, "
+        f"{role} A4 portrait decorative event background, {palette} "
+        "strong tonal contrast, refined layered materials, controlled lighting, "
+        "balanced border details, generous visual breathing room, "
         "calm upper and central regions, "
-        + str(
-            brief.get(
-                "background_subject"
-            )
-            or "abstract event motifs"
-        )
-        + ", "
-        + str(
-            brief.get(
-                "background_style"
-            )
-            or "refined event artwork"
-        )
-        + ", "
-        + str(
-            brief.get(
-                "background_motifs"
-            )
-            or "subtle decorative forms"
-        )
+        + _background_inspiration(brief)
         + "."
     )
 

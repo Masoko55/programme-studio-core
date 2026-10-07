@@ -41,11 +41,8 @@ class GrillMeForm(
 
     creative_description: str | None = None
 
-    background_subject: str | None = None
-    background_style: str | None = None
-    background_motifs: str | None = None
-    background_exclusions: str | None = None
-    background_composition: str | None = None
+    # Captured by Grill-Me in everyday language when the brief needs it.
+    background_inspiration: str | None = None
 
     theme_reference_treatment: (
         str | None
@@ -197,11 +194,8 @@ class GrillMeAnswers(
 
     creative_description: str | None = None
 
-    background_subject: str | None = None
-    background_style: str | None = None
-    background_motifs: str | None = None
-    background_exclusions: str | None = None
-    background_composition: str | None = None
+    # Captured by Grill-Me in everyday language when the brief needs it.
+    background_inspiration: str | None = None
 
     theme_reference_treatment: (
         str | None

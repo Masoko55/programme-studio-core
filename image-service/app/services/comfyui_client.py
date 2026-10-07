@@ -30,6 +30,7 @@ from app.services.atomic import (
 from app.services.background_policy import (
     BACKGROUND_ONLY_NEGATIVE,
     build_engine_prompt,
+    constrain_to_requested_palette,
     detect_human_signals,
     palette_negative_contract,
     validate_palette,
@@ -1803,6 +1804,21 @@ class ComfyUIClient:
             response.content,
         )
 
+        palette_normalized = False
+        if engine_id in {
+            settings.engine_2_id,
+            settings.engine_3_id,
+        }:
+            brief = load_prompts_document(reference_number).get("brief", {})
+            with Image.open(candidate_path) as generated_image:
+                constrained_image = constrain_to_requested_palette(
+                    generated_image,
+                    brief.get("primary_colour"),
+                    brief.get("secondary_colour"),
+                )
+                constrained_image.save(candidate_path, format="PNG")
+            palette_normalized = True
+
         try:
             try:
                 validation = (
@@ -1866,6 +1882,7 @@ class ComfyUIClient:
 
         record.update(
             validation,
+            palette_normalized=palette_normalized,
             status=(
                 "complete"
             ),

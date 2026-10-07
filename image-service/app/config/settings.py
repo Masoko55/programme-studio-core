@@ -63,22 +63,6 @@ class Settings(
         le=30,
     )
 
-    # Deprecated compatibility setting.
-    #
-    # Candidate generation is now deliberately single-wave:
-    #
-    #   1 initial generation
-    #   + 8 retries
-    #   = 9 attempts maximum per engine/direction
-    #
-    # Exhausted candidates remain failed and are NOT restarted
-    # after the other engines finish.
-    failed_candidate_recovery_waves: int = Field(
-        default=0,
-        ge=0,
-        le=0,
-    )
-
     # -----------------------------
     # Deterministic visual QA
     # -----------------------------

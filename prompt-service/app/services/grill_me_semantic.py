@@ -17,11 +17,7 @@ ALLOWED_QUESTION_FIELDS = {
     "event_type",
     "theme",
     "creative_description",
-    "background_subject",
-    "background_style",
-    "background_motifs",
-    "background_exclusions",
-    "background_composition",
+    "background_inspiration",
     "theme_reference_treatment",
 }
 
@@ -35,15 +31,8 @@ BACKGROUND_VISUAL_CUES = {
 
 
 def _background_context_needs_clarification(answers: dict) -> bool:
-    """Ask only when the submitted brief cannot determine background imagery."""
-    explicit_fields = (
-        "background_subject",
-        "background_style",
-        "background_motifs",
-        "background_exclusions",
-        "background_composition",
-    )
-    if any(str(answers.get(field) or "").strip() for field in explicit_fields):
+    """Ask plainly when the brief lacks a concrete background idea."""
+    if str(answers.get("background_inspiration") or "").strip():
         return False
 
     description = " ".join(
@@ -52,9 +41,8 @@ def _background_context_needs_clarification(answers: dict) -> bool:
     ).lower()
     words = set(description.replace("-", " ").split())
 
-    # A detailed visual description already gives the direction agents enough
-    # material. Generic event language does not tell them whether, for example,
-    # a cityscape, florals, or a purely abstract backdrop is wanted.
+    # A detailed visual description can stand on its own. Generic event
+    # language still needs the user's own example of what they want to see.
     return len(words) < 12 or not bool(words & BACKGROUND_VISUAL_CUES)
 
 
@@ -107,9 +95,7 @@ def _review_prompt(
             ),
             (
                 "Focus primarily on event_type, theme, creative_description, "
-                "background_subject, background_style, background_motifs, "
-                "background_exclusions, background_composition and "
-                "theme_reference_treatment."
+                "background_inspiration and theme_reference_treatment."
             ),
             (
                 "Determine what type of event this is and whether "
@@ -185,10 +171,10 @@ def _review_prompt(
             (
                 "Ask a background-design question only when the supplied theme "
                 "and creative description cannot determine a visual subject or "
-                "environment. For example, ask whether the backdrop should use "
-                "buildings, florals, stage elements, balloons, or remain abstract. "
-                "Do not ask for a separate style, motif, exclusion, or composition "
-                "field when the submitted description already makes those clear. "
+                "environment. Ask in everyday language what the person would like "
+                "people to see in the background, with examples such as a city "
+                "skyline, flowers, balloons, a stage or an abstract pattern. "
+                "Use the background_inspiration field for that single answer. "
                 "Do not ask about timezone, accessibility, programme rows, venue, "
                 "date or start time during semantic review."
             ),
@@ -241,9 +227,8 @@ def _review_prompt(
             "clarification_questions": [
                 {
                     "field": (
-                        "event_type, theme, creative_description, background_subject, "
-                        "background_style, background_motifs, background_exclusions, "
-                        "background_composition or theme_reference_treatment"
+                        "event_type, theme, creative_description, background_inspiration "
+                        "or theme_reference_treatment"
                     ),
                     "question": (
                         "direct user-facing clarification question"
@@ -438,13 +423,7 @@ def _safe_context(
             )
         ]
 
-    background_fields = {
-        "background_subject",
-        "background_style",
-        "background_motifs",
-        "background_exclusions",
-        "background_composition",
-    }
+    background_fields = {"background_inspiration"}
     has_background_question = any(
         item["field"] in background_fields
         for item in questions
@@ -456,15 +435,15 @@ def _safe_context(
     ):
         questions.append(
             {
-                "field": "background_subject",
+                "field": "background_inspiration",
                 "question": (
-                    "What should the background depict or suggest? "
-                    "For example an abstract pattern, city buildings, florals, "
-                    "a garden, stage lighting, balloons, or another environment."
+                    "What would you like people to see in the background? "
+                    "For example, a city skyline, flowers, balloons, a stage, "
+                    "a pattern, or something abstract."
                 ),
                 "reason": (
-                    "The submitted brief does not yet identify the background "
-                    "imagery, so candidate images could vary in the wrong direction."
+                    "A clear visual idea helps us create three strong background "
+                    "options that all feel close to what you want."
                 ),
             }
         )

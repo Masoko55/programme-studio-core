@@ -141,27 +141,10 @@ QUESTION_TEXT = {
         "Please describe the visual mood "
         "or creative direction more clearly."
     ),
-    "background_subject": (
-        "What should be the main abstract visual subject of the background? "
-        "For example a skyline, garden, stage lights or geometric pattern."
-    ),
-    "background_style": (
-        "What visual style should the background use? "
-        "For example watercolour, elegant minimal, comic-inspired or paper-cut."
-    ),
-    "background_motifs": (
-        "Which two to five motifs should appear in the background? "
-        "For example abstract web lines, stars, city silhouettes or balloons."
-    ),
-    "background_exclusions": (
-        "What must the background avoid besides text and people? "
-        "For example no buildings, no florals, no metallic effects "
-        "or no busy centre."
-    ),
-    "background_composition": (
-        "Where should the visual detail sit while preserving clear overlay space? "
-        "For example around the border, in the lower corners, "
-        "or on the side edges."
+    "background_inspiration": (
+        "What would you like people to see in the background? "
+        "For example, a city skyline, flowers, balloons, a stage, "
+        "a pattern, or something abstract."
     ),
     "theme_reference_treatment": (
         "Which visual traits from the reference "
@@ -1472,30 +1455,10 @@ def freeze_for_generation(
                 "creative_description"
             ]
         ),
-        "background_subject": (
-            answer[
-                "background_subject"
-            ]
-        ),
-        "background_style": (
-            answer[
-                "background_style"
-            ]
-        ),
-        "background_motifs": (
-            answer[
-                "background_motifs"
-            ]
-        ),
-        "background_exclusions": (
-            answer[
-                "background_exclusions"
-            ]
-        ),
-        "background_composition": (
-            answer[
-                "background_composition"
-            ]
+        "background_inspiration": (
+            answer.get(
+                "background_inspiration"
+            )
         ),
         "theme_reference_treatment": (
             answer.get(
@@ -1610,30 +1573,10 @@ def freeze_for_generation(
                 "creative_description"
             ]
         ),
-        "background_subject": (
-            answer[
-                "background_subject"
-            ]
-        ),
-        "background_style": (
-            answer[
-                "background_style"
-            ]
-        ),
-        "background_motifs": (
-            answer[
-                "background_motifs"
-            ]
-        ),
-        "background_exclusions": (
-            answer[
-                "background_exclusions"
-            ]
-        ),
-        "background_composition": (
-            answer[
-                "background_composition"
-            ]
+        "background_inspiration": (
+            answer.get(
+                "background_inspiration"
+            )
         ),
         "theme_reference_treatment": (
             answer.get(

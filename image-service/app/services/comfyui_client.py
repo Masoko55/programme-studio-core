@@ -315,6 +315,24 @@ def build_workflow(
         settings.model_dump()
     )
 
+    def compact_prompt(value: str, limit: int) -> str:
+        compact = " ".join(str(value or "").split())
+        return compact if len(compact) <= limit else compact[:limit].rsplit(" ", 1)[0]
+
+    # SD3.5 has three encoders with different jobs.  CLIP-L gets a short
+    # visual label, CLIP-G gets composition constraints, and T5 retains the
+    # full clarified prompt.  Other workflows simply ignore these values.
+    clip_l_positive = compact_prompt(positive_prompt, 180)
+    clip_g_positive = (
+        "portrait event background, edge-weighted composition, open title "
+        "and programme zones, large matte graphic forms, requested palette"
+    )
+    clip_l_negative = compact_prompt(negative_prompt, 180)
+    clip_g_negative = (
+        "text, logo, watermark, people, characters, scanlines, raster, "
+        "noise, gradient, dense centre, unrequested colours"
+    )
+
     values.update(
         positive_prompt=(
             positive_prompt
@@ -322,6 +340,13 @@ def build_workflow(
         negative_prompt=(
             negative_prompt
         ),
+        clip_l_positive_prompt=clip_l_positive,
+        clip_g_positive_prompt=clip_g_positive,
+        t5_positive_prompt=positive_prompt,
+        clip_l_negative_prompt=clip_l_negative,
+        clip_g_negative_prompt=clip_g_negative,
+        t5_negative_prompt=negative_prompt,
+        sd35_shift=3.0,
         seed=seed,
         width=(
             settings.generation_width
@@ -501,6 +526,7 @@ def validate_background(
     *,
     reference_number: str | None = None,
     expected_sha256: str | None = None,
+    enforce_palette: bool = True,
 ) -> dict:
     data = (
         path.read_bytes()
@@ -572,7 +598,7 @@ def validate_background(
             "palette_checked": False,
         }
 
-        if reference_number:
+        if reference_number and enforce_palette:
             document = (
                 load_prompts_document(
                     reference_number
@@ -1805,29 +1831,35 @@ class ComfyUIClient:
         )
 
         palette_normalized = False
-        if engine_id in {
-            settings.engine_2_id,
-            settings.engine_3_id,
-        }:
-            brief = load_prompts_document(reference_number).get("brief", {})
-            with Image.open(candidate_path) as generated_image:
-                constrained_image = constrain_to_requested_palette(
-                    generated_image,
-                    brief.get("primary_colour"),
-                    brief.get("secondary_colour"),
-                )
-                constrained_image.save(candidate_path, format="PNG")
-            palette_normalized = True
+        raw_validation = None
 
         try:
             try:
-                validation = (
-                    validate_background(
-                        candidate_path,
-                        reference_number=(
-                            reference_number
-                        ),
-                    )
+                # Reject malformed, textual, human, blank, gradient and raster
+                # outputs before any deterministic palette post-processing.
+                raw_validation = validate_background(
+                    candidate_path,
+                    reference_number=reference_number,
+                    enforce_palette=False,
+                )
+
+                if engine_id in {
+                    settings.engine_2_id,
+                    settings.engine_3_id,
+                }:
+                    brief = load_prompts_document(reference_number).get("brief", {})
+                    with Image.open(candidate_path) as generated_image:
+                        constrained_image = constrain_to_requested_palette(
+                            generated_image,
+                            brief.get("primary_colour"),
+                            brief.get("secondary_colour"),
+                        )
+                        constrained_image.save(candidate_path, format="PNG")
+                    palette_normalized = True
+
+                validation = validate_background(
+                    candidate_path,
+                    reference_number=reference_number,
                 )
 
             except ValueError as error:
@@ -1883,6 +1915,8 @@ class ComfyUIClient:
         record.update(
             validation,
             palette_normalized=palette_normalized,
+            raw_validation=raw_validation,
+            final_validation=validation,
             status=(
                 "complete"
             ),

@@ -20,9 +20,9 @@
         "54",
         0
       ],
-      "clip_l": "${positive_prompt}",
-      "clip_g": "${positive_prompt}",
-      "t5xxl": "${positive_prompt}",
+      "clip_l": "${clip_l_positive_prompt}",
+      "clip_g": "${clip_g_positive_prompt}",
+      "t5xxl": "${t5_positive_prompt}",
       "empty_padding": "none"
     }
   },
@@ -33,9 +33,9 @@
         "54",
         0
       ],
-      "clip_l": "${negative_prompt}",
-      "clip_g": "${negative_prompt}",
-      "t5xxl": "${negative_prompt}",
+      "clip_l": "${clip_l_negative_prompt}",
+      "clip_g": "${clip_g_negative_prompt}",
+      "t5xxl": "${t5_negative_prompt}",
       "empty_padding": "none"
     }
   },
@@ -57,7 +57,7 @@
       "scheduler": "simple",
       "denoise": 1.0,
       "model": [
-        "4",
+        "55",
         0
       ],
       "positive": [
@@ -95,6 +95,16 @@
         "8",
         0
       ]
+    }
+  },
+  "55": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "model": [
+        "4",
+        0
+      ],
+      "shift": "${sd35_shift}"
     }
   }
 }

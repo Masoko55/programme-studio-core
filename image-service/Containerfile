@@ -2,14 +2,30 @@ FROM docker.io/library/python:3.11-slim
 
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEBIAN_FRONTEND=noninteractive
 
 COPY requirements.txt /app/requirements.txt
 
-RUN pip install --no-cache-dir -r /app/requirements.txt
+RUN pip install \
+    --no-cache-dir \
+    --disable-pip-version-check \
+    -r /app/requirements.txt
 
-RUN apt-get update && apt-get install -y --no-install-recommends fonts-dejavu-core tesseract-ocr && rm -rf /var/lib/apt/lists/*
+RUN apt-get update \
+    && apt-get install -y \
+        --no-install-recommends \
+        fonts-dejavu-core \
+        tesseract-ocr \
+    && apt-get clean \
+    && rm -rf \
+        /var/lib/apt/lists/* \
+        /var/cache/apt/* \
+        /tmp/* \
+        /var/tmp/*
 
 COPY app /app/app
 COPY workflows /app/workflows

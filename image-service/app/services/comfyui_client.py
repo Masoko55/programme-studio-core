@@ -66,15 +66,9 @@ def workflow_name(
     engine_id: str,
 ) -> str:
     names = {
-        settings.engine_1_id: (
-            "flux2"
-        ),
-        settings.engine_2_id: (
-            "sdxl"
-        ),
-        settings.engine_3_id: (
-            "sd35-medium"
-        ),
+        settings.engine_1_id: "flux2",
+        settings.engine_2_id: "sdxl",
+        settings.engine_3_id: "sd35-medium",
     }
 
     if engine_id not in names:
@@ -85,6 +79,163 @@ def workflow_name(
     return names[
         engine_id
     ]
+
+
+def _extract_comfyui_execution_error(
+    history: dict | None,
+) -> str:
+    """
+    Extract the useful exception emitted by ComfyUI.
+
+    ComfyUI normally places node execution failures inside
+    status.messages as execution_error records.
+    """
+
+    if not history:
+        return (
+            "ComfyUI execution failed without "
+            "remote history details."
+        )
+
+    status = (
+        history.get(
+            "status",
+            {},
+        )
+        or {}
+    )
+
+    messages = (
+        status.get(
+            "messages",
+            [],
+        )
+        or []
+    )
+
+    details = []
+
+    for item in messages:
+        try:
+            if (
+                not isinstance(
+                    item,
+                    (list, tuple),
+                )
+                or len(item) < 2
+            ):
+                continue
+
+            message_type = str(
+                item[0]
+            )
+
+            payload = (
+                item[1]
+                if isinstance(
+                    item[1],
+                    dict,
+                )
+                else {}
+            )
+
+            if (
+                message_type
+                not in {
+                    "execution_error",
+                    "execution_interrupted",
+                }
+            ):
+                continue
+
+            node_id = (
+                payload.get(
+                    "node_id"
+                )
+            )
+
+            node_type = (
+                payload.get(
+                    "node_type"
+                )
+            )
+
+            exception_type = (
+                payload.get(
+                    "exception_type"
+                )
+            )
+
+            exception_message = (
+                payload.get(
+                    "exception_message"
+                )
+            )
+
+            traceback_lines = (
+                payload.get(
+                    "traceback"
+                )
+                or []
+            )
+
+            parts = []
+
+            if node_id:
+                parts.append(
+                    f"node={node_id}"
+                )
+
+            if node_type:
+                parts.append(
+                    f"type={node_type}"
+                )
+
+            if exception_type:
+                parts.append(
+                    f"exception={exception_type}"
+                )
+
+            if exception_message:
+                parts.append(
+                    f"message={exception_message}"
+                )
+
+            if traceback_lines:
+                tail = (
+                    str(
+                        traceback_lines[-1]
+                    )
+                    .strip()
+                )
+
+                if tail:
+                    parts.append(
+                        f"trace={tail}"
+                    )
+
+            if parts:
+                details.append(
+                    "; ".join(
+                        parts
+                    )
+                )
+
+        except Exception:
+            continue
+
+    if details:
+        return (
+            "ComfyUI execution failed: "
+            + " | ".join(
+                details
+            )
+        )
+
+    return (
+        "ComfyUI execution failed; remote history "
+        "did not contain a structured execution_error message."
+    )
 
 
 def detected_text_tokens(
@@ -108,12 +259,8 @@ def detected_text_tokens(
         token,
         confidence,
     ) in zip(
-        data[
-            "text"
-        ],
-        data[
-            "conf"
-        ],
+        data["text"],
+        data["conf"],
     ):
         normalized = re.sub(
             r"[^A-Za-z]",
@@ -133,10 +280,7 @@ def detected_text_tokens(
             score = -1
 
         if (
-            len(
-                normalized
-            )
-            >= 4
+            len(normalized) >= 4
             and score >= 45
         ):
             tokens.append(
@@ -156,8 +300,7 @@ def build_workflow(
     template_path = (
         settings.comfyui_workflow_path
         / (
-            f"{workflow_name(engine_id)}"
-            ".json"
+            f"{workflow_name(engine_id)}.json"
         )
     )
 
@@ -206,9 +349,7 @@ def build_workflow(
             )
         ):
             return values[
-                value[
-                    2:-1
-                ]
+                value[2:-1]
             ]
 
         if isinstance(
@@ -258,10 +399,7 @@ def validate_workflow(
             ]
         )
 
-        if (
-            kind
-            not in object_info
-        ):
+        if kind not in object_info:
             raise ComfyUIError(
                 "ComfyUI node "
                 f"{kind} is unavailable "
@@ -315,42 +453,28 @@ def validate_workflow(
             specification,
         ) in fields.items():
             if (
-                key
-                not in inputs
+                key not in inputs
                 or isinstance(
-                    inputs[
-                        key
-                    ],
+                    inputs[key],
                     list,
                 )
             ):
                 continue
 
             options = (
-                specification[
-                    0
-                ]
+                specification[0]
                 if isinstance(
-                    specification[
-                        0
-                    ],
+                    specification[0],
                     list,
                 )
                 else (
-                    specification[
-                        1
-                    ].get(
+                    specification[1].get(
                         "options"
                     )
                     if (
-                        len(
-                            specification
-                        )
-                        > 1
+                        len(specification) > 1
                         and isinstance(
-                            specification[
-                                1
-                            ],
+                            specification[1],
                             dict,
                         )
                     )
@@ -360,9 +484,7 @@ def validate_workflow(
 
             if (
                 options is not None
-                and inputs[
-                    key
-                ]
+                and inputs[key]
                 not in options
             ):
                 raise ComfyUIError(
@@ -397,8 +519,7 @@ def validate_background(
     )
 
     if (
-        expected_sha256
-        is not None
+        expected_sha256 is not None
         and digest
         != expected_sha256
     ):
@@ -440,8 +561,10 @@ def validate_background(
             )
         )
 
-        quality_result = validate_visual_quality(
-            image
+        quality_result = (
+            validate_visual_quality(
+                image
+            )
         )
 
         palette_result = {
@@ -490,15 +613,15 @@ def validate_background(
         raise ValueError(
             "Generated background contains OCR text: "
             + ", ".join(
-                tokens[
-                    :8
-                ]
+                tokens[:8]
             )
         )
 
-    if human_signals[
-        "detected"
-    ]:
+    if (
+        human_signals[
+            "detected"
+        ]
+    ):
         raise ValueError(
             "Generated background appears to contain "
             "a human figure or face."
@@ -506,9 +629,7 @@ def validate_background(
 
     return {
         "output_path": (
-            str(
-                path
-            )
+            str(path)
         ),
         "sha256": (
             digest
@@ -519,7 +640,6 @@ def validate_background(
         "height": (
             height
         ),
-
         "person_detection_count": (
             len(
                 human_signals[
@@ -527,7 +647,6 @@ def validate_background(
                 ]
             )
         ),
-
         "face_detection_count": (
             len(
                 human_signals[
@@ -535,7 +654,6 @@ def validate_background(
                 ]
             )
         ),
-
         "profile_detection_count": (
             len(
                 human_signals[
@@ -543,7 +661,6 @@ def validate_background(
                 ]
             )
         ),
-
         "upper_body_detection_count": (
             len(
                 human_signals[
@@ -551,7 +668,6 @@ def validate_background(
                 ]
             )
         ),
-
         **quality_result,
         **palette_result,
     }
@@ -570,7 +686,6 @@ class ComfyUIClient:
                         "/"
                     )
                 ),
-
                 timeout=(
                     httpx.Timeout(
                         60,
@@ -667,9 +782,7 @@ class ComfyUIClient:
             )
 
         return {
-            "status": (
-                "available"
-            ),
+            "status": "available",
             "version": (
                 stats.get(
                     "system",
@@ -823,52 +936,33 @@ class ComfyUIClient:
         )
 
         entries += [
-            entry[
-                "prompt"
-            ]
+            entry["prompt"]
             for entry
             in history.values()
-            if (
-                "prompt"
-                in entry
-            )
+            if "prompt" in entry
         ]
 
         matches = {
-            item[
-                1
-            ]
+            item[1]
             for item
             in entries
             if (
-                len(
-                    item
-                )
-                > 3
-                and item[
-                    3
-                ].get(
+                len(item) > 3
+                and item[3].get(
                     "programme_request_id"
                 )
                 == request_id
             )
         }
 
-        if (
-            len(
-                matches
-            )
-            > 1
-        ):
+        if len(matches) > 1:
             raise SubmissionUncertain(
                 "Multiple remote jobs match "
                 "the submission."
             )
 
         return next(
-            iter(
-                matches
-            ),
+            iter(matches),
             None,
         )
 
@@ -933,12 +1027,13 @@ class ComfyUIClient:
                     encoding="utf-8"
                 )
             )
-            if (
-                record_path.exists()
-            )
+            if record_path.exists()
             else None
         )
 
+        #
+        # Reuse completed candidate only if it still validates.
+        #
         if (
             previous
             and previous.get(
@@ -986,11 +1081,32 @@ class ComfyUIClient:
             and previous.get(
                 "rejection_reason"
             )
+            and previous.get(
+                "status"
+            )
+            == "rejected"
         )
 
-        if (
+        retrying_failed_execution = bool(
+            previous
+            and previous.get(
+                "status"
+            )
+            in {
+                "failed",
+                "runtime_failed",
+            }
+        )
+
+        retrying_candidate = (
             retrying_rejected_candidate
-        ):
+            or retrying_failed_execution
+        )
+
+        #
+        # Every rejected/runtime-failed attempt gets a fresh seed.
+        #
+        if retrying_candidate:
             seed = (
                 secrets.randbits(
                     63
@@ -1088,7 +1204,7 @@ class ComfyUIClient:
 
         if (
             previous
-            and not retrying_rejected_candidate
+            and not retrying_candidate
             and previous.get(
                 "workflow_sha256"
             )
@@ -1113,8 +1229,20 @@ class ComfyUIClient:
             else []
         )
 
+        failed_attempts = (
+            list(
+                previous.get(
+                    "failed_attempts",
+                    [],
+                )
+            )
+            if previous
+            else []
+        )
+
         if (
             retrying_rejected_candidate
+            and previous
         ):
             rejected_attempts.append(
                 {
@@ -1142,6 +1270,41 @@ class ComfyUIClient:
                     "rejection_reason": (
                         previous.get(
                             "rejection_reason"
+                        )
+                    ),
+                }
+            )
+
+        if (
+            retrying_failed_execution
+            and previous
+        ):
+            failed_attempts.append(
+                {
+                    "attempt_count": (
+                        previous.get(
+                            "attempt_count",
+                            1,
+                        )
+                    ),
+                    "seed": (
+                        previous.get(
+                            "seed"
+                        )
+                    ),
+                    "prompt_id": (
+                        previous.get(
+                            "prompt_id"
+                        )
+                    ),
+                    "error": (
+                        previous.get(
+                            "error"
+                        )
+                    ),
+                    "remote_status": (
+                        previous.get(
+                            "remote_status"
                         )
                     ),
                 }
@@ -1180,7 +1343,7 @@ class ComfyUIClient:
                     + 1
                 )
                 if (
-                    retrying_rejected_candidate
+                    retrying_candidate
                     and previous
                 )
                 else 1
@@ -1200,8 +1363,8 @@ class ComfyUIClient:
                 [
                     (
                         "Negative prompt omitted because "
-                        "the configured FLUX workflow "
-                        "does not expose negative conditioning."
+                        "the configured FLUX workflow does "
+                        "not expose negative conditioning."
                     )
                 ]
                 if (
@@ -1215,18 +1378,23 @@ class ComfyUIClient:
             ),
         }
 
-        if (
-            rejected_attempts
-        ):
+        if rejected_attempts:
             record[
                 "rejected_attempts"
             ] = (
                 rejected_attempts
             )
 
+        if failed_attempts:
+            record[
+                "failed_attempts"
+            ] = (
+                failed_attempts
+            )
+
         if (
             previous
-            and not retrying_rejected_candidate
+            and not retrying_candidate
         ):
             record = previous
 
@@ -1239,7 +1407,7 @@ class ComfyUIClient:
         if (
             not prompt_id
             and previous
-            and not retrying_rejected_candidate
+            and not retrying_candidate
         ):
             prompt_id = (
                 await self.recover_submission(
@@ -1257,9 +1425,7 @@ class ComfyUIClient:
                     "inspect ComfyUI history."
                 )
 
-        if (
-            not prompt_id
-        ):
+        if not prompt_id:
             object_info = (
                 await self.request(
                     "GET",
@@ -1329,8 +1495,45 @@ class ComfyUIClient:
                     "prompt_id"
                 )
             ):
-                raise ComfyUIError(
+                node_errors = (
+                    result.get(
+                        "node_errors"
+                    )
+                    or {}
+                )
+
+                message = (
                     "ComfyUI rejected the workflow."
+                )
+
+                if node_errors:
+                    message += (
+                        " "
+                        + json.dumps(
+                            node_errors,
+                            ensure_ascii=False,
+                        )[:1500]
+                    )
+
+                record.update(
+                    status=(
+                        "runtime_failed"
+                    ),
+                    error=(
+                        message
+                    ),
+                    rejection_reason=(
+                        message
+                    ),
+                )
+
+                write_json(
+                    record_path,
+                    record,
+                )
+
+                raise ComfyUIError(
+                    message
                 )
 
             prompt_id = (
@@ -1358,10 +1561,16 @@ class ComfyUIClient:
             "reference=%s "
             "engine=%s "
             "direction=%s "
+            "attempt=%s "
+            "seed=%s "
             "prompt_id=%s",
             reference_number,
             engine_id,
             direction_id,
+            record.get(
+                "attempt_count"
+            ),
+            seed,
             prompt_id,
         )
 
@@ -1370,6 +1579,8 @@ class ComfyUIClient:
             + settings
             .comfyui_generation_timeout_seconds
         )
+
+        history = None
 
         while True:
             history = (
@@ -1390,6 +1601,7 @@ class ComfyUIClient:
                         "status",
                         {},
                     )
+                    or {}
                 )
 
                 if (
@@ -1398,13 +1610,21 @@ class ComfyUIClient:
                     )
                     == "error"
                 ):
+                    error_message = (
+                        _extract_comfyui_execution_error(
+                            history
+                        )
+                    )
+
                     record.update(
                         status=(
-                            "failed"
+                            "runtime_failed"
                         ),
                         error=(
-                            "ComfyUI execution failed; "
-                            "see remote history."
+                            error_message
+                        ),
+                        rejection_reason=(
+                            error_message
                         ),
                         remote_status=(
                             status
@@ -1416,10 +1636,26 @@ class ComfyUIClient:
                         record,
                     )
 
+                    logger.warning(
+                        "event=comfyui_execution_failed "
+                        "reference=%s "
+                        "engine=%s "
+                        "direction=%s "
+                        "attempt=%s "
+                        "seed=%s "
+                        "error=%s",
+                        reference_number,
+                        engine_id,
+                        direction_id,
+                        record.get(
+                            "attempt_count"
+                        ),
+                        seed,
+                        error_message,
+                    )
+
                     raise ComfyUIError(
-                        record[
-                            "error"
-                        ]
+                        error_message
                     )
 
                 if (
@@ -1433,8 +1669,29 @@ class ComfyUIClient:
                 time.monotonic()
                 >= deadline
             ):
-                raise ComfyUIError(
+                message = (
                     "ComfyUI generation timed out."
+                )
+
+                record.update(
+                    status=(
+                        "runtime_failed"
+                    ),
+                    error=(
+                        message
+                    ),
+                    rejection_reason=(
+                        message
+                    ),
+                )
+
+                write_json(
+                    record_path,
+                    record,
+                )
+
+                raise ComfyUIError(
+                    message
                 )
 
             await asyncio.sleep(
@@ -1478,26 +1735,40 @@ class ComfyUIClient:
         ]
 
         if (
-            len(
-                images
-            )
-            != 1
-            or images[
-                0
-            ].get(
+            len(images) != 1
+            or images[0].get(
                 "type"
             )
             != "output"
         ):
-            raise ComfyUIError(
+            message = (
                 "Expected exactly one persisted "
                 "ComfyUI output image."
             )
 
+            record.update(
+                status=(
+                    "runtime_failed"
+                ),
+                error=(
+                    message
+                ),
+                rejection_reason=(
+                    message
+                ),
+            )
+
+            write_json(
+                record_path,
+                record,
+            )
+
+            raise ComfyUIError(
+                message
+            )
+
         descriptor = (
-            images[
-                0
-            ]
+            images[0]
         )
 
         response = (
@@ -1516,9 +1787,7 @@ class ComfyUIClient:
                             "",
                         )
                     ),
-                    "type": (
-                        "output"
-                    ),
+                    "type": "output",
                 },
             )
         )
@@ -1551,10 +1820,9 @@ class ComfyUIClient:
                         "rejected"
                     ),
                     rejection_reason=(
-                        str(
-                            error
-                        )
+                        str(error)
                     ),
+                    error=None,
                     remote_image=(
                         descriptor
                     ),
@@ -1566,14 +1834,12 @@ class ComfyUIClient:
                 )
 
                 raise ComfyUIError(
-                    str(
-                        error
-                    )
+                    str(error)
                 ) from error
 
             if (
                 previous
-                and not retrying_rejected_candidate
+                and not retrying_candidate
                 and previous.get(
                     "sha256"
                 )
@@ -1603,10 +1869,10 @@ class ComfyUIClient:
             status=(
                 "complete"
             ),
+            error=None,
+            rejection_reason=None,
             output_path=(
-                str(
-                    image_path
-                )
+                str(image_path)
             ),
             remote_image=(
                 descriptor

@@ -129,165 +129,6 @@ DARK_CHROMATIC_NAMES = {
 }
 
 
-# Strict tonal families.
-#
-# These are intentionally narrow. They allow dark/light tonal
-# variants of an explicitly requested colour without turning the
-# validator into a general "similar colour" matcher.
-#
-# Examples:
-#
-#   royal blue -> blue / royal blue / navy
-#   red        -> red / maroon / burgundy
-#
-# But royal blue does NOT permit:
-#
-#   sky blue
-#   cyan
-#   aqua
-#   turquoise
-#   purple
-#   white
-#   silver
-#   grey
-#
-# Unrequested neutral colours therefore remain rejected.
-COLOUR_FAMILIES = {
-    "red": {
-        "red",
-        "maroon",
-        "burgundy",
-    },
-    "maroon": {
-        "red",
-        "maroon",
-        "burgundy",
-    },
-    "burgundy": {
-        "red",
-        "maroon",
-        "burgundy",
-    },
-
-    "blue": {
-        "blue",
-        "royal blue",
-        "navy",
-    },
-    "royal blue": {
-        "blue",
-        "royal blue",
-        "navy",
-    },
-    "navy": {
-        "blue",
-        "royal blue",
-        "navy",
-    },
-
-    "green": {
-        "green",
-        "forest green",
-    },
-    "forest green": {
-        "green",
-        "forest green",
-    },
-
-    "pink": {
-        "pink",
-        "hot pink",
-        "rose",
-    },
-    "hot pink": {
-        "pink",
-        "hot pink",
-        "rose",
-    },
-    "rose": {
-        "pink",
-        "hot pink",
-        "rose",
-    },
-
-    "purple": {
-        "purple",
-        "violet",
-    },
-    "violet": {
-        "purple",
-        "violet",
-    },
-
-    "turquoise": {
-        "turquoise",
-        "teal",
-    },
-    "teal": {
-        "turquoise",
-        "teal",
-    },
-
-    "cyan": {
-        "cyan",
-        "aqua",
-    },
-    "aqua": {
-        "cyan",
-        "aqua",
-    },
-
-    "gold": {
-        "gold",
-        "champagne",
-    },
-    "champagne": {
-        "gold",
-        "champagne",
-    },
-
-    "orange": {
-        "orange",
-    },
-    "yellow": {
-        "yellow",
-    },
-    "lime": {
-        "lime",
-    },
-    "mint green": {
-        "mint green",
-    },
-    "sky blue": {
-        "sky blue",
-    },
-    "lavender": {
-        "lavender",
-    },
-    "magenta": {
-        "magenta",
-    },
-    "coral": {
-        "coral",
-    },
-    "peach": {
-        "peach",
-    },
-    "brown": {
-        "brown",
-    },
-    "beige": {
-        "beige",
-    },
-    "cream": {
-        "cream",
-    },
-    "rose gold": {
-        "rose gold",
-    },
-}
-
-
 MAX_OFF_PALETTE_RATIO = 0.05
 MIN_PRIMARY_COLOUR_RATIO = 0.05
 MIN_SECONDARY_COLOUR_RATIO = 0.008
@@ -1402,97 +1243,6 @@ def validate_visual_quality(
     }
 
 
-def _colour_family_members(
-    name: str | None,
-) -> set[str]:
-    """
-    Return the strict accepted tonal family for a named colour.
-    """
-
-    if not name:
-        return set()
-
-    if name in NEUTRAL_NAMES:
-        return {
-            name,
-        }
-
-    return set(
-        COLOUR_FAMILIES.get(
-            name,
-            {
-                name,
-            },
-        )
-    )
-
-
-def _nearest_requested_family(
-    nearest_name: str,
-    pixel_rgb: np.ndarray,
-    requested_targets: list[dict],
-) -> str | None:
-    """
-    Resolve the nearest named pixel colour into an explicitly
-    requested tonal family.
-
-    Family membership is checked before RGB distance. This is
-    deliberate: a cyan or sky-blue pixel must not become valid
-    merely because its hue is close to royal blue.
-    """
-
-    candidates = [
-        target
-        for target in requested_targets
-        if (
-            nearest_name
-            in target[
-                "family_members"
-            ]
-        )
-    ]
-
-    if not candidates:
-        return None
-
-    pixel = pixel_rgb.astype(
-        np.int32
-    )
-
-    best_name = None
-    best_distance = None
-
-    for target in candidates:
-        target_rgb = np.asarray(
-            target[
-                "rgb"
-            ],
-            dtype=np.int32,
-        )
-
-        distance = int(
-            np.sum(
-                (
-                    pixel
-                    - target_rgb
-                )
-                ** 2
-            )
-        )
-
-        if (
-            best_distance is None
-            or distance
-            < best_distance
-        ):
-            best_distance = distance
-            best_name = target[
-                "name"
-            ]
-
-    return best_name
-
-
 def validate_palette(
     image: Image.Image,
     primary_colour: str | None,
@@ -1544,12 +1294,10 @@ def validate_palette(
         (
             primary_name,
             primary_rgb,
-            primary_descriptor,
         ),
         (
             secondary_name,
             secondary_rgb,
-            secondary_descriptor,
         ),
     ]
 
@@ -1610,12 +1358,7 @@ def validate_palette(
 
     requested_names = {
         name
-        for (
-            name,
-            _,
-            _,
-        )
-        in requested
+        for name, _ in requested
     }
 
     requested_neutrals = (
@@ -1623,9 +1366,6 @@ def validate_palette(
         & NEUTRAL_NAMES
     )
 
-    #
-    # Strict black/white mode.
-    #
     if requested_names == {
         "black",
         "white",
@@ -1670,56 +1410,35 @@ def validate_palette(
             ),
             "primary_colour_ratio": None,
             "secondary_colour_ratio": None,
-            "requested_colour_counts": {},
-            "requested_colour_family_counts": {},
-            "accepted_tonal_breakdown": {},
             "unrequested_colour_breakdown": {},
         }
 
-    requested_targets = []
+    chromatic_targets = []
 
-    for (
-        name,
-        rgb_value,
-        descriptor,
-    ) in requested:
-        if name in NEUTRAL_NAMES:
-            continue
-
-        hue, _, _ = (
-            _rgb_to_hsv(
+    for name, rgb_value in requested:
+        if name not in NEUTRAL_NAMES:
+            hue, _, _ = _rgb_to_hsv(
                 rgb_value
             )
-        )
 
-        requested_targets.append(
-            {
-                "name": name,
-                "rgb": rgb_value,
-                "hue": hue,
-                "descriptor": descriptor,
-                "family_members": (
-                    _colour_family_members(
-                        name
-                    )
-                ),
-            }
-        )
+            chromatic_targets.append(
+                {
+                    "name": name,
+                    "rgb": rgb_value,
+                    "hue": hue,
+                    "hue_limit": (
+                        _target_hue_limit(
+                            name,
+                            rgb_value,
+                        )
+                    ),
+                }
+            )
 
     requested_counts = {
         name: 0
-        for (
-            name,
-            _,
-            _,
-        )
-        in requested
+        for name, _ in requested
     }
-
-    accepted_tonal_counts: dict[
-        str,
-        int,
-    ] = {}
 
     off_palette_count = 0
 
@@ -1735,27 +1454,12 @@ def validate_palette(
     ) in enumerate(
         hsv_pixels
     ):
-        hue = int(
-            hue
-        )
-
+        hue = int(hue)
         saturation = int(
             saturation
         )
+        value = int(value)
 
-        value = int(
-            value
-        )
-
-        pixel_rgb = (
-            rgb_pixels[
-                index
-            ]
-        )
-
-        #
-        # Explicitly requested neutral colours.
-        #
         neutral_match = (
             _matches_requested_neutral(
                 saturation,
@@ -1775,143 +1479,48 @@ def validate_palette(
                 + 1
             )
 
-            accepted_tonal_counts[
-                neutral_match
-            ] = (
-                accepted_tonal_counts.get(
-                    neutral_match,
-                    0,
-                )
-                + 1
-            )
-
             continue
 
-        nearest = (
-            _nearest_named_colour(
-                pixel_rgb
-            )
-        )
-
-        #
-        # Named colours use strict family membership.
-        #
-        family_match = (
-            _nearest_requested_family(
-                nearest,
-                pixel_rgb,
-                requested_targets,
-            )
-        )
-
-        if family_match is not None:
-            requested_counts[
-                family_match
-            ] = (
-                requested_counts.get(
-                    family_match,
-                    0,
-                )
-                + 1
-            )
-
-            accepted_tonal_counts[
-                nearest
-            ] = (
-                accepted_tonal_counts.get(
-                    nearest,
-                    0,
-                )
-                + 1
-            )
-
-            continue
-
-        #
-        # Explicit hexadecimal colours have no named family.
-        # For hex input only, retain controlled hue matching.
-        #
-        hex_targets = [
+        eligible_targets = [
             target
-            for target
-            in requested_targets
-            if (
-                target[
-                    "descriptor"
-                ][
-                    "is_hex"
-                ]
-                and _pixel_can_match_target(
-                    saturation,
-                    value,
-                    target[
-                        "name"
-                    ],
-                    target[
-                        "rgb"
-                    ],
-                )
+            for target in chromatic_targets
+            if _pixel_can_match_target(
+                saturation,
+                value,
+                target["name"],
+                target["rgb"],
             )
         ]
 
-        best_hex_target = None
-        best_hex_distance = None
+        best_target = None
+        best_distance = None
 
-        for target in hex_targets:
-            distance = (
-                _hue_distance(
-                    hue,
-                    target[
-                        "hue"
-                    ],
-                )
+        for target in eligible_targets:
+            distance = _hue_distance(
+                hue,
+                target["hue"],
             )
-
-            limit = (
-                _target_hue_limit(
-                    target[
-                        "name"
-                    ],
-                    target[
-                        "rgb"
-                    ],
-                )
-            )
-
-            if distance > limit:
-                continue
 
             if (
-                best_hex_distance
-                is None
-                or distance
-                < best_hex_distance
+                best_distance is None
+                or distance < best_distance
             ):
-                best_hex_target = target
-                best_hex_distance = (
-                    distance
-                )
+                best_target = target
+                best_distance = distance
 
-        if best_hex_target is not None:
+        if (
+            best_target is not None
+            and best_distance is not None
+            and best_distance
+            <= best_target[
+                "hue_limit"
+            ]
+        ):
             requested_counts[
-                best_hex_target[
-                    "name"
-                ]
+                best_target["name"]
             ] = (
                 requested_counts.get(
-                    best_hex_target[
-                        "name"
-                    ],
-                    0,
-                )
-                + 1
-            )
-
-            accepted_tonal_counts[
-                nearest
-            ] = (
-                accepted_tonal_counts.get(
-                    nearest,
+                    best_target["name"],
                     0,
                 )
                 + 1
@@ -1919,10 +1528,13 @@ def validate_palette(
 
             continue
 
-        #
-        # Anything reaching here is genuinely foreign.
-        #
         off_palette_count += 1
+
+        nearest = (
+            _nearest_named_colour(
+                rgb_pixels[index]
+            )
+        )
 
         off_palette_named_counts[
             nearest
@@ -1951,18 +1563,6 @@ def validate_palette(
         )
     }
 
-    tonal_breakdown = {
-        name: (
-            count
-            / total
-        )
-        for name, count in sorted(
-            accepted_tonal_counts.items(),
-            key=lambda item: item[1],
-            reverse=True,
-        )
-    }
-
     if (
         off_palette_ratio
         > MAX_OFF_PALETTE_RATIO
@@ -1971,7 +1571,7 @@ def validate_palette(
             f"{name}={ratio:.2f}"
             for name, ratio in list(
                 breakdown.items()
-            )[:6]
+            )[:4]
         ]
 
         details = (
@@ -2013,8 +1613,8 @@ def validate_palette(
             raise ValueError(
                 "Generated background does not visibly "
                 "contain enough of the requested primary "
-                f"colour family '{primary_name}' "
-                f"(primary family ratio "
+                f"colour '{primary_name}' "
+                f"(primary ratio "
                 f"{primary_ratio:.2f})."
             )
 
@@ -2056,8 +1656,8 @@ def validate_palette(
             raise ValueError(
                 "Generated background does not visibly "
                 "contain enough of the requested secondary "
-                f"colour family '{secondary_name}' "
-                f"(secondary family ratio "
+                f"colour '{secondary_name}' "
+                f"(secondary ratio "
                 f"{secondary_ratio:.2f})."
             )
 
@@ -2070,7 +1670,7 @@ def validate_palette(
         **quality_result,
         "palette_checked": True,
         "palette_mode": (
-            "strict-requested-colour-families"
+            "strict-requested-colours-only"
         ),
         "palette_match_ratio": (
             palette_match_ratio
@@ -2087,12 +1687,6 @@ def validate_palette(
         "requested_colour_counts": (
             requested_counts
         ),
-        "requested_colour_family_counts": (
-            requested_counts
-        ),
-        "accepted_tonal_breakdown": (
-            tonal_breakdown
-        ),
         "unrequested_colour_breakdown": (
             breakdown
         ),
@@ -2106,11 +1700,6 @@ def validate_palette(
                 primary_descriptor[
                     "base_name"
                 ]
-            ),
-            "family_members": sorted(
-                _colour_family_members(
-                    primary_name
-                )
             ),
             "modifiers": (
                 primary_descriptor[
@@ -2133,11 +1722,6 @@ def validate_palette(
                 secondary_descriptor[
                     "base_name"
                 ]
-            ),
-            "family_members": sorted(
-                _colour_family_members(
-                    secondary_name
-                )
             ),
             "modifiers": (
                 secondary_descriptor[

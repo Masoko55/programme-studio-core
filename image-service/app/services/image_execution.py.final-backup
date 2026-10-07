@@ -671,133 +671,6 @@ def _quality_instruction(
     )
 
 
-def _minimal_two_colour_recovery_prompt(
-    *,
-    base_positive_prompt: str,
-    primary_colour: str | None,
-    secondary_colour: str | None,
-    engine_id: str,
-    effective_retry: int,
-) -> tuple[str, str]:
-    """
-    Late-stage deterministic palette recovery.
-
-    Once SDXL or SD3.5 has repeatedly failed palette QA,
-    replace accumulated prose with a short literal rendering
-    contract.
-
-    The original visual brief is still preserved, but palette
-    area and material constraints become dominant.
-    """
-
-    primary = (
-        _normalise_colour(
-            primary_colour
-        )
-    )
-
-    secondary = (
-        _normalise_colour(
-            secondary_colour
-        )
-    )
-
-    engine_label = (
-        "SDXL"
-        if (
-            engine_id
-            == settings.engine_2_id
-        )
-        else "SD3.5"
-    )
-
-    if not primary:
-        primary = (
-            "the requested primary colour"
-        )
-
-    if not secondary:
-        secondary = (
-            "the requested secondary colour"
-        )
-
-    if effective_retry >= 13:
-        primary_percent = (
-            "60 to 70 percent"
-        )
-
-        secondary_percent = (
-            "25 to 35 percent"
-        )
-
-    else:
-        primary_percent = (
-            "65 to 75 percent"
-        )
-
-        secondary_percent = (
-            "20 to 30 percent"
-        )
-
-    positive = (
-        f"{engine_label} LITERAL PALETTE RECOVERY. "
-        "Create one clean A4 portrait decorative event background. "
-        "Retain the requested visual subject and edge-led composition "
-        "from this source brief: "
-        f"{base_positive_prompt}. "
-        "Simplify the rendering aggressively. "
-        f"Use {primary} for {primary_percent} of the visible image. "
-        f"Use {secondary} for {secondary_percent} of the visible image. "
-        f"Render multiple large solid {secondary} regions. "
-        f"Do not use {secondary} only as tiny accents, thin outlines, "
-        "reflections or hidden shadows. "
-        f"Keep the central quiet area inside the {primary} family. "
-        "Use broad clean geometric forms and matte graphic surfaces. "
-        "Use only tonal members of the requested colour families for "
-        "shadows and highlights. "
-        "No third chromatic family. "
-        "No unrequested neutral fill. "
-        "No white highlight. "
-        "No silver. "
-        "No grey. "
-        "No cream. "
-        "No beige. "
-        "No cyan substitution. "
-        "No sky-blue substitution. "
-        "No purple substitution. "
-        "No metallic material. "
-        "No chrome. "
-        "No reflective material. "
-        "No coloured lighting. "
-        "No glow. "
-        "No bloom. "
-        "No iridescence. "
-        "No gradients that drift into a third colour family. "
-        "No people, characters, faces, text, logos or readable symbols. "
-        "The result must remain visually structured and professionally "
-        "designed, not blank, corrupted, striped or rasterised."
-    )
-
-    negative = (
-        "white, off-white, ivory, cream, beige, silver, grey, gray, "
-        "metallic, chrome, steel, neutral highlight, neutral shadow, "
-        "white highlight, white glow, cyan, aqua, turquoise, sky blue, "
-        "purple, violet, lavender, green, lime, yellow, orange, pink, "
-        "magenta, brown, third colour family, multicolour palette, "
-        "rainbow, photographic lighting, cinematic lighting, "
-        "colourless reflection, reflected colour, iridescent, "
-        "holographic, pearlescent, glow, bloom, person, people, face, "
-        "portrait, human, character, superhero, text, typography, "
-        "letters, numbers, logo, watermark, signage, scanlines, "
-        "raster lines, moire, glitch, corrupted texture"
-    )
-
-    return (
-        positive,
-        negative,
-    )
-
-
 def _strengthen_prompts(
     base_positive_prompt: str,
     base_negative_prompt: str,
@@ -878,73 +751,6 @@ def _strengthen_prompts(
         )
     )
 
-    #
-    # After repeated palette failures, SDXL and SD3.5 move
-    # from descriptive prompting to a short literal palette
-    # contract.
-    #
-    literal_palette_recovery = bool(
-        palette_failure
-        and effective_retry >= 6
-        and engine_id
-        in {
-            settings.engine_2_id,
-            settings.engine_3_id,
-        }
-        and primary_colour
-        and secondary_colour
-    )
-
-    if literal_palette_recovery:
-        (
-            positive_prompt,
-            strict_negative_prompt,
-        ) = (
-            _minimal_two_colour_recovery_prompt(
-                base_positive_prompt=(
-                    base_positive_prompt
-                ),
-                primary_colour=(
-                    primary_colour
-                ),
-                secondary_colour=(
-                    secondary_colour
-                ),
-                engine_id=(
-                    engine_id
-                ),
-                effective_retry=(
-                    effective_retry
-                ),
-            )
-        )
-
-        negative_prompt = (
-            ", ".join(
-                value
-                for value
-                in (
-                    base_negative_prompt.strip(
-                        ", "
-                    ),
-                    strict_negative_prompt,
-                )
-                if value
-            )
-        )
-
-        logger.info(
-            "event=literal_palette_recovery "
-            "engine=%s "
-            "effective_retry=%s "
-            "primary=%s "
-            "secondary=%s",
-            engine_id,
-            effective_retry,
-            primary_colour,
-            secondary_colour,
-        )
-
     if palette_failure:
         if (
             engine_id
@@ -992,7 +798,6 @@ def _strengthen_prompts(
             effective_retry >= 6
             and primary
             and secondary
-            and not literal_palette_recovery
         ):
             positive_prompt = (
                 "Abstract A4 portrait decorative event background. "
@@ -1134,31 +939,9 @@ def _strengthen_prompts(
             (
                 "MANDATORY SECONDARY COLOUR REQUIREMENT. "
                 f"Render {secondary} as actual visible surface colour "
-                "in several substantial separate regions. "
-                f"Do not hide {secondary} inside shadows, reflections, "
-                "thin outlines or tiny accents. "
-                f"Several large visible areas must immediately read "
-                f"as {secondary}."
+                "in several substantial separate regions."
             )
         )
-
-        if (
-            effective_retry >= 6
-            and engine_id
-            in {
-                settings.engine_2_id,
-                settings.engine_3_id,
-            }
-        ):
-            positive_additions.append(
-                (
-                    "SECONDARY COLOUR AREA RECOVERY. "
-                    f"Dedicate roughly 25 to 35 percent of the image "
-                    f"to large solid {secondary} surfaces. "
-                    "Use separate blocks or structural regions rather "
-                    "than thin lines."
-                )
-            )
 
     if (
         "primary"

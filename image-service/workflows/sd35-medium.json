@@ -1,23 +1,24 @@
 {
-  "8": {
-    "class_type": "VAEDecode",
+  "4": {
+    "class_type": "CheckpointLoaderSimple",
     "inputs": {
-      "samples": [
-        "3",
-        0
-      ],
-      "vae": [
-        "4",
-        2
-      ]
+      "ckpt_name": "${sd35_checkpoint}"
     }
   },
-  "9": {
-    "class_type": "SaveImage",
+  "54": {
+    "class_type": "TripleCLIPLoader",
     "inputs": {
-      "filename_prefix": "${output_prefix}",
-      "images": [
-        "8",
+      "clip_name1": "${sd35_clip_l}",
+      "clip_name2": "${sd35_clip_g}",
+      "clip_name3": "${sd35_t5}"
+    }
+  },
+  "16": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "${positive_prompt}",
+      "clip": [
+        "54",
         0
       ]
     }
@@ -27,8 +28,8 @@
     "inputs": {
       "text": "${negative_prompt}",
       "clip": [
-        "4",
-        1
+        "54",
+        0
       ]
     }
   },
@@ -38,12 +39,6 @@
       "width": "${width}",
       "height": "${height}",
       "batch_size": 1
-    }
-  },
-  "4": {
-    "class_type": "CheckpointLoaderSimple",
-    "inputs": {
-      "ckpt_name": "${sd35_checkpoint}"
     }
   },
   "3": {
@@ -73,13 +68,26 @@
       ]
     }
   },
-  "16": {
-    "class_type": "CLIPTextEncode",
+  "8": {
+    "class_type": "VAEDecode",
     "inputs": {
-      "text": "${positive_prompt}",
-      "clip": [
+      "samples": [
+        "3",
+        0
+      ],
+      "vae": [
         "4",
-        1
+        2
+      ]
+    }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "${output_prefix}",
+      "images": [
+        "8",
+        0
       ]
     }
   }

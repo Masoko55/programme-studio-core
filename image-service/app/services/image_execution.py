@@ -45,6 +45,7 @@ from app.services.prompt_repository import (
 )
 from app.services.candidate_spec import build_candidate_spec
 from app.services.prompt_compiler import compile_candidate_prompt, failure_category, retry_stage
+from app.services.sampling_profiles import select_sampling_profile, summarize_failures
 
 
 logger = logging.getLogger(
@@ -2025,6 +2026,11 @@ async def _attempt_output_wave(
             )
         category = compiled.failure_category if compiled else failure_category(previous_reason)
         stage = compiled.retry_stage if compiled else retry_stage(attempt)
+        profile = select_sampling_profile(
+            output.engine_id,
+            attempt,
+            summarize_failures(_candidate_record(reference_number, output.engine_id, output.direction_id)),
+        )
         logger.info(
             "event=spec_lock_verified reference=%s engine=%s direction=%s "
             "attempt=%s direction_role=%s spec_sha256=%s",
@@ -2059,6 +2065,7 @@ async def _attempt_output_wave(
                     direction_role=spec.direction_role,
                     retry_stage=stage,
                     failure_category=category,
+                    sampling_profile=profile,
                 )
             )
 

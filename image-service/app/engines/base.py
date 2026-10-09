@@ -39,5 +39,6 @@ class ImageEngine(ABC):
         direction_role: str | None = None,
         retry_stage: str | None = None,
         failure_category: str | None = None,
+        sampling_profile=None,
     ):
         raise NotImplementedError

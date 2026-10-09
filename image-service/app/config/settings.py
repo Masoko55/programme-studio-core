@@ -212,10 +212,6 @@ class Settings(
         "t5xxl_fp8_e4m3fn.safetensors"
     )
 
-    sd35_vae: str = (
-        "ae.safetensors"
-    )
-
     ollama_base_url: str = (
         "http://192.168.68.115:11434"
     )

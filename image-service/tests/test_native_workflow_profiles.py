@@ -79,6 +79,8 @@ class NativeWorkflowProfileTests(unittest.TestCase):
             self.assertEqual(saved["direction_role"], "expressive")
             self.assertEqual(saved["compiled_prompt"]["positive"], compiled.positive)
             self.assertEqual(saved["retry_stage"], "normal")
+            self.assertEqual(saved["sampling_profile"]["name"], "baseline")
+            self.assertEqual(saved["workflow"]["3"]["inputs"]["sampler_name"], "dpmpp_2m")
 
     def test_resume_keeps_attempt_budget_and_correction_context(self):
         reason = "Generated background became a smooth gradient"
@@ -206,8 +208,8 @@ class NativeWorkflowProfileTests(unittest.TestCase):
         self.assertEqual(workflow["16"]["inputs"]["clip"], ["54", 0])
         self.assertEqual(workflow["40"]["inputs"]["clip"], ["54", 0])
         self.assertEqual(workflow["54"]["class_type"], "TripleCLIPLoader")
-        self.assertEqual(workflow["56"]["inputs"]["vae_name"], settings.sd35_vae)
-        self.assertEqual(workflow["8"]["inputs"]["vae"], ["56", 0])
+        self.assertEqual(workflow["8"]["inputs"]["vae"], ["4", 2])
+        self.assertNotIn("56", workflow)
 
     def test_native_dimensions_are_accepted(self):
         self.assertIn(

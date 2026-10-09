@@ -50,10 +50,10 @@
     "class_type": "KSampler",
     "inputs": {
       "seed": "${seed}",
-      "steps": 28,
-      "cfg": 6.0,
-      "sampler_name": "dpmpp_2m",
-      "scheduler": "karras",
+      "steps": "${steps}",
+      "cfg": "${cfg}",
+      "sampler_name": "${sampler_name}",
+      "scheduler": "${scheduler}",
       "denoise": 1.0,
       "model": [
         "4",

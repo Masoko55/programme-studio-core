@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 
@@ -21,12 +22,33 @@ def main() -> None:
             attempts.append(record)
             for item in sorted(attempts, key=lambda value: value.get("attempt_count", 0)):
                 prompt = item.get("compiled_prompt") or {}
+                profile = item.get("sampling_profile") or {}
                 print(json.dumps({
                     "engine": engine,
                     "direction": direction.upper(),
                     "direction_role": item.get("direction_role"),
                     "attempt": item.get("attempt_count"),
+                    "status": item.get("status") or "rejected",
+                    "rejection_reason": item.get("rejection_reason"),
+                    "off_palette_ratio": item.get("off_palette_ratio") or (
+                        float(match.group(1)) if (
+                            match := re.search(r"off-palette ratio ([0-9.]+)",
+                                               item.get("rejection_reason") or "")
+                        ) else None
+                    ),
+                    "raw_palette_error": item.get("raw_palette_error"),
+                    "palette_normalized": item.get("palette_normalized"),
+                    "fine_horizontal_pair_ratio": item.get("fine_horizontal_pair_ratio"),
+                    "fine_vertical_pair_ratio": item.get("fine_vertical_pair_ratio"),
+                    "sampling_profile": profile,
+                    "sampler": profile.get("sampler_name"),
+                    "scheduler": profile.get("scheduler"),
+                    "steps": profile.get("steps"),
+                    "cfg": profile.get("cfg"),
+                    "shift": profile.get("shift"),
+                    "seed": item.get("seed"),
                     "failure_category": item.get("failure_category"),
+                    "outcome_category": item.get("outcome_category"),
                     "retry_stage": item.get("retry_stage"),
                     "spec_sha256": item.get("spec_sha256"),
                     "positive": prompt.get("positive"),

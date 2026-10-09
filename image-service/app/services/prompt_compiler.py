@@ -152,23 +152,39 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
 
     clip_l = " ".join(
         section for section in (
-            subject, identity, f"Palette: {palette}.",
+            subject, identity,
         ) if section
     )
     clip_g = " ".join(
         section for section in (
-            identity, f"Subject: {subject}.", f"Palette: {palette}.",
-            f"Composition: {composition}",
-            f"Correction: {correction}" if correction else "",
+            f"Direction {spec.direction_id}, {spec.direction_role}.",
+            f"Subject: {subject}.",
             f"Theme treatment: {treatment}." if treatment else "",
+            f"Colours: {spec.primary_colour}, {spec.secondary_colour}.",
+            "Composition: edge-led portrait frame; calm title zone and programme zone.",
         ) if section
     )
+    # T5 carries each distinct semantic field once. The original direction
+    # prompt remains in CandidateSpec and in the SDXL positive prompt, but it
+    # often repeats the inspiration and palette several times. Repeating it
+    # in T5 can cross SD3.5 Medium's 256-token training context.
+    t5 = " ".join(section for section in (
+        f"Background inspiration: {subject}.",
+        f"Theme treatment: {treatment}." if treatment else "",
+        identity,
+        f"Palette: {palette}.",
+        f"Composition: {composition}",
+        f"Event: {spec.event_type}; theme: {spec.theme}.",
+        f"Creative description: {spec.creative_description}." if spec.creative_description else "",
+        f"Correction: {correction}" if correction else "",
+        "No people, characters, readable text or logos.",
+    ) if section)
     return CompiledPrompt(
         positive=positive,
         negative=negative,
         clip_l=clip_l if spec.engine_id == "sd-3-5-medium" else None,
         clip_g=clip_g if spec.engine_id == "sd-3-5-medium" else None,
-        t5=positive if spec.engine_id == "sd-3-5-medium" else None,
+        t5=t5 if spec.engine_id == "sd-3-5-medium" else None,
         failure_category=category,
         retry_stage=stage,
         spec_sha256=spec.spec_sha256,

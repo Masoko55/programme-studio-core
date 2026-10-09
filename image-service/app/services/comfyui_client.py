@@ -455,56 +455,486 @@ def _extract_comfyui_execution_error(
     )
 
 
+def _normalise_ocr_token(
+    value: str,
+) -> str:
+    """Return alphabetic OCR content suitable for text validation."""
+
+    return re.sub(
+        r"[^A-Za-z]",
+        "",
+        str(
+            value
+            or ""
+        ),
+    )
+
+
+def _ocr_confidence(
+    value: Any,
+) -> float:
+    try:
+        return float(
+            value
+        )
+
+    except (
+        TypeError,
+        ValueError,
+    ):
+        return -1.0
+
+
+def _similar_ocr_tokens(
+    first: str,
+    second: str,
+) -> bool:
+    """Return True when two meaningful OCR tokens substantially agree.
+
+    Short OCR fragments are intentionally rejected before any equality or
+    similarity checks because diffusion textures frequently generate tiny
+    letter-like patterns such as:
+
+        ti
+        ii
+        gl
+        ht
+
+    Only tokens with at least four alphabetic characters can participate in
+    OCR confirmation.
+    """
+
+    first = (
+        str(
+            first
+            or ""
+        )
+        .strip()
+        .lower()
+    )
+
+    second = (
+        str(
+            second
+            or ""
+        )
+        .strip()
+        .lower()
+    )
+
+    #
+    # The minimum-length guard MUST happen before exact equality.
+    #
+    # Without this:
+    #
+    #     _similar_ocr_tokens("ti", "ti")
+    #
+    # incorrectly returns True.
+    #
+    if (
+        len(
+            first
+        )
+        < 4
+        or len(
+            second
+        )
+        < 4
+    ):
+        return False
+
+    if (
+        first
+        == second
+    ):
+        return True
+
+    #
+    # OCR may add or remove a character around the edge of a crop.
+    #
+    if (
+        first in second
+        or second in first
+    ):
+        return True
+
+    #
+    # Allow one OCR substitution/insertion/deletion for otherwise similar
+    # tokens.
+    #
+    # Example:
+    #
+    #     title
+    #     titie
+    #
+    if (
+        abs(
+            len(
+                first
+            )
+            - len(
+                second
+            )
+        )
+        > 1
+    ):
+        return False
+
+    mismatches = sum(
+        1
+        for left, right
+        in zip(
+            first,
+            second,
+        )
+        if left
+        != right
+    )
+
+    mismatches += abs(
+        len(
+            first
+        )
+        - len(
+            second
+        )
+    )
+
+    return (
+        mismatches
+        <= 1
+    )
+
+
+def _confirm_ocr_candidate(
+    image: Image.Image,
+    *,
+    token: str,
+    left: int,
+    top: int,
+    width: int,
+    height: int,
+) -> bool:
+    """Confirm a first-pass OCR token using an enlarged local crop.
+
+    Diffusion artwork frequently produces architectural lines, windows and
+    decorative geometry that Tesseract interprets as short words.
+
+    A genuine text region should survive a second OCR pass after cropping and
+    enlargement. Random skyline geometry normally does not.
+    """
+
+    image_width, image_height = (
+        image.size
+    )
+
+    #
+    # Give the OCR engine context around the candidate.
+    #
+    # Padding scales with the candidate box but is always large enough to
+    # include nearby glyphs.
+    #
+    pad_x = max(
+        12,
+        int(
+            width
+            * 1.5
+        ),
+    )
+
+    pad_y = max(
+        12,
+        int(
+            height
+            * 1.0
+        ),
+    )
+
+    x1 = max(
+        0,
+        left
+        - pad_x,
+    )
+
+    y1 = max(
+        0,
+        top
+        - pad_y,
+    )
+
+    x2 = min(
+        image_width,
+        left
+        + width
+        + pad_x,
+    )
+
+    y2 = min(
+        image_height,
+        top
+        + height
+        + pad_y,
+    )
+
+    crop = (
+        image
+        .crop(
+            (
+                x1,
+                y1,
+                x2,
+                y2,
+            )
+        )
+        .convert(
+            "L"
+        )
+    )
+
+    #
+    # Enlargement makes real glyph edges easier to distinguish while noisy
+    # image texture usually remains inconsistent.
+    #
+    crop = crop.resize(
+        (
+            max(
+                1,
+                crop.width
+                * 3,
+            ),
+            max(
+                1,
+                crop.height
+                * 3,
+            ),
+        ),
+        Image.Resampling.LANCZOS,
+    )
+
+    #
+    # Test both:
+    #
+    # PSM 7 -> one expected text line
+    # PSM 6 -> compact text block
+    #
+    for psm in (
+        7,
+        6,
+    ):
+        data = (
+            pytesseract.image_to_data(
+                crop,
+                config=(
+                    f"--psm {psm}"
+                ),
+                output_type=(
+                    pytesseract
+                    .Output
+                    .DICT
+                ),
+            )
+        )
+
+        for (
+            confirmed_text,
+            confirmed_confidence,
+        ) in zip(
+            data[
+                "text"
+            ],
+            data[
+                "conf"
+            ],
+        ):
+            normalized = (
+                _normalise_ocr_token(
+                    confirmed_text
+                )
+            )
+
+            score = (
+                _ocr_confidence(
+                    confirmed_confidence
+                )
+            )
+
+            if (
+                len(
+                    normalized
+                )
+                < 4
+                or score
+                < 45
+            ):
+                continue
+
+            if (
+                _similar_ocr_tokens(
+                    token,
+                    normalized,
+                )
+            ):
+                return True
+
+    return False
+
+
 def detected_text_tokens(
     image: Image.Image,
 ) -> list[str]:
+    """Detect meaningful readable text while suppressing texture hallucination.
+
+    First-pass OCR remains deliberately sensitive so that potential text is
+    noticed.
+
+    A moderate-confidence isolated token must then survive an independent OCR
+    pass over an enlarged crop before the background is rejected.
+
+    Very strong OCR detections are accepted immediately.
+    """
+
+    grey = (
+        image.convert(
+            "L"
+        )
+    )
+
     data = (
         pytesseract.image_to_data(
-            image.convert(
-                "L"
-            ),
+            grey,
             config="--psm 11",
             output_type=(
-                pytesseract.Output.DICT
+                pytesseract
+                .Output
+                .DICT
             ),
         )
     )
 
-    tokens = []
+    confirmed_tokens: list[
+        str
+    ] = []
 
-    for (
-        token,
-        confidence,
-    ) in zip(
-        data["text"],
-        data["conf"],
+    for index, (
+        raw_token,
+        raw_confidence,
+    ) in enumerate(
+        zip(
+            data[
+                "text"
+            ],
+            data[
+                "conf"
+            ],
+        )
     ):
-        normalized = re.sub(
-            r"[^A-Za-z]",
-            "",
-            token,
+        normalized = (
+            _normalise_ocr_token(
+                raw_token
+            )
         )
 
-        try:
-            score = float(
-                confidence
+        score = (
+            _ocr_confidence(
+                raw_confidence
             )
+        )
 
-        except (
-            TypeError,
-            ValueError,
-        ):
-            score = -1
-
+        #
+        # Ignore very short fragments entirely.
+        #
+        # These are extremely common around window frames, web geometry and
+        # comic-book architectural details.
+        #
         if (
-            len(normalized) >= 4
-            and score >= 45
+            len(
+                normalized
+            )
+            < 4
         ):
-            tokens.append(
+            continue
+
+        #
+        # Preserve the existing sensitive first-pass floor.
+        #
+        if (
+            score
+            < 45
+        ):
+            continue
+
+        #
+        # Strong longer detections are unlikely to be accidental.
+        #
+        # Example:
+        #
+        #     "BIRTHDAY" confidence 92
+        #
+        if (
+            score
+            >= 85
+            and len(
+                normalized
+            )
+            >= 5
+        ):
+            confirmed_tokens.append(
                 normalized
             )
 
-    return tokens
+            continue
+
+        left = int(
+            data[
+                "left"
+            ][
+                index
+            ]
+        )
+
+        top = int(
+            data[
+                "top"
+            ][
+                index
+            ]
+        )
+
+        width = int(
+            data[
+                "width"
+            ][
+                index
+            ]
+        )
+
+        height = int(
+            data[
+                "height"
+            ][
+                index
+            ]
+        )
+
+        #
+        # Tiny boxes are particularly prone to false detections, but rather
+        # than simply ignoring them, require independent confirmation.
+        #
+        if (
+            _confirm_ocr_candidate(
+                image,
+                token=normalized,
+                left=left,
+                top=top,
+                width=width,
+                height=height,
+            )
+        ):
+            confirmed_tokens.append(
+                normalized
+            )
+
+    return confirmed_tokens
 
 
 def build_workflow(

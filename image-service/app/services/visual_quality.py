@@ -961,15 +961,113 @@ def validate_visual_quality(
             f"{safe_region['outer_structural_edge_density']:.3f})."
         )
 
+        # ========================================================
+    # Programme/title safe-region quality
     # ========================================================
-    # Centre diagnostics
     #
-    # The compositor draws opaque title and programme panels over this region.
-    # Keep the measurements in the candidate record for review, but do not
-    # discard a sound illustration solely because it has central detail. The
-    # hard quality gates above still reject raster, noise, blank, gradient and
-    # malformed output across the complete image.
-    # ========================================================
+    # Programme Studio backgrounds are not merely decorative images.
+    #
+    # The title and programme content must be composited over the central
+    # portion of the artwork. A technically valid illustration can therefore
+    # still be unusable when architectural detail, line work or other visual
+    # structure fills the centre.
+    #
+    # We do not require a blank centre. Instead, the centre must be
+    # meaningfully calmer than the decorative outer region.
+    #
+
+    center_edge_density = float(
+        safe_region[
+            "center_structural_edge_density"
+        ]
+    )
+
+    outer_edge_density = float(
+        safe_region[
+            "outer_structural_edge_density"
+        ]
+    )
+
+    center_local_contrast = float(
+        safe_region[
+            "center_local_contrast"
+        ]
+    )
+
+    #
+    # Absolute ceiling.
+    #
+    # 0.14 still permits subtle texture, gradients and low-detail forms while
+    # rejecting illustrated architecture that occupies the whole programme
+    # region.
+    #
+    MAX_USABLE_CENTER_EDGE_DENSITY = 0.10
+
+    #
+    # Relative ceiling.
+    #
+    # A candidate whose centre is almost as detailed as the edges does not
+    # satisfy an edge-led programme composition.
+    #
+    MAX_CENTER_TO_OUTER_EDGE_RATIO = 0.90
+
+    center_to_outer_ratio = (
+        center_edge_density
+        / max(
+            outer_edge_density,
+            1e-6,
+        )
+    )
+
+    dense_center = bool(
+        center_edge_density
+        > MAX_USABLE_CENTER_EDGE_DENSITY
+    )
+
+    insufficient_edge_bias = bool(
+        center_to_outer_ratio
+        > MAX_CENTER_TO_OUTER_EDGE_RATIO
+    )
+
+    excessive_center_contrast = bool(
+        center_local_contrast
+        > MAX_CENTER_LOCAL_CONTRAST
+    )
+
+    #
+    # Reject only when the centre is genuinely compositionally unsuitable.
+    #
+    # Requiring both high absolute density and insufficient edge bias avoids
+    # rejecting artwork that contains a small amount of intentional central
+    # detail.
+    #
+    if (
+        dense_center
+        and insufficient_edge_bias
+    ):
+        raise ValueError(
+            "Generated background failed visual quality validation: "
+            "programme safe region is too visually dense "
+            f"(center structural edge density "
+            f"{center_edge_density:.3f}, "
+            f"outer structural edge density "
+            f"{outer_edge_density:.3f}, "
+            f"center-to-outer ratio "
+            f"{center_to_outer_ratio:.2f})."
+        )
+
+    if (
+        excessive_center_contrast
+        and insufficient_edge_bias
+    ):
+        raise ValueError(
+            "Generated background failed visual quality validation: "
+            "programme safe region has too much local contrast "
+            f"(center local contrast "
+            f"{center_local_contrast:.2f}, "
+            f"center-to-outer ratio "
+            f"{center_to_outer_ratio:.2f})."
+        )
 
     return {
         "visual_quality_checked": True,
@@ -1060,4 +1158,12 @@ def validate_visual_quality(
                 "center_local_contrast"
             ]
         ),
+
+                "center_to_outer_edge_ratio": (
+            center_to_outer_ratio
+        ),
+
+        "center_safe_region_passed": True,
+
+        
     }

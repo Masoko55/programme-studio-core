@@ -729,64 +729,417 @@ def constrain_to_requested_palette(
     primary_colour: str | None,
     secondary_colour: str | None,
 ) -> Image.Image:
-    """Map an engine output to the supplied colour families.
+    """Constrain an image to the requested colour families while preserving detail.
 
-    SDXL and SD3.5 regularly introduce white and neutral surfaces despite a
-    two-colour prompt.  This keeps their composition and luminance structure
-    while making every rendered pixel a tonal variation of a requested colour.
+    The previous implementation rebuilt every pixel from a fixed requested RGB
+    swatch multiplied by a luminance scale. Although that produced strict
+    palette compliance, it flattened local colour variation and made detailed
+    illustrations look posterised.
+
+    This implementation instead:
+
+    - preserves the source value/luminance channel;
+    - preserves local shading and texture;
+    - redirects hue into the nearest requested family;
+    - keeps useful source saturation variation;
+    - strengthens very neutral pixels enough to remain in a requested
+      chromatic family;
+    - preserves requested white regions as low-saturation bright surfaces.
+
+    The result is still passed through the normal strict palette validator.
+    This function does not weaken palette acceptance.
     """
+
     descriptors = [
-        colour_descriptor(value)
-        for value in (primary_colour, secondary_colour)
+        colour_descriptor(
+            value
+        )
+        for value in (
+            primary_colour,
+            secondary_colour,
+        )
     ]
-    targets = [
-        item["rgb"]
-        for item in descriptors
-        if item["rgb"] is not None
+
+    usable = [
+        descriptor
+        for descriptor in descriptors
+        if descriptor[
+            "rgb"
+        ]
+        is not None
     ]
-    if not targets:
-        return image.convert("RGB")
 
-    rgb = np.asarray(image.convert("RGB"), dtype=np.uint8)
-    hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
-    value = hsv[:, :, 2].astype(np.float32) / 255.0
-    saturation = hsv[:, :, 1]
-    source_hue = hsv[:, :, 0].astype(np.float32)
+    if not usable:
+        return (
+            image.convert(
+                "RGB"
+            )
+        )
 
-    target_rgb = np.asarray(targets, dtype=np.float32)
-    target_hsv = cv2.cvtColor(
-        target_rgb.astype(np.uint8).reshape(1, -1, 3),
+    source_rgb = np.asarray(
+        image.convert(
+            "RGB"
+        ),
+        dtype=np.uint8,
+    )
+
+    source_hsv = cv2.cvtColor(
+        source_rgb,
         cv2.COLOR_RGB2HSV,
-    ).reshape(-1, 3)
-    target_hue = target_hsv[:, 0].astype(np.float32)
+    )
 
-    hue_delta = np.abs(source_hue[:, :, None] - target_hue[None, None, :])
-    hue_delta = np.minimum(hue_delta, 180.0 - hue_delta)
-    target_index = np.argmin(hue_delta, axis=2)
+    source_hue = (
+        source_hsv[
+            :,
+            :,
+            0,
+        ]
+        .astype(
+            np.float32
+        )
+    )
 
-    names = [item["base_name"] for item in descriptors if item["rgb"] is not None]
-    white_index = next((i for i, name in enumerate(names) if name == "white"), None)
+    source_saturation = (
+        source_hsv[
+            :,
+            :,
+            1,
+        ]
+        .astype(
+            np.float32
+        )
+    )
+
+    source_value = (
+        source_hsv[
+            :,
+            :,
+            2,
+        ]
+        .astype(
+            np.float32
+        )
+    )
+
+    target_rgb = np.asarray(
+        [
+            descriptor[
+                "rgb"
+            ]
+            for descriptor
+            in usable
+        ],
+        dtype=np.uint8,
+    )
+
+    target_hsv = (
+        cv2.cvtColor(
+            target_rgb.reshape(
+                1,
+                -1,
+                3,
+            ),
+            cv2.COLOR_RGB2HSV,
+        )
+        .reshape(
+            -1,
+            3,
+        )
+    )
+
+    target_hue = (
+        target_hsv[
+            :,
+            0,
+        ]
+        .astype(
+            np.float32
+        )
+    )
+
+    target_saturation = (
+        target_hsv[
+            :,
+            1,
+        ]
+        .astype(
+            np.float32
+        )
+    )
+
+    target_value = (
+        target_hsv[
+            :,
+            2,
+        ]
+        .astype(
+            np.float32
+        )
+    )
+
+    target_names = [
+        descriptor[
+            "base_name"
+        ]
+        for descriptor
+        in usable
+    ]
+
+    #
+    # Determine the nearest requested hue for every source pixel.
+    #
+    # OpenCV represents hue on a circular 0..179 range.
+    #
+    hue_delta = np.abs(
+        source_hue[
+            :,
+            :,
+            None,
+        ]
+        - target_hue[
+            None,
+            None,
+            :,
+        ]
+    )
+
+    hue_delta = np.minimum(
+        hue_delta,
+        180.0
+        - hue_delta,
+    )
+
+    target_index = np.argmin(
+        hue_delta,
+        axis=2,
+    )
+
+    #
+    # Low-saturation source pixels do not contain reliable hue information.
+    # Assign those to the primary requested family unless white itself was
+    # explicitly requested.
+    #
+    neutral_mask = (
+        source_saturation
+        < 28.0
+    )
+
+    white_index = next(
+        (
+            index
+            for (
+                index,
+                name,
+            )
+            in enumerate(
+                target_names
+            )
+            if name
+            == "white"
+        ),
+        None,
+    )
+
     primary_index = 0
 
-    # Neutral pixels have no hue.  Preserve a requested white field rather
-    # than collapsing every neutral into the primary colour.  This is vital
-    # for black/white and colour/white invitations: bright neutral surfaces
-    # remain white while darker ones become the structural primary colour.
-    neutral_mask = saturation < 28
-    if white_index is not None:
-        target_index[neutral_mask & (value >= 0.68)] = white_index
-        target_index[neutral_mask & (value < 0.68)] = primary_index
+    if (
+        white_index
+        is not None
+    ):
+        #
+        # Bright neutral surfaces remain white.
+        #
+        # Dark neutral structure still belongs to the primary design colour.
+        #
+        target_index[
+            neutral_mask
+            & (
+                source_value
+                >= 173.0
+            )
+        ] = (
+            white_index
+        )
+
+        target_index[
+            neutral_mask
+            & (
+                source_value
+                < 173.0
+            )
+        ] = (
+            primary_index
+        )
+
     else:
-        target_index[neutral_mask] = primary_index
+        target_index[
+            neutral_mask
+        ] = (
+            primary_index
+        )
 
-    selected = target_rgb[target_index]
-    tonal_scale = 0.20 + (0.80 * value[:, :, None])
-    if white_index is not None:
-        white_mask = target_index == white_index
-        tonal_scale[white_mask] = np.maximum(tonal_scale[white_mask], 0.85)
+    output_hsv = (
+        source_hsv
+        .astype(
+            np.float32
+        )
+        .copy()
+    )
 
-    constrained = np.clip(selected * tonal_scale, 0, 255).astype(np.uint8)
-    return Image.fromarray(constrained, mode="RGB")
+    selected_hue = (
+        target_hue[
+            target_index
+        ]
+    )
+
+    selected_saturation = (
+        target_saturation[
+            target_index
+        ]
+    )
+
+    selected_value = (
+        target_value[
+            target_index
+        ]
+    )
+
+    #
+    # Hue is the part that must obey the requested family strictly.
+    #
+    output_hsv[
+        :,
+        :,
+        0,
+    ] = (
+        selected_hue
+    )
+
+    #
+    # Preserve saturation variation instead of replacing every pixel with the
+    # exact saturation of one palette swatch.
+    #
+    # This retains atmospheric depth, subtle texture, lighting variation and
+    # material differences.
+    #
+    blended_saturation = (
+        (
+            source_saturation
+            * 0.62
+        )
+        + (
+            selected_saturation
+            * 0.38
+        )
+    )
+
+    #
+    # A neutral source pixel redirected into a chromatic requested family must
+    # receive enough saturation to be classified as that colour family rather
+    # than charcoal/grey.
+    #
+    minimum_requested_saturation = (
+        selected_saturation
+        * 0.60
+    )
+
+    blended_saturation = np.maximum(
+        blended_saturation,
+        minimum_requested_saturation,
+    )
+
+    #
+    # Explicitly requested white remains low-saturation.
+    #
+    if (
+        white_index
+        is not None
+    ):
+        white_mask = (
+            target_index
+            == white_index
+        )
+
+        blended_saturation[
+            white_mask
+        ] = np.minimum(
+            source_saturation[
+                white_mask
+            ],
+            18.0,
+        )
+
+    output_hsv[
+        :,
+        :,
+        1,
+    ] = np.clip(
+        blended_saturation,
+        0.0,
+        255.0,
+    )
+
+    #
+    # Preserve source luminance exactly for almost every pixel.
+    #
+    # This is the key difference from the previous palette remapper.
+    #
+    # Shadows stay shadows, highlights stay highlights, and building/window
+    # detail is not collapsed into fixed dark/light versions of the palette
+    # swatches.
+    #
+    preserved_value = (
+        source_value.copy()
+    )
+
+    if (
+        white_index
+        is not None
+    ):
+        white_mask = (
+            target_index
+            == white_index
+        )
+
+        #
+        # Explicit white should remain visibly white rather than becoming a
+        # dark grey version of white.
+        #
+        preserved_value[
+            white_mask
+        ] = np.maximum(
+            preserved_value[
+                white_mask
+            ],
+            np.minimum(
+                selected_value[
+                    white_mask
+                ],
+                220.0,
+            ),
+        )
+
+    output_hsv[
+        :,
+        :,
+        2,
+    ] = np.clip(
+        preserved_value,
+        0.0,
+        255.0,
+    )
+
+    constrained_rgb = cv2.cvtColor(
+        output_hsv.astype(
+            np.uint8
+        ),
+        cv2.COLOR_HSV2RGB,
+    )
+
+    return Image.fromarray(
+        constrained_rgb,
+        mode="RGB",
+    )
 
 
 def normalize_colour_name(

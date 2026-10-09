@@ -1376,15 +1376,8 @@ def overlay_asset(
             Image.Resampling.LANCZOS,
         )
 
-        draw_asset_glass(
-            canvas,
-            (
-                left,
-                top,
-                right,
-                bottom,
-            ),
-        )
+        # A logo carries its own visual identity. Do not add a glass card or
+        # border behind it; this preserves transparent and white logo edges.
 
     else:
         raise ValueError(

@@ -4,6 +4,7 @@ from app.schemas.grill_me import GrillMeAnswers, GrillMeSession, ProgrammeItem
 from app.services.creative_direction import (
     background_design_summary,
     background_positive_requirements,
+    reference_visual_language,
 )
 from app.services.grill_me_semantic import _safe_context
 from app.services.grill_me_service import evaluate_session
@@ -24,6 +25,28 @@ class GrillMeBackgroundInspirationTests(unittest.TestCase):
         self.assertEqual(questions[-1]["field"], "background_inspiration")
         self.assertIn("What would you like people to see", questions[-1]["question"])
 
+    def test_background_question_replaces_redundant_theme_question(self):
+        context = _safe_context(
+            {
+                "clarification_questions": [
+                    {
+                        "field": "theme",
+                        "question": "What should the theme look like?",
+                    },
+                ],
+            },
+            {
+                "event_type": "birthday party",
+                "theme": "City adventure",
+                "creative_description": "fun and joyful",
+            },
+        )
+
+        self.assertEqual(
+            [item["field"] for item in context["clarification_questions"]],
+            ["background_inspiration"],
+        )
+
     def test_inspiration_is_used_by_direction_prompt_helpers(self):
         brief = {
             "background_inspiration": (
@@ -34,6 +57,15 @@ class GrillMeBackgroundInspirationTests(unittest.TestCase):
 
         self.assertIn("moonlit botanical garden", background_design_summary(brief))
         self.assertIn("moonlit botanical garden", background_positive_requirements(brief))
+
+    def test_spider_man_theme_uses_safe_web_visual_language(self):
+        traits = reference_visual_language({
+            "theme": "Spider-Man birthday",
+            "theme_reference_treatment": "web geometry and city energy",
+        })
+
+        self.assertIn("web geometry", traits)
+        self.assertNotIn("Spider-Man", traits)
 
     def test_asset_sessions_ask_for_placement_before_other_asset_choices(self):
         answers = GrillMeAnswers(

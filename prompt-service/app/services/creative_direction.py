@@ -30,6 +30,7 @@ POSITIVE_PROMPT_FORBIDDEN_TERMS = (
     "words",
     "writing",
     "logo",
+    "headshot",
     "portrait",
     "person",
     "people",
@@ -574,6 +575,24 @@ def _background_inspiration(brief: dict) -> str:
     ).strip()
 
 
+def reference_visual_language(
+    brief: dict,
+) -> str:
+    """Return safe abstract traits for recognizable-reference themes."""
+    reference = " ".join(
+        str(brief.get(field) or "")
+        for field in ("theme", "theme_reference_treatment")
+    ).casefold()
+
+    if any(term in reference for term in ("spiderman", "spider-man", "spider man")):
+        return (
+            "Use radial web geometry, diagonal web strands, angular skyline "
+            "silhouettes and kinetic comic-book framing. "
+        )
+
+    return ""
+
+
 def background_design_summary(
     brief: dict,
 ) -> str:
@@ -581,7 +600,9 @@ def background_design_summary(
     return (
         "User background inspiration: "
         + _background_inspiration(brief)
-        + ". Preserve a calm open central field and keep decorative detail "
+        + ". "
+        + reference_visual_language(brief)
+        + "Preserve a calm open central field and keep decorative detail "
         "toward the outer edges. Layout contract: "
         + asset_layout_description(brief)
         + "."
@@ -595,7 +616,9 @@ def background_positive_requirements(
     return (
         "Make the visual subject clearly recognizable as: "
         + _background_inspiration(brief)
-        + ". Keep decoration at the outer edges and lower corners, "
+        + ". "
+        + reference_visual_language(brief)
+        + "Keep decoration at the outer edges and lower corners, "
         "with a calm open central field."
     )
 
@@ -720,6 +743,7 @@ def sanitize_positive_prompt(
     )
 
     clean_final = []
+    seen_clauses = set()
 
     for clause in clauses:
         clause = (
@@ -739,9 +763,21 @@ def sanitize_positive_prompt(
             in POSITIVE_PROMPT_FORBIDDEN_TERMS
         )
 
-        if not blocked:
+        key = re.sub(
+            r"\s+",
+            " ",
+            clause,
+        ).casefold()
+
+        if (
+            not blocked
+            and key not in seen_clauses
+        ):
             clean_final.append(
                 clause
+            )
+            seen_clauses.add(
+                key
             )
 
     final_prompt = (
@@ -764,6 +800,23 @@ def sanitize_positive_prompt(
     return (
         final_prompt
     )
+
+
+def deduplicate_negative_prompt(
+    value: str,
+) -> str:
+    """Keep model exclusions compact without dropping any unique restriction."""
+    clauses = []
+    seen = set()
+
+    for clause in str(value or "").split(","):
+        cleaned = " ".join(clause.split())
+        key = cleaned.casefold()
+        if cleaned and key not in seen:
+            clauses.append(cleaned)
+            seen.add(key)
+
+    return ", ".join(clauses)
 
 
 def build_creative_direction_prompt(
@@ -1065,42 +1118,34 @@ async def generate_creative_direction(
     )
 
     direction.negative_prompt = (
-        ", ".join(
-            value
-            for value
-            in (
-                generated_negative.strip(
-                    ", "
-                ),
-                (
-                    "person, people, human, human figure, "
-                    "man, woman, child, face, portrait, "
-                    "silhouette, body, head, hands, arms, "
-                    "legs, clothing, mannequin, character, "
-                    "fictional character, hero, superhero, "
-                    "masked character, mascot, costume, "
-                    "costumed figure, humanoid"
-                ),
-                (
-                    "spiderman, spider-man, spider man"
-                ),
-                (
-                    "text, typography, lettering, words, "
-                    "letters, numbers, writing, calligraphy, "
-                    "signature, logo, watermark, signage"
-                ),
-                (
-                    palette_negative(
-                        brief
-                    )
-                ),
-                (
-                    background_negative_constraints(
-                        brief
-                    )
-                ),
+        deduplicate_negative_prompt(
+            ", ".join(
+                value
+                for value
+                in (
+                    generated_negative.strip(
+                        ", "
+                    ),
+                    (
+                        "person, people, human, human figure, "
+                        "man, woman, child, face, portrait, "
+                        "silhouette, body, head, hands, arms, "
+                        "legs, clothing, mannequin, character, "
+                        "fictional character, hero, superhero, "
+                        "masked character, mascot, costume, "
+                        "costumed figure, humanoid"
+                    ),
+                    "spiderman, spider-man, spider man",
+                    (
+                        "text, typography, lettering, words, "
+                        "letters, numbers, writing, calligraphy, "
+                        "signature, logo, watermark, signage"
+                    ),
+                    palette_negative(brief),
+                    background_negative_constraints(brief),
+                )
+                if value
             )
-            if value
         )
     )
 

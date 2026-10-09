@@ -47,6 +47,12 @@
       "batch_size": 1
     }
   },
+  "56": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "${sd35_vae}"
+    }
+  },
   "3": {
     "class_type": "KSampler",
     "inputs": {
@@ -82,8 +88,8 @@
         0
       ],
       "vae": [
-        "4",
-        2
+        "56",
+        0
       ]
     }
   },

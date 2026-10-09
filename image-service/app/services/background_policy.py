@@ -763,12 +763,28 @@ def constrain_to_requested_palette(
     hue_delta = np.abs(source_hue[:, :, None] - target_hue[None, None, :])
     hue_delta = np.minimum(hue_delta, 180.0 - hue_delta)
     target_index = np.argmin(hue_delta, axis=2)
-    # Neutrals have no usable hue.  Make them part of the primary field.
-    target_index[saturation < 28] = 0
+
+    names = [item["base_name"] for item in descriptors if item["rgb"] is not None]
+    white_index = next((i for i, name in enumerate(names) if name == "white"), None)
+    primary_index = 0
+
+    # Neutral pixels have no hue.  Preserve a requested white field rather
+    # than collapsing every neutral into the primary colour.  This is vital
+    # for black/white and colour/white invitations: bright neutral surfaces
+    # remain white while darker ones become the structural primary colour.
+    neutral_mask = saturation < 28
+    if white_index is not None:
+        target_index[neutral_mask & (value >= 0.68)] = white_index
+        target_index[neutral_mask & (value < 0.68)] = primary_index
+    else:
+        target_index[neutral_mask] = primary_index
 
     selected = target_rgb[target_index]
-    # Preserve dark/light design structure without creating white or grey.
     tonal_scale = 0.20 + (0.80 * value[:, :, None])
+    if white_index is not None:
+        white_mask = target_index == white_index
+        tonal_scale[white_mask] = np.maximum(tonal_scale[white_mask], 0.85)
+
     constrained = np.clip(selected * tonal_scale, 0, 255).astype(np.uint8)
     return Image.fromarray(constrained, mode="RGB")
 
@@ -1331,9 +1347,11 @@ def _matches_requested_neutral(
             <= value
             <= 225,
         ),
+        # Requested white includes bright low-saturation warm paper tones.
+        # They are normal lighting variants of white, not a third palette.
         (
             "white",
-            value >= 215,
+            value >= 190 and saturation <= 78,
         ),
     )
 

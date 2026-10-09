@@ -488,7 +488,14 @@ def _bounded_engine_prompt(
         seen.add(key)
         size += separator + len(clause)
 
-    return ", ".join(selected)
+    # A separator is added after the size calculation above. Trim once more
+    # here so the contract remains true even when the input contains unusual
+    # punctuation or an overlong first clause.
+    bounded = ", ".join(selected)
+    if len(bounded) <= limit:
+        return bounded
+
+    return bounded[:limit].rsplit(" ", 1)[0].rstrip(",. ")
 
 
 def _compact_engine_subject(
@@ -505,6 +512,78 @@ def _compact_engine_subject(
     return compact[:420].rsplit(" ", 1)[0]
 
 
+def _native_visual_subject(
+    prompt: str,
+) -> str:
+    """Extract the visual idea before translating it for a native model.
+
+    Creative Direction appends layout and safety contracts to its general
+    prompt. FLUX can follow that prose directly, while SDXL and SD3.5 produce
+    more coherent images when their subject channel contains only the
+    recognisable visual idea.
+    """
+    implementation_clauses = (
+        "a4 portrait",
+        "colour palette",
+        "color palette",
+        "primary colour",
+        "primary color",
+        "secondary colour",
+        "secondary color",
+        "central field",
+        "outer edges",
+        "lower corners",
+        "layout contract",
+        "theme references",
+        "abstract geometry",
+        "decoration at",
+    )
+    clauses = [
+        " ".join(clause.split())
+        for clause in re.split(r"[,;.!?]+", str(prompt or ""))
+        if clause.strip()
+    ]
+    visual = [
+        clause
+        for clause in clauses
+        if not any(
+            marker in clause.casefold()
+            for marker in implementation_clauses
+        )
+    ]
+    subject = ", ".join(visual[:3])
+    return _bounded_engine_prompt(
+        subject or _compact_engine_subject(prompt),
+        300,
+    )
+
+
+def _neutral_palette_structure_instruction(
+    primary_colour: str | None,
+    secondary_colour: str | None,
+) -> str:
+    """Prevent neutral palettes from degenerating into a blank colour wash."""
+    colours = {
+        _normalise_colour(primary_colour),
+        _normalise_colour(secondary_colour),
+    }
+    if not (colours & {"black", "white"}):
+        return ""
+
+    if colours == {"black", "white"}:
+        return (
+            "Use crisp black architectural or geometric edge structures on "
+            "clean white surfaces. Create hard visible boundaries at both side "
+            "edges and lower corners. Do not create a plain grey or white wash. "
+        )
+
+    return (
+        "Render white as clean bright paper-like shapes with clear boundaries, "
+        "not cream, champagne, beige or a blank wash. Use the non-white requested "
+        "colour for large edge-anchored structural forms and lower-corner detail. "
+    )
+
+
 def _initial_engine_prompts(
     engine_id: str,
     base_positive_prompt: str,
@@ -515,7 +594,7 @@ def _initial_engine_prompts(
     str,
     str,
 ]:
-    """Use concise, model-appropriate prompts for weaker engines."""
+    """Compile the shared creative brief into engine-specific conditioning."""
     if engine_id == settings.engine_1_id:
         return (
             base_positive_prompt,
@@ -524,39 +603,51 @@ def _initial_engine_prompts(
 
     primary = _normalise_colour(primary_colour)
     secondary = _normalise_colour(secondary_colour)
-    subject = _compact_engine_subject(base_positive_prompt)
-    engine_label = (
-        "SDXL"
-        if engine_id == settings.engine_2_id
-        else "SD3.5"
-    )
+    subject = _native_visual_subject(base_positive_prompt)
     palette = (
-        f"Use only {primary} and {secondary}. "
-        f"{primary} is the dominant field. "
-        f"{secondary} appears in several large supporting regions. "
+        f"Restricted {primary} and {secondary} palette. "
+        f"{primary} dominant, with substantial {secondary} supporting forms. "
         if primary and secondary
-        else "Use only the requested colour palette. "
+        else "Restricted requested palette only. "
     )
 
-    positive = (
-        f"{engine_label} portrait event background. "
-        f"{subject}. "
-        f"{palette}"
-        "Use four to eight large, clean, matte graphic forms around "
-        "the side edges and lower corners. Keep the central 60 percent "
-        "of the page calm and simple for later programme text. "
-        "Use coherent architecture, geometry or ornament only. "
-        "No fine hatching, repeated parallel lines, raster texture, "
-        "noise, glow, bloom, metallic materials or full-page gradient. "
-        "No people, characters, text, logos or watermarks."
+    structure = (
+        "Portrait decorative background with a deliberate perimeter "
+        "composition: several large connected motifs at the side edges and "
+        "lower corners, plus generous calm open space through the interior. "
+        "Clean matte graphic illustration, stable silhouettes and clear "
+        "shape boundaries."
     )
-    negative = (
-        _palette_negative_prompt(primary_colour, secondary_colour)
-        + ", people, faces, characters, text, typography, logos, "
-        "watermarks, metallic, chrome, photographic lighting, glow, "
-        "bloom, scanlines, raster lines, moire, glitch, grain, "
-        "noise field, full-page gradient, dense central detail"
-    )
+
+    if engine_id == settings.engine_3_id:
+        # SD3.5 is sensitive to stacked prohibitions. Its encoders receive a
+        # compact affirmative description ordered from subject to palette to
+        # composition, so every conditioning channel sees the same intent.
+        positive = (
+            f"{subject}. {palette}{structure} "
+            "Broad discrete forms; no fine texture."
+        )
+        negative = ""
+    else:
+        # SDXL benefits from a compact scene description and a conventional
+        # negative tag list. Do not give it FLUX's long product-rule prose.
+        positive = (
+            f"{subject}. "
+            f"{palette}"
+            + _neutral_palette_structure_instruction(
+                primary_colour,
+                secondary_colour,
+            )
+            + structure
+            + " Polished editorial graphic design with broad intentional forms."
+        )
+        negative = (
+            _palette_negative_prompt(primary_colour, secondary_colour)
+            + ", people, faces, characters, text, typography, logos, "
+            "watermarks, metallic, chrome, photographic lighting, glow, "
+            "bloom, scanlines, raster lines, moire, glitch, grain, "
+            "noise field, full-page gradient, dense central detail, fine hatching"
+        )
 
     return positive, negative
 
@@ -823,6 +914,7 @@ def _quality_instruction(
 
 def _structural_quality_recovery_prompt(
     *,
+    base_positive_prompt: str,
     reason: str,
     primary_colour: str | None,
     secondary_colour: str | None,
@@ -883,6 +975,7 @@ def _structural_quality_recovery_prompt(
     )
 
     common = (
+        f"{_native_visual_subject(base_positive_prompt)}. "
         f"{engine_label} STRUCTURAL QUALITY RECOVERY. "
         "Create an A4 portrait decorative event background only. "
         f"{palette_contract}"
@@ -1155,6 +1248,7 @@ def _minimal_two_colour_recovery_prompt(
     )
 
     positive = (
+        f"{_native_visual_subject(base_positive_prompt)}. "
         f"{engine_label} STRICT LITERAL PALETTE RECOVERY. "
         "Create a clean A4 portrait abstract decorative event "
         "background with a calm central region and meaningful "
@@ -1308,11 +1402,6 @@ def _strengthen_prompts(
 
     structural_recovery = bool(
         quality_failure
-        and engine_id
-        in {
-            settings.engine_2_id,
-            settings.engine_3_id,
-        }
     )
 
     if (
@@ -1323,6 +1412,7 @@ def _strengthen_prompts(
             structural_negative,
         ) = (
             _structural_quality_recovery_prompt(
+                base_positive_prompt=base_positive_prompt,
                 reason=(
                     reason
                 ),
@@ -1380,11 +1470,6 @@ def _strengthen_prompts(
         and not quality_failure
         and effective_retry
         >= 4
-        and engine_id
-        in {
-            settings.engine_2_id,
-            settings.engine_3_id,
-        }
         and primary_colour
         and secondary_colour
     )
@@ -1716,9 +1801,18 @@ def _strengthen_prompts(
         )
     )
 
-    if engine_id in {settings.engine_2_id, settings.engine_3_id}:
-        # SDXL and SD3.5 regress when their text encoders receive a stack of
-        # every historical correction. Keep the current correction compact.
+    if engine_id == settings.engine_1_id:
+        # Flux also loses the active correction when retry text accumulates.
+        positive_prompt = _bounded_engine_prompt(positive_prompt, 1400)
+        negative_prompt = _bounded_engine_prompt(negative_prompt, 1000)
+    elif engine_id == settings.engine_3_id:
+        # SD3.5's three text encoders are particularly sensitive to long,
+        # repetitive correction stacks. A concise composition brief gives it
+        # materially better structure than another layer of prohibitions.
+        positive_prompt = _bounded_engine_prompt(positive_prompt, 900)
+        negative_prompt = _bounded_engine_prompt(negative_prompt, 650)
+    elif engine_id == settings.engine_2_id:
+        # SDXL also needs a bounded current correction rather than history.
         positive_prompt = _bounded_engine_prompt(positive_prompt, 1600)
         negative_prompt = _bounded_engine_prompt(negative_prompt, 1400)
 
@@ -2328,7 +2422,10 @@ async def execute_image_job(
                     ):
                         if (
                             output.status
-                            == "complete"
+                            in {
+                                "complete",
+                                "failed",
+                            }
                         ):
                             continue
 

@@ -346,6 +346,21 @@ def _safe_context(
         )
     )
 
+    # When an event already has a named theme, asking the user to restate the
+    # theme competes with the one question that improves image composition.
+    # Keep the conversation in everyday language and ask what should appear
+    # in the background instead.
+    if (
+        _background_context_needs_clarification(answers)
+        and str(answers.get("theme") or "").strip()
+    ):
+        questions = [
+            item
+            for item
+            in questions
+            if item["field"] != "theme"
+        ]
+
     treatment = (
         _theme_reference_treatment(
             answers

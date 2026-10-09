@@ -133,13 +133,36 @@ def audit(model_root: Path, expected: dict[str, str]) -> int:
     return 1 if failed else 0
 
 
+def find_model_root(explicit: Path | None) -> Path | None:
+    if explicit is not None:
+        return explicit if explicit.is_dir() else None
+    candidates = [
+        os.environ.get("COMFYUI_MODELS_DIR"),
+        "/opt/ComfyUI/models",
+        str(Path.home() / "ComfyUI" / "models"),
+        str(Path.home() / "comfyui" / "models"),
+        "/workspace/ComfyUI/models",
+    ]
+    return next((Path(path) for path in candidates if path and Path(path).is_dir()), None)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--model-root", type=Path, required=True,
-                        help="ComfyUI/models directory on the ComfyUI machine")
+    parser.add_argument("--model-root", type=Path,
+                        help="ComfyUI/models directory; otherwise search common locations")
     parser.add_argument("--offline", action="store_true",
                         help="show local hashes without checking official metadata")
     args = parser.parse_args()
+    model_root = find_model_root(args.model_root)
+    if model_root is None:
+        print(
+            "ComfyUI model directory not found. Run this script on the GPU "
+            "host, or supply its real models directory with --model-root. "
+            "The ComfyUI HTTP API does not expose model file paths or hashes.",
+            file=sys.stderr,
+        )
+        return 2
+    print(f"Checking ComfyUI models in {model_root}")
     expected: dict[str, str] = {}
     verification_unavailable = False
     if not args.offline:
@@ -151,7 +174,7 @@ def main() -> int:
             verification_unavailable = True
         if not expected:
             verification_unavailable = True
-    result = audit(args.model_root, expected)
+    result = audit(model_root, expected)
     return result or (2 if verification_unavailable else 0)
 
 

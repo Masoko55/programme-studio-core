@@ -17,6 +17,8 @@ from typing import Any
 
 import httpx
 import pytesseract
+import cv2
+import numpy as np
 
 from PIL import Image
 
@@ -30,6 +32,7 @@ from app.services.atomic import (
 from app.services.background_policy import (
     BACKGROUND_ONLY_NEGATIVE,
     build_engine_prompt,
+    constrain_to_requested_palette,
     detect_human_signals,
     palette_negative_contract,
     validate_palette,
@@ -43,11 +46,60 @@ from app.services.job_persistence import (
 from app.services.prompt_repository import (
     load_prompts_document,
 )
+from app.services.sampling_profiles import SamplingProfile, select_sampling_profile, summarize_failures
+from app.services.prompt_compiler import failure_category as classify_failure
 
 
 logger = logging.getLogger(
     "uvicorn.error"
 )
+
+# A large third-colour area needs a new generation, not automatic recolouring.
+MAX_RECOVERABLE_OFF_PALETTE_RATIO = 0.35
+
+
+def _recoverable_palette_error(reason: str) -> bool:
+    match = re.search(r"off-palette ratio ([0-9.]+)", reason)
+    return bool(match and float(match.group(1)) <= MAX_RECOVERABLE_OFF_PALETTE_RATIO)
+
+
+def _edge_geometry_similarity(source: Path, target: Path) -> float:
+    """Compare edge locations after local contrast adjustment, not brightness."""
+    edge_maps = []
+    for path in (source, target):
+        with Image.open(path) as image:
+            grey = np.asarray(image.convert("L").resize((256, 352)), dtype=np.uint8)
+        grey = cv2.createCLAHE(clipLimit=2, tileGridSize=(8, 8)).apply(grey)
+        magnitude = np.hypot(
+            cv2.Sobel(grey, cv2.CV_32F, 1, 0, ksize=3),
+            cv2.Sobel(grey, cv2.CV_32F, 0, 1, ksize=3),
+        )
+        edge_maps.append(magnitude > np.quantile(magnitude, 0.85))
+    first, second = edge_maps
+    count = int(first.sum()) + int(second.sum())
+    return 2 * int((first & second).sum()) / count if count else 0.0
+
+
+def _palette_only_recovery(
+    source: Path,
+    target: Path,
+    reference_number: str,
+    primary_colour: str | None,
+    secondary_colour: str | None,
+) -> tuple[dict, dict]:
+    """Recolour only a raw candidate that passes every non-palette gate."""
+    structural = validate_background(source, reference_number=reference_number, enforce_palette=False)
+    with Image.open(source) as image:
+        recoloured = constrain_to_requested_palette(image, primary_colour, secondary_colour)
+        recoloured.save(target, format="PNG")
+    try:
+        final = validate_background(target, reference_number=reference_number)
+        if _edge_geometry_similarity(source, target) < 0.60:
+            raise ValueError("Palette normalization changed structural edge locations too much.")
+        return structural, final
+    except Exception:
+        target.unlink(missing_ok=True)
+        raise
 
 
 def _valid_background_dimensions() -> set[tuple[int, int]]:
@@ -105,6 +157,29 @@ def _engine_positive_prompt(
         positive_prompt,
         primary_colour,
         secondary_colour,
+    )
+
+
+def _transport_prompts(
+    engine_id: str,
+    positive_prompt: str,
+    negative_prompt: str,
+    primary_colour: str | None,
+    secondary_colour: str | None,
+    compiled_prompt=None,
+) -> tuple[str, str]:
+    """Keep native compiled semantics unchanged at the ComfyUI boundary."""
+    if compiled_prompt is not None:
+        return compiled_prompt.positive, compiled_prompt.negative
+    return (
+        _engine_positive_prompt(engine_id, positive_prompt, primary_colour, secondary_colour),
+        ", ".join(
+            value for value in (
+                BACKGROUND_ONLY_NEGATIVE,
+                negative_prompt,
+                palette_negative_contract(primary_colour, secondary_colour),
+            ) if value
+        ),
     )
 
 
@@ -354,6 +429,8 @@ def build_workflow(
     negative_prompt: str,
     seed: int,
     output_prefix: str,
+    compiled_prompt=None,
+    sampling_profile: SamplingProfile | None = None,
 ) -> dict:
     template_path = (
         settings.comfyui_workflow_path
@@ -381,12 +458,20 @@ def build_workflow(
     # a compact creative description. Negative conditioning is intentionally
     # empty for SD3.5: long negative prompts make this model collapse into
     # flat fields and raster artifacts.
-    clip_l_positive = compact_prompt(positive_prompt, 160)
-    clip_g_positive = (
-        "portrait event background, edge-weighted composition, open title "
-        "and programme zones, large matte graphic forms, requested palette"
+    clip_l_positive = (
+        compiled_prompt.clip_l if compiled_prompt and compiled_prompt.clip_l
+        else compact_prompt(positive_prompt, 160)
     )
-    sd35_positive = compact_prompt(positive_prompt, 520)
+    clip_g_positive = (
+        compiled_prompt.clip_g if compiled_prompt and compiled_prompt.clip_g
+        else "portrait event background, edge-weighted composition, open title "
+             "and programme zones, large matte graphic forms, requested palette"
+    )
+    sd35_positive = (
+        compiled_prompt.t5 if compiled_prompt and compiled_prompt.t5
+        else compact_prompt(positive_prompt, 520)
+    )
+    sd35_negative = compiled_prompt.negative if compiled_prompt else ""
 
     if engine_id == settings.engine_2_id:
         width = settings.sdxl_generation_width
@@ -398,6 +483,7 @@ def build_workflow(
         width = settings.generation_width
         height = settings.generation_height
 
+    profile = sampling_profile or select_sampling_profile(engine_id, 1, summarize_failures(None))
     values.update(
         positive_prompt=(
             positive_prompt
@@ -408,10 +494,14 @@ def build_workflow(
         clip_l_positive_prompt=clip_l_positive,
         clip_g_positive_prompt=clip_g_positive,
         t5_positive_prompt=sd35_positive,
-        clip_l_negative_prompt="",
-        clip_g_negative_prompt="",
-        t5_negative_prompt="",
-        sd35_shift=3.0,
+        clip_l_negative_prompt=sd35_negative,
+        clip_g_negative_prompt=sd35_negative,
+        t5_negative_prompt=sd35_negative,
+        sd35_shift=profile.shift if profile and profile.shift is not None else 3.0,
+        steps=profile.steps if profile else 28,
+        cfg=profile.cfg if profile else 6.0,
+        sampler_name=profile.sampler_name if profile else "dpmpp_2m",
+        scheduler=profile.scheduler if profile else "karras",
         seed=seed,
         width=width,
         height=height,
@@ -467,9 +557,13 @@ def build_workflow(
 
         return value
 
-    return inject(
-        template
-    )
+    workflow = inject(template)
+    if engine_id == settings.engine_3_id and profile and profile.shift is None:
+        # The checkpoint's native sampling configuration is the official
+        # SD3.5 path. Only recovery profiles explicitly override its shift.
+        workflow.pop("55")
+        workflow["3"]["inputs"]["model"] = ["4", 0]
+    return workflow
 
 
 def validate_workflow(
@@ -1055,6 +1149,12 @@ class ComfyUIClient:
         direction_id: str,
         positive_prompt: str,
         negative_prompt: str,
+        compiled_prompt=None,
+        spec_sha256: str | None = None,
+        direction_role: str | None = None,
+        retry_stage: str | None = None,
+        failure_category: str | None = None,
+        sampling_profile: SamplingProfile | None = None,
     ) -> dict:
         workflow_name(
             engine_id
@@ -1112,6 +1212,15 @@ class ComfyUIClient:
             if record_path.exists()
             else None
         )
+
+        if (
+            previous and spec_sha256 and previous.get("spec_sha256")
+            and previous["spec_sha256"] != spec_sha256
+        ):
+            raise ComfyUIError(
+                "Candidate specification changed across attempts; "
+                "preserve this job and use a new reference."
+            )
 
         if (
             previous
@@ -1244,27 +1353,15 @@ class ComfyUIClient:
             )
         )
 
-        actual_positive_prompt = _engine_positive_prompt(
-            engine_id,
-            positive_prompt,
-            primary_colour,
-            secondary_colour,
+        actual_positive_prompt, actual_negative_prompt = _transport_prompts(
+            engine_id, positive_prompt, negative_prompt,
+            primary_colour, secondary_colour, compiled_prompt,
         )
 
-        actual_negative_prompt = (
-            ", ".join(
-                value
-                for value
-                in (
-                    BACKGROUND_ONLY_NEGATIVE,
-                    negative_prompt,
-                    palette_negative_contract(
-                        primary_colour,
-                        secondary_colour,
-                    ),
-                )
-                if value
-            )
+        selected_profile = sampling_profile or select_sampling_profile(
+            engine_id,
+            int(previous.get("attempt_count", 0)) + 1 if retrying_candidate else 1,
+            summarize_failures(previous),
         )
 
         workflow = (
@@ -1279,6 +1376,8 @@ class ComfyUIClient:
                     f"{engine_id}/"
                     f"{direction_id.lower()}"
                 ),
+                compiled_prompt=compiled_prompt,
+                sampling_profile=selected_profile,
             )
         )
 
@@ -1363,6 +1462,13 @@ class ComfyUIClient:
                             "rejection_reason"
                         )
                     ),
+                    "failure_category": previous.get("failure_category"),
+                    "retry_stage": previous.get("retry_stage"),
+                    "spec_sha256": previous.get("spec_sha256"),
+                    "direction_role": previous.get("direction_role"),
+                    "compiled_prompt": previous.get("compiled_prompt"),
+                    "sampling_profile": previous.get("sampling_profile"),
+                    "outcome_category": previous.get("outcome_category"),
                 }
             )
 
@@ -1398,6 +1504,13 @@ class ComfyUIClient:
                             "remote_status"
                         )
                     ),
+                    "failure_category": previous.get("failure_category"),
+                    "retry_stage": previous.get("retry_stage"),
+                    "spec_sha256": previous.get("spec_sha256"),
+                    "direction_role": previous.get("direction_role"),
+                    "compiled_prompt": previous.get("compiled_prompt"),
+                    "sampling_profile": previous.get("sampling_profile"),
+                    "outcome_category": previous.get("outcome_category"),
                 }
             )
 
@@ -1467,6 +1580,18 @@ class ComfyUIClient:
             "workflow": (
                 workflow
             ),
+            "spec_sha256": spec_sha256,
+            "direction_role": direction_role,
+            "retry_stage": compiled_prompt.retry_stage if compiled_prompt else retry_stage,
+            "failure_category": compiled_prompt.failure_category if compiled_prompt else failure_category,
+            "compiled_prompt": compiled_prompt.record() if compiled_prompt else {
+                "positive": actual_positive_prompt,
+                "negative": actual_negative_prompt,
+                "clip_l": None,
+                "clip_g": None,
+                "t5": None,
+            },
+            "sampling_profile": selected_profile.record() if selected_profile else None,
         }
 
         if rejected_attempts:
@@ -1895,12 +2020,12 @@ class ComfyUIClient:
         )
 
         raw_validation = None
+        normalized_path = image_path.with_suffix(".normalized.part.png")
+        palette_normalized = False
+        raw_palette_error = None
 
         try:
             try:
-                # Preserve what the model generated. A candidate must meet the
-                # quality, composition and requested-palette rules directly;
-                # a retry is preferable to painting over native artwork.
                 raw_validation = validate_background(
                     candidate_path,
                     reference_number=reference_number,
@@ -1908,27 +2033,31 @@ class ComfyUIClient:
                 validation = raw_validation
 
             except ValueError as error:
-                record.update(
-                    status=(
-                        "rejected"
-                    ),
-                    rejection_reason=(
-                        str(error)
-                    ),
-                    error=None,
-                    remote_image=(
-                        descriptor
-                    ),
-                )
-
-                write_json(
-                    record_path,
-                    record,
-                )
-
-                raise ComfyUIError(
-                    str(error)
-                ) from error
+                raw_palette_error = str(error)
+                if (
+                    engine_id == settings.engine_2_id
+                    and record["attempt_count"] >= 3
+                    and _recoverable_palette_error(str(error))
+                    and primary_colour
+                ):
+                    try:
+                        raw_validation, validation = _palette_only_recovery(
+                            candidate_path, normalized_path, reference_number,
+                            primary_colour, secondary_colour,
+                        )
+                        palette_normalized = True
+                    except ValueError:
+                        pass
+                if not palette_normalized:
+                    record.update(
+                        status="rejected",
+                        rejection_reason=str(error),
+                        outcome_category=classify_failure(str(error)),
+                        error=None,
+                        remote_image=descriptor,
+                    )
+                    write_json(record_path, record)
+                    raise ComfyUIError(str(error)) from error
 
             if (
                 previous
@@ -1948,6 +2077,10 @@ class ComfyUIClient:
                     "the original generation."
                 )
 
+            if palette_normalized:
+                raw_image_path = image_path.with_suffix(".raw.png")
+                candidate_path.replace(raw_image_path)
+                normalized_path.replace(candidate_path)
             candidate_path.replace(
                 image_path
             )
@@ -1956,11 +2089,16 @@ class ComfyUIClient:
             candidate_path.unlink(
                 missing_ok=True
             )
+            normalized_path.unlink(missing_ok=True)
 
         record.update(
             validation,
             raw_validation=raw_validation,
             final_validation=validation,
+            palette_normalized=palette_normalized,
+            raw_palette_error=raw_palette_error if palette_normalized else None,
+            outcome_category="PASS",
+            raw_image_path=str(image_path.with_suffix(".raw.png")) if palette_normalized else None,
             status=(
                 "complete"
             ),
@@ -2020,6 +2158,12 @@ async def generate_remote_image(
     direction_id: str,
     positive_prompt: str,
     negative_prompt: str,
+    compiled_prompt=None,
+    spec_sha256: str | None = None,
+    direction_role: str | None = None,
+    retry_stage: str | None = None,
+    failure_category: str | None = None,
+    sampling_profile: SamplingProfile | None = None,
 ) -> dict:
     async with ComfyUIClient() as client:
         return (
@@ -2029,5 +2173,11 @@ async def generate_remote_image(
                 direction_id,
                 positive_prompt,
                 negative_prompt,
+                compiled_prompt=compiled_prompt,
+                spec_sha256=spec_sha256,
+                direction_role=direction_role,
+                retry_stage=retry_stage,
+                failure_category=failure_category,
+                sampling_profile=sampling_profile,
             )
         )

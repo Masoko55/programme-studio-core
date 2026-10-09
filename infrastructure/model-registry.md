@@ -25,6 +25,15 @@ weight file paths or their checksums. The GPU-host operator must supply those
 file digests and confirm the applicable commercial licences before final
 handover.
 
+For the SD 3.5 file audit, open a terminal on the GPU host itself and run
+`find /opt /home /workspace -type f -name 'sd3.5_medium.safetensors' -print 2>/dev/null`.
+Then run `image-service/scripts/audit_sd35_models.py` on that host with
+`--model-root` set to the directory containing `checkpoints/` and
+`text_encoders/` (or `clip/`). The image-service machine cannot read those
+weights through ComfyUI's HTTP API. Port 22/SSH is not assumed to be available;
+use the GPU host's existing console or remote-desktop access to transfer and
+run the script.
+
 ## Specification variance requiring resolution
 
 The requested model set names Qwen 2.5 14B, Gemma 3 27B and Mistral Small 3.1

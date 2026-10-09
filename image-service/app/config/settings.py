@@ -54,7 +54,7 @@ class Settings(
     max_candidate_retries: int = Field(
         default=8,
         ge=0,
-        le=12,
+        le=8,
     )
 
     max_candidate_retry_delay_seconds: int = Field(
@@ -210,10 +210,6 @@ class Settings(
 
     sd35_t5: str = (
         "t5xxl_fp8_e4m3fn.safetensors"
-    )
-
-    sd35_vae: str = (
-        "ae.safetensors"
     )
 
     ollama_base_url: str = (

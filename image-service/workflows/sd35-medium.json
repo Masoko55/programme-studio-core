@@ -47,20 +47,14 @@
       "batch_size": 1
     }
   },
-  "56": {
-    "class_type": "VAELoader",
-    "inputs": {
-      "vae_name": "${sd35_vae}"
-    }
-  },
   "3": {
     "class_type": "KSampler",
     "inputs": {
       "seed": "${seed}",
-      "steps": 30,
-      "cfg": 5.0,
-      "sampler_name": "euler",
-      "scheduler": "simple",
+      "steps": "${steps}",
+      "cfg": "${cfg}",
+      "sampler_name": "${sampler_name}",
+      "scheduler": "${scheduler}",
       "denoise": 1.0,
       "model": [
         "55",
@@ -88,8 +82,8 @@
         0
       ],
       "vae": [
-        "56",
-        0
+        "4",
+        2
       ]
     }
   },

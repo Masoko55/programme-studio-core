@@ -1519,6 +1519,29 @@ def _nearest_requested_family(
     )
 
 
+def _chromatic_requested_family(
+    hue: int,
+    saturation: int,
+    value: int,
+    requested_targets: list[dict],
+) -> str | None:
+    """Classify dark coloured pixels by hue before RGB-nearest neutral names.
+
+    Euclidean RGB distance calls a dark royal-blue pixel "charcoal" because
+    its low value dominates the distance, even when its saturation is high.
+    Twelve OpenCV hue units separate the blue family from teal and violet in
+    the named palette while still covering navy and royal-blue shadows.
+    """
+    candidates = []
+    for target in requested_targets:
+        if not _pixel_can_match_target(saturation, value, target["name"], target["rgb"]):
+            continue
+        distance = _hue_distance(hue, target["hue"])
+        if distance <= min(12, _target_hue_limit(target["name"], target["rgb"])):
+            candidates.append((distance, target["name"]))
+    return min(candidates)[1] if candidates else None
+
+
 def validate_palette(
     image: Image.Image,
     primary_colour: str | None,
@@ -1841,6 +1864,14 @@ def validate_palette(
                 + 1
             )
 
+            continue
+
+        chromatic_match = _chromatic_requested_family(
+            hue, saturation, value, requested_targets,
+        )
+        if chromatic_match is not None:
+            requested_counts[chromatic_match] = requested_counts.get(chromatic_match, 0) + 1
+            accepted_tonal_counts[chromatic_match] = accepted_tonal_counts.get(chromatic_match, 0) + 1
             continue
 
         nearest = (
@@ -2328,6 +2359,16 @@ def _cascade_detect(
     ]
 
 
+def _centered_lower_upper_body(
+    upper_bodies: list[tuple[int, int, int, int]], image_width: int, image_height: int,
+) -> bool:
+    return any(
+        0.35 <= (x + width / 2) / image_width <= 0.65
+        and 0.60 <= (y + height / 2) / image_height <= 0.90
+        for x, y, width, height in upper_bodies
+    )
+
+
 def detect_human_signals(
     image: Image.Image,
 ) -> dict:
@@ -2489,12 +2530,15 @@ def detect_human_signals(
         )
     )
 
-    strong_upper_body_signal = (
-        len(
-            upper_bodies
-        )
-        >= 2
+    # A single upper-body cascade hit in the lower centre is significant for
+    # a background whose centre must be clear. The SD3.5 E9EBE8 probe has a
+    # visible central silhouette here; HOG and face cascades miss it. An
+    # isolated hit at the outer decoration (as in FLUX B) remains insufficient.
+    image_height, image_width = gray.shape[:2]
+    centered_lower_body = _centered_lower_upper_body(
+        upper_bodies, image_width, image_height,
     )
+    strong_upper_body_signal = len(upper_bodies) >= 2 or centered_lower_body
 
     detected = bool(
         people

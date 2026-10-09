@@ -55,12 +55,96 @@ logger = logging.getLogger(
 )
 
 # A large third-colour area needs a new generation, not automatic recolouring.
-MAX_RECOVERABLE_OFF_PALETTE_RATIO = 0.35
+# ============================================================
+# Deterministic palette-only recovery limits
+# ============================================================
+#
+# Final palette validation remains unchanged.
+#
+# These values control only whether a structurally valid candidate is eligible
+# for deterministic palette normalization BEFORE the normal strict palette
+# validator is executed again.
+#
+# They are intentionally engine-specific.
+#
+# SDXL already had a broader recovery range because that engine frequently
+# generates otherwise-correct artwork with substantial neutral/metallic drift.
+#
+# SD3.5 uses a much narrower limit. Controlled programme-studio probes showed
+# structurally healthy SD3.5 outputs at approximately 0.09 off-palette, while
+# catastrophic historical drift was much larger. We therefore allow only mild
+# SD3.5 palette-only correction.
+#
+
+MAX_SDXL_RECOVERABLE_OFF_PALETTE_RATIO = 0.35
+MAX_SD35_RECOVERABLE_OFF_PALETTE_RATIO = 0.15
 
 
-def _recoverable_palette_error(reason: str) -> bool:
-    match = re.search(r"off-palette ratio ([0-9.]+)", reason)
-    return bool(match and float(match.group(1)) <= MAX_RECOVERABLE_OFF_PALETTE_RATIO)
+def _palette_recovery_limit(
+    engine_id: str | None,
+) -> float:
+    """Return the maximum raw palette drift eligible for correction."""
+
+    if (
+        engine_id
+        == settings.engine_3_id
+    ):
+        return (
+            MAX_SD35_RECOVERABLE_OFF_PALETTE_RATIO
+        )
+
+    #
+    # Preserve the historical helper behaviour when tests/callers omit an
+    # engine ID. SDXL was the original consumer of palette-only recovery.
+    #
+    if (
+        engine_id is None
+        or engine_id
+        == settings.engine_2_id
+    ):
+        return (
+            MAX_SDXL_RECOVERABLE_OFF_PALETTE_RATIO
+        )
+
+    #
+    # FLUX and unknown engines are not eligible.
+    #
+    return 0.0
+
+
+def _recoverable_palette_error(
+    reason: str,
+    engine_id: str | None = None,
+) -> bool:
+    """Return True only for bounded off-palette validation failures.
+
+    This function does NOT relax final palette validation.
+
+    It only decides whether deterministic recolouring may be attempted.
+    The recoloured image must subsequently pass validate_background() with
+    normal palette enforcement enabled.
+    """
+
+    match = re.search(
+        r"off-palette ratio ([0-9.]+)",
+        reason,
+    )
+
+    if not match:
+        return False
+
+    ratio = float(
+        match.group(
+            1
+        )
+    )
+
+    return (
+        ratio
+        <= _palette_recovery_limit(
+            engine_id
+        )
+    )
 
 
 def _edge_geometry_similarity(source: Path, target: Path) -> float:
@@ -1155,6 +1239,7 @@ class ComfyUIClient:
         retry_stage: str | None = None,
         failure_category: str | None = None,
         sampling_profile: SamplingProfile | None = None,
+        seed_override: int | None = None,
     ) -> dict:
         workflow_name(
             engine_id
@@ -1307,7 +1392,11 @@ class ComfyUIClient:
         #
         # Every rejected/runtime-failed attempt gets a fresh seed.
         #
-        if retrying_candidate:
+        if seed_override is not None:
+            if not 0 <= seed_override < 2**63:
+                raise ValueError("Probe seed must fit the supported signed 63-bit range")
+            seed = seed_override
+        elif retrying_candidate:
             seed = (
                 secrets.randbits(
                     63
@@ -2033,31 +2122,166 @@ class ComfyUIClient:
                 validation = raw_validation
 
             except ValueError as error:
-                raw_palette_error = str(error)
-                if (
-                    engine_id == settings.engine_2_id
-                    and record["attempt_count"] >= 3
-                    and _recoverable_palette_error(str(error))
+                raw_palette_error = (
+                    str(
+                        error
+                    )
+                )
+
+                # ====================================================
+                # Engine-specific deterministic palette-only recovery
+                # ====================================================
+                #
+                # This path is eligible ONLY when:
+                #
+                # - the validator specifically reported bounded
+                #   off-palette drift;
+                # - a requested primary colour exists;
+                # - the engine is SDXL or SD3.5;
+                # - SDXL has reached its existing minimum attempt
+                #   threshold;
+                # - SD3.5 is within its tighter 0.15 recovery ceiling.
+                #
+                # _palette_only_recovery() first executes complete
+                # non-palette validation on the raw candidate.
+                #
+                # Therefore raster-corrupt, human-containing,
+                # text-containing, flat, noisy or otherwise structurally
+                # invalid candidates cannot be rescued merely by recolouring.
+                #
+                # The recoloured result then goes through the normal FULL
+                # validate_background() path again, so final palette
+                # acceptance remains strict.
+                # ====================================================
+
+                palette_recovery_engine = bool(
+                    engine_id
+                    in {
+                        settings.engine_2_id,
+                        settings.engine_3_id,
+                    }
+                )
+
+                sdxl_recovery_ready = bool(
+                    engine_id
+                    == settings.engine_2_id
+                    and record[
+                        "attempt_count"
+                    ]
+                    >= 3
+                )
+
+                sd35_recovery_ready = bool(
+                    engine_id
+                    == settings.engine_3_id
+                )
+
+                palette_recovery_ready = bool(
+                    palette_recovery_engine
+                    and (
+                        sdxl_recovery_ready
+                        or sd35_recovery_ready
+                    )
+                    and _recoverable_palette_error(
+                        raw_palette_error,
+                        engine_id,
+                    )
                     and primary_colour
+                )
+
+                if (
+                    palette_recovery_ready
                 ):
                     try:
-                        raw_validation, validation = _palette_only_recovery(
-                            candidate_path, normalized_path, reference_number,
-                            primary_colour, secondary_colour,
+                        (
+                            raw_validation,
+                            validation,
+                        ) = (
+                            _palette_only_recovery(
+                                candidate_path,
+                                normalized_path,
+                                reference_number,
+                                primary_colour,
+                                secondary_colour,
+                            )
                         )
-                        palette_normalized = True
-                    except ValueError:
-                        pass
-                if not palette_normalized:
+
+                        palette_normalized = (
+                            True
+                        )
+
+                        logger.info(
+                            "event=palette_normalization_succeeded "
+                            "reference=%s "
+                            "engine=%s "
+                            "direction=%s "
+                            "attempt=%s "
+                            "raw_error=%s",
+                            reference_number,
+                            engine_id,
+                            direction_id,
+                            record.get(
+                                "attempt_count"
+                            ),
+                            raw_palette_error,
+                        )
+
+                    except ValueError as recovery_error:
+                        logger.info(
+                            "event=palette_normalization_rejected "
+                            "reference=%s "
+                            "engine=%s "
+                            "direction=%s "
+                            "attempt=%s "
+                            "raw_error=%s "
+                            "recovery_error=%s",
+                            reference_number,
+                            engine_id,
+                            direction_id,
+                            record.get(
+                                "attempt_count"
+                            ),
+                            raw_palette_error,
+                            str(
+                                recovery_error
+                            ),
+                        )
+
+                if not (
+                    palette_normalized
+                ):
                     record.update(
-                        status="rejected",
-                        rejection_reason=str(error),
-                        outcome_category=classify_failure(str(error)),
+                        status=(
+                            "rejected"
+                        ),
+                        rejection_reason=(
+                            str(
+                                error
+                            )
+                        ),
+                        outcome_category=(
+                            classify_failure(
+                                str(
+                                    error
+                                )
+                            )
+                        ),
                         error=None,
-                        remote_image=descriptor,
+                        remote_image=(
+                            descriptor
+                        ),
                     )
-                    write_json(record_path, record)
-                    raise ComfyUIError(str(error)) from error
+
+                    write_json(
+                        record_path,
+                        record,
+                    )
+
+                    raise ComfyUIError(
+                        str(
+                            error
+                        )
+                    ) from error
 
             if (
                 previous

@@ -1155,6 +1155,7 @@ class ComfyUIClient:
         retry_stage: str | None = None,
         failure_category: str | None = None,
         sampling_profile: SamplingProfile | None = None,
+        seed_override: int | None = None,
     ) -> dict:
         workflow_name(
             engine_id
@@ -1307,7 +1308,11 @@ class ComfyUIClient:
         #
         # Every rejected/runtime-failed attempt gets a fresh seed.
         #
-        if retrying_candidate:
+        if seed_override is not None:
+            if not 0 <= seed_override < 2**63:
+                raise ValueError("Probe seed must fit the supported signed 63-bit range")
+            seed = seed_override
+        elif retrying_candidate:
             seed = (
                 secrets.randbits(
                     63

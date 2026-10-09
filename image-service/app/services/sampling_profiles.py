@@ -20,7 +20,7 @@ class SamplingProfile:
     shift: float | None = None
 
     def record(self) -> dict:
-        return asdict(self)
+        return {**asdict(self), "shift_mode": "checkpoint_default" if self.shift is None else "explicit"}
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +68,41 @@ _SD35 = (
     SamplingProfile("revised_schedule", 30, 4.0, "euler", "simple", 2.0),
     SamplingProfile("raster_rescue_trial", 30, 3.5, "dpmpp_2m", "simple", 2.0),
 )
+
+
+# Controlled diagnostics: each successive row changes one variable from the
+# baseline, rather than combining unmeasured changes in a production retry.
+_SD35_PROBE = (
+    _SD35[0],
+    SamplingProfile("explicit_shift_3", 20, 4.0, "euler", "sgm_uniform", 3.0),
+    SamplingProfile("explicit_shift_2", 20, 4.0, "euler", "sgm_uniform", 2.0),
+    SamplingProfile("euler_normal", 20, 4.0, "euler", "normal"),
+    SamplingProfile("dpmpp_2m_sgm", 20, 4.0, "dpmpp_2m", "sgm_uniform"),
+)
+
+_SDXL_PROBE = (
+    _SDXL[0],
+    SamplingProfile("cfg_5", 28, 5.0, "dpmpp_2m", "karras"),
+    SamplingProfile("euler_karras", 28, 6.0, "euler", "karras"),
+    SamplingProfile("dpmpp_normal", 28, 6.0, "dpmpp_2m", "normal"),
+)
+
+
+def probe_profiles(engine_id: str) -> tuple[SamplingProfile, ...]:
+    if engine_id == settings.engine_2_id:
+        return _SDXL_PROBE
+    if engine_id == settings.engine_3_id:
+        return _SD35_PROBE
+    raise ValueError(f"No native profile matrix for {engine_id}")
+
+
+def profile_by_name(engine_id: str, name: str) -> SamplingProfile:
+    matches = [profile for profile in (*probe_profiles(engine_id),
+                                       *(_SDXL if engine_id == settings.engine_2_id else _SD35))
+               if profile.name == name]
+    if not matches:
+        raise ValueError(f"Unknown {engine_id} sampling profile: {name}")
+    return matches[0]
 
 
 def select_sampling_profile(engine_id: str, attempt: int, history: FailureHistorySummary) -> SamplingProfile | None:

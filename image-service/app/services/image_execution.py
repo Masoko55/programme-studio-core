@@ -43,6 +43,8 @@ from app.services.prompt_repository import (
     get_direction,
     load_prompts_document,
 )
+from app.services.candidate_spec import build_candidate_spec
+from app.services.prompt_compiler import compile_candidate_prompt, failure_category, retry_stage
 
 
 logger = logging.getLogger(
@@ -1928,6 +1930,25 @@ async def _prepare_engine(
 # ============================================================
 
 
+def _resume_retry_context(existing: dict) -> tuple[int, str]:
+    """Return zero-based retry and the failure it corrects after a restart."""
+    status = existing.get("status")
+    persisted_attempts = int(existing.get("attempt_count", 0))
+    if status in {"rejected", "runtime_failed", "failed"}:
+        start_retry = persisted_attempts
+        reason = existing.get("rejection_reason") or existing.get("error") or ""
+    elif status in {"prepared", "submitted"}:
+        start_retry = max(0, persisted_attempts - 1)
+        history = existing.get("rejected_attempts", []) + existing.get("failed_attempts", [])
+        last = max(history, key=lambda item: item.get("attempt_count", 0)) if history else {}
+        reason = last.get("rejection_reason") or last.get("error") or ""
+        if start_retry and not reason:
+            raise ValueError("In-flight retry has no previous failure context")
+    else:
+        start_retry, reason = 0, ""
+    return start_retry, reason
+
+
 async def _attempt_output_wave(
     *,
     client: ComfyUIClient,
@@ -1948,6 +1969,22 @@ async def _attempt_output_wave(
         )
     )
 
+    spec = build_candidate_spec(document, output.engine_id, output.direction_id)
+    existing = _candidate_record(reference_number, output.engine_id, output.direction_id)
+    if existing.get("spec_sha256") and existing["spec_sha256"] != spec.spec_sha256:
+        raise ValueError("Candidate specification changed across attempts; use a new reference")
+    start_retry, previous_reason = _resume_retry_context(existing)
+    if start_retry >= min(settings.max_candidate_retries, 8) + 1:
+        update_output(state, output.engine_id, output.direction_id, "failed",
+                      error="Candidate attempt budget exhausted")
+        return False, 0
+    logger.info(
+        "event=candidate_spec_created reference=%s engine=%s direction=%s "
+        "direction_role=%s spec_sha256=%s",
+        reference_number, output.engine_id, output.direction_id,
+        spec.direction_role, spec.spec_sha256,
+    )
+
     base_positive_prompt = (
         direction[
             "positive_prompt"
@@ -1961,25 +1998,45 @@ async def _attempt_output_wave(
         )
     )
 
-    (
-        positive_prompt,
-        negative_prompt,
-    ) = (
-        _initial_engine_prompts(
+    if output.engine_id == settings.engine_1_id:
+        positive_prompt, negative_prompt = _initial_engine_prompts(
             output.engine_id,
             base_positive_prompt,
             base_negative_prompt,
             primary_colour,
             secondary_colour,
         )
-    )
+    else:
+        # Native prompts are compiled afresh from CandidateSpec per attempt.
+        positive_prompt, negative_prompt = "", ""
 
     generated = 0
 
-    for retry_count in range(
-        settings.max_candidate_retries
-        + 1
-    ):
+    for retry_count in range(start_retry, min(settings.max_candidate_retries, 8) + 1):
+        attempt = retry_count + 1
+        compiled = None
+        if output.engine_id in {settings.engine_2_id, settings.engine_3_id}:
+            compiled = compile_candidate_prompt(spec, attempt, previous_reason)
+            positive_prompt, negative_prompt = compiled.positive, compiled.negative
+        elif retry_count > start_retry or start_retry > 0:
+            positive_prompt, negative_prompt = _strengthen_prompts(
+                base_positive_prompt, base_negative_prompt, previous_reason,
+                primary_colour, secondary_colour, retry_count, output.engine_id,
+            )
+        category = compiled.failure_category if compiled else failure_category(previous_reason)
+        stage = compiled.retry_stage if compiled else retry_stage(attempt)
+        logger.info(
+            "event=spec_lock_verified reference=%s engine=%s direction=%s "
+            "attempt=%s direction_role=%s spec_sha256=%s",
+            reference_number, output.engine_id, output.direction_id,
+            attempt, spec.direction_role, spec.spec_sha256,
+        )
+        logger.info(
+            "event=candidate_prompt_compiled reference=%s engine=%s direction=%s "
+            "attempt=%s direction_role=%s spec_sha256=%s failure_category=%s retry_stage=%s",
+            reference_number, output.engine_id, output.direction_id,
+            attempt, spec.direction_role, spec.spec_sha256, category, stage,
+        )
         try:
             result = (
                 await get_engine(
@@ -1997,6 +2054,11 @@ async def _attempt_output_wave(
                     negative_prompt=(
                         negative_prompt
                     ),
+                    compiled_prompt=compiled,
+                    spec_sha256=spec.spec_sha256,
+                    direction_role=spec.direction_role,
+                    retry_stage=stage,
+                    failure_category=category,
                 )
             )
 
@@ -2126,20 +2188,14 @@ async def _attempt_output_wave(
                 retry_count
                 + 1
             )
-
-            (
-                positive_prompt,
-                negative_prompt,
-            ) = (
-                _strengthen_prompts(
-                    base_positive_prompt,
-                    base_negative_prompt,
-                    reason,
-                    primary_colour,
-                    secondary_colour,
-                    next_retry,
-                    output.engine_id,
-                )
+            previous_reason = reason
+            logger.info(
+                "event=retry_strategy_selected reference=%s engine=%s direction=%s "
+                "attempt=%s direction_role=%s spec_sha256=%s "
+                "failure_category=%s retry_stage=%s",
+                reference_number, output.engine_id, output.direction_id,
+                next_retry + 1, spec.direction_role, spec.spec_sha256,
+                failure_category(reason), retry_stage(next_retry + 1),
             )
 
             delay_seconds = min(

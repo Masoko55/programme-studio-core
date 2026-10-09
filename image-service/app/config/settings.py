@@ -54,7 +54,7 @@ class Settings(
     max_candidate_retries: int = Field(
         default=8,
         ge=0,
-        le=12,
+        le=8,
     )
 
     max_candidate_retry_delay_seconds: int = Field(

@@ -4,9 +4,18 @@ from app.services.comfyui_client import generate_remote_image
 
 class ComfyUIEngine(ImageEngine):
     async def generate(self, positive_prompt: str, negative_prompt: str, *,
-                       reference_number: str, direction_id: str) -> dict:
+                       reference_number: str, direction_id: str,
+                       compiled_prompt=None, spec_sha256: str | None = None,
+                       direction_role: str | None = None,
+                       retry_stage: str | None = None,
+                       failure_category: str | None = None) -> dict:
         return await generate_remote_image(reference_number, self.engine_id, direction_id,
-                                           positive_prompt, negative_prompt)
+                                           positive_prompt, negative_prompt,
+                                           compiled_prompt=compiled_prompt,
+                                           spec_sha256=spec_sha256,
+                                           direction_role=direction_role,
+                                           retry_stage=retry_stage,
+                                           failure_category=failure_category)
 
 def get_engine_descriptors() -> list[EngineDescriptor]:
     return [EngineDescriptor(settings.engine_1_id, settings.engine_1_label),

@@ -108,6 +108,29 @@ def _engine_positive_prompt(
     )
 
 
+def _transport_prompts(
+    engine_id: str,
+    positive_prompt: str,
+    negative_prompt: str,
+    primary_colour: str | None,
+    secondary_colour: str | None,
+    compiled_prompt=None,
+) -> tuple[str, str]:
+    """Keep native compiled semantics unchanged at the ComfyUI boundary."""
+    if compiled_prompt is not None:
+        return compiled_prompt.positive, compiled_prompt.negative
+    return (
+        _engine_positive_prompt(engine_id, positive_prompt, primary_colour, secondary_colour),
+        ", ".join(
+            value for value in (
+                BACKGROUND_ONLY_NEGATIVE,
+                negative_prompt,
+                palette_negative_contract(primary_colour, secondary_colour),
+            ) if value
+        ),
+    )
+
+
 class ComfyUIError(
     RuntimeError
 ):
@@ -354,6 +377,7 @@ def build_workflow(
     negative_prompt: str,
     seed: int,
     output_prefix: str,
+    compiled_prompt=None,
 ) -> dict:
     template_path = (
         settings.comfyui_workflow_path
@@ -381,12 +405,20 @@ def build_workflow(
     # a compact creative description. Negative conditioning is intentionally
     # empty for SD3.5: long negative prompts make this model collapse into
     # flat fields and raster artifacts.
-    clip_l_positive = compact_prompt(positive_prompt, 160)
-    clip_g_positive = (
-        "portrait event background, edge-weighted composition, open title "
-        "and programme zones, large matte graphic forms, requested palette"
+    clip_l_positive = (
+        compiled_prompt.clip_l if compiled_prompt and compiled_prompt.clip_l
+        else compact_prompt(positive_prompt, 160)
     )
-    sd35_positive = compact_prompt(positive_prompt, 520)
+    clip_g_positive = (
+        compiled_prompt.clip_g if compiled_prompt and compiled_prompt.clip_g
+        else "portrait event background, edge-weighted composition, open title "
+             "and programme zones, large matte graphic forms, requested palette"
+    )
+    sd35_positive = (
+        compiled_prompt.t5 if compiled_prompt and compiled_prompt.t5
+        else compact_prompt(positive_prompt, 520)
+    )
+    sd35_negative = compiled_prompt.negative if compiled_prompt else ""
 
     if engine_id == settings.engine_2_id:
         width = settings.sdxl_generation_width
@@ -408,9 +440,9 @@ def build_workflow(
         clip_l_positive_prompt=clip_l_positive,
         clip_g_positive_prompt=clip_g_positive,
         t5_positive_prompt=sd35_positive,
-        clip_l_negative_prompt="",
-        clip_g_negative_prompt="",
-        t5_negative_prompt="",
+        clip_l_negative_prompt=sd35_negative,
+        clip_g_negative_prompt=sd35_negative,
+        t5_negative_prompt=sd35_negative,
         sd35_shift=3.0,
         seed=seed,
         width=width,
@@ -1055,6 +1087,11 @@ class ComfyUIClient:
         direction_id: str,
         positive_prompt: str,
         negative_prompt: str,
+        compiled_prompt=None,
+        spec_sha256: str | None = None,
+        direction_role: str | None = None,
+        retry_stage: str | None = None,
+        failure_category: str | None = None,
     ) -> dict:
         workflow_name(
             engine_id
@@ -1112,6 +1149,15 @@ class ComfyUIClient:
             if record_path.exists()
             else None
         )
+
+        if (
+            previous and spec_sha256 and previous.get("spec_sha256")
+            and previous["spec_sha256"] != spec_sha256
+        ):
+            raise ComfyUIError(
+                "Candidate specification changed across attempts; "
+                "preserve this job and use a new reference."
+            )
 
         if (
             previous
@@ -1244,27 +1290,9 @@ class ComfyUIClient:
             )
         )
 
-        actual_positive_prompt = _engine_positive_prompt(
-            engine_id,
-            positive_prompt,
-            primary_colour,
-            secondary_colour,
-        )
-
-        actual_negative_prompt = (
-            ", ".join(
-                value
-                for value
-                in (
-                    BACKGROUND_ONLY_NEGATIVE,
-                    negative_prompt,
-                    palette_negative_contract(
-                        primary_colour,
-                        secondary_colour,
-                    ),
-                )
-                if value
-            )
+        actual_positive_prompt, actual_negative_prompt = _transport_prompts(
+            engine_id, positive_prompt, negative_prompt,
+            primary_colour, secondary_colour, compiled_prompt,
         )
 
         workflow = (
@@ -1279,6 +1307,7 @@ class ComfyUIClient:
                     f"{engine_id}/"
                     f"{direction_id.lower()}"
                 ),
+                compiled_prompt=compiled_prompt,
             )
         )
 
@@ -1363,6 +1392,11 @@ class ComfyUIClient:
                             "rejection_reason"
                         )
                     ),
+                    "failure_category": previous.get("failure_category"),
+                    "retry_stage": previous.get("retry_stage"),
+                    "spec_sha256": previous.get("spec_sha256"),
+                    "direction_role": previous.get("direction_role"),
+                    "compiled_prompt": previous.get("compiled_prompt"),
                 }
             )
 
@@ -1398,6 +1432,11 @@ class ComfyUIClient:
                             "remote_status"
                         )
                     ),
+                    "failure_category": previous.get("failure_category"),
+                    "retry_stage": previous.get("retry_stage"),
+                    "spec_sha256": previous.get("spec_sha256"),
+                    "direction_role": previous.get("direction_role"),
+                    "compiled_prompt": previous.get("compiled_prompt"),
                 }
             )
 
@@ -1467,6 +1506,17 @@ class ComfyUIClient:
             "workflow": (
                 workflow
             ),
+            "spec_sha256": spec_sha256,
+            "direction_role": direction_role,
+            "retry_stage": compiled_prompt.retry_stage if compiled_prompt else retry_stage,
+            "failure_category": compiled_prompt.failure_category if compiled_prompt else failure_category,
+            "compiled_prompt": compiled_prompt.record() if compiled_prompt else {
+                "positive": actual_positive_prompt,
+                "negative": actual_negative_prompt,
+                "clip_l": None,
+                "clip_g": None,
+                "t5": None,
+            },
         }
 
         if rejected_attempts:
@@ -2020,6 +2070,11 @@ async def generate_remote_image(
     direction_id: str,
     positive_prompt: str,
     negative_prompt: str,
+    compiled_prompt=None,
+    spec_sha256: str | None = None,
+    direction_role: str | None = None,
+    retry_stage: str | None = None,
+    failure_category: str | None = None,
 ) -> dict:
     async with ComfyUIClient() as client:
         return (
@@ -2029,5 +2084,10 @@ async def generate_remote_image(
                 direction_id,
                 positive_prompt,
                 negative_prompt,
+                compiled_prompt=compiled_prompt,
+                spec_sha256=spec_sha256,
+                direction_role=direction_role,
+                retry_stage=retry_stage,
+                failure_category=failure_category,
             )
         )

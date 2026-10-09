@@ -34,5 +34,10 @@ class ImageEngine(ABC):
         *,
         reference_number: str,
         direction_id: str,
+        compiled_prompt=None,
+        spec_sha256: str | None = None,
+        direction_role: str | None = None,
+        retry_stage: str | None = None,
+        failure_category: str | None = None,
     ):
         raise NotImplementedError

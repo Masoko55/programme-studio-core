@@ -5,13 +5,15 @@ import numpy as np
 
 from PIL import Image
 
+from app.config.settings import settings
+
 
 # ============================================================
 # Sampling
 # ============================================================
 
-QUALITY_SAMPLE_WIDTH = 256
-QUALITY_SAMPLE_HEIGHT = 352
+QUALITY_SAMPLE_WIDTH = settings.quality_sample_width
+QUALITY_SAMPLE_HEIGHT = settings.quality_sample_height
 
 
 # ============================================================
@@ -89,18 +91,18 @@ NOISE_CHECK_MAX_STRUCTURAL_EDGE_DENSITY = 0.035
 # Programme/poster composition
 # ============================================================
 
-CENTER_X_START = 0.18
-CENTER_X_END = 0.82
+CENTER_X_START = settings.quality_center_x_start
+CENTER_X_END = settings.quality_center_x_end
 
-CENTER_Y_START = 0.12
-CENTER_Y_END = 0.82
+CENTER_Y_START = settings.quality_center_y_start
+CENTER_Y_END = settings.quality_center_y_end
 
-# Graphic illustration produces many legitimate Sobel edges after
-# downsampling. The previous 0.30 value rejected quiet SDXL centres.
-# The final compositor still provides a dedicated text panel.
-MAX_CENTER_STRUCTURAL_EDGE_DENSITY = 0.72
+# The programme title and schedule occupy the centre.  Decorative detail is
+# welcome at the edge, but a densely illustrated centre makes the candidate
+# unusable even when it passes technical image checks.
+MAX_CENTER_STRUCTURAL_EDGE_DENSITY = settings.quality_center_max_edge_density
 
-MAX_CENTER_LOCAL_CONTRAST = 62.0
+MAX_CENTER_LOCAL_CONTRAST = settings.quality_center_max_local_contrast
 
 
 def _image_entropy(
@@ -962,9 +964,11 @@ def validate_visual_quality(
     # ========================================================
     # Centre diagnostics
     #
-    # The final compositor places an explicit programme panel over the
-    # centre.  Record centre metrics for observability, but do not discard
-    # a sound background solely because its centre has illustration detail.
+    # The compositor draws opaque title and programme panels over this region.
+    # Keep the measurements in the candidate record for review, but do not
+    # discard a sound illustration solely because it has central detail. The
+    # hard quality gates above still reject raster, noise, blank, gradient and
+    # malformed output across the complete image.
     # ========================================================
 
     return {

@@ -93,7 +93,9 @@ def _selection_layout(
                 == "left"
                 else 0.70
             ),
-            "y": 0.25,
+            # Asset zones belong above the title. Keeping them in the upper
+            # margin avoids invalid overlap with title_zone.
+            "y": 0.045,
             "width": 0.18,
             "height": 0.15,
             "shape": (
@@ -112,7 +114,9 @@ def _selection_layout(
                 == "left"
                 else 0.68
             ),
-            "y": 0.25,
+            # Asset zones belong above the title. Keeping them in the upper
+            # margin avoids invalid overlap with title_zone.
+            "y": 0.045,
             "width": 0.22,
             "height": 0.15,
         }

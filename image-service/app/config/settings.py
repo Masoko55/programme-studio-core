@@ -161,7 +161,11 @@ class Settings(
     )
 
     quality_center_max_edge_density: float = Field(
-        default=0.30,
+        # The compositor places opaque information panels in this region.
+        # Accept coherent illustration behind those panels while still
+        # rejecting highly repetitive/raster output through the other visual
+        # quality checks.
+        default=0.60,
         ge=0,
         le=1,
     )
@@ -208,6 +212,10 @@ class Settings(
         "t5xxl_fp8_e4m3fn.safetensors"
     )
 
+    sd35_vae: str = (
+        "ae.safetensors"
+    )
+
     ollama_base_url: str = (
         "http://192.168.68.115:11434"
     )
@@ -234,6 +242,36 @@ class Settings(
         ge=256,
         le=2048,
         multiple_of=16,
+    )
+
+    # Native portrait buckets for the two diffusion models.  FLUX retains
+    # the general generation dimensions above.
+    sdxl_generation_width: int = Field(
+        default=832,
+        ge=256,
+        le=2048,
+        multiple_of=64,
+    )
+
+    sdxl_generation_height: int = Field(
+        default=1216,
+        ge=256,
+        le=2048,
+        multiple_of=64,
+    )
+
+    sd35_generation_width: int = Field(
+        default=896,
+        ge=256,
+        le=2048,
+        multiple_of=64,
+    )
+
+    sd35_generation_height: int = Field(
+        default=1280,
+        ge=256,
+        le=2048,
+        multiple_of=64,
     )
 
     final_image_width: int = 2480

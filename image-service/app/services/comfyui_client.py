@@ -30,7 +30,6 @@ from app.services.atomic import (
 from app.services.background_policy import (
     BACKGROUND_ONLY_NEGATIVE,
     build_engine_prompt,
-    constrain_to_requested_palette,
     detect_human_signals,
     palette_negative_contract,
     validate_palette,
@@ -49,6 +48,64 @@ from app.services.prompt_repository import (
 logger = logging.getLogger(
     "uvicorn.error"
 )
+
+
+def _valid_background_dimensions() -> set[tuple[int, int]]:
+    """Return every native generation size accepted by the compositor."""
+    return {
+        (
+            settings.generation_width,
+            settings.generation_height,
+        ),
+        (
+            settings.sdxl_generation_width,
+            settings.sdxl_generation_height,
+        ),
+        (
+            settings.sd35_generation_width,
+            settings.sd35_generation_height,
+        ),
+    }
+
+
+def _attempt_budget_exhausted(
+    record: dict | None,
+) -> bool:
+    """Prevent a restarted job from exceeding its persisted retry budget."""
+    if not record:
+        return False
+
+    try:
+        attempt_count = int(record.get("attempt_count", 0))
+    except (TypeError, ValueError):
+        return False
+
+    return attempt_count >= settings.max_candidate_retries + 1
+
+
+def _engine_positive_prompt(
+    engine_id: str,
+    positive_prompt: str,
+    primary_colour: str | None,
+    secondary_colour: str | None,
+) -> str:
+    """Add safety guidance without burying SD3.5's compact scene brief."""
+    if engine_id == settings.engine_3_id:
+        # SD3.5's T5 field is intentionally capped in build_workflow. Its
+        # engine-specific subject and palette must therefore come first. The
+        # general background wrapper is useful for other engines but consumed
+        # the whole SD3.5 encoder budget before the actual creative direction.
+        return (
+            positive_prompt.rstrip(". ")
+            + ". Background artwork only; no people, characters, readable "
+            "text, logos, watermarks, scanlines or raster artefacts."
+        )
+
+    return build_engine_prompt(
+        positive_prompt,
+        primary_colour,
+        secondary_colour,
+    )
 
 
 class ComfyUIError(
@@ -319,19 +376,27 @@ def build_workflow(
         compact = " ".join(str(value or "").split())
         return compact if len(compact) <= limit else compact[:limit].rsplit(" ", 1)[0]
 
-    # SD3.5 has three encoders with different jobs.  CLIP-L gets a short
-    # visual label, CLIP-G gets composition constraints, and T5 retains the
-    # full clarified prompt.  Other workflows simply ignore these values.
-    clip_l_positive = compact_prompt(positive_prompt, 180)
+    # SD3.5 has three encoders with different jobs. CLIP-L receives a short
+    # visual label, CLIP-G receives the composition contract, and T5 receives
+    # a compact creative description. Negative conditioning is intentionally
+    # empty for SD3.5: long negative prompts make this model collapse into
+    # flat fields and raster artifacts.
+    clip_l_positive = compact_prompt(positive_prompt, 160)
     clip_g_positive = (
         "portrait event background, edge-weighted composition, open title "
         "and programme zones, large matte graphic forms, requested palette"
     )
-    clip_l_negative = compact_prompt(negative_prompt, 180)
-    clip_g_negative = (
-        "text, logo, watermark, people, characters, scanlines, raster, "
-        "noise, gradient, dense centre, unrequested colours"
-    )
+    sd35_positive = compact_prompt(positive_prompt, 520)
+
+    if engine_id == settings.engine_2_id:
+        width = settings.sdxl_generation_width
+        height = settings.sdxl_generation_height
+    elif engine_id == settings.engine_3_id:
+        width = settings.sd35_generation_width
+        height = settings.sd35_generation_height
+    else:
+        width = settings.generation_width
+        height = settings.generation_height
 
     values.update(
         positive_prompt=(
@@ -342,18 +407,14 @@ def build_workflow(
         ),
         clip_l_positive_prompt=clip_l_positive,
         clip_g_positive_prompt=clip_g_positive,
-        t5_positive_prompt=positive_prompt,
-        clip_l_negative_prompt=clip_l_negative,
-        clip_g_negative_prompt=clip_g_negative,
-        t5_negative_prompt=negative_prompt,
+        t5_positive_prompt=sd35_positive,
+        clip_l_negative_prompt="",
+        clip_g_negative_prompt="",
+        t5_negative_prompt="",
         sd35_shift=3.0,
         seed=seed,
-        width=(
-            settings.generation_width
-        ),
-        height=(
-            settings.generation_height
-        ),
+        width=width,
+        height=height,
         output_prefix=(
             output_prefix
         ),
@@ -624,13 +685,7 @@ def validate_background(
                 )
             )
 
-    if (
-        width,
-        height,
-    ) != (
-        settings.generation_width,
-        settings.generation_height,
-    ):
+    if (width, height) not in _valid_background_dimensions():
         raise ValueError(
             "Unexpected background dimensions: "
             f"{width}x{height}."
@@ -1058,6 +1113,16 @@ class ComfyUIClient:
             else None
         )
 
+        if (
+            previous
+            and previous.get("status") != "complete"
+            and _attempt_budget_exhausted(previous)
+        ):
+            raise ComfyUIError(
+                "Candidate attempt budget is exhausted; no additional "
+                "ComfyUI submission will be made."
+            )
+
         #
         # Reuse completed candidate only if it still validates.
         #
@@ -1179,12 +1244,11 @@ class ComfyUIClient:
             )
         )
 
-        actual_positive_prompt = (
-            build_engine_prompt(
-                positive_prompt,
-                primary_colour,
-                secondary_colour,
-            )
+        actual_positive_prompt = _engine_positive_prompt(
+            engine_id,
+            positive_prompt,
+            primary_colour,
+            secondary_colour,
         )
 
         actual_negative_prompt = (
@@ -1830,37 +1894,18 @@ class ComfyUIClient:
             response.content,
         )
 
-        palette_normalized = False
         raw_validation = None
 
         try:
             try:
-                # Reject malformed, textual, human, blank, gradient and raster
-                # outputs before any deterministic palette post-processing.
+                # Preserve what the model generated. A candidate must meet the
+                # quality, composition and requested-palette rules directly;
+                # a retry is preferable to painting over native artwork.
                 raw_validation = validate_background(
                     candidate_path,
                     reference_number=reference_number,
-                    enforce_palette=False,
                 )
-
-                if engine_id in {
-                    settings.engine_2_id,
-                    settings.engine_3_id,
-                }:
-                    brief = load_prompts_document(reference_number).get("brief", {})
-                    with Image.open(candidate_path) as generated_image:
-                        constrained_image = constrain_to_requested_palette(
-                            generated_image,
-                            brief.get("primary_colour"),
-                            brief.get("secondary_colour"),
-                        )
-                        constrained_image.save(candidate_path, format="PNG")
-                    palette_normalized = True
-
-                validation = validate_background(
-                    candidate_path,
-                    reference_number=reference_number,
-                )
+                validation = raw_validation
 
             except ValueError as error:
                 record.update(
@@ -1914,7 +1959,6 @@ class ComfyUIClient:
 
         record.update(
             validation,
-            palette_normalized=palette_normalized,
             raw_validation=raw_validation,
             final_validation=validation,
             status=(

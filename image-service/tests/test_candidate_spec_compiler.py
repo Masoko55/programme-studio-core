@@ -101,16 +101,15 @@ class CandidateSpecCompilerTests(unittest.TestCase):
                         text = compiled.positive.lower()
                         for anchor in (case[7], case[8], case[4], case[5], case[6]):
                             self.assertIn(anchor.lower(), text)
-                        self.assertIn("title zone", text)
-                        self.assertIn("programme zone", text)
-                        self.assertIn("visual detail may continue beneath them", text)
+                        self.assertIn("readable space", text)
+                        self.assertIn("keep key motifs outside", text)
                         self.assertEqual(compiled.spec_sha256, spec.spec_sha256)
                         self.assertNotIn("previous attempt", text)
 
     def test_recovery_categories_keep_subject_and_one_targeted_correction(self):
         spec = build_candidate_spec(document_for(CASES[0]), "sdxl-1-0", "B")
         expected = {
-            "PALETTE_OFF": "requested colour families",
+            "PALETTE_OFF": "requested colour relationship",
             "HUMAN": "Remove people",
             "TEXT": "Remove readable text",
             "GRADIENT": "discrete matte forms",
@@ -166,8 +165,7 @@ class CandidateSpecCompilerTests(unittest.TestCase):
         self.assertIn("city skyline", compiled.clip_g.lower())
         self.assertIn("spiderweb", compiled.clip_g.lower())
         self.assertIn("royal blue", compiled.clip_g.lower())
-        self.assertIn("title zone", compiled.t5.lower())
-        self.assertIn("adaptive text panels", compiled.t5.lower())
+        self.assertIn("readable space", compiled.t5.lower())
         for anchor in ("city skyline", "spiderweb", "expressive", "royal blue", "red"):
             self.assertIn(anchor.lower(), compiled.t5.lower())
         self.assertNotIn("spider-man", compiled.t5.lower())
@@ -239,9 +237,9 @@ class CandidateSpecCompilerTests(unittest.TestCase):
                 self.assertTrue(field.startswith("Front-facing"))
                 self.assertIn(primary, field)
                 self.assertIn(secondary, field)
-                self.assertIn("dominant", field)
+                self.assertIn("requested palette", field.lower())
                 self.assertIn("spiderweb", field.lower())
-                self.assertLess(field.lower().index("spiderweb"), field.index("Only "))
+                self.assertLess(field.lower().index("spiderweb"), field.lower().index("requested palette"))
 
     def test_sdxl_retries_keep_source_inspiration_in_both_encoders(self):
         document = document_for(CASES[0], "B")

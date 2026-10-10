@@ -62,6 +62,7 @@ class NativeWorkflowProfileTests(unittest.TestCase):
             job_dir.mkdir()
             (job_dir / "prompts.json").write_text(json.dumps(document), encoding="utf-8")
             with patch.object(settings, "programme_data_path", Path(directory)), \
+                 patch.object(settings, "template_conditioning_enabled", True), \
                  patch("app.services.comfyui_client.validate_workflow"), \
                  patch.object(ComfyUIClient, "request", new=fake_request):
                 async def check():
@@ -83,10 +84,16 @@ class NativeWorkflowProfileTests(unittest.TestCase):
             self.assertEqual(saved["retry_stage"], "normal")
             self.assertEqual(saved["sampling_profile"]["name"], "baseline")
             self.assertEqual(saved["workflow"]["3"]["inputs"]["sampler_name"], "dpmpp_2m")
-            self.assertTrue(saved["template_conditioning"]["enabled"])
-            self.assertTrue(saved["template_conditioning"]["template_path"].endswith("/template.png"))
-            self.assertEqual(len(saved["template_conditioning"]["conditioning_sha256"]), 64)
-            self.assertEqual(saved["workflow"]["3"]["inputs"]["latent_image"], ["91", 0])
+            self.assertEqual(saved["generation_mode"], "native_text_to_image")
+            self.assertEqual(saved["GENERATION_MODE"], "native_text_to_image")
+            self.assertFalse(saved["TEMPLATE_CONDITIONING_ENABLED"])
+            self.assertFalse(saved["MASKED_DENOISING_ENABLED"])
+            self.assertIn("city skyline", saved["visual_anchors"][0])
+            self.assertFalse(saved["template_conditioning"]["enabled"])
+            self.assertFalse(saved["template_conditioning"]["masked_denoising_enabled"])
+            self.assertEqual(saved["workflow"]["3"]["inputs"]["latent_image"], ["53", 0])
+            self.assertFalse(any(node["class_type"] in {"LoadImage", "VAEEncode", "SetLatentNoiseMask"}
+                                 for node in saved["workflow"].values()))
 
     def test_resume_keeps_attempt_budget_and_correction_context(self):
         reason = "Generated background became a smooth gradient"

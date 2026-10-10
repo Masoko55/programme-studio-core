@@ -1,3 +1,4 @@
+import hashlib
 import unittest
 from dataclasses import FrozenInstanceError
 from pathlib import Path
@@ -8,8 +9,11 @@ from PIL import Image
 
 from app.config.settings import settings
 from app.services.candidate_spec import build_candidate_spec
-from app.services.comfyui_client import ComfyUIError, build_workflow, validate_workflow
-from app.services.template_conditioning import compile_template_conditioning, render_template
+from app.services.comfyui_client import ComfyUIClient, ComfyUIError, build_workflow, validate_workflow
+from app.services.template_conditioning import (
+    compile_template_conditioning, persisted_conditioning_spec, render_template,
+    verify_conditioning_artifacts,
+)
 
 
 def candidate(engine, direction):
@@ -27,6 +31,58 @@ def candidate(engine, direction):
 
 
 class TemplateConditioningTests(unittest.TestCase):
+    def test_client_validates_retry_against_its_saved_attempt(self):
+        with TemporaryDirectory() as temporary, patch.object(settings, "programme_data_path", Path(temporary)):
+            candidate_spec = candidate("flux-2", "B")
+            spec = compile_template_conditioning(candidate_spec,
+                                                 failure_category="PROTECTED_REGION_INTRUSION", attempt=2)
+            render_template(spec, (160, 256))
+            directory = Path(temporary) / "backgrounds"
+            directory.mkdir()
+            downloaded = directory / "candidate.part.png"
+            Image.new("RGB", (160, 256), "white").save(downloaded)
+            output = directory / "image-b.png"
+            conditioning = spec.record()
+            conditioning.update(enabled=True, retry_adjustment="PROTECTED_REGION_INTRUSION",
+                                attempt_conditioning_sha256=spec.conditioning_sha256,
+                                template_sha256=hashlib.sha256(Path(spec.template_path).read_bytes()).hexdigest())
+            record = {"reference_number": spec.reference_number, "engine_id": spec.engine_id,
+                      "direction_id": spec.direction_id, "attempt_count": 2,
+                      "spec_sha256": candidate_spec.spec_sha256, "retry_stage": "normal",
+                      "template_conditioning": conditioning}
+            with patch("app.services.comfyui_client.assess_template_adherence",
+                       return_value={"template_adherence_passed": True}), \
+                 patch("app.services.comfyui_client.validate_background",
+                       return_value={"sha256": "validated"}):
+                validation, *_ = ComfyUIClient()._validate_downloaded_candidate(
+                    record, True, output, downloaded, {}, ("royal blue", "red")
+                )
+            self.assertEqual(validation["sha256"], "validated")
+            self.assertTrue(output.is_file())
+
+    def test_retry_sha_restores_exact_attempt_without_double_adjustment(self):
+        with TemporaryDirectory() as temporary, patch.object(settings, "programme_data_path", Path(temporary)):
+            candidate_spec = candidate("flux-2", "B")
+            first = compile_template_conditioning(candidate_spec)
+            second = compile_template_conditioning(
+                candidate_spec, failure_category="PROTECTED_REGION_INTRUSION", attempt=2,
+            )
+            render_template(first, (160, 256))
+            render_template(second, (160, 256))
+            self.assertNotEqual(first.conditioning_sha256, second.conditioning_sha256)
+            self.assertNotEqual(first.template_path, second.template_path)
+            record = second.record()
+            record["attempt_conditioning_sha256"] = second.conditioning_sha256
+            record["template_sha256"] = hashlib.sha256(Path(second.template_path).read_bytes()).hexdigest()
+            self.assertEqual(persisted_conditioning_spec(record).conditioning_sha256,
+                             second.conditioning_sha256)
+            verify_conditioning_artifacts(record)
+            with self.assertRaisesRegex(ValueError, "metadata SHA mismatch"):
+                persisted_conditioning_spec({**record, "denoise": .5})
+            Path(second.template_path).write_bytes(b"corrupted")
+            with self.assertRaisesRegex(ValueError, "template SHA mismatch"):
+                verify_conditioning_artifacts(record)
+
     def test_frozen_stable_hash_paths_and_distinct_geometry(self):
         with TemporaryDirectory() as temporary:
             with patch.object(settings, "programme_data_path", Path(temporary)):
@@ -41,6 +97,11 @@ class TemplateConditioningTests(unittest.TestCase):
                         with self.assertRaises(FrozenInstanceError):
                             spec.direction_id = "C"
                         path = render_template(spec, (160, 256))
+                        with Image.open(path.with_name("generation-mask.png")) as mask:
+                            self.assertLess(mask.getpixel((80, 35)), mask.getpixel((5, 128)))
+                            self.assertLess(mask.getpixel((80, 150)), mask.getpixel((5, 128)))
+                            self.assertGreater(mask.getpixel((80, 70)), 0)
+                            self.assertLess(mask.getpixel((80, 70)), 255)
                         with Image.open(path) as image:
                             primary = image.getpixel((80, 60))
                             self.assertEqual(image.getpixel((80, 35)), primary)
@@ -96,6 +157,12 @@ class TemplateConditioningTests(unittest.TestCase):
                     self.assertEqual(image["11"]["inputs"]["sigmas"], ["92", 1])
                 else:
                     self.assertEqual(image["3"]["inputs"]["denoise"], .55)
+                masked = build_workflow(engine, "art", "", 123, "probe",
+                                        template_image="template.png", denoise=.55,
+                                        generation_mask="mask.png")
+                self.assertEqual(masked["93"]["class_type"], "LoadImageMask")
+                self.assertEqual(masked["94"]["class_type"], "SetLatentNoiseMask")
+                self.assertEqual(masked[sampler]["inputs"]["latent_image"], ["94", 0])
 
     def test_invalid_template_or_missing_node_fails_cleanly(self):
         with self.assertRaisesRegex(ValueError, "uploaded ComfyUI input"):

@@ -157,6 +157,12 @@ def requested_palette(
 ) -> list[str]:
     colours = []
 
+    for item in brief.get("palette") or []:
+        value = item.get("colour") if isinstance(item, dict) else item
+        colour = normalize_colour(str(value)) if value else None
+        if colour and colour not in colours:
+            colours.append(colour)
+
     for key in (
         "primary_colour",
         "secondary_colour",
@@ -228,12 +234,8 @@ def positive_palette_description(
         )
 
     if secondary:
-        return (
-            f"A controlled {primary} and {secondary} palette, "
-            f"with {primary} clearly dominant throughout the "
-            f"composition and {secondary} used as the supporting "
-            "colour. No third colour family is allowed."
-        )
+        relationship = str(brief.get("palette_relationship") or "respect the requested colour roles")
+        return f"A {', '.join(colours)} palette; {relationship}. Preserve tonal and material variation."
 
     return (
         f"A controlled {primary} palette with {primary} clearly "
@@ -547,25 +549,10 @@ def direction_configuration(
 def composition_variant(
     direction_id: str,
 ) -> str:
-    variants = {
-        "a": (
-            "Create a balanced border-led composition with detail "
-            "around the outer edges and a calm central field."
-        ),
-        "b": (
-            "Create an asymmetric corner-led composition with visual "
-            "weight anchored at opposite corners and a calm central field."
-        ),
-        "c": (
-            "Create a structured side-led composition with vertical "
-            "or diagonal detail at the edges and a calm central field."
-        ),
-    }
-
     return (
-        variants[
-            direction_id.lower()
-        ]
+        "Choose a composition, hierarchy, focal treatment, depth and safe-space "
+        "strategy that follows this brief. Make it materially distinct from "
+        "the other directions without assigning a fixed style to this slot."
     )
 
 
@@ -825,6 +812,7 @@ def build_creative_direction_prompt(
     direction_id: str,
     role: str,
     correction_error: str | None = None,
+    previous_directions: list[str] | None = None,
 ) -> str:
     asset_type = (
         str(
@@ -872,14 +860,7 @@ def build_creative_direction_prompt(
             "Never place the referenced person or character itself "
             "inside positive_prompt."
         ),
-        (
-            "The requested primary colour must be clearly visible "
-            "and dominant."
-        ),
-        (
-            "The requested secondary colour must visibly support "
-            "the primary colour."
-        ),
+        ("Respect the palette relationship specified by the user."),
         (
             "Do not introduce visible colour families that were not "
             "explicitly requested."
@@ -898,6 +879,8 @@ def build_creative_direction_prompt(
                 direction_id
             )
         ),
+        ("Describe the chosen composition, focal point, depth, perimeter treatment and separate calm title/programme areas in their strategy fields."),
+        ("Use the prior direction concepts to choose a materially different arrangement, not just a new palette."),
         (
             "Preserve calm visual regions through the composition."
         ),
@@ -981,9 +964,8 @@ def build_creative_direction_prompt(
                 )
             ),
         },
-        "creative_role": (
-            role
-        ),
+        "creative_role": "Choose a brief-specific visual role and composition; no slot has a preset style.",
+        "previous_direction_concepts": previous_directions or [],
         "event_brief": (
             brief
         ),
@@ -1049,6 +1031,7 @@ async def generate_creative_direction(
     direction_id: str,
     brief: dict,
     correction_error: str | None = None,
+    previous_directions: list[str] | None = None,
 ) -> CreativeDirectionOutput:
     model, role = (
         direction_configuration(
@@ -1072,6 +1055,7 @@ async def generate_creative_direction(
             correction_error=(
                 correction_error
             ),
+            previous_directions=previous_directions,
         )
     )
 
@@ -1099,15 +1083,13 @@ async def generate_creative_direction(
         direction_id.upper()
     )
 
-    direction.role = (
-        role
-    )
+    direction.role = direction.role or "brief-led"
 
     direction.positive_prompt = (
         sanitize_positive_prompt(
             direction.positive_prompt,
             brief,
-            role,
+            direction.role,
         )
     )
 

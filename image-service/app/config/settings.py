@@ -35,7 +35,9 @@ class Settings(
         "http://192.168.68.115:8188"
     )
 
-    template_conditioning_enabled: bool = True
+    # Retained for compatibility with old configuration; production always uses
+    # native text-to-image generation.
+    template_conditioning_enabled: bool = False
 
     comfyui_connect_timeout_seconds: float = Field(
         default=10,

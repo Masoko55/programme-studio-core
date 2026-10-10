@@ -92,10 +92,15 @@ class SamplingRecoveryTests(
     def test_palette_recovery_preserves_structural_detail(self):
         raw = {"structural_edge_density": 0.22}
         self.assertFalse(_preserves_structural_detail(raw, {"structural_edge_density": 0.15}))
-        self.assertTrue(_preserves_structural_detail(raw, {"structural_edge_density": 0.18}))
-        self.assertTrue(_preserves_structural_detail(
+        self.assertFalse(_preserves_structural_detail(raw, {"structural_edge_density": 0.18}))
+        self.assertTrue(_preserves_structural_detail(raw, {"structural_edge_density": 0.21}))
+        self.assertFalse(_preserves_structural_detail(
             {"structural_edge_density": 0.04},
             {"structural_edge_density": 0.03},
+        ))
+        self.assertFalse(_preserves_structural_detail(
+            {"structural_edge_density": 0.22, "image_entropy": 6.0},
+            {"structural_edge_density": 0.21, "image_entropy": 4.0},
         ))
 
     # ========================================================

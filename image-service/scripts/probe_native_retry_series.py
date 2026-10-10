@@ -20,7 +20,8 @@ from app.config.settings import settings
 from app.services.atomic import write_json
 from app.services.candidate_spec import build_candidate_spec
 from app.services.comfyui_client import ComfyUIClient, ComfyUIError
-from app.services.prompt_compiler import compile_candidate_prompt
+from app.services.prompt_compiler import compile_candidate_prompt, failure_category, retry_stage
+from app.services.image_execution import _initial_engine_prompts, _strengthen_prompts
 from app.services.prompt_repository import load_prompts_document
 from app.services.sampling_profiles import select_sampling_profile, summarize_failures
 
@@ -76,7 +77,25 @@ async def main() -> None:
         await client.health()
         for attempt in range(1, args.attempts + 1):
             previous = _load_record(reference, args.engine, args.direction)
-            compiled = compile_candidate_prompt(spec, attempt, previous_reason)
+            if args.engine == settings.engine_1_id:
+                if attempt == 1:
+                    positive, negative = _initial_engine_prompts(
+                        args.engine, spec.original_positive_prompt, spec.original_negative_prompt,
+                        spec.primary_colour, spec.secondary_colour,
+                    )
+                else:
+                    positive, negative = _strengthen_prompts(
+                        spec.original_positive_prompt, spec.original_negative_prompt,
+                        previous_reason, spec.primary_colour, spec.secondary_colour,
+                        attempt - 1, args.engine,
+                    )
+                compiled = None
+                category = failure_category(previous_reason) if attempt > 1 else "INITIAL"
+                stage = retry_stage(attempt)
+            else:
+                compiled = compile_candidate_prompt(spec, attempt, previous_reason)
+                positive, negative = compiled.positive, compiled.negative
+                category, stage = compiled.failure_category, compiled.retry_stage
             profile = select_sampling_profile(
                 args.engine, attempt, summarize_failures(previous)
             )
@@ -85,7 +104,7 @@ async def main() -> None:
                 f"image-{args.direction.lower()}.attempt-{attempt:02d}.rejected.png"
             )
             print(f"ATTEMPT={attempt}/{args.attempts}", flush=True)
-            print(f"RETRY_STAGE={compiled.retry_stage}", flush=True)
+            print(f"RETRY_STAGE={stage}", flush=True)
             if profile is not None:
                 print("SAMPLING_PROFILE=" + json.dumps(profile.record(), sort_keys=True), flush=True)
 
@@ -95,16 +114,16 @@ async def main() -> None:
                 with _capture_probe_validation(capture):
                     result = await client.generate_image(
                         reference, args.engine, args.direction,
-                        compiled.positive, compiled.negative,
+                        positive, negative,
                         compiled_prompt=compiled,
                         spec_sha256=spec.spec_sha256,
                         direction_role=spec.direction_role,
-                        retry_stage=compiled.retry_stage,
-                        failure_category=compiled.failure_category,
+                        retry_stage=stage,
+                        failure_category=category,
                         sampling_profile=profile,
                         seed_override=(args.seed + attempt - 1 if args.seed is not None else None),
                     )
-            except ComfyUIError as error:
+            except (ComfyUIError, ValueError) as error:
                 error_message = str(error)
 
             record = _persist_probe_diagnostics(
@@ -121,6 +140,12 @@ async def main() -> None:
                 "TEMPLATE_CONDITIONING_ENABLED": conditioning.get("enabled", False),
                 "TEMPLATE_PATH": conditioning.get("template_path"),
                 "CONDITIONING_SHA256": conditioning.get("conditioning_sha256"),
+                "BASE_CONDITIONING_SHA256": conditioning.get("base_conditioning_sha256"),
+                "ATTEMPT_CONDITIONING_SHA256": conditioning.get("attempt_conditioning_sha256"),
+                "PROTECTED_MASK_PATH": conditioning.get("protected_mask_path"),
+                "GENERATION_MASK_PATH": conditioning.get("generation_mask_path"),
+                "MASKED_DENOISING_ENABLED": conditioning.get("masked_denoising_enabled", False),
+                "REGIONAL_CONDITIONING_ENABLED": conditioning.get("regional_conditioning_enabled", False),
                 "DENOISE": conditioning.get("denoise"),
                 "TEMPLATE_ADHERENCE_PASS": record.get("template_adherence_passed"),
                 "TEMPLATE_STRUCTURE_IOU": record.get("template_structure_iou"),
@@ -129,6 +154,10 @@ async def main() -> None:
                 "PROGRAMME_ZONE_EDGE_DENSITY": record.get("programme_zone_edge_density"),
                 "OUTER_EDGE_DENSITY": record.get("outer_edge_density"),
                 "CENTER_EDGE_DENSITY": record.get("center_edge_density"),
+                "DECORATIVE_REGION_EDGE_DENSITY": record.get("decorative_region_edge_density"),
+                "PROTECTED_REGION_EDGE_DENSITY": record.get("protected_region_edge_density"),
+                "DECORATIVE_TO_PROTECTED_EDGE_RATIO": record.get("decorative_to_protected_edge_ratio"),
+                "DECORATIVE_COVERAGE_RATIO": record.get("decorative_coverage_ratio"),
             })
             print(json.dumps(summary, indent=2, ensure_ascii=False), flush=True)
 

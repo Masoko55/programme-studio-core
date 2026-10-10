@@ -2185,15 +2185,8 @@ def _attempt_prompts(
     current_prompts: tuple[str, str],
     palette: tuple[str | None, str | None],
 ):
-    if output.engine_id in {settings.engine_2_id, settings.engine_3_id}:
-        compiled = compile_candidate_prompt(spec, attempt, previous_reason)
-        return compiled.positive, compiled.negative, compiled
-    if attempt > 1:
-        positive, negative = _strengthen_prompts(
-            *base_prompts, previous_reason, *palette, attempt - 1, output.engine_id,
-        )
-        return positive, negative, None
-    return current_prompts[0], current_prompts[1], None
+    compiled = compile_candidate_prompt(spec, attempt, previous_reason)
+    return compiled.positive, compiled.negative, compiled
 
 
 def _check_candidate_spec(existing: dict, spec) -> None:
@@ -2248,17 +2241,8 @@ async def _attempt_output_wave(
         )
     )
 
-    if output.engine_id == settings.engine_1_id:
-        positive_prompt, negative_prompt = _initial_engine_prompts(
-            output.engine_id,
-            base_positive_prompt,
-            base_negative_prompt,
-            primary_colour,
-            secondary_colour,
-        )
-    else:
-        # Native prompts are compiled afresh from CandidateSpec per attempt.
-        positive_prompt, negative_prompt = "", ""
+    # All engines compile directly from the same immutable candidate contract.
+    positive_prompt, negative_prompt = "", ""
 
     for retry_count in range(start_retry, min(settings.max_candidate_retries, 8) + 1):
         attempt = retry_count + 1

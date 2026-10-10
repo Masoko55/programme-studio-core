@@ -48,6 +48,13 @@ class LayoutGuidance(BaseModel):
 
 
 class CreativeDirectionOutput(BaseModel):
+    composition_strategy: str = ""
+    focal_strategy: str = ""
+    depth_strategy: str = ""
+    border_or_perimeter_strategy: str = ""
+    title_safe_region_strategy: str = ""
+    programme_safe_region_strategy: str = ""
+
     direction_id: str = Field(
         min_length=1,
         max_length=1,

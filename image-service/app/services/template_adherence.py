@@ -66,6 +66,10 @@ def assess_template_adherence(path: Path, spec: TemplateConditioningSpec) -> dic
     outer_density = _mean(structure, outer)
     center_density = _mean(structure, center)
     protected_share = float(occupancy[protected].sum() / max(1, occupancy.sum()))
+    gray_small = cv2.resize(gray, SIZE, interpolation=cv2.INTER_AREA)
+    histogram = np.bincount((gray_small[outer] // 16).ravel(), minlength=16).astype(np.float64)
+    probabilities = histogram[histogram > 0] / max(1, histogram.sum())
+    decorative_entropy = float(-(probabilities * np.log2(probabilities)).sum())
     expected_soft = cv2.GaussianBlur(expected.astype(np.float32), (0, 0), 2)
     observed_soft = cv2.GaussianBlur(occupancy.astype(np.float32), (0, 0), 2)
     agreement = float(1 - np.abs(expected_soft - observed_soft).mean())
@@ -83,6 +87,11 @@ def assess_template_adherence(path: Path, spec: TemplateConditioningSpec) -> dic
         category = "WEAK_TEMPLATE_STRUCTURE"
     elif bias < 1.18 or correlation < 0.02:
         category = "TEMPLATE_DRIFT"
+    elif outer_density < 0.08:
+        category = "WEAK_DECORATIVE_DESIGN"
+    strength = ("OVER_DECORATED" if category == "PROTECTED_REGION_INTRUSION" else
+                "TOO_EMPTY" if category in {"WEAK_TEMPLATE_STRUCTURE", "WEAK_DECORATIVE_DESIGN"}
+                else "GOOD_DECORATIVE_STRENGTH")
     return {
         "template_outer_occupancy_ratio": float(expected[outer].mean()),
         "template_center_occupancy_ratio": float(expected[center].mean()),
@@ -98,6 +107,12 @@ def assess_template_adherence(path: Path, spec: TemplateConditioningSpec) -> dic
         "template_structure_correlation": correlation,
         "template_structure_agreement": agreement,
         "edge_bias_ratio": bias,
+        "decorative_region_edge_density": outer_density,
+        "decorative_region_entropy": decorative_entropy,
+        "protected_region_edge_density": _mean(structure, protected),
+        "decorative_to_protected_edge_ratio": outer_density / max(_mean(structure, protected), 0.005),
+        "decorative_coverage_ratio": float(occupancy[outer].mean()),
+        "design_strength": strength,
         "template_adherence_passed": category is None,
         "template_failure_category": category,
     }

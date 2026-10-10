@@ -49,8 +49,11 @@ from app.services.prompt_repository import (
 from app.services.sampling_profiles import SamplingProfile, select_sampling_profile, summarize_failures
 from app.services.prompt_compiler import failure_category as classify_failure
 from app.services.candidate_spec import build_candidate_spec
-from app.services.template_conditioning import compile_template_conditioning, render_template
+from app.services.template_conditioning import (
+    persisted_conditioning_spec, verify_conditioning_artifacts,
+)
 from app.services.template_adherence import assess_template_adherence
+from app.services.composition_diversity import boilerplate_score, compare_directions
 
 
 logger = logging.getLogger(
@@ -191,7 +194,10 @@ def _preserves_structural_detail(raw: dict, recoloured: dict) -> bool:
     """Reject palette recovery that erases a substantial part of the artwork."""
     before = float(raw.get("structural_edge_density") or 0.0)
     after = float(recoloured.get("structural_edge_density") or 0.0)
-    return before < 0.10 or after >= before * 0.75
+    entropy_before = float(raw.get("image_entropy") or 0.0)
+    entropy_after = float(recoloured.get("image_entropy") or 0.0)
+    return (after >= before * 0.90 and
+            entropy_after >= entropy_before * 0.85)
 
 
 def _palette_only_recovery(
@@ -287,16 +293,18 @@ def _transport_prompts(
     """Keep native compiled semantics unchanged at the ComfyUI boundary."""
     if compiled_prompt is not None:
         return compiled_prompt.positive, compiled_prompt.negative
-    return (
-        _engine_positive_prompt(engine_id, positive_prompt, primary_colour, secondary_colour),
-        ", ".join(
+    positive = _engine_positive_prompt(engine_id, positive_prompt, primary_colour, secondary_colour)
+    negative = ", ".join(
             value for value in (
                 BACKGROUND_ONLY_NEGATIVE,
                 negative_prompt,
                 palette_negative_contract(primary_colour, secondary_colour),
             ) if value
-        ),
-    )
+        )
+    if engine_id == settings.engine_1_id:
+        positive += " Keep title and programme areas blank and free of any writing or signage."
+        negative += ", words, letters, numbers, typography, signage, invitation text, labels, captions, calligraphy, writing"
+    return positive, negative
 
 
 class ComfyUIError(
@@ -987,6 +995,7 @@ def build_workflow(
     sampling_profile: SamplingProfile | None = None,
     template_image: str | None = None,
     denoise: float | None = None,
+    generation_mask: str | None = None,
 ) -> dict:
     template_path = (
         settings.comfyui_workflow_path
@@ -1045,14 +1054,15 @@ def build_workflow(
         workflow.pop("55")
         workflow["3"]["inputs"]["model"] = ["4", 0]
     if template_image is not None:
-        workflow = apply_template_img2img(workflow, engine_id, template_image, denoise)
+        workflow = apply_template_img2img(workflow, engine_id, template_image, denoise, generation_mask)
     return workflow
 
 
 def apply_template_img2img(
     workflow: dict, engine_id: str, template_image: str, denoise: float | None,
+    generation_mask: str | None = None,
 ) -> dict:
-    """Use the existing checkpoint VAE and core nodes for diagnostic img2img."""
+    """Encode the template and optionally restrict diffusion noise by mask."""
     if not template_image or Path(template_image).name != template_image:
         raise ValueError("Template image must be an uploaded ComfyUI input filename")
     if denoise is None or not 0 < denoise < 1:
@@ -1065,16 +1075,27 @@ def apply_template_img2img(
         raise ValueError(f"Unsupported img2img engine: {engine_id}")
     workflow["90"] = {"class_type": "LoadImage", "inputs": {"image": template_image}}
     workflow["91"] = {"class_type": "VAEEncode", "inputs": {"pixels": ["90", 0], "vae": vae}}
+    latent = ["91", 0]
+    if generation_mask is not None:
+        if Path(generation_mask).name != generation_mask:
+            raise ValueError("Generation mask must be an uploaded ComfyUI input filename")
+        workflow["93"] = {"class_type": "LoadImageMask", "inputs": {
+            "image": generation_mask, "channel": "red",
+        }}
+        workflow["94"] = {"class_type": "SetLatentNoiseMask", "inputs": {
+            "samples": ["91", 0], "mask": ["93", 0],
+        }}
+        latent = ["94", 0]
     if engine_id == settings.engine_1_id:
         workflow["92"] = {
             "class_type": "SplitSigmasDenoise",
             "inputs": {"sigmas": ["9", 0], "denoise": denoise},
         }
         workflow["11"]["inputs"]["sigmas"] = ["92", 1]
-        workflow["11"]["inputs"]["latent_image"] = ["91", 0]
+        workflow["11"]["inputs"]["latent_image"] = latent
         workflow.pop("10")
     else:
-        workflow["3"]["inputs"]["latent_image"] = ["91", 0]
+        workflow["3"]["inputs"]["latent_image"] = latent
         workflow["3"]["inputs"]["denoise"] = denoise
         workflow.pop("53")
     return workflow
@@ -1239,11 +1260,15 @@ def validate_background(
             )
         )
 
+        collapse_score = boilerplate_score(image)
+        if collapse_score >= 0.40:
+            raise ValueError(f"BOILERPLATE_COMPOSITION: flat rectangular coverage {collapse_score:.2f}")
         quality_result = (
             validate_visual_quality(
                 image
             )
         )
+        quality_result["boilerplate_score"] = collapse_score
 
         palette_result = {
             "palette_checked": False,
@@ -1272,6 +1297,8 @@ def validate_background(
                     brief.get(
                         "secondary_colour"
                     ),
+                    palette=brief.get("palette"),
+                    relationship=brief.get("palette_relationship"),
                 )
             )
 
@@ -1930,15 +1957,16 @@ class ComfyUIClient:
         conditioning = record.get("template_conditioning") or {}
         adherence = None
         if conditioning.get("enabled"):
-            spec = compile_template_conditioning(
-                build_candidate_spec(load_prompts_document(reference_number), engine_id, direction_id),
-                denoise=conditioning["denoise"],
-                failure_category=conditioning["retry_adjustment"],
-                retry_stage=record.get("retry_stage") or "normal",
-                attempt=record["attempt_count"],
-            )
-            if spec.conditioning_sha256 != conditioning.get("conditioning_sha256"):
-                raise ComfyUIError("Persisted template conditioning changed before validation")
+            try:
+                spec = persisted_conditioning_spec(conditioning)
+                if (spec.candidate_sha256 != record.get("spec_sha256") or
+                    spec.reference_number != reference_number or
+                    spec.engine_id != engine_id or spec.direction_id != direction_id or
+                    spec.attempt != record["attempt_count"]):
+                    raise ValueError("Current attempt conditioning identity mismatch")
+                verify_conditioning_artifacts(conditioning)
+            except (OSError, ValueError) as error:
+                raise ComfyUIError(str(error)) from error
             adherence = assess_template_adherence(candidate_path, spec)
             record.update(adherence)
             record["template_adherence"] = adherence
@@ -1955,6 +1983,15 @@ class ComfyUIClient:
                     reference_number=reference_number,
                 )
                 validation = raw_validation
+                peer_paths = [
+                    image_path.with_name(f"image-{letter}.png")
+                    for letter in "abc" if letter != direction_id.lower()
+                ]
+                peers = [path for path in peer_paths if path.is_file()]
+                similarity = compare_directions(candidate_path, peers)
+                record["direction_similarity_score"] = similarity
+                if similarity >= 0.88:
+                    raise ValueError(f"DIRECTION_DUPLICATE: structural similarity {similarity:.2f}")
 
             except ValueError as error:
                 raw_palette_error = (
@@ -2022,6 +2059,7 @@ class ComfyUIClient:
                         engine_id,
                     )
                     and primary_colour
+                    and len((load_prompts_document(reference_number).get("brief") or {}).get("palette") or []) <= 2
                 )
 
                 if (
@@ -2569,6 +2607,9 @@ class ComfyUIClient:
                 reference_number
             )
         )
+        candidate_spec = build_candidate_spec(document, engine_id, direction_id)
+        if spec_sha256 and candidate_spec.spec_sha256 != spec_sha256:
+            raise ComfyUIError("Candidate specification changed before native generation")
 
         brief = (
             document.get(
@@ -2600,36 +2641,14 @@ class ComfyUIClient:
             summarize_failures(previous),
         )
 
-        conditioning_record = None
-        uploaded_template = None
-        if settings.template_conditioning_enabled:
-            attempt_number = _candidate_attempt_number(previous, retrying_candidate)
-            previous_category = (previous or {}).get("outcome_category")
-            adjustment = previous_category if retrying_candidate and previous_category in {
-                "TEMPLATE_DRIFT", "PROTECTED_REGION_INTRUSION", "WEAK_TEMPLATE_STRUCTURE"
-            } else (failure_category or "INITIAL")
-            candidate_spec = build_candidate_spec(document, engine_id, direction_id)
-            if spec_sha256 and candidate_spec.spec_sha256 != spec_sha256:
-                raise ComfyUIError("Candidate specification changed before template generation")
-            template_spec = compile_template_conditioning(
-                candidate_spec, failure_category=adjustment,
-                retry_stage=retry_stage or "normal", attempt=attempt_number,
-            )
-            template_path = render_template(template_spec, _workflow_dimensions(engine_id))
-            upload_name = f"{reference_number}-{engine_id}-{direction_id}-{template_spec.conditioning_sha256[:16]}.png"
-            uploaded = (await self.request("POST", "/upload/image", files={
-                "image": (upload_name, template_path.read_bytes(), "image/png"),
-            }, data={"type": "input", "overwrite": "true"})).json()
-            uploaded_template = uploaded.get("name")
-            if uploaded_template != upload_name or uploaded.get("subfolder"):
-                raise ComfyUIError("ComfyUI did not accept the deterministic template input")
-            conditioning_record = {
-                **template_spec.record(), "enabled": True,
-                "base_conditioning_sha256": compile_template_conditioning(candidate_spec).conditioning_sha256,
-                "retry_adjustment": adjustment,
-            }
+        resume_frozen = bool(previous and previous.get("status") in {"prepared", "submitted"}
+                             and not retrying_candidate and previous.get("workflow"))
+        if resume_frozen:
+            if any(node.get("class_type") in {"LoadImage", "VAEEncode", "SetLatentNoiseMask"}
+                   for node in previous["workflow"].values()):
+                raise ComfyUIError("Legacy conditioned attempt cannot resume in native generation mode")
 
-        workflow = (
+        workflow = previous["workflow"] if resume_frozen else (
             build_workflow(
                 engine_id,
                 actual_positive_prompt,
@@ -2643,8 +2662,6 @@ class ComfyUIClient:
                 ),
                 compiled_prompt=compiled_prompt,
                 sampling_profile=selected_profile,
-                template_image=uploaded_template,
-                denoise=conditioning_record["denoise"] if conditioning_record else None,
             )
         )
 
@@ -2697,9 +2714,23 @@ class ComfyUIClient:
                 workflow
             ),
             "spec_sha256": spec_sha256,
+            "candidate_spec_sha256": candidate_spec.spec_sha256,
             "direction_role": direction_role,
+            "creative_concept": candidate_spec.original_positive_prompt,
+            "visual_anchors": candidate_spec.visual_design["visual_anchors"],
+            "composition_strategy": candidate_spec.visual_design["composition_strategy"],
+            "resolved_palette": candidate_spec.visual_design["requested_palette"],
+            "palette_roles": [item.get("role") for item in candidate_spec.visual_design["requested_palette"]],
+            "safe_region_strategy": {
+                "title": candidate_spec.visual_design["title_safe_region_strategy"],
+                "programme": candidate_spec.visual_design["programme_safe_region_strategy"],
+            },
             "sampling_profile": selected_profile.record() if selected_profile else None,
-            "template_conditioning": conditioning_record or {"enabled": False},
+            "generation_mode": "native_text_to_image",
+            "GENERATION_MODE": "native_text_to_image",
+            "TEMPLATE_CONDITIONING_ENABLED": False,
+            "MASKED_DENOISING_ENABLED": False,
+            "template_conditioning": {"enabled": False, "masked_denoising_enabled": False},
         }
         record.update(_record_prompt_metadata(
             engine_id, actual_positive_prompt, actual_negative_prompt,

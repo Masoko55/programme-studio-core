@@ -54,10 +54,13 @@ class TemplateAdherenceTests(unittest.TestCase):
             drift = compile_template_conditioning(spec, failure_category="TEMPLATE_DRIFT", attempt=2)
             intrusion = compile_template_conditioning(spec, failure_category="PROTECTED_REGION_INTRUSION", attempt=3)
             weak = compile_template_conditioning(spec, failure_category="WEAK_TEMPLATE_STRUCTURE", attempt=4)
+            decorative = compile_template_conditioning(spec, failure_category="WEAK_DECORATIVE_DESIGN", attempt=4)
+            self.assertLess(base.denoise, .95)
             self.assertLess(drift.denoise, base.denoise)
             self.assertLess(intrusion.denoise, base.denoise)
             self.assertGreater(intrusion.quiet_padding, base.quiet_padding)
             self.assertGreater(weak.edge_fraction, base.edge_fraction)
+            self.assertGreater(decorative.edge_fraction, base.edge_fraction)
             self.assertNotEqual(drift.template_path, base.template_path)
-            for category in ("TEMPLATE_DRIFT", "PROTECTED_REGION_INTRUSION", "WEAK_TEMPLATE_STRUCTURE"):
+            for category in ("TEMPLATE_DRIFT", "PROTECTED_REGION_INTRUSION", "WEAK_TEMPLATE_STRUCTURE", "WEAK_DECORATIVE_DESIGN"):
                 self.assertEqual(failure_category(category), category)

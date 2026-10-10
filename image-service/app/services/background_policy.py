@@ -6,7 +6,7 @@ import re
 import cv2
 import numpy as np
 
-from PIL import Image
+from PIL import Image, ImageColor
 
 from app.services.visual_quality import (
     validate_visual_quality,
@@ -577,6 +577,15 @@ def colour_descriptor(
             "is_hex": True,
         }
 
+    rgb_match = re.fullmatch(r"rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)", cleaned)
+    if rgb_match:
+        channels = tuple(map(int, rgb_match.groups()))
+        if all(channel <= 255 for channel in channels):
+            return {
+                "raw": value, "cleaned": cleaned, "base_name": cleaned,
+                "rgb": channels, "modifiers": [], "modifier_only": False, "is_hex": False,
+            }
+
     alias_direct = (
         COLOUR_ALIASES.get(
             cleaned
@@ -721,6 +730,15 @@ def colour_descriptor(
             "is_hex": False,
         }
 
+    try:
+        css_rgb = ImageColor.getrgb(cleaned)
+    except ValueError:
+        css_rgb = None
+    if css_rgb is not None:
+        return {
+            "raw": value, "cleaned": cleaned, "base_name": cleaned,
+            "rgb": css_rgb[:3], "modifiers": [], "modifier_only": False, "is_hex": False,
+        }
     return {
         "raw": value,
         "cleaned": cleaned,
@@ -2211,6 +2229,9 @@ def validate_palette(
     image: Image.Image,
     primary_colour: str | None,
     secondary_colour: str | None,
+    *,
+    palette: list[dict] | None = None,
+    relationship: str | None = None,
 ) -> dict:
     quality_result = (
         validate_visual_quality(
@@ -2254,18 +2275,17 @@ def validate_palette(
         ]
     )
 
-    requested = [
-        (
-            primary_name,
-            primary_rgb,
-            primary_descriptor,
-        ),
-        (
-            secondary_name,
-            secondary_rgb,
-            secondary_descriptor,
-        ),
-    ]
+    if palette:
+        requested = [
+            (descriptor["base_name"], descriptor["rgb"], descriptor)
+            for item in palette if isinstance(item, dict)
+            for descriptor in [colour_descriptor(item.get("colour"))]
+        ]
+    else:
+        requested = [
+            (primary_name, primary_rgb, primary_descriptor),
+            (secondary_name, secondary_rgb, secondary_descriptor),
+        ]
 
     requested = [
         item
@@ -2558,10 +2578,12 @@ def validate_palette(
             f"strongest matches: {details})."
         )
 
-    primary_ratio, secondary_ratio = _validate_palette_balance(
-        primary_name, primary_rgb, primary_descriptor, secondary_name,
-        secondary_rgb, requested_counts, total,
-    )
+    primary_ratio, secondary_ratio = (None, None)
+    if not palette or "dominant" in (relationship or "").casefold():
+        primary_ratio, secondary_ratio = _validate_palette_balance(
+            primary_name, primary_rgb, primary_descriptor, secondary_name,
+            secondary_rgb, requested_counts, total,
+        )
 
     palette_match_ratio = (
         1.0

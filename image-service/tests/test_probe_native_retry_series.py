@@ -36,6 +36,38 @@ class FakeClient:
 
 
 class RetrySeriesTests(unittest.TestCase):
+    def test_all_nine_retryable_attempts_use_fresh_seeds(self):
+        reason = "PROTECTED_REGION_INTRUSION"
+
+        class RejectingClient(FakeClient):
+            async def generate_image(self, *args, **kwargs):
+                self.calls.append(kwargs)
+                raise ComfyUIError(reason)
+
+        RejectingClient.calls = []
+        with tempfile.TemporaryDirectory() as temporary:
+            args = SimpleNamespace(source_reference="ABCDEF-123456", engine="sdxl-1-0",
+                                   direction="B", attempts=9, seed=20261010)
+            with patch.object(series, "_parse_args", return_value=args), \
+                 patch.object(series, "settings", SimpleNamespace(
+                     programme_data_path=Path(temporary), max_candidate_retries=8)), \
+                 patch.object(series.settings, "engine_1_id", "flux-2", create=True), \
+                 patch.object(series, "_new_reference", return_value="FEDCBA-654321"), \
+                 patch.object(series, "load_prompts_document",
+                              return_value=document_for(CASES[0], "B")), \
+                 patch.object(series, "write_json"), \
+                 patch.object(series, "ComfyUIClient", RejectingClient), \
+                 patch.object(series, "_capture_probe_validation", return_value=nullcontext()), \
+                 patch.object(series, "_load_record", return_value={}), \
+                 patch.object(series, "_persist_probe_diagnostics",
+                              return_value={"status": "rejected", "rejection_reason": reason}), \
+                 patch.object(series, "select_sampling_profile", return_value=None):
+                with self.assertRaises(SystemExit) as exit_result:
+                    asyncio.run(series.main())
+        self.assertEqual(exit_result.exception.code, 1)
+        self.assertEqual([call["seed_override"] for call in RejectingClient.calls],
+                         list(range(20261010, 20261019)))
+
     def test_retry_keeps_inspiration_and_corrects_the_actual_sdxl_fields(self):
         document = document_for(CASES[0], "B")
         records = iter((
@@ -48,6 +80,7 @@ class RetrySeriesTests(unittest.TestCase):
             settings = SimpleNamespace(
                 programme_data_path=Path(temporary),
                 max_candidate_retries=8,
+                engine_1_id="flux-2",
             )
             args = SimpleNamespace(
                 source_reference="ABCDEF-123456",

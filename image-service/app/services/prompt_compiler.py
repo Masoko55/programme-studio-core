@@ -33,7 +33,7 @@ def failure_category(reason: str) -> str:
     text = reason.casefold()
     if not text:
         return "INITIAL"
-    for category in ("PROTECTED_REGION_INTRUSION", "WEAK_TEMPLATE_STRUCTURE", "TEMPLATE_DRIFT"):
+    for category in ("BOILERPLATE_COMPOSITION", "DIRECTION_DUPLICATE", "PROTECTED_REGION_INTRUSION", "WEAK_TEMPLATE_STRUCTURE", "WEAK_DECORATIVE_DESIGN", "TEMPLATE_DRIFT"):
         if category.casefold() in text:
             return category
     if any(word in text for word in ("human", "person", "face", "silhouette")):
@@ -97,25 +97,24 @@ def retry_stage(attempt: int) -> str:
 
 
 def _palette(spec: CandidateSpec) -> str:
-    if spec.primary_colour and spec.secondary_colour:
-        if spec.engine_id == "sdxl-1-0":
-            return (
-                f"Limited two-colour illustration: {spec.primary_colour} dominant "
-                f"and {spec.secondary_colour} supporting. Colour every surface, "
-                "highlight, shadow and background within these two colour families"
-            )
-        return (
-            f"{spec.primary_colour} dominant, {spec.secondary_colour} supporting; "
-            "use only these requested colour families"
-        )
-    return spec.primary_colour or spec.secondary_colour or "the requested palette"
+    design = spec.visual_design
+    colours = [str(item["colour"]) for item in design["requested_palette"]]
+    if not colours:
+        return "the palette described by the brief"
+    relationship = design["palette_relationship"] or "respect the requested colour roles"
+    return f"{', '.join(colours)}; {relationship}; preserve shading and local detail"
 
 
-def _composition() -> str:
+def _composition(spec: CandidateSpec) -> str:
+    design = spec.visual_design
+    strategy = design["composition_strategy"]
+    safe = "; ".join(filter(None, (
+        design["title_safe_region_strategy"], design["programme_safe_region_strategy"]
+    )))
     return (
-        "Full-page decorative artwork. Title zone and programme zone receive "
-        "adaptive text panels after generation; visual detail may continue "
-        "beneath them."
+        f"{strategy}. Preserve calm, readable space for later typography"
+        + (f" according to {safe}" if safe else " where the direction requires it")
+        + "; keep key motifs outside those spaces."
     )
 
 
@@ -155,7 +154,7 @@ def _direction_motif(spec: CandidateSpec) -> str:
 _CORRECTIONS = {
     "HUMAN": "Remove people, faces, silhouettes and humanoid shapes from this same background scene.",
     "TEXT": "Remove readable text, letters, numbers, logos and watermarks from this same design.",
-    "PALETTE_OFF": "Render this same design using only the requested colour families; remove unrelated hues and neutral surfaces.",
+    "PALETTE_OFF": "Correct the requested colour relationship while preserving this design's texture, shading and details.",
     "PRIMARY_MISSING": "Make the requested primary colour dominant across substantial surfaces of this same design.",
     "SECONDARY_MISSING": "Increase the requested secondary colour in several substantial visible regions of this same design.",
     "GRADIENT": "Render this same design with discrete matte forms and visible boundaries instead of a smooth colour wash.",
@@ -164,6 +163,12 @@ _CORRECTIONS = {
     "NOISE": "Render this same scene with clean surfaces and coherent forms; remove grain and noise texture.",
     "WEAK_OUTER_STRUCTURE": "Increase the requested motifs at the outer edges and lower corners of this same design.",
     "DENSE_SAFE_REGION": "Move detail from the calm overlay zones to the requested outer-edge and lower-corner motifs.",
+    "PROTECTED_REGION_INTRUSION": "Move all motifs to the allowed edges and corners; leave title and programme areas calm.",
+    "TEMPLATE_DRIFT": "Follow the direction's edge-and-corner placement while retaining its requested motifs.",
+    "WEAK_TEMPLATE_STRUCTURE": "Strengthen the direction's allowed edge and corner decoration.",
+    "WEAK_DECORATIVE_DESIGN": "Add richer requested motifs inside the allowed decorative regions while keeping title and programme areas calm.",
+    "BOILERPLATE_COMPOSITION": "Develop a materially different composition with richer subject-specific structure, spatial rhythm and depth.",
+    "DIRECTION_DUPLICATE": "Choose a different arrangement, focal treatment and depth strategy while retaining the brief's anchors.",
     "RUNTIME": "Render this same design with fewer, larger forms to reduce generation complexity.",
     "UNKNOWN": "Correct the previous failure while retaining this exact requested scene, direction and palette.",
 }
@@ -182,6 +187,8 @@ def _positive_prompt(
         f"Direction artwork: {motif}." if motif else "",
         f"Theme treatment: {treatment}." if treatment else "",
         identity,
+        f"Brief anchors: {', '.join(spec.visual_design['visual_anchors'])}.",
+        f"Mood and style: {spec.visual_design['mood']}; {spec.visual_design['visual_style']}.",
         f"Palette: {palette}.",
         f"Composition: {composition}",
     )
@@ -209,10 +216,7 @@ def _encoder_fields(
     correction: str,
 ) -> tuple[str, str]:
     direction = f"Direction: {encoder_motif}." if motif != subject else ""
-    colour = (
-        f"Only {spec.primary_colour} and {spec.secondary_colour} in all forms "
-        f"and details; {spec.primary_colour} dominant."
-    )
+    colour = f"Requested palette: {_palette(spec)}."
     if spec.engine_id == "sdxl-1-0":
         common = (
             f"Visual subject: {subject}.", direction, colour,
@@ -223,10 +227,6 @@ def _encoder_fields(
             _join_sections("Front-facing graphic background filling a flat page with matte forms.", *common),
             _join_sections("Front-facing graphic background artwork on a flat page, with matte forms.", *common),
         )
-    colour = (
-        f"Only {spec.primary_colour} and {spec.secondary_colour} in all "
-        f"details; {spec.primary_colour} dominant."
-    )
     common = (f"Visual subject: {subject}.", direction)
     return (
         _join_sections("Front-facing graphic background illustration on a flat page.", *common, colour),
@@ -253,7 +253,7 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     encoder_motif = " ".join(motif.split(",", 1)[0].split()[:20])
     treatment = spec.theme_reference_treatment
     palette = _palette(spec)
-    composition = _composition()
+    composition = _composition(spec)
     identity = f"Direction {spec.direction_id}: {spec.direction_role} visual character."
     correction = _CORRECTIONS.get(category, "")
     if stage in {"strict_recovery", "rescue"}:
@@ -285,6 +285,8 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     # in T5 can cross SD3.5 Medium's 256-token training context.
     t5 = " ".join(section for section in (
         f"Background inspiration: {subject}.",
+        f"Theme: {spec.theme}." if spec.theme in spec.visual_design["visual_anchors"] else "",
+        f"Visual anchors: {', '.join(spec.visual_design['visual_anchors'])}.",
         f"Theme treatment: {treatment}." if treatment else "",
         identity,
         f"Palette: {palette}.",

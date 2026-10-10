@@ -353,6 +353,7 @@ async def generate_direction_b(
                 brief=state[
                     "brief"
                 ],
+                previous_directions=[state["direction_a"].positive_prompt] if state.get("direction_a") else [],
                 correction_error=(
                     state.get(
                         "validation_error_b"
@@ -564,6 +565,9 @@ async def generate_direction_c(
                 direction_id="C",
                 brief=state[
                     "brief"
+                ],
+                previous_directions=[
+                    item.positive_prompt for item in (state.get("direction_a"), state.get("direction_b")) if item
                 ],
                 correction_error=(
                     state.get(

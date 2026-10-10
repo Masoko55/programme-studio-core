@@ -1,4 +1,4 @@
-"""Generate one native-engine candidate under a fresh reference for diagnosis.
+"""Generate one engine candidate under a fresh reference for diagnosis.
 
 This probe intentionally generates exactly ONE image.
 
@@ -28,19 +28,20 @@ Production code never enables this behavior.
 
 Examples:
 
-    python scripts/probe_native_candidate.py \
+    # From the programme-studio repository root, use the image-service venv.
+    ./image-service/.venv/bin/python image-service/scripts/probe_native_candidate.py \
         --source-reference 5592AE-741489 \
         --engine sd-3-5-medium \
         --direction A
 
-    python scripts/probe_native_candidate.py \
+    ./image-service/.venv/bin/python image-service/scripts/probe_native_candidate.py \
         --source-reference 5592AE-741489 \
         --engine sd-3-5-medium \
         --direction A \
         --sampling-profile alternate_sampler \
         --seed 20261009
 
-    python scripts/probe_native_candidate.py \
+    ./image-service/.venv/bin/python image-service/scripts/probe_native_candidate.py \
         --source-reference 5592AE-741489 \
         --engine sd-3-5-medium \
         --direction A \
@@ -52,6 +53,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import shlex
 import shutil
 import sys
 import uuid
@@ -150,6 +152,7 @@ def _parse_args():
         "--engine",
         required=True,
         choices=(
+            settings.engine_1_id,
             settings.engine_2_id,
             settings.engine_3_id,
         ),
@@ -797,6 +800,9 @@ async def main() -> None:
     if (
         args.list_profiles
     ):
+        if args.engine == settings.engine_1_id:
+            print("FLUX uses its configured workflow without a sampling-profile override.")
+            return
         for profile in probe_profiles(
             args.engine
         ):
@@ -1049,12 +1055,16 @@ async def main() -> None:
             flush=True,
         )
 
+        rejected_path = stored.get("rejected_image_path")
+        if rejected_path and Path(rejected_path).is_file():
+            print(f"VIEW_COMMAND=xdg-open {shlex.quote(str(rejected_path))}", flush=True)
+
         #
         # Retain the non-zero exit status.
         #
         # A diagnostic rejection must still be a real rejection.
         #
-        raise
+        raise SystemExit(1) from None
 
     # ========================================================
     # Accepted candidate
@@ -1089,6 +1099,9 @@ async def main() -> None:
         ),
         flush=True,
     )
+    output_path = result.get("output_path")
+    if output_path and Path(output_path).is_file():
+        print(f"VIEW_COMMAND=xdg-open {shlex.quote(str(output_path))}", flush=True)
 
 
 if __name__ == "__main__":

@@ -265,6 +265,40 @@ def workflow_is_complete(
     )
 
 
+async def _retry_workflow_response(
+    client: httpx.AsyncClient,
+    response: httpx.Response,
+    reference_number: str,
+    attempt: int,
+    delays: tuple[int, ...],
+) -> dict | None:
+    if response.status_code == 503:
+        logger.warning(
+            "Image Service workflow returned 503 "
+            "for %s on attempt %s/%s: %s",
+            reference_number, attempt + 1, len(delays) + 1, response.text,
+        )
+    else:
+        state = await get_workflow_state(client, reference_number)
+        if workflow_is_complete(state):
+            logger.info(
+                "Image workflow for %s is already "
+                "complete after a 409 response.",
+                reference_number,
+            )
+            return state
+        logger.warning(
+            "Image Service workflow returned 409 "
+            "for %s on attempt %s/%s: %s",
+            reference_number, attempt + 1, len(delays) + 1, response.text,
+        )
+
+    if attempt >= len(delays):
+        response.raise_for_status()
+    await asyncio.sleep(delays[attempt])
+    return None
+
+
 async def submit_workflow(
     client: httpx.AsyncClient,
     reference_number: str,
@@ -305,82 +339,12 @@ async def submit_workflow(
                 url
             )
 
-            if (
-                response.status_code
-                == 503
-            ):
-                logger.warning(
-                    "Image Service workflow returned 503 "
-                    "for %s on attempt %s/%s: %s",
-                    reference_number,
-                    attempt + 1,
-                    attempts,
-                    response.text,
+            if response.status_code in {503, 409}:
+                state = await _retry_workflow_response(
+                    client, response, reference_number, attempt, delays,
                 )
-
-                if (
-                    attempt
-                    >= len(
-                        delays
-                    )
-                ):
-                    response.raise_for_status()
-
-                await asyncio.sleep(
-                    delays[
-                        attempt
-                    ]
-                )
-
-                continue
-
-            if (
-                response.status_code
-                == 409
-            ):
-                state = (
-                    await get_workflow_state(
-                        client,
-                        reference_number,
-                    )
-                )
-
-                if (
-                    workflow_is_complete(
-                        state
-                    )
-                ):
-                    logger.info(
-                        "Image workflow for %s is already "
-                        "complete after a 409 response.",
-                        reference_number,
-                    )
-
+                if state is not None:
                     return state
-
-                logger.warning(
-                    "Image Service workflow returned 409 "
-                    "for %s on attempt %s/%s: %s",
-                    reference_number,
-                    attempt + 1,
-                    attempts,
-                    response.text,
-                )
-
-                if (
-                    attempt
-                    >= len(
-                        delays
-                    )
-                ):
-                    response.raise_for_status()
-
-                await asyncio.sleep(
-                    delays[
-                        attempt
-                    ]
-                )
-
                 continue
 
             response.raise_for_status()

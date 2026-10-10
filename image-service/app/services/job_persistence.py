@@ -10,7 +10,8 @@ from app.schemas.image_job_state import (
 
 
 REFERENCE_PATTERN = re.compile(
-    r"^[A-F0-9]{6}-[0-9]{6}$"
+    r"^[A-F0-9]{6}-\d{6}$",
+    re.ASCII,
 )
 
 

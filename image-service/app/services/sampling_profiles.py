@@ -466,7 +466,6 @@ def profile_by_name(
 
 
 def _select_sdxl_profile(
-    attempt: int,
     stage: str,
     history: FailureHistorySummary,
 ) -> SamplingProfile:
@@ -571,7 +570,6 @@ def _select_sdxl_profile(
 
 
 def _select_sd35_profile(
-    attempt: int,
     stage: str,
     history: FailureHistorySummary,
 ) -> SamplingProfile:
@@ -712,7 +710,6 @@ def select_sampling_profile(
     ):
         return (
             _select_sdxl_profile(
-                attempt,
                 stage,
                 history,
             )
@@ -724,7 +721,6 @@ def select_sampling_profile(
     ):
         return (
             _select_sd35_profile(
-                attempt,
                 stage,
                 history,
             )

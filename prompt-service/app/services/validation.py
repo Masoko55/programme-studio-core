@@ -273,60 +273,73 @@ def _expected_asset_x(
     )
 
 
+def _validate_absent_asset(direction: CreativeDirectionOutput) -> None:
+    layout = direction.layout_guidance
+    if (
+        layout.headshot_zone
+        is not None
+    ):
+        raise ValueError(
+            f"{direction.direction_id}: "
+            "headshot_zone exists even though "
+            "asset_type is none."
+        )
+
+    if (
+        layout.logo_zone
+        is not None
+    ):
+        raise ValueError(
+            f"{direction.direction_id}: "
+            "logo_zone exists even though "
+            "asset_type is none."
+        )
+
+
+def _asset_zone(direction: CreativeDirectionOutput, asset_type: str):
+    layout = direction.layout_guidance
+    if asset_type == "headshot":
+        if layout.headshot_zone is None:
+            raise ValueError(
+                f"{direction.direction_id}: "
+                "asset_type=headshot requires "
+                "headshot_zone."
+            )
+        if layout.logo_zone is not None:
+            raise ValueError(
+                f"{direction.direction_id}: "
+                "logo_zone must be null when "
+                "asset_type=headshot."
+            )
+        return layout.headshot_zone
+
+    if layout.logo_zone is None:
+        raise ValueError(
+            f"{direction.direction_id}: "
+            "asset_type=logo requires "
+            "logo_zone."
+        )
+    if layout.headshot_zone is not None:
+        raise ValueError(
+            f"{direction.direction_id}: "
+            "headshot_zone must be null when "
+            "asset_type=logo."
+        )
+    return layout.logo_zone
+
+
 def validate_direction_assets(
     direction: CreativeDirectionOutput,
     brief: dict,
 ) -> None:
-    """
-    Asset validation is driven by Grill-Me asset_type.
+    """Validate the Grill-Me asset type, placement, and reserved layout zone."""
 
-    Do NOT use headshot_path/logo_path here because those paths
-    belong to the final-composition payload rather than the
-    background creative brief.
-    """
+    layout = direction.layout_guidance
+    asset_type = _normalise_asset_type(brief)
+    placement = _normalise_placement(brief.get("asset_placement"))
 
-    layout = (
-        direction.layout_guidance
-    )
-
-    asset_type = (
-        _normalise_asset_type(
-            brief
-        )
-    )
-
-    placement = (
-        _normalise_placement(
-            brief.get(
-                "asset_placement"
-            )
-        )
-    )
-
-    if (
-        asset_type
-        == "none"
-    ):
-        if (
-            layout.headshot_zone
-            is not None
-        ):
-            raise ValueError(
-                f"{direction.direction_id}: "
-                "headshot_zone exists even though "
-                "asset_type is none."
-            )
-
-        if (
-            layout.logo_zone
-            is not None
-        ):
-            raise ValueError(
-                f"{direction.direction_id}: "
-                "logo_zone exists even though "
-                "asset_type is none."
-            )
-
+    if asset_type == "none":
+        _validate_absent_asset(direction)
         return
 
     if (
@@ -356,58 +369,7 @@ def validate_direction_assets(
             "left, center or right."
         )
 
-    if (
-        asset_type
-        == "headshot"
-    ):
-        if (
-            layout.headshot_zone
-            is None
-        ):
-            raise ValueError(
-                f"{direction.direction_id}: "
-                "asset_type=headshot requires "
-                "headshot_zone."
-            )
-
-        if (
-            layout.logo_zone
-            is not None
-        ):
-            raise ValueError(
-                f"{direction.direction_id}: "
-                "logo_zone must be null when "
-                "asset_type=headshot."
-            )
-
-        zone = (
-            layout.headshot_zone
-        )
-
-    else:
-        if (
-            layout.logo_zone
-            is None
-        ):
-            raise ValueError(
-                f"{direction.direction_id}: "
-                "asset_type=logo requires "
-                "logo_zone."
-            )
-
-        if (
-            layout.headshot_zone
-            is not None
-        ):
-            raise ValueError(
-                f"{direction.direction_id}: "
-                "headshot_zone must be null when "
-                "asset_type=logo."
-            )
-
-        zone = (
-            layout.logo_zone
-        )
+    zone = _asset_zone(direction, asset_type)
 
     #
     # Asset must remain at the top.

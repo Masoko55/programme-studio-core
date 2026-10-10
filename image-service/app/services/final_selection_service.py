@@ -125,6 +125,31 @@ def _selection_layout(
 
 
 
+def _completed_output(state, request: FinalSelectionRequest):
+    output = next(
+        (
+            item for item in state.outputs
+            if item.engine_id == request.engine_id
+            and item.direction_id == request.direction_id
+        ),
+        None,
+    )
+    if output is None or output.status != "complete" or not output.output_path:
+        raise ValueError("Selected candidate is not a completed background output.")
+    return output
+
+
+def _selection_details(job_directory: Path, request: FinalSelectionRequest) -> tuple[dict, dict]:
+    pending_path = job_directory / "pending-final.json"
+    pending = json.loads(pending_path.read_text(encoding="utf-8")) if pending_path.exists() else {}
+    details = request.programme_details.model_dump() if request.programme_details else pending
+    if not details:
+        raise ValueError("No programme details are available for final composition.")
+    if len(details.get("programme", [])) > 15:
+        raise ValueError("A programme may contain at most 15 rows.")
+    return pending, details
+
+
 def select_final(
     reference_number: str,
     request: FinalSelectionRequest,
@@ -144,29 +169,7 @@ def select_final(
             "before selecting a final image."
         )
 
-    output = next(
-        (
-            item
-            for item in state.outputs
-            if (
-                item.engine_id
-                == request.engine_id
-                and item.direction_id
-                == request.direction_id
-            )
-        ),
-        None,
-    )
-
-    if (
-        output is None
-        or output.status != "complete"
-        or not output.output_path
-    ):
-        raise ValueError(
-            "Selected candidate is not a completed "
-            "background output."
-        )
+    output = _completed_output(state, request)
 
     document = load_prompts_document(
         reference_number
@@ -191,42 +194,7 @@ def select_final(
         reference_number
     )
 
-    pending_path = (
-        job_directory
-        / "pending-final.json"
-    )
-
-    pending = (
-        json.loads(
-            pending_path.read_text(
-                encoding="utf-8"
-            )
-        )
-        if pending_path.exists()
-        else {}
-    )
-
-    details = (
-        request.programme_details.model_dump()
-        if request.programme_details
-        else pending
-    )
-
-    if not details:
-        raise ValueError(
-            "No programme details are available "
-            "for final composition."
-        )
-
-    programme = details.get(
-        "programme",
-        []
-    )
-
-    if len(programme) > 15:
-        raise ValueError(
-            "A programme may contain at most 15 rows."
-        )
+    pending, details = _selection_details(job_directory, request)
 
     headshot_path = (
         request.headshot_path

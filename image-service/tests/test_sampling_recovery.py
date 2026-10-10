@@ -12,6 +12,7 @@ from app.services.comfyui_client import (
     MAX_SD35_RECOVERABLE_OFF_PALETTE_RATIO,
     MAX_SDXL_RECOVERABLE_OFF_PALETTE_RATIO,
     _palette_only_recovery,
+    _preserves_structural_detail,
     _recoverable_palette_error,
     build_workflow,
 )
@@ -88,6 +89,15 @@ def failure_record(
 class SamplingRecoveryTests(
     unittest.TestCase
 ):
+    def test_palette_recovery_preserves_structural_detail(self):
+        raw = {"structural_edge_density": 0.22}
+        self.assertFalse(_preserves_structural_detail(raw, {"structural_edge_density": 0.15}))
+        self.assertTrue(_preserves_structural_detail(raw, {"structural_edge_density": 0.18}))
+        self.assertTrue(_preserves_structural_detail(
+            {"structural_edge_density": 0.04},
+            {"structural_edge_density": 0.03},
+        ))
+
     # ========================================================
     # Palette recovery limits
     # ========================================================

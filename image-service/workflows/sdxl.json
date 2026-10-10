@@ -74,9 +74,16 @@
     }
   },
   "16": {
-    "class_type": "CLIPTextEncode",
+    "class_type": "CLIPTextEncodeSDXL",
     "inputs": {
-      "text": "${positive_prompt}",
+      "width": "${width}",
+      "height": "${height}",
+      "crop_w": 0,
+      "crop_h": 0,
+      "target_width": "${width}",
+      "target_height": "${height}",
+      "text_g": "${clip_g_positive_prompt}",
+      "text_l": "${clip_l_positive_prompt}",
       "clip": [
         "4",
         1

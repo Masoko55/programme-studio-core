@@ -142,7 +142,13 @@ class NativeWorkflowProfileTests(unittest.TestCase):
             self.assertEqual((positive, negative), (compiled.positive, compiled.negative))
             workflow = build_workflow(engine, positive, negative, 123, "test/native", compiled)
             if engine == settings.engine_2_id:
-                self.assertEqual(workflow["16"]["inputs"]["text"], compiled.positive)
+                self.assertEqual(workflow["16"]["class_type"], "CLIPTextEncodeSDXL")
+                self.assertEqual(workflow["16"]["inputs"]["text_g"], compiled.clip_g)
+                self.assertEqual(workflow["16"]["inputs"]["text_l"], compiled.clip_l)
+                self.assertIn("spiderweb", workflow["16"]["inputs"]["text_g"])
+                self.assertIn("spiderweb", workflow["16"]["inputs"]["text_l"])
+                self.assertIn("Correction:", workflow["16"]["inputs"]["text_g"])
+                self.assertIn("Correction:", workflow["16"]["inputs"]["text_l"])
                 self.assertEqual(workflow["40"]["inputs"]["text"], compiled.negative)
             else:
                 self.assertEqual(workflow["16"]["inputs"]["clip_l"], compiled.clip_l)

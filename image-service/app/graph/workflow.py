@@ -22,7 +22,7 @@ logger = logging.getLogger(
 )
 
 
-async def prepare_job(
+def prepare_job(
     state: ImageWorkflowState,
 ) -> dict:
     reference_number = state[

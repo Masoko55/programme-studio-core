@@ -13,6 +13,14 @@ from app.services.visual_quality import (
 )
 
 
+FOREST_GREEN = "forest green"
+MINT_GREEN = "mint green"
+SKY_BLUE = "sky blue"
+ROYAL_BLUE = "royal blue"
+HOT_PINK = "hot pink"
+ROSE_GOLD = "rose gold"
+
+
 NAMED_COLOURS = {
     "black": (0, 0, 0),
     "white": (255, 255, 255),
@@ -24,22 +32,22 @@ NAMED_COLOURS = {
     "yellow": (230, 195, 45),
     "lime": (125, 220, 55),
     "green": (45, 150, 80),
-    "forest green": (34, 100, 55),
-    "mint green": (152, 255, 152),
+    FOREST_GREEN: (34, 100, 55),
+    MINT_GREEN: (152, 255, 152),
     "teal": (35, 135, 135),
     "turquoise": (64, 190, 180),
     "cyan": (55, 170, 190),
     "aqua": (65, 210, 205),
     "blue": (45, 95, 220),
-    "sky blue": (90, 175, 235),
-    "royal blue": (55, 80, 210),
+    SKY_BLUE: (90, 175, 235),
+    ROYAL_BLUE: (55, 80, 210),
     "navy": (25, 45, 100),
     "purple": (125, 75, 185),
     "violet": (120, 80, 185),
     "lavender": (180, 150, 220),
     "magenta": (210, 55, 175),
     "pink": (235, 115, 170),
-    "hot pink": (245, 70, 155),
+    HOT_PINK: (245, 70, 155),
     "rose": (215, 90, 130),
     "coral": (235, 110, 100),
     "peach": (240, 170, 130),
@@ -50,7 +58,7 @@ NAMED_COLOURS = {
     "cream": (240, 225, 190),
     "champagne": (230, 210, 165),
     "gold": (195, 150, 50),
-    "rose gold": (190, 120, 115),
+    ROSE_GOLD: (190, 120, 115),
 }
 
 
@@ -69,29 +77,29 @@ COLOUR_ALIASES = {
     "lime-green": "lime",
     "electric lime": "lime",
     "electric lime green": "lime",
-    "mint": "mint green",
-    "forest": "forest green",
+    "mint": MINT_GREEN,
+    "forest": FOREST_GREEN,
     "turquoise blue": "turquoise",
     "aqua blue": "aqua",
-    "sky": "sky blue",
-    "royal": "royal blue",
+    "sky": SKY_BLUE,
+    "royal": ROYAL_BLUE,
     "dark blue": "navy",
     "navy blue": "navy",
-    "light blue": "sky blue",
-    "baby blue": "sky blue",
-    "hotpink": "hot pink",
+    "light blue": SKY_BLUE,
+    "baby blue": SKY_BLUE,
+    "hotpink": HOT_PINK,
     "rose pink": "rose",
     "rose-pink": "rose",
     "light pink": "pink",
-    "dark pink": "hot pink",
-    "deep pink": "hot pink",
+    "dark pink": HOT_PINK,
+    "deep pink": HOT_PINK,
     "fuchsia": "magenta",
     "lilac": "lavender",
     "deep purple": "purple",
     "light purple": "lavender",
     "wine": "burgundy",
     "wine red": "burgundy",
-    "rose-gold": "rose gold",
+    "rose-gold": ROSE_GOLD,
 }
 
 
@@ -126,7 +134,7 @@ NEUTRAL_NAMES = {
 
 DARK_CHROMATIC_NAMES = {
     "navy",
-    "forest green",
+    FOREST_GREEN,
     "maroon",
     "burgundy",
     "brown",
@@ -152,42 +160,42 @@ COLOUR_FAMILIES = {
 
     "blue": {
         "blue",
-        "royal blue",
+        ROYAL_BLUE,
         "navy",
     },
-    "royal blue": {
+    ROYAL_BLUE: {
         "blue",
-        "royal blue",
+        ROYAL_BLUE,
         "navy",
     },
     "navy": {
         "blue",
-        "royal blue",
+        ROYAL_BLUE,
         "navy",
     },
 
     "green": {
         "green",
-        "forest green",
+        FOREST_GREEN,
     },
-    "forest green": {
+    FOREST_GREEN: {
         "green",
-        "forest green",
+        FOREST_GREEN,
     },
 
     "pink": {
         "pink",
-        "hot pink",
+        HOT_PINK,
         "rose",
     },
-    "hot pink": {
+    HOT_PINK: {
         "pink",
-        "hot pink",
+        HOT_PINK,
         "rose",
     },
     "rose": {
         "pink",
-        "hot pink",
+        HOT_PINK,
         "rose",
     },
 
@@ -236,11 +244,11 @@ COLOUR_FAMILIES = {
     "lime": {
         "lime",
     },
-    "mint green": {
-        "mint green",
+    MINT_GREEN: {
+        MINT_GREEN,
     },
-    "sky blue": {
-        "sky blue",
+    SKY_BLUE: {
+        SKY_BLUE,
     },
     "lavender": {
         "lavender",
@@ -263,8 +271,8 @@ COLOUR_FAMILIES = {
     "cream": {
         "cream",
     },
-    "rose gold": {
-        "rose gold",
+    ROSE_GOLD: {
+        ROSE_GOLD,
     },
 }
 
@@ -274,6 +282,8 @@ MAX_OFF_PALETTE_RATIO = 0.05
 MIN_PRIMARY_COLOUR_RATIO = 0.05
 
 MIN_SECONDARY_COLOUR_RATIO = 0.008
+
+MIN_PRIMARY_DOMINANCE_MARGIN = 0.05
 
 MIN_BLACK_WHITE_RATIO = 0.90
 
@@ -724,36 +734,164 @@ def colour_descriptor(
     }
 
 
+def _restore_chromatic_primary_dominance(target_index, source_saturation, target_names: list[str], usable: list[dict], primary_index: int) -> None:
+    #
+    # Chromatic primary dominance recovery
+    # ============================================================
+    #
+    # Preserve the existing contract for two distinct chromatic requested
+    # families. Only the minimum number of secondary boundary pixels is moved
+    # into the primary family.
+    #
+    if (
+        len(usable) > 1
+        and target_names[primary_index]
+        not in NEUTRAL_NAMES
+    ):
+        secondary_indices = [
+            index
+            for index in range(
+                len(usable)
+            )
+            if (
+                index != primary_index
+                and target_names[index]
+                not in NEUTRAL_NAMES
+            )
+        ]
+
+        if secondary_indices:
+            primary_count = int(
+                np.count_nonzero(
+                    target_index
+                    == primary_index
+                )
+            )
+
+            chromatic_indices_array = np.asarray(
+                [
+                    primary_index,
+                    *secondary_indices,
+                ],
+                dtype=np.intp,
+            )
+
+            chromatic_mask = np.isin(
+                target_index,
+                chromatic_indices_array,
+            )
+
+            chromatic_total = int(
+                np.count_nonzero(
+                    chromatic_mask
+                )
+            )
+
+            recovery_dominance_margin = 0.08
+
+            required_primary_count = int(
+                math.ceil(
+                    (
+                        chromatic_total
+                        * (
+                            1.0
+                            + recovery_dominance_margin
+                        )
+                    )
+                    / 2.0
+                )
+            )
+
+            pixels_to_reassign = max(
+                0,
+                required_primary_count
+                - primary_count,
+            )
+
+            if pixels_to_reassign > 0:
+                secondary_mask = np.isin(
+                    target_index,
+                    np.asarray(
+                        secondary_indices,
+                        dtype=np.intp,
+                    ),
+                ).astype(
+                    np.uint8
+                )
+
+                boundary_distance = cv2.distanceTransform(
+                    secondary_mask,
+                    cv2.DIST_L2,
+                    3,
+                )
+
+                candidate_positions = np.flatnonzero(
+                    secondary_mask.reshape(-1)
+                )
+
+                if candidate_positions.size > 0:
+                    candidate_distances = (
+                        boundary_distance
+                        .reshape(-1)[
+                            candidate_positions
+                        ]
+                    )
+
+                    candidate_saturation = (
+                        source_saturation
+                        .reshape(-1)[
+                            candidate_positions
+                        ]
+                    )
+
+                    order = np.lexsort(
+                        (
+                            candidate_saturation,
+                            candidate_distances,
+                        )
+                    )
+
+                    take = min(
+                        pixels_to_reassign,
+                        candidate_positions.size,
+                    )
+
+                    chosen = candidate_positions[
+                        order[:take]
+                    ]
+
+                    flat_target_index = (
+                        target_index.reshape(-1)
+                    )
+
+                    flat_target_index[
+                        chosen
+                    ] = primary_index
+
+
+
 def constrain_to_requested_palette(
     image: Image.Image,
     primary_colour: str | None,
     secondary_colour: str | None,
 ) -> Image.Image:
-    """Constrain an image to the requested colour families while preserving detail.
+    """Constrain artwork to any requested palette while preserving structure.
 
-    The previous implementation rebuilt every pixel from a fixed requested RGB
-    swatch multiplied by a luminance scale. Although that produced strict
-    palette compliance, it flattened local colour variation and made detailed
-    illustrations look posterised.
+    Recovery is palette-agnostic. It supports:
 
-    This implementation instead:
+    - chromatic + chromatic palettes;
+    - chromatic + neutral palettes;
+    - neutral + chromatic palettes;
+    - neutral + neutral palettes;
+    - single-colour palettes.
 
-    - preserves the source value/luminance channel;
-    - preserves local shading and texture;
-    - redirects hue into the nearest requested family;
-    - keeps useful source saturation variation;
-    - strengthens very neutral pixels enough to remain in a requested
-      chromatic family;
-    - preserves requested white regions as low-saturation bright surfaces.
-
-    The result is still passed through the normal strict palette validator.
-    This function does not weaken palette acceptance.
+    The transform preserves source shading and local structure. Hue/family
+    assignment is deterministic, neutral targets preserve luminance variation,
+    and the normal strict validator remains the final authority.
     """
 
     descriptors = [
-        colour_descriptor(
-            value
-        )
+        colour_descriptor(value)
         for value in (
             primary_colour,
             secondary_colour,
@@ -763,281 +901,280 @@ def constrain_to_requested_palette(
     usable = [
         descriptor
         for descriptor in descriptors
-        if descriptor[
-            "rgb"
-        ]
-        is not None
+        if descriptor["rgb"] is not None
     ]
 
     if not usable:
-        return (
-            image.convert(
-                "RGB"
-            )
-        )
+        return image.convert("RGB")
 
     source_rgb = np.asarray(
-        image.convert(
-            "RGB"
-        ),
+        image.convert("RGB"),
         dtype=np.uint8,
     )
 
     source_hsv = cv2.cvtColor(
         source_rgb,
         cv2.COLOR_RGB2HSV,
-    )
+    ).astype(np.float32)
 
-    source_hue = (
-        source_hsv[
-            :,
-            :,
-            0,
-        ]
-        .astype(
-            np.float32
-        )
-    )
-
-    source_saturation = (
-        source_hsv[
-            :,
-            :,
-            1,
-        ]
-        .astype(
-            np.float32
-        )
-    )
-
-    source_value = (
-        source_hsv[
-            :,
-            :,
-            2,
-        ]
-        .astype(
-            np.float32
-        )
-    )
+    source_hue = source_hsv[:, :, 0]
+    source_saturation = source_hsv[:, :, 1]
+    source_value = source_hsv[:, :, 2]
 
     target_rgb = np.asarray(
         [
-            descriptor[
-                "rgb"
-            ]
-            for descriptor
-            in usable
+            descriptor["rgb"]
+            for descriptor in usable
         ],
         dtype=np.uint8,
     )
 
-    target_hsv = (
-        cv2.cvtColor(
-            target_rgb.reshape(
-                1,
-                -1,
-                3,
-            ),
-            cv2.COLOR_RGB2HSV,
-        )
-        .reshape(
-            -1,
-            3,
-        )
-    )
+    target_hsv = cv2.cvtColor(
+        target_rgb.reshape(1, -1, 3),
+        cv2.COLOR_RGB2HSV,
+    ).reshape(-1, 3).astype(np.float32)
 
-    target_hue = (
-        target_hsv[
-            :,
-            0,
-        ]
-        .astype(
-            np.float32
-        )
-    )
-
-    target_saturation = (
-        target_hsv[
-            :,
-            1,
-        ]
-        .astype(
-            np.float32
-        )
-    )
-
-    target_value = (
-        target_hsv[
-            :,
-            2,
-        ]
-        .astype(
-            np.float32
-        )
-    )
+    target_hue = target_hsv[:, 0]
+    target_saturation = target_hsv[:, 1]
+    target_value = target_hsv[:, 2]
 
     target_names = [
-        descriptor[
-            "base_name"
-        ]
-        for descriptor
-        in usable
+        descriptor["base_name"]
+        for descriptor in usable
     ]
-
-    #
-    # Determine the nearest requested hue for every source pixel.
-    #
-    # OpenCV represents hue on a circular 0..179 range.
-    #
-    hue_delta = np.abs(
-        source_hue[
-            :,
-            :,
-            None,
-        ]
-        - target_hue[
-            None,
-            None,
-            :,
-        ]
-    )
-
-    hue_delta = np.minimum(
-        hue_delta,
-        180.0
-        - hue_delta,
-    )
-
-    target_index = np.argmin(
-        hue_delta,
-        axis=2,
-    )
-
-    #
-    # Low-saturation source pixels do not contain reliable hue information.
-    # Assign those to the primary requested family unless white itself was
-    # explicitly requested.
-    #
-    neutral_mask = (
-        source_saturation
-        < 28.0
-    )
-
-    white_index = next(
-        (
-            index
-            for (
-                index,
-                name,
-            )
-            in enumerate(
-                target_names
-            )
-            if name
-            == "white"
-        ),
-        None,
-    )
 
     primary_index = 0
 
-    if (
-        white_index
-        is not None
-    ):
-        #
-        # Bright neutral surfaces remain white.
-        #
-        # Dark neutral structure still belongs to the primary design colour.
-        #
-        target_index[
-            neutral_mask
-            & (
-                source_value
-                >= 173.0
+    neutral_indices = [
+        index
+        for index, name in enumerate(target_names)
+        if name in NEUTRAL_NAMES
+    ]
+
+    chromatic_indices = [
+        index
+        for index, name in enumerate(target_names)
+        if name not in NEUTRAL_NAMES
+    ]
+
+    #
+    # Family assignment
+    # ============================================================
+    #
+    # Chromatic source pixels are assigned by circular hue distance.
+    # Neutral-like source pixels are assigned to a requested neutral only
+    # when hue evidence for a requested chromatic family is weak.
+    #
+    # This prevents warm cream/champagne/beige drift from being forced into
+    # pink/red/etc. merely because a chromatic target exists, while also
+    # preventing legitimately pale requested colours from being erased into
+    # white/grey.
+    #
+    if chromatic_indices:
+        chromatic_hues = target_hue[
+            np.asarray(
+                chromatic_indices,
+                dtype=np.intp,
             )
-        ] = (
-            white_index
+        ]
+
+        hue_delta = np.abs(
+            source_hue[:, :, None]
+            - chromatic_hues[None, None, :]
         )
 
-        target_index[
-            neutral_mask
-            & (
-                source_value
-                < 173.0
-            )
-        ] = (
-            primary_index
+        hue_delta = np.minimum(
+            hue_delta,
+            180.0 - hue_delta,
         )
+
+        nearest_chromatic_slot = np.argmin(
+            hue_delta,
+            axis=2,
+        )
+
+        chromatic_lookup = np.asarray(
+            chromatic_indices,
+            dtype=np.intp,
+        )
+
+        target_index = chromatic_lookup[
+            nearest_chromatic_slot
+        ]
+
+        minimum_chromatic_hue_delta = np.min(
+            hue_delta,
+            axis=2,
+        )
+
+        if neutral_indices:
+            #
+            # Saturation below 42 has little reliable hue information.
+            #
+            # Moderately desaturated pixels are also neutral candidates when
+            # their hue is not close to any requested chromatic family. This
+            # catches warm near-whites and cool greys generically without
+            # special-casing any named palette pair.
+            #
+            # Pale requested colours can have low saturation while retaining
+            # a stable hue. Keep those pixels in their chromatic family;
+            # otherwise pastel petals and washes are erased into white.
+            reliable_requested_hue = (
+                (source_saturation >= 12.0)
+                & (minimum_chromatic_hue_delta <= 12.0)
+            )
+            neutral_candidate = (
+                (source_saturation < 42.0)
+                | (
+                    (source_saturation < 96.0)
+                    & (minimum_chromatic_hue_delta > 20.0)
+                )
+            ) & ~reliable_requested_hue
+
+            neutral_lookup = np.asarray(
+                neutral_indices,
+                dtype=np.intp,
+            )
+
+            neutral_values = target_value[
+                neutral_lookup
+            ]
+
+            neutral_value_delta = np.abs(
+                source_value[:, :, None]
+                - neutral_values[None, None, :]
+            )
+
+            nearest_neutral_slot = np.argmin(
+                neutral_value_delta,
+                axis=2,
+            )
+
+            nearest_neutral_index = neutral_lookup[
+                nearest_neutral_slot
+            ]
+
+            target_index[
+                neutral_candidate
+            ] = nearest_neutral_index[
+                neutral_candidate
+            ]
+
+        else:
+            #
+            # A palette containing only chromatic colours cannot retain
+            # unrequested greys/whites. Give hue-less pixels to the primary
+            # requested family and preserve their source luminance later.
+            #
+            target_index[
+                source_saturation < 28.0
+            ] = primary_index
 
     else:
-        target_index[
-            neutral_mask
-        ] = (
-            primary_index
+        #
+        # Neutral-only palette. Pick the requested neutral whose luminance is
+        # closest to each source pixel, then remove chroma while preserving
+        # local value differences inside that neutral family.
+        #
+        neutral_lookup = np.asarray(
+            neutral_indices,
+            dtype=np.intp,
         )
 
-    output_hsv = (
-        source_hsv
-        .astype(
-            np.float32
+        neutral_values = target_value[
+            neutral_lookup
+        ]
+
+        neutral_value_delta = np.abs(
+            source_value[:, :, None]
+            - neutral_values[None, None, :]
         )
-        .copy()
-    )
 
-    selected_hue = (
-        target_hue[
-            target_index
+        nearest_neutral_slot = np.argmin(
+            neutral_value_delta,
+            axis=2,
+        )
+
+        target_index = neutral_lookup[
+            nearest_neutral_slot
         ]
-    )
-
-    selected_saturation = (
-        target_saturation[
-            target_index
-        ]
-    )
-
-    selected_value = (
-        target_value[
-            target_index
-        ]
-    )
 
     #
-    # Hue is the part that must obey the requested family strictly.
+    # Local family stabilization
+    # ============================================================
     #
-    output_hsv[
-        :,
-        :,
-        0,
-    ] = (
-        selected_hue
+    # The strict validator evaluates a reduced image. Very fine alternating
+    # target families can blend into an unrequested intermediate hue during
+    # Lanczos downsampling. A small full-resolution majority filter removes
+    # that unstable micro-alternation without creating coarse rectangular
+    # blocks.
+    #
+    if len(usable) > 1:
+        family_scores = []
+
+        for family_index in range(
+            len(usable)
+        ):
+            family_mask = (
+                target_index
+                == family_index
+            ).astype(
+                np.float32
+            )
+
+            family_score = cv2.boxFilter(
+                family_mask,
+                ddepth=-1,
+                ksize=(7, 7),
+                normalize=True,
+                borderType=cv2.BORDER_REFLECT101,
+            )
+
+            family_scores.append(
+                family_score
+            )
+
+        target_index = np.argmax(
+            np.stack(
+                family_scores,
+                axis=2,
+            ),
+            axis=2,
+        ).astype(
+            np.intp
+        )
+
+    _restore_chromatic_primary_dominance(
+        target_index, source_saturation, target_names, usable, primary_index,
     )
 
+    output_hsv = source_hsv.copy()
+
+    selected_hue = target_hue[
+        target_index
+    ]
+
+    selected_saturation = target_saturation[
+        target_index
+    ]
+
+    output_hsv[:, :, 0] = selected_hue
+
     #
-    # Preserve saturation variation instead of replacing every pixel with the
-    # exact saturation of one palette swatch.
+    # Saturation recovery
+    # ============================================================
     #
-    # This retains atmospheric depth, subtle texture, lighting variation and
-    # material differences.
+    # Chromatic targets preserve source saturation variation while receiving
+    # enough chroma to classify inside the requested family.
+    #
+    # Neutral targets remove chroma deterministically, but do not flatten
+    # luminance or geometry.
     #
     blended_saturation = (
-        (
-            source_saturation
-            * 0.62
-        )
-        + (
-            selected_saturation
-            * 0.38
-        )
+        (source_saturation * 0.62)
+        + (selected_saturation * 0.38)
     )
 
-    #
-    # A neutral source pixel redirected into a chromatic requested family must
-    # receive enough saturation to be classified as that colour family rather
-    # than charcoal/grey.
-    #
     minimum_requested_saturation = (
         selected_saturation
         * 0.60
@@ -1048,82 +1185,112 @@ def constrain_to_requested_palette(
         minimum_requested_saturation,
     )
 
-    #
-    # Explicitly requested white remains low-saturation.
-    #
-    if (
-        white_index
-        is not None
-    ):
-        white_mask = (
+    for neutral_index in neutral_indices:
+        neutral_mask = (
             target_index
-            == white_index
+            == neutral_index
         )
 
         blended_saturation[
-            white_mask
+            neutral_mask
         ] = np.minimum(
             source_saturation[
-                white_mask
-            ],
+                neutral_mask
+            ]
+            * 0.25,
             18.0,
         )
 
-    output_hsv[
-        :,
-        :,
-        1,
-    ] = np.clip(
+    output_hsv[:, :, 1] = np.clip(
         blended_saturation,
         0.0,
         255.0,
     )
 
     #
-    # Preserve source luminance exactly for almost every pixel.
+    # Value/luminance recovery
+    # ============================================================
     #
-    # This is the key difference from the previous palette remapper.
+    # Chromatic targets preserve source luminance with only the minimum floor
+    # required by the strict classifier.
     #
-    # Shadows stay shadows, highlights stay highlights, and building/window
-    # detail is not collapsed into fixed dark/light versions of the palette
-    # swatches.
-    #
-    preserved_value = (
-        source_value.copy()
+    selected_min_value = np.where(
+        np.asarray(
+            [
+                _is_dark_target(
+                    name,
+                    tuple(rgb),
+                )
+                for name, rgb
+                in zip(
+                    target_names,
+                    target_rgb,
+                )
+            ],
+            dtype=bool,
+        )[
+            target_index
+        ],
+        DARK_MIN_VALUE,
+        STANDARD_MIN_VALUE,
+    ).astype(
+        np.float32
     )
 
-    if (
-        white_index
-        is not None
-    ):
-        white_mask = (
+    preserved_value = np.maximum(
+        source_value,
+        selected_min_value + 4.0,
+    )
+
+    #
+    # Neutral targets use luminance ranges that sit inside the validator's
+    # accepted neutral bands. Source luminance is linearly mapped into the
+    # range instead of being clamped to one fixed brightness, so gradients,
+    # borders, texture and structural edges survive recovery.
+    #
+    neutral_value_ranges = {
+        "black": (0.0, 55.0),
+        "charcoal": (35.0, 105.0),
+        "grey": (80.0, 185.0),
+        "silver": (145.0, 225.0),
+        "white": (190.0, 255.0),
+    }
+
+    for neutral_index in neutral_indices:
+        neutral_name = target_names[
+            neutral_index
+        ]
+
+        low, high = neutral_value_ranges.get(
+            neutral_name,
+            (0.0, 255.0),
+        )
+
+        neutral_mask = (
             target_index
-            == white_index
+            == neutral_index
         )
 
-        #
-        # Explicit white should remain visibly white rather than becoming a
-        # dark grey version of white.
-        #
+        source_fraction = (
+            source_value[
+                neutral_mask
+            ]
+            / 255.0
+        )
+
         preserved_value[
-            white_mask
-        ] = np.maximum(
-            preserved_value[
-                white_mask
-            ],
-            np.minimum(
-                selected_value[
-                    white_mask
-                ],
-                220.0,
-            ),
+            neutral_mask
+        ] = (
+            low
+            + (
+                source_fraction
+                * (
+                    high - low
+                )
+            )
         )
 
-    output_hsv[
-        :,
-        :,
-        2,
-    ] = np.clip(
+    output_hsv[:, :, 2] = np.clip(
         preserved_value,
         0.0,
         255.0,
@@ -1140,7 +1307,6 @@ def constrain_to_requested_palette(
         constrained_rgb,
         mode="RGB",
     )
-
 
 def normalize_colour_name(
     value: str | None,
@@ -1895,6 +2061,152 @@ def _chromatic_requested_family(
     return min(candidates)[1] if candidates else None
 
 
+def _classify_palette_pixel(
+    hue: int,
+    saturation: int,
+    value: int,
+    pixel_rgb,
+    requested_neutrals: set[str],
+    requested_targets: list[dict],
+) -> tuple[str | None, str]:
+    neutral = _matches_requested_neutral(saturation, value, requested_neutrals)
+    if neutral is not None:
+        return neutral, neutral
+
+    chromatic = _chromatic_requested_family(hue, saturation, value, requested_targets)
+    if chromatic is not None:
+        return chromatic, chromatic
+
+    nearest = _nearest_named_colour(pixel_rgb)
+    family = _nearest_requested_family(nearest, pixel_rgb, requested_targets)
+    if family is not None:
+        return family, nearest
+
+    best_target = None
+    best_distance = None
+    for target in requested_targets:
+        if not target["descriptor"]["is_hex"]:
+            continue
+        if not _pixel_can_match_target(saturation, value, target["name"], target["rgb"]):
+            continue
+        distance = _hue_distance(hue, target["hue"])
+        if distance > _target_hue_limit(target["name"], target["rgb"]):
+            continue
+        if best_distance is None or distance < best_distance:
+            best_target = target
+            best_distance = distance
+
+    return (best_target["name"] if best_target is not None else None), nearest
+
+
+def _validate_palette_balance(primary_name, primary_rgb, primary_descriptor, secondary_name, secondary_rgb, requested_counts: dict, total: int) -> tuple[float | None, float | None]:
+    primary_ratio = None
+
+    if (
+        primary_name
+        and primary_rgb
+        is not None
+    ):
+        primary_ratio = (
+            requested_counts.get(
+                primary_name,
+                0,
+            )
+            / total
+        )
+
+        if (
+            primary_name
+            not in NEUTRAL_NAMES
+            and primary_ratio
+            < MIN_PRIMARY_COLOUR_RATIO
+        ):
+            raise ValueError(
+                "Generated background does not visibly "
+                "contain enough of the requested primary "
+                f"colour family '{primary_name}' "
+                f"(primary family ratio "
+                f"{primary_ratio:.2f})."
+            )
+
+    secondary_ratio = None
+
+    if (
+        secondary_name
+        and secondary_rgb
+        is not None
+    ):
+        secondary_ratio = (
+            requested_counts.get(
+                secondary_name,
+                0,
+            )
+            / total
+        )
+
+        minimum_secondary_ratio = (
+            MIN_SECONDARY_COLOUR_RATIO
+        )
+
+        if (
+            primary_descriptor[
+                "modifier_only"
+            ]
+            and primary_rgb
+            is None
+        ):
+            minimum_secondary_ratio = (
+                MIN_PRIMARY_COLOUR_RATIO
+            )
+
+        if (
+            secondary_name
+            not in NEUTRAL_NAMES
+            and secondary_ratio
+            < minimum_secondary_ratio
+        ):
+            raise ValueError(
+                "Generated background does not visibly "
+                "contain enough of the requested secondary "
+                f"colour family '{secondary_name}' "
+                f"(secondary family ratio "
+                f"{secondary_ratio:.2f})."
+            )
+
+    #
+    # When both requested colours are chromatic, the declared primary colour
+    # must be meaningfully dominant rather than merely present.
+    #
+    if (
+        primary_ratio
+        is not None
+        and secondary_ratio
+        is not None
+        and primary_name
+        not in NEUTRAL_NAMES
+        and secondary_name
+        not in NEUTRAL_NAMES
+        and primary_name
+        != secondary_name
+        and primary_ratio
+        < (
+            secondary_ratio
+            + MIN_PRIMARY_DOMINANCE_MARGIN
+        )
+    ):
+        raise ValueError(
+            "Generated background does not keep the requested "
+            f"primary colour family '{primary_name}' meaningfully dominant "
+            f"over the requested secondary colour family '{secondary_name}' "
+            f"(primary family ratio {primary_ratio:.2f}, "
+            f"secondary family ratio {secondary_ratio:.2f}; "
+            f"required dominance margin "
+            f"{MIN_PRIMARY_DOMINANCE_MARGIN:.2f})."
+        )
+
+    return primary_ratio, secondary_ratio
+
+
 def validate_palette(
     image: Image.Image,
     primary_colour: str | None,
@@ -2135,15 +2447,10 @@ def validate_palette(
             }
         )
 
-    requested_counts = {
-        name: 0
-        for (
-            name,
-            _,
-            _,
-        )
-        in requested
-    }
+    requested_counts = dict.fromkeys(
+        (name for name, _, _ in requested),
+        0,
+    )
 
     accepted_tonal_counts: dict[
         str,
@@ -2157,229 +2464,17 @@ def validate_palette(
         int,
     ] = {}
 
-    for (
-        index,
-        (
-            hue,
-            saturation,
-            value,
-        ),
-    ) in enumerate(
-        hsv_pixels
-    ):
-        hue = int(
-            hue
+    for index, (hue, saturation, value) in enumerate(hsv_pixels):
+        family, tonal_name = _classify_palette_pixel(
+            int(hue), int(saturation), int(value), rgb_pixels[index],
+            requested_neutrals, requested_targets,
         )
-
-        saturation = int(
-            saturation
-        )
-
-        value = int(
-            value
-        )
-
-        pixel_rgb = (
-            rgb_pixels[
-                index
-            ]
-        )
-
-        neutral_match = (
-            _matches_requested_neutral(
-                saturation,
-                value,
-                requested_neutrals,
-            )
-        )
-
-        if (
-            neutral_match
-            is not None
-        ):
-            requested_counts[
-                neutral_match
-            ] = (
-                requested_counts.get(
-                    neutral_match,
-                    0,
-                )
-                + 1
-            )
-
-            accepted_tonal_counts[
-                neutral_match
-            ] = (
-                accepted_tonal_counts.get(
-                    neutral_match,
-                    0,
-                )
-                + 1
-            )
-
+        if family is None:
+            off_palette_count += 1
+            off_palette_named_counts[tonal_name] = off_palette_named_counts.get(tonal_name, 0) + 1
             continue
-
-        chromatic_match = _chromatic_requested_family(
-            hue, saturation, value, requested_targets,
-        )
-        if chromatic_match is not None:
-            requested_counts[chromatic_match] = requested_counts.get(chromatic_match, 0) + 1
-            accepted_tonal_counts[chromatic_match] = accepted_tonal_counts.get(chromatic_match, 0) + 1
-            continue
-
-        nearest = (
-            _nearest_named_colour(
-                pixel_rgb
-            )
-        )
-
-        family_match = (
-            _nearest_requested_family(
-                nearest,
-                pixel_rgb,
-                requested_targets,
-            )
-        )
-
-        if (
-            family_match
-            is not None
-        ):
-            requested_counts[
-                family_match
-            ] = (
-                requested_counts.get(
-                    family_match,
-                    0,
-                )
-                + 1
-            )
-
-            accepted_tonal_counts[
-                nearest
-            ] = (
-                accepted_tonal_counts.get(
-                    nearest,
-                    0,
-                )
-                + 1
-            )
-
-            continue
-
-        hex_targets = [
-            target
-            for target
-            in requested_targets
-            if (
-                target[
-                    "descriptor"
-                ][
-                    "is_hex"
-                ]
-                and _pixel_can_match_target(
-                    saturation,
-                    value,
-                    target[
-                        "name"
-                    ],
-                    target[
-                        "rgb"
-                    ],
-                )
-            )
-        ]
-
-        best_hex_target = None
-
-        best_hex_distance = None
-
-        for target in (
-            hex_targets
-        ):
-            distance = (
-                _hue_distance(
-                    hue,
-                    target[
-                        "hue"
-                    ],
-                )
-            )
-
-            limit = (
-                _target_hue_limit(
-                    target[
-                        "name"
-                    ],
-                    target[
-                        "rgb"
-                    ],
-                )
-            )
-
-            if (
-                distance
-                > limit
-            ):
-                continue
-
-            if (
-                best_hex_distance
-                is None
-                or distance
-                < best_hex_distance
-            ):
-                best_hex_target = (
-                    target
-                )
-
-                best_hex_distance = (
-                    distance
-                )
-
-        if (
-            best_hex_target
-            is not None
-        ):
-            requested_counts[
-                best_hex_target[
-                    "name"
-                ]
-            ] = (
-                requested_counts.get(
-                    best_hex_target[
-                        "name"
-                    ],
-                    0,
-                )
-                + 1
-            )
-
-            accepted_tonal_counts[
-                nearest
-            ] = (
-                accepted_tonal_counts.get(
-                    nearest,
-                    0,
-                )
-                + 1
-            )
-
-            continue
-
-        off_palette_count += (
-            1
-        )
-
-        off_palette_named_counts[
-            nearest
-        ] = (
-            off_palette_named_counts.get(
-                nearest,
-                0,
-            )
-            + 1
-        )
+        requested_counts[family] = requested_counts.get(family, 0) + 1
+        accepted_tonal_counts[tonal_name] = accepted_tonal_counts.get(tonal_name, 0) + 1
 
     off_palette_ratio = (
         off_palette_count
@@ -2463,78 +2558,10 @@ def validate_palette(
             f"strongest matches: {details})."
         )
 
-    primary_ratio = None
-
-    if (
-        primary_name
-        and primary_rgb
-        is not None
-    ):
-        primary_ratio = (
-            requested_counts.get(
-                primary_name,
-                0,
-            )
-            / total
-        )
-
-        if (
-            primary_name
-            not in NEUTRAL_NAMES
-            and primary_ratio
-            < MIN_PRIMARY_COLOUR_RATIO
-        ):
-            raise ValueError(
-                "Generated background does not visibly "
-                "contain enough of the requested primary "
-                f"colour family '{primary_name}' "
-                f"(primary family ratio "
-                f"{primary_ratio:.2f})."
-            )
-
-    secondary_ratio = None
-
-    if (
-        secondary_name
-        and secondary_rgb
-        is not None
-    ):
-        secondary_ratio = (
-            requested_counts.get(
-                secondary_name,
-                0,
-            )
-            / total
-        )
-
-        minimum_secondary_ratio = (
-            MIN_SECONDARY_COLOUR_RATIO
-        )
-
-        if (
-            primary_descriptor[
-                "modifier_only"
-            ]
-            and primary_rgb
-            is None
-        ):
-            minimum_secondary_ratio = (
-                MIN_PRIMARY_COLOUR_RATIO
-            )
-
-        if (
-            secondary_name
-            not in NEUTRAL_NAMES
-            and secondary_ratio
-            < minimum_secondary_ratio
-        ):
-            raise ValueError(
-                "Generated background does not visibly "
-                "contain enough of the requested secondary "
-                f"colour family '{secondary_name}' "
-                f"(secondary family ratio "
-                f"{secondary_ratio:.2f})."
-            )
+    primary_ratio, secondary_ratio = _validate_palette_balance(
+        primary_name, primary_rgb, primary_descriptor, secondary_name,
+        secondary_rgb, requested_counts, total,
+    )
 
     palette_match_ratio = (
         1.0

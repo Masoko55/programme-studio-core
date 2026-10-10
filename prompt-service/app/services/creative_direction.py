@@ -15,6 +15,9 @@ from app.services.ollama import (
 )
 
 
+SKY_BLUE = "sky blue"
+
+
 logger = logging.getLogger(
     "uvicorn.error"
 )
@@ -63,9 +66,9 @@ COLOUR_ALIASES = {
     "golden": "gold",
     "navy blue": "navy",
     "royal": "royal blue",
-    "sky": "sky blue",
-    "baby blue": "sky blue",
-    "light blue": "sky blue",
+    "sky": SKY_BLUE,
+    "baby blue": SKY_BLUE,
+    "light blue": SKY_BLUE,
     "dark blue": "navy",
     "hotpink": "hot pink",
     "rose pink": "rose",
@@ -96,7 +99,7 @@ KNOWN_COLOURS = (
     "cyan",
     "aqua",
     "blue",
-    "sky blue",
+    SKY_BLUE,
     "royal blue",
     "navy",
     "purple",
@@ -623,9 +626,7 @@ def background_positive_requirements(
     )
 
 
-def background_negative_constraints(
-    brief: dict,
-) -> str:
+def background_negative_constraints() -> str:
     return "unrelated generic imagery, crowded centre, readable text, people, characters"
 
 
@@ -950,9 +951,7 @@ def build_creative_direction_prompt(
             )
         ),
         "background_negative_constraints": (
-            background_negative_constraints(
-                brief
-            )
+            background_negative_constraints()
         ),
         "asset_layout_contract": {
             "enabled": (
@@ -1142,7 +1141,7 @@ async def generate_creative_direction(
                         "signature, logo, watermark, signage"
                     ),
                     palette_negative(brief),
-                    background_negative_constraints(brief),
+                    background_negative_constraints(),
                 )
                 if value
             )

@@ -53,6 +53,7 @@ from app.services.prompt_compiler import failure_category as classify_failure
 logger = logging.getLogger(
     "uvicorn.error"
 )
+QUEUE_ENDPOINT = "/queue"
 
 # A large third-colour area needs a new generation, not automatic recolouring.
 # ============================================================
@@ -116,36 +117,55 @@ def _recoverable_palette_error(
     reason: str,
     engine_id: str | None = None,
 ) -> bool:
-    """Return True only for bounded off-palette validation failures.
+    """Return True for supported palette-only validation failures.
 
-    This function does NOT relax final palette validation.
+    Final palette validation is never relaxed. This function only determines
+    whether deterministic palette normalization may be attempted.
 
-    It only decides whether deterministic recolouring may be attempted.
-    The recoloured image must subsequently pass validate_background() with
-    normal palette enforcement enabled.
+    Recoverable palette failures include:
+
+    - bounded off-palette drift;
+    - missing requested primary family;
+    - missing requested secondary family;
+    - lost primary-over-secondary dominance;
+    - black/white chromatic contamination.
+
+    Structural, OCR, human and runtime failures remain ineligible.
     """
 
-    match = re.search(
+    reason = str(
+        reason
+        or ""
+    )
+
+    off_palette_match = re.search(
         r"off-palette ratio ([0-9.]+)",
         reason,
     )
 
-    if not match:
-        return False
-
-    ratio = float(
-        match.group(
-            1
+    if off_palette_match:
+        ratio = float(
+            off_palette_match.group(1)
         )
+
+        return (
+            ratio
+            <= _palette_recovery_limit(
+                engine_id
+            )
+        )
+
+    palette_only_markers = (
+        "does not visibly contain enough of the requested primary colour family",
+        "does not visibly contain enough of the requested secondary colour family",
+        "does not keep the requested primary colour family",
+        "left the requested black-and-white palette",
     )
 
-    return (
-        ratio
-        <= _palette_recovery_limit(
-            engine_id
-        )
+    return any(
+        marker in reason
+        for marker in palette_only_markers
     )
-
 
 def _edge_geometry_similarity(source: Path, target: Path) -> float:
     """Compare edge locations after local contrast adjustment, not brightness."""
@@ -164,6 +184,13 @@ def _edge_geometry_similarity(source: Path, target: Path) -> float:
     return 2 * int((first & second).sum()) / count if count else 0.0
 
 
+def _preserves_structural_detail(raw: dict, recoloured: dict) -> bool:
+    """Reject palette recovery that erases a substantial part of the artwork."""
+    before = float(raw.get("structural_edge_density") or 0.0)
+    after = float(recoloured.get("structural_edge_density") or 0.0)
+    return before < 0.10 or after >= before * 0.75
+
+
 def _palette_only_recovery(
     source: Path,
     target: Path,
@@ -180,6 +207,8 @@ def _palette_only_recovery(
         final = validate_background(target, reference_number=reference_number)
         if _edge_geometry_similarity(source, target) < 0.60:
             raise ValueError("Palette normalization changed structural edge locations too much.")
+        if not _preserves_structural_detail(structural, final):
+            raise ValueError("Palette normalization erased too much structural detail.")
         return structural, final
     except Exception:
         target.unlink(missing_ok=True)
@@ -298,6 +327,29 @@ def workflow_name(
     ]
 
 
+def _execution_error_detail(item: object) -> str | None:
+    if not isinstance(item, (list, tuple)) or len(item) < 2:
+        return None
+    if str(item[0]) not in {"execution_error", "execution_interrupted"}:
+        return None
+    payload = item[1] if isinstance(item[1], dict) else {}
+    parts = []
+    for key, label in (
+        ("node_id", "node"),
+        ("node_type", "type"),
+        ("exception_type", "exception"),
+        ("exception_message", "message"),
+    ):
+        if payload.get(key):
+            parts.append(f"{label}={payload[key]}")
+    traceback_lines = payload.get("traceback") or []
+    if traceback_lines:
+        tail = str(traceback_lines[-1]).strip()
+        if tail:
+            parts.append(f"trace={tail}")
+    return "; ".join(parts) if parts else None
+
+
 def _extract_comfyui_execution_error(
     history: dict | None,
 ) -> str:
@@ -331,113 +383,11 @@ def _extract_comfyui_execution_error(
     )
 
     details = []
-
     for item in messages:
         try:
-            if (
-                not isinstance(
-                    item,
-                    (list, tuple),
-                )
-                or len(item) < 2
-            ):
-                continue
-
-            message_type = str(
-                item[0]
-            )
-
-            payload = (
-                item[1]
-                if isinstance(
-                    item[1],
-                    dict,
-                )
-                else {}
-            )
-
-            if (
-                message_type
-                not in {
-                    "execution_error",
-                    "execution_interrupted",
-                }
-            ):
-                continue
-
-            node_id = (
-                payload.get(
-                    "node_id"
-                )
-            )
-
-            node_type = (
-                payload.get(
-                    "node_type"
-                )
-            )
-
-            exception_type = (
-                payload.get(
-                    "exception_type"
-                )
-            )
-
-            exception_message = (
-                payload.get(
-                    "exception_message"
-                )
-            )
-
-            traceback_lines = (
-                payload.get(
-                    "traceback"
-                )
-                or []
-            )
-
-            parts = []
-
-            if node_id:
-                parts.append(
-                    f"node={node_id}"
-                )
-
-            if node_type:
-                parts.append(
-                    f"type={node_type}"
-                )
-
-            if exception_type:
-                parts.append(
-                    f"exception={exception_type}"
-                )
-
-            if exception_message:
-                parts.append(
-                    f"message={exception_message}"
-                )
-
-            if traceback_lines:
-                tail = (
-                    str(
-                        traceback_lines[-1]
-                    )
-                    .strip()
-                )
-
-                if tail:
-                    parts.append(
-                        f"trace={tail}"
-                    )
-
-            if parts:
-                details.append(
-                    "; ".join(
-                        parts
-                    )
-                )
-
+            detail = _execution_error_detail(item)
+            if detail:
+                details.append(detail)
         except Exception:
             continue
 
@@ -937,6 +887,93 @@ def detected_text_tokens(
     return confirmed_tokens
 
 
+def _inject_workflow_values(value: Any, values: dict) -> Any:
+    if isinstance(value, str) and value.startswith("${") and value.endswith("}"):
+        return values[value[2:-1]]
+    if isinstance(value, dict):
+        return {key: _inject_workflow_values(item, values) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_inject_workflow_values(item, values) for item in value]
+    return value
+
+
+def _compact_prompt(value: str, limit: int) -> str:
+    compact = " ".join(str(value or "").split())
+    return compact if len(compact) <= limit else compact[:limit].rsplit(" ", 1)[0]
+
+
+def _workflow_encoder_prompts(engine_id: str, positive_prompt: str, compiled_prompt) -> tuple[str, str, str, str]:
+    clip_l = (
+        compiled_prompt.clip_l if compiled_prompt and compiled_prompt.clip_l
+        else _compact_prompt(positive_prompt, 160)
+    )
+    clip_g = (
+        compiled_prompt.clip_g if compiled_prompt and compiled_prompt.clip_g
+        else "portrait event background, edge-weighted composition, open title "
+             "and programme zones, large matte graphic forms, requested palette"
+    )
+    t5 = (
+        compiled_prompt.t5 if compiled_prompt and compiled_prompt.t5
+        else _compact_prompt(positive_prompt, 520)
+    )
+    negative = compiled_prompt.negative if compiled_prompt else ""
+    if engine_id == settings.engine_2_id and compiled_prompt is None:
+        clip_l = positive_prompt
+        clip_g = positive_prompt
+    return clip_l, clip_g, t5, negative
+
+
+def _workflow_dimensions(engine_id: str) -> tuple[int, int]:
+    if engine_id == settings.engine_2_id:
+        return settings.sdxl_generation_width, settings.sdxl_generation_height
+    if engine_id == settings.engine_3_id:
+        return settings.sd35_generation_width, settings.sd35_generation_height
+    return settings.generation_width, settings.generation_height
+
+
+def _sampling_parameters(profile: SamplingProfile | None) -> dict:
+    return {
+        "sd35_shift": profile.shift if profile and profile.shift is not None else 3.0,
+        "steps": profile.steps if profile else 28,
+        "cfg": profile.cfg if profile else 6.0,
+        "sampler_name": profile.sampler_name if profile else "dpmpp_2m",
+        "scheduler": profile.scheduler if profile else "karras",
+    }
+
+
+def _record_prompt_metadata(
+    engine_id: str,
+    positive_prompt: str,
+    negative_prompt: str,
+    compiled_prompt,
+    retry_stage: str | None,
+    failure_category: str | None,
+) -> dict:
+    flux = engine_id == settings.engine_1_id
+    return {
+        "negative_prompt": None if flux else negative_prompt,
+        "adaptations": [
+            "Negative prompt omitted because the configured FLUX workflow "
+            "does not expose negative conditioning."
+        ] if flux else [],
+        "retry_stage": compiled_prompt.retry_stage if compiled_prompt else retry_stage,
+        "failure_category": (
+            compiled_prompt.failure_category if compiled_prompt else failure_category
+        ),
+        "compiled_prompt": compiled_prompt.record() if compiled_prompt else {
+            "positive": positive_prompt,
+            "negative": negative_prompt,
+            "clip_l": None,
+            "clip_g": None,
+            "t5": None,
+        },
+    }
+
+
+def _candidate_attempt_number(previous: dict | None, retrying_candidate: bool) -> int:
+    return previous.get("attempt_count", 1) + 1 if retrying_candidate and previous else 1
+
+
 def build_workflow(
     engine_id: str,
     positive_prompt: str,
@@ -963,39 +1000,15 @@ def build_workflow(
         settings.model_dump()
     )
 
-    def compact_prompt(value: str, limit: int) -> str:
-        compact = " ".join(str(value or "").split())
-        return compact if len(compact) <= limit else compact[:limit].rsplit(" ", 1)[0]
-
     # SD3.5 has three encoders with different jobs. CLIP-L receives a short
     # visual label, CLIP-G receives the composition contract, and T5 receives
     # a compact creative description. Negative conditioning is intentionally
     # empty for SD3.5: long negative prompts make this model collapse into
     # flat fields and raster artifacts.
-    clip_l_positive = (
-        compiled_prompt.clip_l if compiled_prompt and compiled_prompt.clip_l
-        else compact_prompt(positive_prompt, 160)
+    clip_l_positive, clip_g_positive, sd35_positive, sd35_negative = (
+        _workflow_encoder_prompts(engine_id, positive_prompt, compiled_prompt)
     )
-    clip_g_positive = (
-        compiled_prompt.clip_g if compiled_prompt and compiled_prompt.clip_g
-        else "portrait event background, edge-weighted composition, open title "
-             "and programme zones, large matte graphic forms, requested palette"
-    )
-    sd35_positive = (
-        compiled_prompt.t5 if compiled_prompt and compiled_prompt.t5
-        else compact_prompt(positive_prompt, 520)
-    )
-    sd35_negative = compiled_prompt.negative if compiled_prompt else ""
-
-    if engine_id == settings.engine_2_id:
-        width = settings.sdxl_generation_width
-        height = settings.sdxl_generation_height
-    elif engine_id == settings.engine_3_id:
-        width = settings.sd35_generation_width
-        height = settings.sd35_generation_height
-    else:
-        width = settings.generation_width
-        height = settings.generation_height
+    width, height = _workflow_dimensions(engine_id)
 
     profile = sampling_profile or select_sampling_profile(engine_id, 1, summarize_failures(None))
     values.update(
@@ -1011,11 +1024,6 @@ def build_workflow(
         clip_l_negative_prompt=sd35_negative,
         clip_g_negative_prompt=sd35_negative,
         t5_negative_prompt=sd35_negative,
-        sd35_shift=profile.shift if profile and profile.shift is not None else 3.0,
-        steps=profile.steps if profile else 28,
-        cfg=profile.cfg if profile else 6.0,
-        sampler_name=profile.sampler_name if profile else "dpmpp_2m",
-        scheduler=profile.scheduler if profile else "karras",
         seed=seed,
         width=width,
         height=height,
@@ -1023,55 +1031,9 @@ def build_workflow(
             output_prefix
         ),
     )
+    values.update(_sampling_parameters(profile))
 
-    def inject(
-        value: Any,
-    ) -> Any:
-        if (
-            isinstance(
-                value,
-                str,
-            )
-            and value.startswith(
-                "${"
-            )
-            and value.endswith(
-                "}"
-            )
-        ):
-            return values[
-                value[2:-1]
-            ]
-
-        if isinstance(
-            value,
-            dict,
-        ):
-            return {
-                key: inject(
-                    item
-                )
-                for (
-                    key,
-                    item,
-                )
-                in value.items()
-            }
-
-        if isinstance(
-            value,
-            list,
-        ):
-            return [
-                inject(
-                    item
-                )
-                for item in value
-            ]
-
-        return value
-
-    workflow = inject(template)
+    workflow = _inject_workflow_values(template, values)
     if engine_id == settings.engine_3_id and profile and profile.shift is None:
         # The checkpoint's native sampling configuration is the official
         # SD3.5 path. Only recovery profiles explicitly override its shift.
@@ -1080,114 +1042,96 @@ def build_workflow(
     return workflow
 
 
+def _validate_workflow_node(node_id: str, node: dict, object_info: dict) -> None:
+    kind = node["class_type"]
+
+    if kind not in object_info:
+        raise ComfyUIError(
+            "ComfyUI node "
+            f"{kind} is unavailable "
+            f"(node {node_id})."
+        )
+
+    schema = (
+        object_info[
+            kind
+        ][
+            "input"
+        ]
+    )
+
+    inputs = (
+        node[
+            "inputs"
+        ]
+    )
+
+    missing = (
+        set(
+            schema.get(
+                "required",
+                {},
+            )
+        )
+        - inputs.keys()
+    )
+
+    if missing:
+        raise ComfyUIError(
+            f"Node {kind} missing "
+            "required inputs: "
+            f"{sorted(missing)}"
+        )
+
+    fields = {
+        **schema.get(
+            "required",
+            {},
+        ),
+        **schema.get(
+            "optional",
+            {},
+        ),
+    }
+
+    for (
+        key,
+        specification,
+    ) in fields.items():
+        if (
+            key not in inputs
+            or isinstance(
+                inputs[key],
+                list,
+            )
+        ):
+            continue
+
+        options = None
+        if isinstance(specification[0], list):
+            options = specification[0]
+        elif len(specification) > 1 and isinstance(specification[1], dict):
+            options = specification[1].get("options")
+
+        if (
+            options is not None
+            and inputs[key]
+            not in options
+        ):
+            raise ComfyUIError(
+                "Configured "
+                f"{kind}.{key}="
+                f"{inputs[key]!r} "
+                "is unavailable on ComfyUI."
+            )
+
+
 def validate_workflow(
     workflow: dict,
     object_info: dict,
 ) -> None:
-    for (
-        node_id,
-        node,
-    ) in workflow.items():
-        kind = (
-            node[
-                "class_type"
-            ]
-        )
-
-        if kind not in object_info:
-            raise ComfyUIError(
-                "ComfyUI node "
-                f"{kind} is unavailable "
-                f"(node {node_id})."
-            )
-
-        schema = (
-            object_info[
-                kind
-            ][
-                "input"
-            ]
-        )
-
-        inputs = (
-            node[
-                "inputs"
-            ]
-        )
-
-        missing = (
-            set(
-                schema.get(
-                    "required",
-                    {},
-                )
-            )
-            - inputs.keys()
-        )
-
-        if missing:
-            raise ComfyUIError(
-                f"Node {kind} missing "
-                "required inputs: "
-                f"{sorted(missing)}"
-            )
-
-        fields = {
-            **schema.get(
-                "required",
-                {},
-            ),
-            **schema.get(
-                "optional",
-                {},
-            ),
-        }
-
-        for (
-            key,
-            specification,
-        ) in fields.items():
-            if (
-                key not in inputs
-                or isinstance(
-                    inputs[key],
-                    list,
-                )
-            ):
-                continue
-
-            options = (
-                specification[0]
-                if isinstance(
-                    specification[0],
-                    list,
-                )
-                else (
-                    specification[1].get(
-                        "options"
-                    )
-                    if (
-                        len(specification) > 1
-                        and isinstance(
-                            specification[1],
-                            dict,
-                        )
-                    )
-                    else None
-                )
-            )
-
-            if (
-                options is not None
-                and inputs[key]
-                not in options
-            ):
-                raise ComfyUIError(
-                    "Configured "
-                    f"{kind}.{key}="
-                    f"{inputs[key]!r} "
-                    "is unavailable on ComfyUI."
-                )
+    for node_id, node in workflow.items():
+        _validate_workflow_node(node_id, node, object_info)
 
 
 def validate_background(
@@ -1495,7 +1439,7 @@ class ComfyUIClient:
         queue = (
             await self.request(
                 "GET",
-                "/queue",
+                QUEUE_ENDPOINT,
             )
         ).json()
 
@@ -1600,7 +1544,7 @@ class ComfyUIClient:
         queue = (
             await self.request(
                 "GET",
-                "/queue",
+                QUEUE_ENDPOINT,
             )
         ).json()
 
@@ -1656,659 +1600,11 @@ class ComfyUIClient:
             None,
         )
 
-    async def generate_image(
-        self,
-        reference_number: str,
-        engine_id: str,
-        direction_id: str,
-        positive_prompt: str,
-        negative_prompt: str,
-        compiled_prompt=None,
-        spec_sha256: str | None = None,
-        direction_role: str | None = None,
-        retry_stage: str | None = None,
-        failure_category: str | None = None,
-        sampling_profile: SamplingProfile | None = None,
-        seed_override: int | None = None,
-    ) -> dict:
-        workflow_name(
-            engine_id
-        )
-
-        if (
-            direction_id
-            not in {
-                "A",
-                "B",
-                "C",
-            }
-        ):
-            raise ValueError(
-                "Direction must be A, B or C."
-            )
-
-        directory = (
-            get_job_directory(
-                reference_number
-            )
-            / "backgrounds"
-            / engine_id
-        )
-
-        directory.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        record_path = (
-            directory
-            / (
-                "image-"
-                f"{direction_id.lower()}"
-                ".json"
-            )
-        )
-
-        image_path = (
-            directory
-            / (
-                "image-"
-                f"{direction_id.lower()}"
-                ".png"
-            )
-        )
-
-        previous = (
-            json.loads(
-                record_path.read_text(
-                    encoding="utf-8"
-                )
-            )
-            if record_path.exists()
-            else None
-        )
-
-        if (
-            previous and spec_sha256 and previous.get("spec_sha256")
-            and previous["spec_sha256"] != spec_sha256
-        ):
-            raise ComfyUIError(
-                "Candidate specification changed across attempts; "
-                "preserve this job and use a new reference."
-            )
-
-        if (
-            previous
-            and previous.get("status") != "complete"
-            and _attempt_budget_exhausted(previous)
-        ):
-            raise ComfyUIError(
-                "Candidate attempt budget is exhausted; no additional "
-                "ComfyUI submission will be made."
-            )
-
-        #
-        # Reuse completed candidate only if it still validates.
-        #
-        if (
-            previous
-            and previous.get(
-                "status"
-            )
-            == "complete"
-        ):
-            try:
-                verified = (
-                    validate_background(
-                        image_path,
-                        reference_number=(
-                            reference_number
-                        ),
-                        expected_sha256=(
-                            previous[
-                                "sha256"
-                            ]
-                        ),
-                    )
-                )
-
-                return {
-                    **previous,
-                    **verified,
-                    "reused": True,
-                }
-
-            except (
-                OSError,
-                ValueError,
-            ):
-                logger.warning(
-                    "event=background_invalid "
-                    "reference=%s "
-                    "engine=%s "
-                    "direction=%s",
-                    reference_number,
-                    engine_id,
-                    direction_id,
-                )
-
-        retrying_rejected_candidate = bool(
-            previous
-            and previous.get(
-                "rejection_reason"
-            )
-            and previous.get(
-                "status"
-            )
-            == "rejected"
-        )
-
-        retrying_failed_execution = bool(
-            previous
-            and previous.get(
-                "status"
-            )
-            in {
-                "failed",
-                "runtime_failed",
-            }
-        )
-
-        retrying_candidate = (
-            retrying_rejected_candidate
-            or retrying_failed_execution
-        )
-
-        #
-        # Every rejected/runtime-failed attempt gets a fresh seed.
-        #
-        if seed_override is not None:
-            if not 0 <= seed_override < 2**63:
-                raise ValueError("Probe seed must fit the supported signed 63-bit range")
-            seed = seed_override
-        elif retrying_candidate:
-            seed = (
-                secrets.randbits(
-                    63
-                )
-            )
-
-        elif previous:
-            seed = (
-                previous[
-                    "seed"
-                ]
-            )
-
-        else:
-            seed = (
-                secrets.randbits(
-                    63
-                )
-            )
-
-        document = (
-            load_prompts_document(
-                reference_number
-            )
-        )
-
-        brief = (
-            document.get(
-                "brief",
-                {},
-            )
-        )
-
-        primary_colour = (
-            brief.get(
-                "primary_colour"
-            )
-        )
-
-        secondary_colour = (
-            brief.get(
-                "secondary_colour"
-            )
-        )
-
-        actual_positive_prompt, actual_negative_prompt = _transport_prompts(
-            engine_id, positive_prompt, negative_prompt,
-            primary_colour, secondary_colour, compiled_prompt,
-        )
-
-        selected_profile = sampling_profile or select_sampling_profile(
-            engine_id,
-            int(previous.get("attempt_count", 0)) + 1 if retrying_candidate else 1,
-            summarize_failures(previous),
-        )
-
-        workflow = (
-            build_workflow(
-                engine_id,
-                actual_positive_prompt,
-                actual_negative_prompt,
-                seed,
-                (
-                    "programme-studio/"
-                    f"{reference_number}/"
-                    f"{engine_id}/"
-                    f"{direction_id.lower()}"
-                ),
-                compiled_prompt=compiled_prompt,
-                sampling_profile=selected_profile,
-            )
-        )
-
-        fingerprint = (
-            hashlib.sha256(
-                json.dumps(
-                    workflow,
-                    sort_keys=True,
-                ).encode(
-                    "utf-8"
-                )
-            ).hexdigest()
-        )
-
-        if (
-            previous
-            and not retrying_candidate
-            and previous.get(
-                "workflow_sha256"
-            )
-            and previous[
-                "workflow_sha256"
-            ]
-            != fingerprint
-        ):
-            raise ComfyUIError(
-                "Frozen workflow differs from stored "
-                "candidate; use a new reference."
-            )
-
-        rejected_attempts = (
-            list(
-                previous.get(
-                    "rejected_attempts",
-                    [],
-                )
-            )
-            if previous
-            else []
-        )
-
-        failed_attempts = (
-            list(
-                previous.get(
-                    "failed_attempts",
-                    [],
-                )
-            )
-            if previous
-            else []
-        )
-
-        if (
-            retrying_rejected_candidate
-            and previous
-        ):
-            rejected_attempts.append(
-                {
-                    "attempt_count": (
-                        previous.get(
-                            "attempt_count",
-                            1,
-                        )
-                    ),
-                    "seed": (
-                        previous.get(
-                            "seed"
-                        )
-                    ),
-                    "prompt_id": (
-                        previous.get(
-                            "prompt_id"
-                        )
-                    ),
-                    "sha256": (
-                        previous.get(
-                            "sha256"
-                        )
-                    ),
-                    "rejection_reason": (
-                        previous.get(
-                            "rejection_reason"
-                        )
-                    ),
-                    "failure_category": previous.get("failure_category"),
-                    "retry_stage": previous.get("retry_stage"),
-                    "spec_sha256": previous.get("spec_sha256"),
-                    "direction_role": previous.get("direction_role"),
-                    "compiled_prompt": previous.get("compiled_prompt"),
-                    "sampling_profile": previous.get("sampling_profile"),
-                    "outcome_category": previous.get("outcome_category"),
-                }
-            )
-
-        if (
-            retrying_failed_execution
-            and previous
-        ):
-            failed_attempts.append(
-                {
-                    "attempt_count": (
-                        previous.get(
-                            "attempt_count",
-                            1,
-                        )
-                    ),
-                    "seed": (
-                        previous.get(
-                            "seed"
-                        )
-                    ),
-                    "prompt_id": (
-                        previous.get(
-                            "prompt_id"
-                        )
-                    ),
-                    "error": (
-                        previous.get(
-                            "error"
-                        )
-                    ),
-                    "remote_status": (
-                        previous.get(
-                            "remote_status"
-                        )
-                    ),
-                    "failure_category": previous.get("failure_category"),
-                    "retry_stage": previous.get("retry_stage"),
-                    "spec_sha256": previous.get("spec_sha256"),
-                    "direction_role": previous.get("direction_role"),
-                    "compiled_prompt": previous.get("compiled_prompt"),
-                    "sampling_profile": previous.get("sampling_profile"),
-                    "outcome_category": previous.get("outcome_category"),
-                }
-            )
-
-        record = {
-            "reference_number": (
-                reference_number
-            ),
-            "engine_id": (
-                engine_id
-            ),
-            "direction_id": (
-                direction_id
-            ),
-            "seed": (
-                seed
-            ),
-            "workflow_sha256": (
-                fingerprint
-            ),
-            "request_id": (
-                str(
-                    uuid.uuid4()
-                )
-            ),
-            "status": (
-                "prepared"
-            ),
-            "attempt_count": (
-                (
-                    previous.get(
-                        "attempt_count",
-                        1,
-                    )
-                    + 1
-                )
-                if (
-                    retrying_candidate
-                    and previous
-                )
-                else 1
-            ),
-            "positive_prompt": (
-                actual_positive_prompt
-            ),
-            "negative_prompt": (
-                actual_negative_prompt
-                if (
-                    engine_id
-                    != settings.engine_1_id
-                )
-                else None
-            ),
-            "adaptations": (
-                [
-                    (
-                        "Negative prompt omitted because "
-                        "the configured FLUX workflow does "
-                        "not expose negative conditioning."
-                    )
-                ]
-                if (
-                    engine_id
-                    == settings.engine_1_id
-                )
-                else []
-            ),
-            "workflow": (
-                workflow
-            ),
-            "spec_sha256": spec_sha256,
-            "direction_role": direction_role,
-            "retry_stage": compiled_prompt.retry_stage if compiled_prompt else retry_stage,
-            "failure_category": compiled_prompt.failure_category if compiled_prompt else failure_category,
-            "compiled_prompt": compiled_prompt.record() if compiled_prompt else {
-                "positive": actual_positive_prompt,
-                "negative": actual_negative_prompt,
-                "clip_l": None,
-                "clip_g": None,
-                "t5": None,
-            },
-            "sampling_profile": selected_profile.record() if selected_profile else None,
-        }
-
-        if rejected_attempts:
-            record[
-                "rejected_attempts"
-            ] = (
-                rejected_attempts
-            )
-
-        if failed_attempts:
-            record[
-                "failed_attempts"
-            ] = (
-                failed_attempts
-            )
-
-        if (
-            previous
-            and not retrying_candidate
-        ):
-            record = previous
-
-        prompt_id = (
-            record.get(
-                "prompt_id"
-            )
-        )
-
-        if (
-            not prompt_id
-            and previous
-            and not retrying_candidate
-        ):
-            prompt_id = (
-                await self.recover_submission(
-                    record[
-                        "request_id"
-                    ]
-                )
-            )
-
-            if (
-                prompt_id is None
-            ):
-                raise SubmissionUncertain(
-                    "Submission outcome is unknown; "
-                    "inspect ComfyUI history."
-                )
-
-        if not prompt_id:
-            object_info = (
-                await self.request(
-                    "GET",
-                    "/object_info",
-                )
-            ).json()
-
-            validate_workflow(
-                workflow,
-                object_info,
-            )
-
-            queue = (
-                await self.request(
-                    "GET",
-                    "/queue",
-                )
-            ).json()
-
-            if (
-                queue.get(
-                    "queue_running"
-                )
-                or queue.get(
-                    "queue_pending"
-                )
-            ):
-                raise ComfyUIError(
-                    "ComfyUI is busy; retry after "
-                    "its current queue finishes."
-                )
-
-            write_json(
-                record_path,
-                record,
-            )
-
-            result = (
-                await self.request(
-                    "POST",
-                    "/prompt",
-                    json={
-                        "prompt": (
-                            workflow
-                        ),
-                        "client_id": (
-                            record[
-                                "request_id"
-                            ]
-                        ),
-                        "extra_data": {
-                            "programme_request_id": (
-                                record[
-                                    "request_id"
-                                ]
-                            )
-                        },
-                    },
-                )
-            ).json()
-
-            if (
-                result.get(
-                    "node_errors"
-                )
-                or not result.get(
-                    "prompt_id"
-                )
-            ):
-                node_errors = (
-                    result.get(
-                        "node_errors"
-                    )
-                    or {}
-                )
-
-                message = (
-                    "ComfyUI rejected the workflow."
-                )
-
-                if node_errors:
-                    message += (
-                        " "
-                        + json.dumps(
-                            node_errors,
-                            ensure_ascii=False,
-                        )[:1500]
-                    )
-
-                record.update(
-                    status=(
-                        "runtime_failed"
-                    ),
-                    error=(
-                        message
-                    ),
-                    rejection_reason=(
-                        message
-                    ),
-                )
-
-                write_json(
-                    record_path,
-                    record,
-                )
-
-                raise ComfyUIError(
-                    message
-                )
-
-            prompt_id = (
-                result[
-                    "prompt_id"
-                ]
-            )
-
-        record.update(
-            prompt_id=(
-                prompt_id
-            ),
-            status=(
-                "submitted"
-            ),
-        )
-
-        write_json(
-            record_path,
-            record,
-        )
-
-        logger.info(
-            "event=comfyui_submitted "
-            "reference=%s "
-            "engine=%s "
-            "direction=%s "
-            "attempt=%s "
-            "seed=%s "
-            "prompt_id=%s",
-            reference_number,
-            engine_id,
-            direction_id,
-            record.get(
-                "attempt_count"
-            ),
-            seed,
-            prompt_id,
-        )
-
+    async def _wait_for_generation(self, prompt_id: str, record: dict, record_path: Path) -> dict:
+        reference_number = record["reference_number"]
+        engine_id = record["engine_id"]
+        direction_id = record["direction_id"]
+        seed = record["seed"]
         deadline = (
             time.monotonic()
             + settings
@@ -2434,110 +1730,161 @@ class ComfyUIClient:
                 .comfyui_poll_interval_seconds
             )
 
-        save_nodes = [
-            node_id
-            for (
-                node_id,
-                item,
-            ) in workflow.items()
-            if (
-                item[
-                    "class_type"
-                ]
-                == "SaveImage"
-            )
-        ]
+        return history
 
-        images = [
-            image
-            for node_id
-            in save_nodes
-            for image
-            in (
-                history.get(
-                    "outputs",
-                    {},
-                )
-                .get(
-                    node_id,
-                    {},
-                )
-                .get(
-                    "images",
-                    [],
-                )
+    async def _submit_candidate(self, record: dict, previous: dict | None, retrying_candidate: bool, workflow: dict, record_path: Path) -> str:
+        prompt_id = (
+            record.get(
+                "prompt_id"
             )
-        ]
+        )
 
         if (
-            len(images) != 1
-            or images[0].get(
-                "type"
-            )
-            != "output"
+            not prompt_id
+            and previous
+            and not retrying_candidate
         ):
-            message = (
-                "Expected exactly one persisted "
-                "ComfyUI output image."
+            prompt_id = (
+                await self.recover_submission(
+                    record[
+                        "request_id"
+                    ]
+                )
             )
 
-            record.update(
-                status=(
-                    "runtime_failed"
-                ),
-                error=(
-                    message
-                ),
-                rejection_reason=(
-                    message
-                ),
+            if (
+                prompt_id is None
+            ):
+                raise SubmissionUncertain(
+                    "Submission outcome is unknown; "
+                    "inspect ComfyUI history."
+                )
+
+        if not prompt_id:
+            object_info = (
+                await self.request(
+                    "GET",
+                    "/object_info",
+                )
+            ).json()
+
+            validate_workflow(
+                workflow,
+                object_info,
             )
+
+            queue = (
+                await self.request(
+                    "GET",
+                    QUEUE_ENDPOINT,
+                )
+            ).json()
+
+            if (
+                queue.get(
+                    "queue_running"
+                )
+                or queue.get(
+                    "queue_pending"
+                )
+            ):
+                raise ComfyUIError(
+                    "ComfyUI is busy; retry after "
+                    "its current queue finishes."
+                )
 
             write_json(
                 record_path,
                 record,
             )
 
-            raise ComfyUIError(
-                message
-            )
+            result = (
+                await self.request(
+                    "POST",
+                    "/prompt",
+                    json={
+                        "prompt": (
+                            workflow
+                        ),
+                        "client_id": (
+                            record[
+                                "request_id"
+                            ]
+                        ),
+                        "extra_data": {
+                            "programme_request_id": (
+                                record[
+                                    "request_id"
+                                ]
+                            )
+                        },
+                    },
+                )
+            ).json()
 
-        descriptor = (
-            images[0]
-        )
+            if (
+                result.get(
+                    "node_errors"
+                )
+                or not result.get(
+                    "prompt_id"
+                )
+            ):
+                node_errors = (
+                    result.get(
+                        "node_errors"
+                    )
+                    or {}
+                )
 
-        response = (
-            await self.request(
-                "GET",
-                "/view",
-                params={
-                    "filename": (
-                        descriptor[
-                            "filename"
-                        ]
+                message = (
+                    "ComfyUI rejected the workflow."
+                )
+
+                if node_errors:
+                    message += (
+                        " "
+                        + json.dumps(
+                            node_errors,
+                            ensure_ascii=False,
+                        )[:1500]
+                    )
+
+                record.update(
+                    status=(
+                        "runtime_failed"
                     ),
-                    "subfolder": (
-                        descriptor.get(
-                            "subfolder",
-                            "",
-                        )
+                    error=(
+                        message
                     ),
-                    "type": "output",
-                },
+                    rejection_reason=(
+                        message
+                    ),
+                )
+
+                write_json(
+                    record_path,
+                    record,
+                )
+
+                raise ComfyUIError(
+                    message
+                )
+
+            prompt_id = (
+                result[
+                    "prompt_id"
+                ]
             )
-        )
 
-        candidate_path = (
-            image_path.with_suffix(
-                ".download.part"
-            )
-        )
+        return prompt_id
 
-        write_bytes(
-            candidate_path,
-            response.content,
-        )
-
+    def _validate_downloaded_candidate(self, record: dict, retrying_candidate: bool, image_path: Path, candidate_path: Path, descriptor: dict, palette: tuple[str | None, str | None]) -> tuple[dict, dict | None, bool, str | None]:
+        reference_number = record["reference_number"]
+        engine_id = record["engine_id"]
+        direction_id = record["direction_id"]
+        record_path = image_path.with_suffix(".json")
+        primary_colour, secondary_colour = palette
         raw_validation = None
         normalized_path = image_path.with_suffix(".normalized.part.png")
         palette_normalized = False
@@ -2714,15 +2061,14 @@ class ComfyUIClient:
                     ) from error
 
             if (
-                previous
-                and not retrying_candidate
-                and previous.get(
+                not retrying_candidate
+                and record.get(
                     "sha256"
                 )
                 and validation[
                     "sha256"
                 ]
-                != previous[
+                != record[
                     "sha256"
                 ]
             ):
@@ -2744,6 +2090,597 @@ class ComfyUIClient:
                 missing_ok=True
             )
             normalized_path.unlink(missing_ok=True)
+
+        return validation, raw_validation, palette_normalized, raw_palette_error
+
+    async def _download_candidate(self, history: dict, workflow: dict, record: dict, record_path: Path, image_path: Path) -> tuple[dict, Path]:
+        save_nodes = [
+            node_id
+            for (
+                node_id,
+                item,
+            ) in workflow.items()
+            if (
+                item[
+                    "class_type"
+                ]
+                == "SaveImage"
+            )
+        ]
+
+        images = [
+            image
+            for node_id
+            in save_nodes
+            for image
+            in (
+                history.get(
+                    "outputs",
+                    {},
+                )
+                .get(
+                    node_id,
+                    {},
+                )
+                .get(
+                    "images",
+                    [],
+                )
+            )
+        ]
+
+        if (
+            len(images) != 1
+            or images[0].get(
+                "type"
+            )
+            != "output"
+        ):
+            message = (
+                "Expected exactly one persisted "
+                "ComfyUI output image."
+            )
+
+            record.update(
+                status=(
+                    "runtime_failed"
+                ),
+                error=(
+                    message
+                ),
+                rejection_reason=(
+                    message
+                ),
+            )
+
+            write_json(
+                record_path,
+                record,
+            )
+
+            raise ComfyUIError(
+                message
+            )
+
+        descriptor = (
+            images[0]
+        )
+
+        response = (
+            await self.request(
+                "GET",
+                "/view",
+                params={
+                    "filename": (
+                        descriptor[
+                            "filename"
+                        ]
+                    ),
+                    "subfolder": (
+                        descriptor.get(
+                            "subfolder",
+                            "",
+                        )
+                    ),
+                    "type": "output",
+                },
+            )
+        )
+
+        candidate_path = (
+            image_path.with_suffix(
+                ".download.part"
+            )
+        )
+
+        write_bytes(
+            candidate_path,
+            response.content,
+        )
+
+        return descriptor, candidate_path
+
+    def _load_existing_candidate(self, record_path: Path, image_path: Path, spec_sha256: str | None, reference_number: str, engine_id: str, direction_id: str) -> tuple[dict | None, dict | None]:
+        previous = (
+            json.loads(
+                record_path.read_text(
+                    encoding="utf-8"
+                )
+            )
+            if record_path.exists()
+            else None
+        )
+
+        if (
+            previous and spec_sha256 and previous.get("spec_sha256")
+            and previous["spec_sha256"] != spec_sha256
+        ):
+            raise ComfyUIError(
+                "Candidate specification changed across attempts; "
+                "preserve this job and use a new reference."
+            )
+
+        if (
+            previous
+            and previous.get("status") != "complete"
+            and _attempt_budget_exhausted(previous)
+        ):
+            raise ComfyUIError(
+                "Candidate attempt budget is exhausted; no additional "
+                "ComfyUI submission will be made."
+            )
+
+        #
+        # Reuse completed candidate only if it still validates.
+        #
+        if (
+            previous
+            and previous.get(
+                "status"
+            )
+            == "complete"
+        ):
+            try:
+                verified = (
+                    validate_background(
+                        image_path,
+                        reference_number=(
+                            reference_number
+                        ),
+                        expected_sha256=(
+                            previous[
+                                "sha256"
+                            ]
+                        ),
+                    )
+                )
+
+                return previous, {
+                    **previous,
+                    **verified,
+                    "reused": True,
+                }
+
+            except (
+                OSError,
+                ValueError,
+            ):
+                logger.warning(
+                    "event=background_invalid "
+                    "reference=%s "
+                    "engine=%s "
+                    "direction=%s",
+                    reference_number,
+                    engine_id,
+                    direction_id,
+                )
+
+        return previous, None
+
+    def _prior_attempts(self, previous: dict | None, retrying_rejected_candidate: bool, retrying_failed_execution: bool) -> tuple[list[dict], list[dict]]:
+        rejected_attempts = (
+            list(
+                previous.get(
+                    "rejected_attempts",
+                    [],
+                )
+            )
+            if previous
+            else []
+        )
+
+        failed_attempts = (
+            list(
+                previous.get(
+                    "failed_attempts",
+                    [],
+                )
+            )
+            if previous
+            else []
+        )
+
+        if (
+            retrying_rejected_candidate
+            and previous
+        ):
+            rejected_attempts.append(
+                {
+                    "attempt_count": (
+                        previous.get(
+                            "attempt_count",
+                            1,
+                        )
+                    ),
+                    "seed": (
+                        previous.get(
+                            "seed"
+                        )
+                    ),
+                    "prompt_id": (
+                        previous.get(
+                            "prompt_id"
+                        )
+                    ),
+                    "sha256": (
+                        previous.get(
+                            "sha256"
+                        )
+                    ),
+                    "rejection_reason": (
+                        previous.get(
+                            "rejection_reason"
+                        )
+                    ),
+                    "failure_category": previous.get("failure_category"),
+                    "retry_stage": previous.get("retry_stage"),
+                    "spec_sha256": previous.get("spec_sha256"),
+                    "direction_role": previous.get("direction_role"),
+                    "compiled_prompt": previous.get("compiled_prompt"),
+                    "sampling_profile": previous.get("sampling_profile"),
+                    "outcome_category": previous.get("outcome_category"),
+                }
+            )
+
+        if (
+            retrying_failed_execution
+            and previous
+        ):
+            failed_attempts.append(
+                {
+                    "attempt_count": (
+                        previous.get(
+                            "attempt_count",
+                            1,
+                        )
+                    ),
+                    "seed": (
+                        previous.get(
+                            "seed"
+                        )
+                    ),
+                    "prompt_id": (
+                        previous.get(
+                            "prompt_id"
+                        )
+                    ),
+                    "error": (
+                        previous.get(
+                            "error"
+                        )
+                    ),
+                    "remote_status": (
+                        previous.get(
+                            "remote_status"
+                        )
+                    ),
+                    "failure_category": previous.get("failure_category"),
+                    "retry_stage": previous.get("retry_stage"),
+                    "spec_sha256": previous.get("spec_sha256"),
+                    "direction_role": previous.get("direction_role"),
+                    "compiled_prompt": previous.get("compiled_prompt"),
+                    "sampling_profile": previous.get("sampling_profile"),
+                    "outcome_category": previous.get("outcome_category"),
+                }
+            )
+
+        return rejected_attempts, failed_attempts
+
+    @staticmethod
+    def _candidate_seed(
+        previous: dict | None,
+        retrying_candidate: bool,
+        seed_override: int | None,
+    ) -> int:
+        if seed_override is not None:
+            if not 0 <= seed_override < 2**63:
+                raise ValueError("Probe seed must fit the supported signed 63-bit range")
+            return seed_override
+        if previous and not retrying_candidate:
+            return previous["seed"]
+        return secrets.randbits(63)
+
+    @staticmethod
+    def _retry_states(previous: dict | None) -> tuple[bool, bool]:
+        if not previous:
+            return False, False
+        rejected = bool(
+            previous.get("rejection_reason") and previous.get("status") == "rejected"
+        )
+        failed = previous.get("status") in {"failed", "runtime_failed"}
+        return rejected, failed
+
+    @staticmethod
+    def _verify_frozen_workflow(
+        previous: dict | None, retrying_candidate: bool, fingerprint: str,
+    ) -> None:
+        if (
+            previous and not retrying_candidate
+            and previous.get("workflow_sha256")
+            and previous["workflow_sha256"] != fingerprint
+        ):
+            raise ComfyUIError(
+                "Frozen workflow differs from stored candidate; use a new reference."
+            )
+
+    async def generate_image(
+        self,
+        reference_number: str,
+        engine_id: str,
+        direction_id: str,
+        positive_prompt: str,
+        negative_prompt: str,
+        compiled_prompt=None,
+        spec_sha256: str | None = None,
+        direction_role: str | None = None,
+        retry_stage: str | None = None,
+        failure_category: str | None = None,
+        sampling_profile: SamplingProfile | None = None,
+        seed_override: int | None = None,
+    ) -> dict:
+        workflow_name(
+            engine_id
+        )
+
+        if (
+            direction_id
+            not in {
+                "A",
+                "B",
+                "C",
+            }
+        ):
+            raise ValueError(
+                "Direction must be A, B or C."
+            )
+
+        directory = (
+            get_job_directory(
+                reference_number
+            )
+            / "backgrounds"
+            / engine_id
+        )
+
+        directory.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        record_path = (
+            directory
+            / (
+                "image-"
+                f"{direction_id.lower()}"
+                ".json"
+            )
+        )
+
+        image_path = (
+            directory
+            / (
+                "image-"
+                f"{direction_id.lower()}"
+                ".png"
+            )
+        )
+
+        previous, reused = self._load_existing_candidate(
+            record_path, image_path, spec_sha256, reference_number, engine_id, direction_id,
+        )
+        if reused is not None:
+            return reused
+
+        retrying_rejected_candidate, retrying_failed_execution = self._retry_states(previous)
+
+        retrying_candidate = (
+            retrying_rejected_candidate
+            or retrying_failed_execution
+        )
+
+        #
+        # Every rejected/runtime-failed attempt gets a fresh seed.
+        #
+        seed = self._candidate_seed(previous, retrying_candidate, seed_override)
+
+        document = (
+            load_prompts_document(
+                reference_number
+            )
+        )
+
+        brief = (
+            document.get(
+                "brief",
+                {},
+            )
+        )
+
+        primary_colour = (
+            brief.get(
+                "primary_colour"
+            )
+        )
+
+        secondary_colour = (
+            brief.get(
+                "secondary_colour"
+            )
+        )
+
+        actual_positive_prompt, actual_negative_prompt = _transport_prompts(
+            engine_id, positive_prompt, negative_prompt,
+            primary_colour, secondary_colour, compiled_prompt,
+        )
+
+        selected_profile = sampling_profile or select_sampling_profile(
+            engine_id,
+            int(previous.get("attempt_count", 0)) + 1 if retrying_candidate else 1,
+            summarize_failures(previous),
+        )
+
+        workflow = (
+            build_workflow(
+                engine_id,
+                actual_positive_prompt,
+                actual_negative_prompt,
+                seed,
+                (
+                    "programme-studio/"
+                    f"{reference_number}/"
+                    f"{engine_id}/"
+                    f"{direction_id.lower()}"
+                ),
+                compiled_prompt=compiled_prompt,
+                sampling_profile=selected_profile,
+            )
+        )
+
+        fingerprint = (
+            hashlib.sha256(
+                json.dumps(
+                    workflow,
+                    sort_keys=True,
+                ).encode(
+                    "utf-8"
+                )
+            ).hexdigest()
+        )
+
+        self._verify_frozen_workflow(previous, retrying_candidate, fingerprint)
+
+        rejected_attempts, failed_attempts = self._prior_attempts(
+            previous, retrying_rejected_candidate, retrying_failed_execution,
+        )
+
+        record = {
+            "reference_number": (
+                reference_number
+            ),
+            "engine_id": (
+                engine_id
+            ),
+            "direction_id": (
+                direction_id
+            ),
+            "seed": (
+                seed
+            ),
+            "workflow_sha256": (
+                fingerprint
+            ),
+            "request_id": (
+                str(
+                    uuid.uuid4()
+                )
+            ),
+            "status": (
+                "prepared"
+            ),
+            "attempt_count": _candidate_attempt_number(previous, retrying_candidate),
+            "positive_prompt": (
+                actual_positive_prompt
+            ),
+            "workflow": (
+                workflow
+            ),
+            "spec_sha256": spec_sha256,
+            "direction_role": direction_role,
+            "sampling_profile": selected_profile.record() if selected_profile else None,
+        }
+        record.update(_record_prompt_metadata(
+            engine_id, actual_positive_prompt, actual_negative_prompt,
+            compiled_prompt, retry_stage, failure_category,
+        ))
+
+        if rejected_attempts:
+            record[
+                "rejected_attempts"
+            ] = (
+                rejected_attempts
+            )
+
+        if failed_attempts:
+            record[
+                "failed_attempts"
+            ] = (
+                failed_attempts
+            )
+
+        if (
+            previous
+            and not retrying_candidate
+        ):
+            record = previous
+
+        prompt_id = await self._submit_candidate(
+            record, previous, retrying_candidate, workflow, record_path,
+        )
+
+        record.update(
+            prompt_id=(
+                prompt_id
+            ),
+            status=(
+                "submitted"
+            ),
+        )
+
+        write_json(
+            record_path,
+            record,
+        )
+
+        logger.info(
+            "event=comfyui_submitted "
+            "reference=%s "
+            "engine=%s "
+            "direction=%s "
+            "attempt=%s "
+            "seed=%s "
+            "prompt_id=%s",
+            reference_number,
+            engine_id,
+            direction_id,
+            record.get(
+                "attempt_count"
+            ),
+            seed,
+            prompt_id,
+        )
+
+        history = await self._wait_for_generation(prompt_id, record, record_path)
+
+        descriptor, candidate_path = await self._download_candidate(
+            history, workflow, record, record_path, image_path,
+        )
+
+        validation, raw_validation, palette_normalized, raw_palette_error = (
+            self._validate_downloaded_candidate(
+                record, retrying_candidate, image_path, candidate_path, descriptor,
+                (primary_colour, secondary_colour),
+            )
+        )
 
         record.update(
             validation,

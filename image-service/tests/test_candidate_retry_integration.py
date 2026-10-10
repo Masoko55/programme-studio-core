@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from app.config.settings import settings
 from app.services.comfyui_client import ComfyUIError
-from app.services.image_execution import _attempt_output_wave
+from app.services.image_execution import _attempt_output_wave, _retry_candidate_after_error
 from app.services.execution_plan import build_execution_plan
 
 
@@ -40,6 +40,21 @@ class FailingEngine:
 
 
 class CandidateRetryIntegrationTests(unittest.TestCase):
+    def test_nonretryable_error_is_preserved(self):
+        error = ComfyUIError("Remote workflow is invalid")
+        output = SimpleNamespace(engine_id=settings.engine_2_id, direction_id="B")
+
+        async def check():
+            with patch("app.services.image_execution._rejection_reason", return_value=None), \
+                 patch("app.services.image_execution._candidate_was_rejected", return_value=False):
+                with self.assertRaises(ComfyUIError) as raised:
+                    await _retry_candidate_after_error(
+                        SimpleNamespace(), output, "ABCDEF-123456", None, 0, error,
+                    )
+                self.assertIs(raised.exception, error)
+
+        asyncio.run(check())
+
     def test_execution_plan_keeps_three_engines_and_three_directions(self):
         source = document()
         prototype = source["directions"][0]["direction"]
@@ -66,7 +81,7 @@ class CandidateRetryIntegrationTests(unittest.TestCase):
 
         async def execute():
             return await _attempt_output_wave(
-                client=None, state=SimpleNamespace(), document=document(), output=output,
+                state=SimpleNamespace(), document=document(), output=output,
                 reference_number="ABCDEF-123456", primary_colour="royal blue",
                 secondary_colour="red",
             )

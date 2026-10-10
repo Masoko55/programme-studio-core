@@ -9,6 +9,7 @@ from app.services.composer import compose_programme
 from app.services.prompt_repository import get_direction, load_prompts_document, get_job_directory
 
 COMPOSER_VERSION = '2.1-content-sized-panels'
+COMPOSITION_SUFFIX = '.composition.json'
 
 def get_final_output_path(reference_number: str, engine_id: str, direction_id: str) -> Path:
     from app.engines.registry import get_engine_descriptor
@@ -35,7 +36,7 @@ def composition_inputs(reference_number: str, direction_id: str, background_path
 
 def validate_composition(reference_number: str, engine_id: str, direction_id: str) -> dict:
     path = get_final_output_path(reference_number, engine_id, direction_id)
-    evidence_path = path.with_suffix('.composition.json')
+    evidence_path = path.with_suffix(COMPOSITION_SUFFIX)
     evidence = json.loads(evidence_path.read_text())
     background_path = evidence['background_path']
     _, _, fingerprint = composition_inputs(reference_number, direction_id, background_path)
@@ -50,7 +51,7 @@ def compose_generated_background(reference_number: str, engine_id: str, directio
     brief, layout, fingerprint = composition_inputs(reference_number, direction_id, background_path)
     try:
         validation = validate_composition(reference_number, engine_id, direction_id)
-        return {'reused':True, 'composition':json.loads(path.with_suffix('.composition.json').read_text()), 'validation':validation}
+        return {'reused':True, 'composition':json.loads(path.with_suffix(COMPOSITION_SUFFIX).read_text()), 'validation':validation}
     except (OSError, ValueError, KeyError):
         pass
     result = compose_programme(reference_number, engine_id, direction_id, background_path, brief, layout)
@@ -59,5 +60,5 @@ def compose_generated_background(reference_number: str, engine_id: str, directio
                 'composition_completed':True, 'programme_rows_placed':len(brief['programme']),
                 'title_placed':True, 'headshot_placed':bool(brief.get('headshot_path')),
                 'logo_placed':bool(brief.get('logo_path')), 'composer_version':COMPOSER_VERSION}
-    write_json(path.with_suffix('.composition.json'), evidence)
+    write_json(path.with_suffix(COMPOSITION_SUFFIX), evidence)
     return {'reused':False, 'composition':evidence, 'validation':validation}

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 
 from app.services.candidate_spec import CandidateSpec
 
@@ -48,11 +49,32 @@ def failure_category(reason: str) -> str:
         return "GRADIENT"
     if any(word in text for word in ("noise", "grain")):
         return "NOISE"
-    if any(word in text for word in ("outer background", "outer structure", "edge density", "too little useful")):
-        return "WEAK_OUTER_STRUCTURE"
-    if any(word in text for word in ("central title", "central region", "too visually dense")):
+
+    # Dense-centre failures must be classified before generic edge-density
+    # failures. The visual-quality error includes both "center structural
+    # edge density" and "outer structural edge density", so checking the
+    # generic "edge density" phrase first incorrectly routes a dense centre
+    # into WEAK_OUTER_STRUCTURE.
+    if any(
+        word in text
+        for word in (
+            "programme safe region",
+            "program safe region",
+            "central title",
+            "central region",
+            "too visually dense",
+            "too much local contrast",
+            "center structural edge density",
+            "centre structural edge density",
+            "center-to-outer ratio",
+            "centre-to-outer ratio",
+        )
+    ):
         return "DENSE_SAFE_REGION"
-    if any(word in text for word in ("flat", "blank", "insufficient designed structure")):
+
+    if any(word in text for word in ("outer background", "outer structure", "outer structural edge density", "too little useful")):
+        return "WEAK_OUTER_STRUCTURE"
+    if any(word in text for word in ("flat", "blank", "insufficient designed structure", "insufficient visible structure")):
         return "FLAT"
     if any(word in text for word in ("timeout", "out of memory", "runtime", "execution", "busy")):
         return "RUNTIME"
@@ -73,6 +95,12 @@ def retry_stage(attempt: int) -> str:
 
 def _palette(spec: CandidateSpec) -> str:
     if spec.primary_colour and spec.secondary_colour:
+        if spec.engine_id == "sdxl-1-0":
+            return (
+                f"Limited two-colour illustration: {spec.primary_colour} dominant "
+                f"and {spec.secondary_colour} supporting. Colour every surface, "
+                "highlight, shadow and background within these two colour families"
+            )
         return (
             f"{spec.primary_colour} dominant, {spec.secondary_colour} supporting; "
             "use only these requested colour families"
@@ -80,19 +108,45 @@ def _palette(spec: CandidateSpec) -> str:
     return spec.primary_colour or spec.secondary_colour or "the requested palette"
 
 
-def _composition(spec: CandidateSpec) -> str:
-    zones = []
-    for name in ("title_zone", "programme_zone", "headshot_zone", "logo_zone"):
-        zone = spec.layout_guidance.get(name)
-        if isinstance(zone, dict):
-            coords = ", ".join(
-                f"{key} {zone[key]}" for key in ("x", "y", "width", "height") if key in zone
-            )
-            zones.append(f"{name.replace('_', ' ')} at {coords}")
+def _composition() -> str:
     return (
-        "Decorate the outer edges and lower corners while keeping overlay zones calm. "
-        + ("Reserve " + "; ".join(zones) + "." if zones else "")
+        "Full-page decorative artwork. Title zone and programme zone receive "
+        "adaptive text panels after generation; visual detail may continue "
+        "beneath them."
     )
+
+
+def _subject(spec: CandidateSpec) -> str:
+    """Put the requested scene ahead of generic direction boilerplate.
+
+    Some stored briefs have no structured inspiration. Their direction prompt
+    describes layout at length and names only an "abstract event background",
+    while the creative description contains the actual scene. CLIP must see
+    that scene early, so use its explicit creation sentence as the subject.
+    The complete original direction remains in the positive prompt/spec.
+    """
+    if spec.background_inspiration:
+        return spec.background_inspiration
+    sentences = re.split(r"(?<=[.!?])\s+", spec.creative_description)
+    for sentence in sentences:
+        if re.match(r"\s*(?:create|draw|depict|illustrate|render|feature)\b", sentence, re.I):
+            return sentence.strip().rstrip(".!?")
+    return _direction_motif(spec)
+
+
+def _direction_motif(spec: CandidateSpec) -> str:
+    """Surface the direction's own visual design before long layout prose."""
+    opening = ", ".join(
+        part.strip() for part in spec.original_positive_prompt.split(",")[:3]
+        if part.strip()
+    )
+    opening = re.sub(
+        r"^(?:an? )?elegant abstract event background,?\s*",
+        "",
+        opening,
+        flags=re.I,
+    )
+    return " ".join(opening.split()[:35]).rstrip(".!? ")
 
 
 _CORRECTIONS = {
@@ -112,57 +166,115 @@ _CORRECTIONS = {
 }
 
 
+def _join_sections(*sections: str) -> str:
+    return " ".join(section for section in sections if section)
+
+
+def _positive_prompt(
+    spec: CandidateSpec, subject: str, motif: str,
+    treatment: str, identity: str, palette: str,
+    composition: str, correction: str, attempt: int,
+) -> str:
+    shared = (
+        f"Direction artwork: {motif}." if motif else "",
+        f"Theme treatment: {treatment}." if treatment else "",
+        identity,
+        f"Palette: {palette}.",
+        f"Composition: {composition}",
+    )
+    safety = "Background artwork only; no people, characters, costumes, masked figures, readable text or logos."
+    if spec.engine_id == "sdxl-1-0":
+        return _join_sections(
+            f"Background inspiration: {subject}." if subject != motif else "",
+            *shared,
+            f"Correction: {correction}" if correction else "",
+            safety,
+        )
+    return _join_sections(
+        shared[0], f"Background inspiration: {subject}.",
+        f"Theme reference treatment: {treatment}." if treatment else "",
+        *shared[2:],
+        f"Correction for attempt {attempt}: {correction}" if correction else "",
+        f"Direction design: {spec.original_positive_prompt}.",
+        safety,
+    )
+
+
+def _encoder_fields(
+    spec: CandidateSpec, subject: str, motif: str,
+    encoder_motif: str, treatment: str, identity: str,
+    correction: str,
+) -> tuple[str, str]:
+    direction = f"Direction: {encoder_motif}." if motif != subject else ""
+    colour = (
+        f"Only {spec.primary_colour} and {spec.secondary_colour} in all forms "
+        f"and details; {spec.primary_colour} dominant."
+    )
+    if spec.engine_id == "sdxl-1-0":
+        common = (
+            f"Visual subject: {subject}.", direction, colour,
+            "No lettering or logos.",
+            f"Correction: {correction}" if correction else "",
+        )
+        return (
+            _join_sections("Front-facing graphic background filling a flat page with matte forms.", *common),
+            _join_sections("Front-facing graphic background artwork on a flat page, with matte forms.", *common),
+        )
+    colour = (
+        f"Only {spec.primary_colour} and {spec.secondary_colour} in all "
+        f"details; {spec.primary_colour} dominant."
+    )
+    common = (f"Visual subject: {subject}.", direction)
+    return (
+        _join_sections("Front-facing graphic background illustration on a flat page.", *common, colour),
+        _join_sections(
+            "Front-facing graphic background on a flat page, varied forms and an open centre.",
+            *common, identity, colour,
+            f"Theme treatment: {treatment}." if treatment else "",
+            f"Correction: {correction}" if correction else "",
+        ),
+    )
+
+
 def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = "") -> CompiledPrompt:
     stage = retry_stage(attempt)
     category = failure_category(reason) if attempt > 1 else "INITIAL"
     if attempt > 1 and category == "INITIAL":
         raise ValueError("A retry requires the previous failure reason")
 
-    subject = spec.background_inspiration or spec.original_positive_prompt
+    subject = _subject(spec)
+    motif = _direction_motif(spec)
+    # The brief already supplies the subject. Keep only the direction's first
+    # design clause in the short encoders so a repeated subject does not
+    # overwhelm composition and medium instructions.
+    encoder_motif = " ".join(motif.split(",", 1)[0].split()[:20])
     treatment = spec.theme_reference_treatment
     palette = _palette(spec)
-    composition = _composition(spec)
+    composition = _composition()
     identity = f"Direction {spec.direction_id}: {spec.direction_role} visual character."
     correction = _CORRECTIONS.get(category, "")
     if stage in {"strict_recovery", "rescue"}:
         correction += (
-            " Simplify the rendering to four to six large intentional forms, "
-            "while preserving the same subject, inspiration, treatment, "
-            "direction, palette and composition."
+            " Replace fine artefacts with coherent, varied visual forms "
+            "while preserving the subject, direction, palette and composition."
         )
 
-    semantic_sections = [
-        f"Background inspiration: {subject}.",
-        f"Theme reference treatment: {treatment}." if treatment else "",
-        identity,
-        f"Palette: {palette}.",
-        f"Composition: {composition}",
-        f"Correction for attempt {attempt}: {correction}" if correction else "",
-        f"Event: {spec.event_type}; theme: {spec.theme}.",
-        f"Creative description: {spec.creative_description}." if spec.creative_description else "",
-        f"Direction design: {spec.original_positive_prompt}.",
-        "Background artwork only; no people, characters, readable text or logos.",
-    ]
-    positive = " ".join(section for section in semantic_sections if section)
-    negative = "people, faces, characters, readable text, logos, watermarks, unrelated subject"
-    if category == "RASTER":
-        negative += ", scanlines, raster grid"
-    elif category == "NOISE":
-        negative += ", grain, noise"
-
-    clip_l = " ".join(
-        section for section in (
-            subject, identity,
-        ) if section
+    positive = _positive_prompt(
+        spec, subject, motif, treatment, identity, palette,
+        composition, correction, attempt,
     )
-    clip_g = " ".join(
-        section for section in (
-            f"Direction {spec.direction_id}, {spec.direction_role}.",
-            f"Subject: {subject}.",
-            f"Theme treatment: {treatment}." if treatment else "",
-            f"Colours: {spec.primary_colour}, {spec.secondary_colour}.",
-            "Composition: edge-led portrait frame; calm title zone and programme zone.",
-        ) if section
+    negative = (
+        "people, faces, characters, costumes, masked figures, readable text, "
+        "letters, typography, logos, watermarks, photographed print, "
+        "poster mockup, unrelated subject"
+    )
+    extra_negative = {
+        "RASTER": ", scanlines, raster grid",
+        "NOISE": ", grain, noise",
+    }
+    negative += extra_negative.get(category, "")
+    clip_l, clip_g = _encoder_fields(
+        spec, subject, motif, encoder_motif, treatment, identity, correction,
     )
     # T5 carries each distinct semantic field once. The original direction
     # prompt remains in CandidateSpec and in the SDXL positive prompt, but it
@@ -174,16 +286,14 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         identity,
         f"Palette: {palette}.",
         f"Composition: {composition}",
-        f"Event: {spec.event_type}; theme: {spec.theme}.",
-        f"Creative description: {spec.creative_description}." if spec.creative_description else "",
         f"Correction: {correction}" if correction else "",
-        "No people, characters, readable text or logos.",
+        "No people, characters, costumes, masked figures, readable text or logos.",
     ) if section)
     return CompiledPrompt(
         positive=positive,
         negative=negative,
-        clip_l=clip_l if spec.engine_id == "sd-3-5-medium" else None,
-        clip_g=clip_g if spec.engine_id == "sd-3-5-medium" else None,
+        clip_l=clip_l,
+        clip_g=clip_g,
         t5=t5 if spec.engine_id == "sd-3-5-medium" else None,
         failure_category=category,
         retry_stage=stage,

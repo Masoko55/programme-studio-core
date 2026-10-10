@@ -71,8 +71,13 @@ class VisualQualityCompositionTests(unittest.TestCase):
             "programme safe region",
         ):
             validate_visual_quality(
-                image
+                image,
+                enforce_overlay_region=True,
             )
+
+        result = validate_visual_quality(image)
+        self.assertTrue(result["visual_quality_passed"])
+        self.assertFalse(result["center_safe_region_passed"])
 
     def test_accepts_an_edge_led_frame_with_a_calm_centre(self):
         image = Image.new(

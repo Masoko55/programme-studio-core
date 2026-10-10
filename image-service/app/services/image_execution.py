@@ -22,7 +22,6 @@ from app.engines.registry import (
 from app.services.comfyui_client import (
     ComfyUIClient,
     ComfyUIError,
-    SubmissionUncertain,
 )
 
 from app.services.execution_plan import (
@@ -1222,7 +1221,6 @@ def _minimal_two_colour_recovery_prompt(
     primary_colour: str | None,
     secondary_colour: str | None,
     engine_id: str,
-    effective_retry: int,
 ) -> tuple[
     str,
     str,
@@ -1321,6 +1319,233 @@ def _minimal_two_colour_recovery_prompt(
 # ============================================================
 # Prompt strengthening
 # ============================================================
+
+
+def _append_missing_colour_recovery(positive_additions: list[str], reason: str, primary_colour: str | None, secondary_colour: str | None, effective_retry: int, engine_id: str) -> None:
+    # ========================================================
+    # Specific missing secondary colour
+    # ========================================================
+
+    reason_lower = (
+        reason.lower()
+    )
+
+    if (
+        "secondary"
+        in reason_lower
+        and secondary_colour
+    ):
+        secondary = (
+            _normalise_colour(
+                secondary_colour
+            )
+        )
+
+        positive_additions.append(
+            (
+                "MANDATORY SECONDARY COLOUR REQUIREMENT. "
+                f"Render {secondary} as actual visible surface colour "
+                "in several substantial separate regions. "
+                f"Do not hide {secondary} inside shadows, reflections, "
+                "thin outlines or tiny accents. "
+                f"Several large visible areas must immediately read "
+                f"as {secondary}."
+            )
+        )
+
+        if (
+            effective_retry
+            >= 6
+            and engine_id
+            in {
+                settings.engine_2_id,
+                settings.engine_3_id,
+            }
+        ):
+            positive_additions.append(
+                (
+                    "SECONDARY COLOUR AREA RECOVERY. "
+                    f"Dedicate roughly 25 to 35 percent of the image "
+                    f"to large solid {secondary} surfaces. "
+                    "Use separate blocks or structural regions rather "
+                    "than thin lines."
+                )
+            )
+
+    # ========================================================
+    # Specific missing primary colour
+    # ========================================================
+
+    if (
+        "primary"
+        in reason_lower
+        and primary_colour
+    ):
+        primary = (
+            _normalise_colour(
+                primary_colour
+            )
+        )
+
+        positive_additions.append(
+            (
+                "MANDATORY PRIMARY COLOUR REQUIREMENT. "
+                f"Render {primary} across large visible surfaces."
+            )
+        )
+
+
+
+def _append_subject_recovery(positive_additions: list[str], negative_additions: list[str], human_failure: bool, text_failure: bool, quality_failure: bool, effective_retry: int) -> None:
+    # ========================================================
+    # Human correction
+    # ========================================================
+
+    if (
+        human_failure
+    ):
+        (
+            positive_human,
+            negative_human,
+        ) = (
+            _human_instruction(
+                effective_retry
+            )
+        )
+
+        positive_additions.append(
+            positive_human
+        )
+
+        negative_additions.append(
+            negative_human
+        )
+
+    # ========================================================
+    # Text correction
+    # ========================================================
+
+    if (
+        text_failure
+    ):
+        (
+            positive_text,
+            negative_text,
+        ) = (
+            _text_instruction()
+        )
+
+        positive_additions.append(
+            positive_text
+        )
+
+        negative_additions.append(
+            negative_text
+        )
+
+    # ========================================================
+    # Quality correction
+    #
+    # The replacement prompt above handles the main recovery.
+    # This addition further reinforces the correction.
+    # ========================================================
+
+    if (
+        quality_failure
+    ):
+        (
+            positive_quality,
+            negative_quality,
+        ) = (
+            _quality_instruction(
+                effective_retry
+            )
+        )
+
+        positive_additions.append(
+            positive_quality
+        )
+
+        negative_additions.append(
+            negative_quality
+        )
+
+
+
+def _append_palette_instruction(positive_additions: list[str], negative_additions: list[str], palette_failure: bool, engine_id: str, primary_colour: str | None, secondary_colour: str | None, effective_retry: int) -> None:
+    # ========================================================
+    # Palette correction
+    # ========================================================
+
+    if (
+        palette_failure
+    ):
+        if (
+            engine_id
+            == settings.engine_3_id
+        ):
+            positive_additions.append(
+                _sd35_palette_instruction(
+                    primary_colour,
+                    secondary_colour,
+                    effective_retry,
+                )
+            )
+
+        else:
+            positive_additions.append(
+                _standard_palette_instruction(
+                    primary_colour,
+                    secondary_colour,
+                    effective_retry,
+                )
+            )
+
+        negative_additions.append(
+            _palette_negative_prompt(
+                primary_colour,
+                secondary_colour,
+            )
+        )
+
+
+
+def _append_sdxl_palette_recovery(positive_additions: list[str], engine_id: str, palette_failure: bool, structural_recovery: bool, literal_palette_recovery: bool, effective_retry: int) -> None:
+    # ========================================================
+    # SDXL-specific palette correction
+    # ========================================================
+
+    if (
+        engine_id
+        == settings.engine_2_id
+        and palette_failure
+        and not structural_recovery
+    ):
+        if (
+            effective_retry
+            >= 3
+            and not literal_palette_recovery
+        ):
+            positive_additions.append(
+                (
+                    "SDXL STRICT FLAT-COLOUR RECOVERY. "
+                    "Remove realistic materials, reflective surfaces, "
+                    "metallic appearance, cinematic illumination, "
+                    "photographic shading and colourless highlights. "
+                    "Use large matte colour regions with clean graphic "
+                    "geometry."
+                )
+            )
+
+        else:
+            positive_additions.append(
+                (
+                    "SDXL PALETTE RECOVERY. "
+                    "Strengthen the requested colours and remove "
+                    "neutral highlights, neutral shading and metallic tones."
+                )
+            )
+
 
 
 def _strengthen_prompts(
@@ -1497,9 +1722,6 @@ def _strengthen_prompts(
                 engine_id=(
                     engine_id
                 ),
-                effective_retry=(
-                    effective_retry
-                ),
             )
         )
 
@@ -1534,148 +1756,20 @@ def _strengthen_prompts(
             secondary_colour,
         )
 
-    # ========================================================
-    # Palette correction
-    # ========================================================
+    _append_palette_instruction(
+        positive_additions, negative_additions, palette_failure, engine_id,
+        primary_colour, secondary_colour, effective_retry,
+    )
 
-    if (
-        palette_failure
-    ):
-        if (
-            engine_id
-            == settings.engine_3_id
-        ):
-            positive_additions.append(
-                _sd35_palette_instruction(
-                    primary_colour,
-                    secondary_colour,
-                    effective_retry,
-                )
-            )
+    _append_sdxl_palette_recovery(
+        positive_additions, engine_id, palette_failure, structural_recovery,
+        literal_palette_recovery, effective_retry,
+    )
 
-        else:
-            positive_additions.append(
-                _standard_palette_instruction(
-                    primary_colour,
-                    secondary_colour,
-                    effective_retry,
-                )
-            )
-
-        negative_additions.append(
-            _palette_negative_prompt(
-                primary_colour,
-                secondary_colour,
-            )
-        )
-
-    # ========================================================
-    # SDXL-specific palette correction
-    # ========================================================
-
-    if (
-        engine_id
-        == settings.engine_2_id
-        and palette_failure
-        and not structural_recovery
-    ):
-        if (
-            effective_retry
-            >= 3
-            and not literal_palette_recovery
-        ):
-            positive_additions.append(
-                (
-                    "SDXL STRICT FLAT-COLOUR RECOVERY. "
-                    "Remove realistic materials, reflective surfaces, "
-                    "metallic appearance, cinematic illumination, "
-                    "photographic shading and colourless highlights. "
-                    "Use large matte colour regions with clean graphic "
-                    "geometry."
-                )
-            )
-
-        else:
-            positive_additions.append(
-                (
-                    "SDXL PALETTE RECOVERY. "
-                    "Strengthen the requested colours and remove "
-                    "neutral highlights, neutral shading and metallic tones."
-                )
-            )
-
-    # ========================================================
-    # Human correction
-    # ========================================================
-
-    if (
-        human_failure
-    ):
-        (
-            positive_human,
-            negative_human,
-        ) = (
-            _human_instruction(
-                effective_retry
-            )
-        )
-
-        positive_additions.append(
-            positive_human
-        )
-
-        negative_additions.append(
-            negative_human
-        )
-
-    # ========================================================
-    # Text correction
-    # ========================================================
-
-    if (
-        text_failure
-    ):
-        (
-            positive_text,
-            negative_text,
-        ) = (
-            _text_instruction()
-        )
-
-        positive_additions.append(
-            positive_text
-        )
-
-        negative_additions.append(
-            negative_text
-        )
-
-    # ========================================================
-    # Quality correction
-    #
-    # The replacement prompt above handles the main recovery.
-    # This addition further reinforces the correction.
-    # ========================================================
-
-    if (
-        quality_failure
-    ):
-        (
-            positive_quality,
-            negative_quality,
-        ) = (
-            _quality_instruction(
-                effective_retry
-            )
-        )
-
-        positive_additions.append(
-            positive_quality
-        )
-
-        negative_additions.append(
-            negative_quality
-        )
+    _append_subject_recovery(
+        positive_additions, negative_additions, human_failure,
+        text_failure, quality_failure, effective_retry,
+    )
 
     # ========================================================
     # Runtime correction
@@ -1704,77 +1798,10 @@ def _strengthen_prompts(
                 )
             )
 
-    # ========================================================
-    # Specific missing secondary colour
-    # ========================================================
-
-    reason_lower = (
-        reason.lower()
+    _append_missing_colour_recovery(
+        positive_additions, reason, primary_colour, secondary_colour,
+        effective_retry, engine_id,
     )
-
-    if (
-        "secondary"
-        in reason_lower
-        and secondary_colour
-    ):
-        secondary = (
-            _normalise_colour(
-                secondary_colour
-            )
-        )
-
-        positive_additions.append(
-            (
-                "MANDATORY SECONDARY COLOUR REQUIREMENT. "
-                f"Render {secondary} as actual visible surface colour "
-                "in several substantial separate regions. "
-                f"Do not hide {secondary} inside shadows, reflections, "
-                "thin outlines or tiny accents. "
-                f"Several large visible areas must immediately read "
-                f"as {secondary}."
-            )
-        )
-
-        if (
-            effective_retry
-            >= 6
-            and engine_id
-            in {
-                settings.engine_2_id,
-                settings.engine_3_id,
-            }
-        ):
-            positive_additions.append(
-                (
-                    "SECONDARY COLOUR AREA RECOVERY. "
-                    f"Dedicate roughly 25 to 35 percent of the image "
-                    f"to large solid {secondary} surfaces. "
-                    "Use separate blocks or structural regions rather "
-                    "than thin lines."
-                )
-            )
-
-    # ========================================================
-    # Specific missing primary colour
-    # ========================================================
-
-    if (
-        "primary"
-        in reason_lower
-        and primary_colour
-    ):
-        primary = (
-            _normalise_colour(
-                primary_colour
-            )
-        )
-
-        positive_additions.append(
-            (
-                "MANDATORY PRIMARY COLOUR REQUIREMENT. "
-                f"Render {primary} across large visible surfaces."
-            )
-        )
 
     # ========================================================
     # Final combined prompt
@@ -1950,9 +1977,232 @@ def _resume_retry_context(existing: dict) -> tuple[int, str]:
     return start_retry, reason
 
 
+async def _retry_candidate_after_error(state, output, reference_number: str, spec, retry_count: int, error: ComfyUIError) -> tuple[str, bool]:
+    reason = (
+        _rejection_reason(
+            reference_number,
+            output.engine_id,
+            output.direction_id,
+        )
+        or str(
+            error
+        )
+    )
+
+    retryable = (
+        _candidate_was_rejected(
+            reference_number,
+            output.engine_id,
+            output.direction_id,
+        )
+        or _is_runtime_failure(
+            reason
+        )
+    )
+
+    if not retryable:
+        raise error
+
+    if (
+        retry_count
+        >= settings.max_candidate_retries
+    ):
+        update_output(
+            state,
+            output.engine_id,
+            output.direction_id,
+            "failed",
+            error=(
+                reason
+            ),
+        )
+
+        logger.error(
+            "event=candidate_exhausted "
+            "reference=%s "
+            "engine=%s "
+            "direction=%s "
+            "attempts=%s "
+            "reason=%s",
+            reference_number,
+            output.engine_id,
+            output.direction_id,
+            (
+                settings.max_candidate_retries
+                + 1
+            ),
+            reason,
+        )
+
+        return reason, True
+
+    next_retry = (
+        retry_count
+        + 1
+    )
+    logger.info(
+        "event=retry_strategy_selected reference=%s engine=%s direction=%s "
+        "attempt=%s direction_role=%s spec_sha256=%s "
+        "failure_category=%s retry_stage=%s",
+        reference_number, output.engine_id, output.direction_id,
+        next_retry + 1, spec.direction_role, spec.spec_sha256,
+        failure_category(reason), retry_stage(next_retry + 1),
+    )
+
+    delay_seconds = min(
+        2
+        ** retry_count,
+        settings
+        .max_candidate_retry_delay_seconds,
+    )
+
+    palette_failure = (
+        _is_palette_failure(
+            reason
+        )
+    )
+
+    human_failure = (
+        _is_human_failure(
+            reason
+        )
+    )
+
+    text_failure = (
+        _is_text_failure(
+            reason
+        )
+    )
+
+    quality_failure = (
+        _is_quality_failure(
+            reason
+        )
+    )
+
+    runtime_failure = (
+        _is_runtime_failure(
+            reason
+        )
+    )
+
+    logger.warning(
+        "event=candidate_retry "
+        "reference=%s "
+        "engine=%s "
+        "direction=%s "
+        "retry=%s/%s "
+        "effective_retry=%s "
+        "delay_seconds=%s "
+        "reason=%s",
+        reference_number,
+        output.engine_id,
+        output.direction_id,
+        next_retry,
+        settings.max_candidate_retries,
+        next_retry,
+        delay_seconds,
+        reason,
+    )
+
+    logger.info(
+        "event=prompt_strengthened "
+        "reference=%s "
+        "engine=%s "
+        "direction=%s "
+        "effective_retry=%s "
+        "palette_failure=%s "
+        "human_failure=%s "
+        "text_failure=%s "
+        "quality_failure=%s "
+        "runtime_failure=%s",
+        reference_number,
+        output.engine_id,
+        output.direction_id,
+        next_retry,
+        palette_failure,
+        human_failure,
+        text_failure,
+        quality_failure,
+        runtime_failure,
+    )
+
+    if (
+        output.engine_id
+        == settings.engine_2_id
+        and (
+            palette_failure
+            or quality_failure
+        )
+    ):
+        logger.info(
+            "event=sdxl_recovery "
+            "reference=%s "
+            "direction=%s "
+            "effective_retry=%s "
+            "palette_failure=%s "
+            "quality_failure=%s",
+            reference_number,
+            output.direction_id,
+            next_retry,
+            palette_failure,
+            quality_failure,
+        )
+
+    if (
+        output.engine_id
+        == settings.engine_3_id
+    ):
+        logger.info(
+            "event=sd35_recovery "
+            "reference=%s "
+            "direction=%s "
+            "effective_retry=%s "
+            "runtime_failure=%s "
+            "palette_failure=%s "
+            "quality_failure=%s",
+            reference_number,
+            output.direction_id,
+            next_retry,
+            runtime_failure,
+            palette_failure,
+            quality_failure,
+        )
+
+    await asyncio.sleep(
+        delay_seconds
+    )
+
+    return reason, False
+
+
+def _attempt_prompts(
+    spec,
+    output,
+    attempt: int,
+    previous_reason: str,
+    base_prompts: tuple[str, str],
+    current_prompts: tuple[str, str],
+    palette: tuple[str | None, str | None],
+):
+    if output.engine_id in {settings.engine_2_id, settings.engine_3_id}:
+        compiled = compile_candidate_prompt(spec, attempt, previous_reason)
+        return compiled.positive, compiled.negative, compiled
+    if attempt > 1:
+        positive, negative = _strengthen_prompts(
+            *base_prompts, previous_reason, *palette, attempt - 1, output.engine_id,
+        )
+        return positive, negative, None
+    return current_prompts[0], current_prompts[1], None
+
+
+def _check_candidate_spec(existing: dict, spec) -> None:
+    if existing.get("spec_sha256") and existing["spec_sha256"] != spec.spec_sha256:
+        raise ValueError("Candidate specification changed across attempts; use a new reference")
+
+
 async def _attempt_output_wave(
     *,
-    client: ComfyUIClient,
     state,
     document: dict,
     output,
@@ -1972,8 +2222,7 @@ async def _attempt_output_wave(
 
     spec = build_candidate_spec(document, output.engine_id, output.direction_id)
     existing = _candidate_record(reference_number, output.engine_id, output.direction_id)
-    if existing.get("spec_sha256") and existing["spec_sha256"] != spec.spec_sha256:
-        raise ValueError("Candidate specification changed across attempts; use a new reference")
+    _check_candidate_spec(existing, spec)
     start_retry, previous_reason = _resume_retry_context(existing)
     if start_retry >= min(settings.max_candidate_retries, 8) + 1:
         update_output(state, output.engine_id, output.direction_id, "failed",
@@ -2011,19 +2260,14 @@ async def _attempt_output_wave(
         # Native prompts are compiled afresh from CandidateSpec per attempt.
         positive_prompt, negative_prompt = "", ""
 
-    generated = 0
-
     for retry_count in range(start_retry, min(settings.max_candidate_retries, 8) + 1):
         attempt = retry_count + 1
-        compiled = None
-        if output.engine_id in {settings.engine_2_id, settings.engine_3_id}:
-            compiled = compile_candidate_prompt(spec, attempt, previous_reason)
-            positive_prompt, negative_prompt = compiled.positive, compiled.negative
-        elif retry_count > start_retry or start_retry > 0:
-            positive_prompt, negative_prompt = _strengthen_prompts(
-                base_positive_prompt, base_negative_prompt, previous_reason,
-                primary_colour, secondary_colour, retry_count, output.engine_id,
-            )
+        positive_prompt, negative_prompt, compiled = _attempt_prompts(
+            spec, output, attempt, previous_reason,
+            (base_positive_prompt, base_negative_prompt),
+            (positive_prompt, negative_prompt),
+            (primary_colour, secondary_colour),
+        )
         category = compiled.failure_category if compiled else failure_category(previous_reason)
         stage = compiled.retry_stage if compiled else retry_stage(attempt)
         profile = select_sampling_profile(
@@ -2114,220 +2358,17 @@ async def _attempt_output_wave(
                 ],
             )
 
-            if not (
-                result[
-                    "reused"
-                ]
-            ):
-                generated = 1
-
             return (
                 True,
-                generated,
+                0 if result["reused"] else 1,
             )
-
-        except SubmissionUncertain:
-            raise
 
         except ComfyUIError as error:
-            reason = (
-                _rejection_reason(
-                    reference_number,
-                    output.engine_id,
-                    output.direction_id,
-                )
-                or str(
-                    error
-                )
+            previous_reason, exhausted = await _retry_candidate_after_error(
+                state, output, reference_number, spec, retry_count, error,
             )
-
-            retryable = (
-                _candidate_was_rejected(
-                    reference_number,
-                    output.engine_id,
-                    output.direction_id,
-                )
-                or _is_runtime_failure(
-                    reason
-                )
-            )
-
-            if not retryable:
-                raise
-
-            if (
-                retry_count
-                >= settings.max_candidate_retries
-            ):
-                update_output(
-                    state,
-                    output.engine_id,
-                    output.direction_id,
-                    "failed",
-                    error=(
-                        reason
-                    ),
-                )
-
-                logger.error(
-                    "event=candidate_exhausted "
-                    "reference=%s "
-                    "engine=%s "
-                    "direction=%s "
-                    "attempts=%s "
-                    "reason=%s",
-                    reference_number,
-                    output.engine_id,
-                    output.direction_id,
-                    (
-                        settings.max_candidate_retries
-                        + 1
-                    ),
-                    reason,
-                )
-
-                return (
-                    False,
-                    0,
-                )
-
-            next_retry = (
-                retry_count
-                + 1
-            )
-            previous_reason = reason
-            logger.info(
-                "event=retry_strategy_selected reference=%s engine=%s direction=%s "
-                "attempt=%s direction_role=%s spec_sha256=%s "
-                "failure_category=%s retry_stage=%s",
-                reference_number, output.engine_id, output.direction_id,
-                next_retry + 1, spec.direction_role, spec.spec_sha256,
-                failure_category(reason), retry_stage(next_retry + 1),
-            )
-
-            delay_seconds = min(
-                2
-                ** retry_count,
-                settings
-                .max_candidate_retry_delay_seconds,
-            )
-
-            palette_failure = (
-                _is_palette_failure(
-                    reason
-                )
-            )
-
-            human_failure = (
-                _is_human_failure(
-                    reason
-                )
-            )
-
-            text_failure = (
-                _is_text_failure(
-                    reason
-                )
-            )
-
-            quality_failure = (
-                _is_quality_failure(
-                    reason
-                )
-            )
-
-            runtime_failure = (
-                _is_runtime_failure(
-                    reason
-                )
-            )
-
-            logger.warning(
-                "event=candidate_retry "
-                "reference=%s "
-                "engine=%s "
-                "direction=%s "
-                "retry=%s/%s "
-                "effective_retry=%s "
-                "delay_seconds=%s "
-                "reason=%s",
-                reference_number,
-                output.engine_id,
-                output.direction_id,
-                next_retry,
-                settings.max_candidate_retries,
-                next_retry,
-                delay_seconds,
-                reason,
-            )
-
-            logger.info(
-                "event=prompt_strengthened "
-                "reference=%s "
-                "engine=%s "
-                "direction=%s "
-                "effective_retry=%s "
-                "palette_failure=%s "
-                "human_failure=%s "
-                "text_failure=%s "
-                "quality_failure=%s "
-                "runtime_failure=%s",
-                reference_number,
-                output.engine_id,
-                output.direction_id,
-                next_retry,
-                palette_failure,
-                human_failure,
-                text_failure,
-                quality_failure,
-                runtime_failure,
-            )
-
-            if (
-                output.engine_id
-                == settings.engine_2_id
-                and (
-                    palette_failure
-                    or quality_failure
-                )
-            ):
-                logger.info(
-                    "event=sdxl_recovery "
-                    "reference=%s "
-                    "direction=%s "
-                    "effective_retry=%s "
-                    "palette_failure=%s "
-                    "quality_failure=%s",
-                    reference_number,
-                    output.direction_id,
-                    next_retry,
-                    palette_failure,
-                    quality_failure,
-                )
-
-            if (
-                output.engine_id
-                == settings.engine_3_id
-            ):
-                logger.info(
-                    "event=sd35_recovery "
-                    "reference=%s "
-                    "direction=%s "
-                    "effective_retry=%s "
-                    "runtime_failure=%s "
-                    "palette_failure=%s "
-                    "quality_failure=%s",
-                    reference_number,
-                    output.direction_id,
-                    next_retry,
-                    runtime_failure,
-                    palette_failure,
-                    quality_failure,
-                )
-
-            await asyncio.sleep(
-                delay_seconds
-            )
+            if exhausted:
+                return False, 0
 
     return (
         False,
@@ -2338,6 +2379,103 @@ async def _attempt_output_wave(
 # ============================================================
 # Job execution
 # ============================================================
+
+
+def _finalize_generation_status(state, generated: int, stopped_for_max_outputs: bool) -> None:
+    completed = (
+        state.completed_outputs
+    )
+
+    failed = sum(
+        1
+        for output
+        in state.outputs
+        if (
+            output.status
+            == "failed"
+        )
+    )
+
+    pending = sum(
+        1
+        for output
+        in state.outputs
+        if (
+            output.status
+            == "pending"
+        )
+    )
+
+    if (
+        stopped_for_max_outputs
+        and pending
+        > 0
+    ):
+        state.status = (
+            "processing"
+        )
+
+        state.current_stage = (
+            "generation_paused"
+        )
+
+        state.error = (
+            f"Generation paused after "
+            f"{generated} new outputs; "
+            f"{completed}/"
+            f"{state.total_outputs} "
+            "candidates complete."
+        )
+
+    elif (
+        completed
+        > 0
+    ):
+        state.status = (
+            "awaiting_selection"
+        )
+
+        if (
+            completed
+            == state.total_outputs
+        ):
+            state.current_stage = (
+                "backgrounds_complete"
+            )
+
+            state.error = None
+
+        else:
+            state.current_stage = (
+                "backgrounds_complete_with_failures"
+            )
+
+            state.error = (
+                f"{completed}/"
+                f"{state.total_outputs} "
+                "background candidates completed; "
+                f"{failed} failed; "
+                f"{pending} remain pending."
+            )
+
+    else:
+        state.status = (
+            "failed"
+        )
+
+        state.current_stage = (
+            "generation_failed"
+        )
+
+        state.error = (
+            "No valid background candidates "
+            "were produced."
+        )
+
+    persist_image_job_state(
+        state
+    )
+
 
 
 async def execute_image_job(
@@ -2515,9 +2653,6 @@ async def execute_image_job(
                             newly_generated,
                         ) = (
                             await _attempt_output_wave(
-                                client=(
-                                    client
-                                ),
                                 state=(
                                     state
                                 ),
@@ -2575,99 +2710,7 @@ async def execute_image_job(
                             client.release_models()
                         )
 
-            completed = (
-                state.completed_outputs
-            )
-
-            failed = sum(
-                1
-                for output
-                in state.outputs
-                if (
-                    output.status
-                    == "failed"
-                )
-            )
-
-            pending = sum(
-                1
-                for output
-                in state.outputs
-                if (
-                    output.status
-                    == "pending"
-                )
-            )
-
-            if (
-                stopped_for_max_outputs
-                and pending
-                > 0
-            ):
-                state.status = (
-                    "processing"
-                )
-
-                state.current_stage = (
-                    "generation_paused"
-                )
-
-                state.error = (
-                    f"Generation paused after "
-                    f"{generated} new outputs; "
-                    f"{completed}/"
-                    f"{state.total_outputs} "
-                    "candidates complete."
-                )
-
-            elif (
-                completed
-                > 0
-            ):
-                state.status = (
-                    "awaiting_selection"
-                )
-
-                if (
-                    completed
-                    == state.total_outputs
-                ):
-                    state.current_stage = (
-                        "backgrounds_complete"
-                    )
-
-                    state.error = None
-
-                else:
-                    state.current_stage = (
-                        "backgrounds_complete_with_failures"
-                    )
-
-                    state.error = (
-                        f"{completed}/"
-                        f"{state.total_outputs} "
-                        "background candidates completed; "
-                        f"{failed} failed; "
-                        f"{pending} remain pending."
-                    )
-
-            else:
-                state.status = (
-                    "failed"
-                )
-
-                state.current_stage = (
-                    "generation_failed"
-                )
-
-                state.error = (
-                    "No valid background candidates "
-                    "were produced."
-                )
-
-            persist_image_job_state(
-                state
-            )
+            _finalize_generation_status(state, generated, stopped_for_max_outputs)
 
             return (
                 state

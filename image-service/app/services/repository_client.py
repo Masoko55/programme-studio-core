@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from pathlib import Path
 
@@ -101,27 +102,26 @@ async def upload_artifact(
         direction_id,
     )
 
+    content = await asyncio.to_thread(path.read_bytes)
+
     try:
         async with httpx.AsyncClient(
             timeout=timeout
         ) as client:
-            with path.open(
-                "rb"
-            ) as file:
-                response = await client.put(
-                    (
-                        f"{settings.repository_service_base_url}"
-                        f"/v1/references/"
-                        f"{reference_number}"
-                        f"/artifacts/"
-                        f"{artifact_key}"
-                    ),
-                    headers={
-                        "Content-Type": "image/png",
-                        "X-SHA256": sha256,
-                    },
-                    content=file.read(),
-                )
+            response = await client.put(
+                (
+                    f"{settings.repository_service_base_url}"
+                    f"/v1/references/"
+                    f"{reference_number}"
+                    f"/artifacts/"
+                    f"{artifact_key}"
+                ),
+                headers={
+                    "Content-Type": "image/png",
+                    "X-SHA256": sha256,
+                },
+                content=content,
+            )
 
             response.raise_for_status()
 

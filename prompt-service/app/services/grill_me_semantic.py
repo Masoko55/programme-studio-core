@@ -259,29 +259,7 @@ def _theme_reference_treatment(
     ).strip()
 
 
-def _safe_context(
-    value,
-    answers: dict,
-) -> dict:
-    if not isinstance(
-        value,
-        dict,
-    ):
-        value = {}
-
-    context = dict(
-        DEFAULT_CONTEXT
-    )
-
-    context.update(
-        {
-            key: item
-            for key, item
-            in value.items()
-            if key in context
-        }
-    )
-
+def _valid_clarification_questions(context: dict) -> list[dict]:
     questions = []
 
     for item in (
@@ -339,6 +317,20 @@ def _safe_context(
                 ),
             }
         )
+
+    return questions
+
+
+def _safe_context(
+    value,
+    answers: dict,
+) -> dict:
+    if not isinstance(value, dict):
+        value = {}
+
+    context = dict(DEFAULT_CONTEXT)
+    context.update({key: item for key, item in value.items() if key in context})
+    questions = _valid_clarification_questions(context)
 
     reference_detected = bool(
         context.get(
@@ -614,7 +606,6 @@ def review_creative_context(
 
     except (
         httpx.HTTPError,
-        json.JSONDecodeError,
         ValueError,
         TypeError,
     ) as error:

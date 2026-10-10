@@ -6,7 +6,8 @@ from app.config.settings import settings
 
 
 REFERENCE_PATTERN = re.compile(
-    r"^[A-F0-9]{6}-[0-9]{6}$"
+    r"^[A-F0-9]{6}-\d{6}$",
+    re.ASCII,
 )
 
 

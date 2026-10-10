@@ -22,8 +22,13 @@ from app.schemas.prompts_document import (
 )
 
 
+JOB_FILENAME = "job.json"
+PROMPTS_FILENAME = "prompts.json"
+
+
 REFERENCE_PATTERN = re.compile(
-    r"^[A-F0-9]{6}-[0-9]{6}$"
+    r"^[A-F0-9]{6}-\d{6}$",
+    re.ASCII,
 )
 
 
@@ -113,7 +118,7 @@ def get_job_metadata_path(
         get_job_directory(
             reference_number
         )
-        / "job.json"
+        / JOB_FILENAME
     )
 
 
@@ -196,7 +201,7 @@ def persist_job_metadata(
 
     metadata_path = (
         job_directory
-        / "job.json"
+        / JOB_FILENAME
     )
 
     metadata[
@@ -471,7 +476,7 @@ def persist_prompts_document(
 
     prompts_path = (
         job_directory
-        / "prompts.json"
+        / PROMPTS_FILENAME
     )
 
     with prompts_path.open(
@@ -502,7 +507,7 @@ def load_prompts_document(
         get_job_directory(
             reference_number
         )
-        / "prompts.json"
+        / PROMPTS_FILENAME
     )
 
     if not (
@@ -556,7 +561,7 @@ def get_job_status(
 
     metadata_path = (
         job_directory
-        / "job.json"
+        / JOB_FILENAME
     )
 
     if metadata_path.exists():
@@ -573,7 +578,7 @@ def get_job_status(
 
     prompts_path = (
         job_directory
-        / "prompts.json"
+        / PROMPTS_FILENAME
     )
 
     if prompts_path.exists():

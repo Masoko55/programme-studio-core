@@ -35,6 +35,8 @@ class Settings(
         "http://192.168.68.115:8188"
     )
 
+    template_conditioning_enabled: bool = True
+
     comfyui_connect_timeout_seconds: float = Field(
         default=10,
         gt=0,

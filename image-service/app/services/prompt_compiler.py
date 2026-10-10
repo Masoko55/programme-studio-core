@@ -33,6 +33,9 @@ def failure_category(reason: str) -> str:
     text = reason.casefold()
     if not text:
         return "INITIAL"
+    for category in ("PROTECTED_REGION_INTRUSION", "WEAK_TEMPLATE_STRUCTURE", "TEMPLATE_DRIFT"):
+        if category.casefold() in text:
+            return category
     if any(word in text for word in ("human", "person", "face", "silhouette")):
         return "HUMAN"
     if any(word in text for word in ("readable text", "ocr", "lettering", "logo", "watermark")):

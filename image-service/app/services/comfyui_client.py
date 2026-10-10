@@ -48,6 +48,9 @@ from app.services.prompt_repository import (
 )
 from app.services.sampling_profiles import SamplingProfile, select_sampling_profile, summarize_failures
 from app.services.prompt_compiler import failure_category as classify_failure
+from app.services.candidate_spec import build_candidate_spec
+from app.services.template_conditioning import compile_template_conditioning, render_template
+from app.services.template_adherence import assess_template_adherence
 
 
 logger = logging.getLogger(
@@ -982,6 +985,8 @@ def build_workflow(
     output_prefix: str,
     compiled_prompt=None,
     sampling_profile: SamplingProfile | None = None,
+    template_image: str | None = None,
+    denoise: float | None = None,
 ) -> dict:
     template_path = (
         settings.comfyui_workflow_path
@@ -1039,6 +1044,39 @@ def build_workflow(
         # SD3.5 path. Only recovery profiles explicitly override its shift.
         workflow.pop("55")
         workflow["3"]["inputs"]["model"] = ["4", 0]
+    if template_image is not None:
+        workflow = apply_template_img2img(workflow, engine_id, template_image, denoise)
+    return workflow
+
+
+def apply_template_img2img(
+    workflow: dict, engine_id: str, template_image: str, denoise: float | None,
+) -> dict:
+    """Use the existing checkpoint VAE and core nodes for diagnostic img2img."""
+    if not template_image or Path(template_image).name != template_image:
+        raise ValueError("Template image must be an uploaded ComfyUI input filename")
+    if denoise is None or not 0 < denoise < 1:
+        raise ValueError("Template img2img requires denoise between zero and one")
+    if engine_id == settings.engine_1_id:
+        vae = ["3", 0]
+    elif engine_id in {settings.engine_2_id, settings.engine_3_id}:
+        vae = ["4", 2]
+    else:
+        raise ValueError(f"Unsupported img2img engine: {engine_id}")
+    workflow["90"] = {"class_type": "LoadImage", "inputs": {"image": template_image}}
+    workflow["91"] = {"class_type": "VAEEncode", "inputs": {"pixels": ["90", 0], "vae": vae}}
+    if engine_id == settings.engine_1_id:
+        workflow["92"] = {
+            "class_type": "SplitSigmasDenoise",
+            "inputs": {"sigmas": ["9", 0], "denoise": denoise},
+        }
+        workflow["11"]["inputs"]["sigmas"] = ["92", 1]
+        workflow["11"]["inputs"]["latent_image"] = ["91", 0]
+        workflow.pop("10")
+    else:
+        workflow["3"]["inputs"]["latent_image"] = ["91", 0]
+        workflow["3"]["inputs"]["denoise"] = denoise
+        workflow.pop("53")
     return workflow
 
 
@@ -1889,9 +1927,29 @@ class ComfyUIClient:
         normalized_path = image_path.with_suffix(".normalized.part.png")
         palette_normalized = False
         raw_palette_error = None
+        conditioning = record.get("template_conditioning") or {}
+        adherence = None
+        if conditioning.get("enabled"):
+            spec = compile_template_conditioning(
+                build_candidate_spec(load_prompts_document(reference_number), engine_id, direction_id),
+                denoise=conditioning["denoise"],
+                failure_category=conditioning["retry_adjustment"],
+                retry_stage=record.get("retry_stage") or "normal",
+                attempt=record["attempt_count"],
+            )
+            if spec.conditioning_sha256 != conditioning.get("conditioning_sha256"):
+                raise ComfyUIError("Persisted template conditioning changed before validation")
+            adherence = assess_template_adherence(candidate_path, spec)
+            record.update(adherence)
+            record["template_adherence"] = adherence
+            write_json(record_path, record)
 
         try:
             try:
+                if adherence and not adherence["template_adherence_passed"]:
+                    validate_background(candidate_path, reference_number=reference_number,
+                                        enforce_palette=False)
+                    raise ValueError(adherence["template_failure_category"])
                 raw_validation = validate_background(
                     candidate_path,
                     reference_number=reference_number,
@@ -2027,6 +2085,10 @@ class ComfyUIClient:
                 if not (
                     palette_normalized
                 ):
+                    rejected_path = image_path.with_name(
+                        f"{image_path.stem}.attempt-{record['attempt_count']:02d}.rejected.png"
+                    )
+                    write_bytes(rejected_path, candidate_path.read_bytes())
                     record.update(
                         status=(
                             "rejected"
@@ -2036,17 +2098,12 @@ class ComfyUIClient:
                                 error
                             )
                         ),
-                        outcome_category=(
-                            classify_failure(
-                                str(
-                                    error
-                                )
-                            )
-                        ),
+                        outcome_category=classify_failure(str(error)),
                         error=None,
                         remote_image=(
                             descriptor
                         ),
+                        rejected_image_path=str(rejected_path),
                     )
 
                     write_json(
@@ -2339,6 +2396,8 @@ class ComfyUIClient:
                     "compiled_prompt": previous.get("compiled_prompt"),
                     "sampling_profile": previous.get("sampling_profile"),
                     "outcome_category": previous.get("outcome_category"),
+                    "template_conditioning": previous.get("template_conditioning"),
+                    "template_adherence": previous.get("template_adherence"),
                 }
             )
 
@@ -2381,6 +2440,8 @@ class ComfyUIClient:
                     "compiled_prompt": previous.get("compiled_prompt"),
                     "sampling_profile": previous.get("sampling_profile"),
                     "outcome_category": previous.get("outcome_category"),
+                    "template_conditioning": previous.get("template_conditioning"),
+                    "template_adherence": previous.get("template_adherence"),
                 }
             )
 
@@ -2539,6 +2600,35 @@ class ComfyUIClient:
             summarize_failures(previous),
         )
 
+        conditioning_record = None
+        uploaded_template = None
+        if settings.template_conditioning_enabled:
+            attempt_number = _candidate_attempt_number(previous, retrying_candidate)
+            previous_category = (previous or {}).get("outcome_category")
+            adjustment = previous_category if retrying_candidate and previous_category in {
+                "TEMPLATE_DRIFT", "PROTECTED_REGION_INTRUSION", "WEAK_TEMPLATE_STRUCTURE"
+            } else (failure_category or "INITIAL")
+            candidate_spec = build_candidate_spec(document, engine_id, direction_id)
+            if spec_sha256 and candidate_spec.spec_sha256 != spec_sha256:
+                raise ComfyUIError("Candidate specification changed before template generation")
+            template_spec = compile_template_conditioning(
+                candidate_spec, failure_category=adjustment,
+                retry_stage=retry_stage or "normal", attempt=attempt_number,
+            )
+            template_path = render_template(template_spec, _workflow_dimensions(engine_id))
+            upload_name = f"{reference_number}-{engine_id}-{direction_id}-{template_spec.conditioning_sha256[:16]}.png"
+            uploaded = (await self.request("POST", "/upload/image", files={
+                "image": (upload_name, template_path.read_bytes(), "image/png"),
+            }, data={"type": "input", "overwrite": "true"})).json()
+            uploaded_template = uploaded.get("name")
+            if uploaded_template != upload_name or uploaded.get("subfolder"):
+                raise ComfyUIError("ComfyUI did not accept the deterministic template input")
+            conditioning_record = {
+                **template_spec.record(), "enabled": True,
+                "base_conditioning_sha256": compile_template_conditioning(candidate_spec).conditioning_sha256,
+                "retry_adjustment": adjustment,
+            }
+
         workflow = (
             build_workflow(
                 engine_id,
@@ -2553,6 +2643,8 @@ class ComfyUIClient:
                 ),
                 compiled_prompt=compiled_prompt,
                 sampling_profile=selected_profile,
+                template_image=uploaded_template,
+                denoise=conditioning_record["denoise"] if conditioning_record else None,
             )
         )
 
@@ -2607,6 +2699,7 @@ class ComfyUIClient:
             "spec_sha256": spec_sha256,
             "direction_role": direction_role,
             "sampling_profile": selected_profile.record() if selected_profile else None,
+            "template_conditioning": conditioning_record or {"enabled": False},
         }
         record.update(_record_prompt_metadata(
             engine_id, actual_positive_prompt, actual_negative_prompt,

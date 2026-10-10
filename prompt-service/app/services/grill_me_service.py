@@ -778,67 +778,48 @@ def _asset_questions(session: GrillMeSession, existing_fields: set[str]) -> list
     # Asset-specific questions only exist when the user
     # actually selected a headshot or logo.
     #
+    if asset_type == "none":
+        return questions
+
+    # The asset stays at the top; Grill-Me only asks for horizontal placement.
     if (
-        asset_type
-        != "none"
+        not session.answers.asset_placement
+        and "asset_placement" not in existing_fields
     ):
-        #
-        # Placement MUST be answered through Grill-Me.
-        #
-        # Vertical position is fixed:
-        #     TOP
-        #
-        # Grill-Me only asks:
-        #     left / center / right
-        #
-        # All text comes underneath the asset.
-        #
-        if (
-            not session.answers.asset_placement
-            and "asset_placement" not in existing_fields
-        ):
-            questions.append(_asset_placement_question(asset_type))
-            existing_fields.add("asset_placement")
+        questions.append(_asset_placement_question(asset_type))
+        existing_fields.add("asset_placement")
 
-        if (
-            asset_type == "headshot"
-            and not session.answers.headshot_shape
-            and "headshot_shape" not in existing_fields
-        ):
-            questions.append(_question(
-                "headshot_shape",
-                "A headshot was selected but no shape was provided.",
-            ))
-            existing_fields.add("headshot_shape")
+    if (
+        asset_type == "headshot"
+        and not session.answers.headshot_shape
+        and "headshot_shape" not in existing_fields
+    ):
+        questions.append(_question(
+            "headshot_shape",
+            "A headshot was selected but no shape was provided.",
+        ))
+        existing_fields.add("headshot_shape")
 
-        if (
-            not session.answers.rights_and_consent_confirmed
-            and "rights_and_consent_confirmed" not in existing_fields
-        ):
-            questions.append(_question(
-                "rights_and_consent_confirmed",
-                "Rights and consent must be confirmed before using an uploaded asset.",
-            ))
-            existing_fields.add("rights_and_consent_confirmed")
+    if (
+        not session.answers.rights_and_consent_confirmed
+        and "rights_and_consent_confirmed" not in existing_fields
+    ):
+        questions.append(_question(
+            "rights_and_consent_confirmed",
+            "Rights and consent must be confirmed before using an uploaded asset.",
+        ))
+        existing_fields.add("rights_and_consent_confirmed")
 
-        expected_asset = (
-            "headshot"
-            if (
-                asset_type
-                == "headshot"
-            )
-            else "logo"
-        )
-
-        if (
-            expected_asset not in session.assets
-            and "asset_file" not in existing_fields
-        ):
-            questions.append(_question(
-                "asset_file",
-                f"The selected {expected_asset} has not been uploaded yet.",
-            ))
-            existing_fields.add("asset_file")
+    expected_asset = "headshot" if asset_type == "headshot" else "logo"
+    if (
+        expected_asset not in session.assets
+        and "asset_file" not in existing_fields
+    ):
+        questions.append(_question(
+            "asset_file",
+            f"The selected {expected_asset} has not been uploaded yet.",
+        ))
+        existing_fields.add("asset_file")
 
     return questions
 

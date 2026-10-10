@@ -47,6 +47,8 @@ class NativeWorkflowProfileTests(unittest.TestCase):
                 return self.data
 
         async def fake_request(self, method, path, **kwargs):
+            if path == "/upload/image":
+                return Response({"name": kwargs["files"]["image"][0], "subfolder": ""})
             if path == "/object_info":
                 return Response({})
             if path == "/queue":
@@ -81,6 +83,10 @@ class NativeWorkflowProfileTests(unittest.TestCase):
             self.assertEqual(saved["retry_stage"], "normal")
             self.assertEqual(saved["sampling_profile"]["name"], "baseline")
             self.assertEqual(saved["workflow"]["3"]["inputs"]["sampler_name"], "dpmpp_2m")
+            self.assertTrue(saved["template_conditioning"]["enabled"])
+            self.assertTrue(saved["template_conditioning"]["template_path"].endswith("/template.png"))
+            self.assertEqual(len(saved["template_conditioning"]["conditioning_sha256"]), 64)
+            self.assertEqual(saved["workflow"]["3"]["inputs"]["latent_image"], ["91", 0])
 
     def test_resume_keeps_attempt_budget_and_correction_context(self):
         reason = "Generated background became a smooth gradient"

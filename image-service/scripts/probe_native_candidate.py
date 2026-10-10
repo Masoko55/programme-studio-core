@@ -530,7 +530,7 @@ def _persist_probe_diagnostics(
             capture
             .rejected_image_preserved
         )
-        else None
+        else record.get("rejected_image_path")
     )
 
     #

@@ -37,7 +37,7 @@ from probe_native_candidate import (
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-reference", required=True)
-    parser.add_argument("--engine", required=True, choices=(settings.engine_2_id, settings.engine_3_id))
+    parser.add_argument("--engine", required=True, choices=(settings.engine_1_id, settings.engine_2_id, settings.engine_3_id))
     parser.add_argument("--direction", required=True, choices=("A", "B", "C"))
     parser.add_argument("--attempts", type=int, default=9, choices=range(1, 10))
     parser.add_argument("--seed", type=int, default=None,
@@ -116,6 +116,20 @@ async def main() -> None:
                 direction=args.direction, record=record, error=error_message,
             )
             summary["attempt"] = attempt
+            conditioning = record.get("template_conditioning") or {}
+            summary.update({
+                "TEMPLATE_CONDITIONING_ENABLED": conditioning.get("enabled", False),
+                "TEMPLATE_PATH": conditioning.get("template_path"),
+                "CONDITIONING_SHA256": conditioning.get("conditioning_sha256"),
+                "DENOISE": conditioning.get("denoise"),
+                "TEMPLATE_ADHERENCE_PASS": record.get("template_adherence_passed"),
+                "TEMPLATE_STRUCTURE_IOU": record.get("template_structure_iou"),
+                "DECORATION_IN_PROTECTED_RATIO": record.get("decoration_in_protected_ratio"),
+                "TITLE_ZONE_EDGE_DENSITY": record.get("title_zone_edge_density"),
+                "PROGRAMME_ZONE_EDGE_DENSITY": record.get("programme_zone_edge_density"),
+                "OUTER_EDGE_DENSITY": record.get("outer_edge_density"),
+                "CENTER_EDGE_DENSITY": record.get("center_edge_density"),
+            })
             print(json.dumps(summary, indent=2, ensure_ascii=False), flush=True)
 
             view_path = (

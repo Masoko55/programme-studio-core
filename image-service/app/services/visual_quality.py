@@ -923,7 +923,7 @@ def _reject_visual_defects(metrics: dict, directional: dict, fine_lines: dict, s
     # ========================================================
 
     perimeter = str((visual_design or {}).get("border_or_perimeter_strategy") or "").casefold()
-    expects_outer = visual_design is None or any(
+    expects_outer = any(
         word in perimeter for word in ("frame", "border", "edge", "perimeter", "corner")
     ) and not any(word in perimeter for word in ("open", "quiet", "minimal", "unframed"))
     if expects_outer and (

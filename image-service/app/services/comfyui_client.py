@@ -817,7 +817,8 @@ def detect_text_evidence(image: Image.Image) -> dict:
     strong_single = [item for item in confirmed if len(item["token"]) >= 7 and
                      (item["confidence"] >= 85 or len(item["passes"]) >= 2)]
     strong_single.extend(item for item in confirmed if len(item["token"]) >= 5
-                         and item["area_ratio"] >= 0.01 and item["crop_confirmed"])
+                         and item["area_ratio"] >= 0.01
+                         and (item["crop_confirmed"] or len(item["passes"]) >= 2))
     detected = bool(lines or strong_single)
     selected = confirmed if detected else []
     return {

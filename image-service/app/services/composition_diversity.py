@@ -63,7 +63,7 @@ def boilerplate_metrics(image: Image.Image) -> dict[str, float]:
         border = (np.mean(edges[y, x:x+w]), np.mean(edges[y+h-1, x:x+w]),
                   np.mean(edges[y:y+h, x]), np.mean(edges[y:y+h, x+w-1]))
         if min(border) >= 0.45:
-            panel_score = max(panel_score, min(1.0, w * h / gray.size * 2.5))
+            panel_score = max(panel_score, min(1.0, w * h / gray.size * 4.0))
     flat = _flat_mask(gray, edges)
 
     count, _, stats, _ = cv2.connectedComponentsWithStats(

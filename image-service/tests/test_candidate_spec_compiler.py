@@ -81,6 +81,32 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_six_retry_categories_compile_from_same_spec_without_correction_accumulation(self):
+        from app.services.prompt_compiler import _CORRECTIONS
+        reasons = {
+            "TEXT": "generated readable text", "HUMAN": "human silhouette",
+            "PALETTE_OFF": "off-palette colours", "FLAT": "flat background",
+            "RASTER": "raster scanlines", "TITLE_PANEL": "TITLE_PANEL bordered card",
+        }
+        for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
+            spec = build_candidate_spec(document_for(CASES[0]), engine, "B")
+            initial = compile_candidate_prompt(spec, 1)
+            for category, reason in reasons.items():
+                with self.subTest(engine=engine, category=category):
+                    retry = compile_candidate_prompt(spec, 2, reason)
+                    self.assertEqual(retry.failure_category, category)
+                    self.assertEqual(retry.spec_sha256, initial.spec_sha256)
+                    self.assertIn(spec.background_inspiration, retry.positive)
+                    self.assertIn(spec.visual_design["composition_strategy"], retry.positive)
+                    self.assertIn(spec.visual_design["palette_relationship"], retry.positive)
+                    self.assertIn(_CORRECTIONS[category], retry.positive)
+                    for other, wording in _CORRECTIONS.items():
+                        if other != category:
+                            self.assertNotIn(wording, retry.positive)
+                    for field in (retry.positive, retry.clip_l, retry.clip_g, retry.t5 or ""):
+                        self.assertNotIn(spec.direction_role, field)
+                    self.assertEqual(spec.spec_sha256, initial.spec_sha256)
+
     def test_model_conditioning_has_no_role_or_panel_language(self):
         labels = ("Architectural Master", "Comic Book Cityscape Illustrator",
                   "Creative Direction for A4 Portrait Event Background", "visual character")

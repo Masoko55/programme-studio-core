@@ -753,7 +753,8 @@ def _safe_region_metrics(
     }
 
 
-def _reject_visual_defects(metrics: dict, directional: dict, fine_lines: dict, safe_region: dict) -> None:
+def _reject_visual_defects(metrics: dict, directional: dict, fine_lines: dict, safe_region: dict,
+                           visual_design: dict | None = None) -> None:
     edge_density = metrics["edge_density"]
     directional_edge_dominance = metrics["directional_edge_dominance"]
     full_span_line_ratio = metrics["full_span_line_ratio"]
@@ -763,6 +764,7 @@ def _reject_visual_defects(metrics: dict, directional: dict, fine_lines: dict, s
     laplacian_variance = metrics["laplacian_variance"]
     highpass_mean = metrics["highpass_mean"]
     coherent_edge_ratio = metrics["coherent_edge_ratio"]
+    macro_structure_score = metrics.get("macro_structure_score", 0.0)
 
     # ========================================================
     # Strong directional scanlines
@@ -883,6 +885,7 @@ def _reject_visual_defects(metrics: dict, directional: dict, fine_lines: dict, s
         structural_edge_density < 0.045
         and edge_density < 0.12
         and highpass_mean < 2.0
+        and macro_structure_score < 0.30
     ):
         raise ValueError(
             "Generated background failed visual quality validation: "
@@ -919,11 +922,12 @@ def _reject_visual_defects(metrics: dict, directional: dict, fine_lines: dict, s
     # Useful outer decorative structure
     # ========================================================
 
-    if (
-        safe_region[
-            "outer_structural_edge_density"
-        ]
-        < MIN_OUTER_STRUCTURAL_EDGE_DENSITY
+    perimeter = str((visual_design or {}).get("border_or_perimeter_strategy") or "").casefold()
+    expects_outer = visual_design is None or any(
+        word in perimeter for word in ("frame", "border", "edge", "perimeter", "corner")
+    ) and not any(word in perimeter for word in ("open", "quiet", "minimal", "unframed"))
+    if expects_outer and (
+        safe_region["outer_structural_edge_density"] < MIN_OUTER_STRUCTURAL_EDGE_DENSITY
     ):
         raise ValueError(
             "Generated background failed visual quality validation: "
@@ -939,6 +943,7 @@ def validate_visual_quality(
     image: Image.Image,
     *,
     enforce_overlay_region: bool = False,
+    visual_design: dict | None = None,
 ) -> dict:
     sample = (
         image.convert(
@@ -978,6 +983,12 @@ def validate_visual_quality(
         rgb,
         cv2.COLOR_RGB2GRAY,
     )
+    coarse = cv2.resize(cv2.GaussianBlur(gray, (0, 0), 5), (48, 66),
+                        interpolation=cv2.INTER_AREA)
+    coarse_edges = cv2.Canny(coarse, 20, 60)
+    coarse_edge_density = float(np.mean(coarse_edges > 0))
+    coarse_contrast = float(np.percentile(coarse, 90) - np.percentile(coarse, 10))
+    macro_structure_score = min(1.0, coarse_edge_density * 12) * min(1.0, coarse_contrast / 35)
 
     gray_float = gray.astype(
         np.float32
@@ -1123,10 +1134,12 @@ def validate_visual_quality(
             "laplacian_variance": laplacian_variance,
             "highpass_mean": highpass_mean,
             "coherent_edge_ratio": coherent_edge_ratio,
+            "macro_structure_score": macro_structure_score,
         },
         directional,
         fine_lines,
         safe_region,
+        visual_design,
     )
 
     # ========================================================
@@ -1268,6 +1281,8 @@ def validate_visual_quality(
     return {
         "visual_quality_checked": True,
         "visual_quality_passed": True,
+        "macro_structure_score": macro_structure_score,
+        "coarse_edge_density": coarse_edge_density,
 
         "edge_density": (
             edge_density

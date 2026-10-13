@@ -13,6 +13,14 @@ from app.services.comfyui_client import (
 class OcrConfirmationTests(
     unittest.TestCase
 ):
+    def test_gibberish_confirmed_in_two_preprocessing_views(self):
+        empty = {"text": [], "conf": []}
+        gibberish = {"text": ["DRSANTIOCALE"], "conf": ["76"]}
+        with patch("app.services.comfyui_client.pytesseract.image_to_data",
+                   side_effect=[empty, gibberish, gibberish, empty]):
+            self.assertEqual(detected_text_tokens(Image.new("RGB", (128, 128), "white")),
+                             ["DRSANTIOCALE"])
+
     def test_exact_confirmation_matches(
         self,
     ):
@@ -267,7 +275,7 @@ class OcrConfirmationTests(
             ],
         )
 
-        mocked.assert_called_once()
+        self.assertGreaterEqual(mocked.call_count, 2)
 
 
 if __name__ == "__main__":

@@ -2105,6 +2105,28 @@ def _classify_palette_pixel(
     return (best_target["name"] if best_target is not None else None), nearest
 
 
+def _perceptual_palette_family(pixel_lab, targets: list[dict]) -> str | None:
+    """Match a pigment across shading while keeping unrelated hue separate."""
+    light, a, b = (float(value) for value in pixel_lab)
+    chroma = float(np.hypot(a, b))
+    matches = []
+    for target in targets:
+        target_lab = target["lab"]
+        target_chroma = float(np.hypot(target_lab[1], target_lab[2]))
+        if chroma < 8 or target_chroma < 8:
+            continue
+        cosine = float(np.clip((a * target_lab[1] + b * target_lab[2]) /
+                               (chroma * target_chroma), -1, 1))
+        angle = float(np.degrees(np.arccos(cosine)))
+        # A low-chroma petal shadow has less reliable hue than a saturated
+        # third colour. It still needs a perceptual connection to the pigment.
+        limit = 43 if chroma < 26 else 29
+        if angle <= limit:
+            distance = float(np.linalg.norm(pixel_lab - target_lab))
+            matches.append((angle + distance * 0.2, target["name"]))
+    return min(matches)[1] if matches else None
+
+
 def _validate_palette_balance(primary_name, primary_rgb, primary_descriptor, secondary_name, secondary_rgb, requested_counts: dict, total: int) -> tuple[float | None, float | None]:
     primary_ratio = None
 
@@ -2336,6 +2358,9 @@ def validate_palette(
             3,
         )
     )
+    lab_pixels = cv2.cvtColor(rgb_array, cv2.COLOR_RGB2LAB).reshape(-1, 3).astype(np.float32)
+    lab_pixels[:, 0] *= 100.0 / 255.0
+    lab_pixels[:, 1:] -= 128.0
 
     total = len(
         hsv_pixels
@@ -2363,24 +2388,24 @@ def validate_palette(
             "white",
         }
     ):
-        saturation = (
-            hsv_pixels[
-                :,
-                1
-            ]
-        )
+        chroma = np.linalg.norm(lab_pixels[:, 1:], axis=1)
+        luminance = lab_pixels[:, 0]
+        achromatic = chroma <= 16
+        monochrome_ratio = float(np.mean(achromatic))
+        black_ratio = float(np.mean(achromatic & (luminance <= 35)))
+        white_ratio = float(np.mean(achromatic & (luminance >= 65)))
+        dynamic_range = float(np.percentile(luminance, 90) - np.percentile(luminance, 10))
+        achromatic_metrics = {
+            "achromatic_ratio": monochrome_ratio,
+            "chromatic_contamination_ratio": 1.0 - monochrome_ratio,
+            "dark_tone_ratio": black_ratio,
+            "light_tone_ratio": white_ratio,
+            "luminance_dynamic_range": dynamic_range,
+            "off_palette_ratio": 1.0 - monochrome_ratio,
+            "palette_mode": mode or "achromatic",
+        }
 
-        monochrome_ratio = float(
-            np.mean(
-                saturation
-                <= NEUTRAL_MAX_SATURATION
-            )
-        )
-        values = hsv_pixels[:, 2]
-        black_ratio = float(np.mean(values <= 65))
-        white_ratio = float(np.mean(values >= 185))
-
-        minimum_monochrome = (1.0 - MAX_OFF_PALETTE_RATIO) if mode == "strict" else MIN_BLACK_WHITE_RATIO
+        minimum_monochrome = 0.99 if mode == "strict" else MIN_BLACK_WHITE_RATIO
         if monochrome_ratio < minimum_monochrome:
             error = ValueError(
                 "Generated background left the requested "
@@ -2388,14 +2413,15 @@ def validate_palette(
                 f"(monochrome ratio "
                 f"{monochrome_ratio:.2f})."
             )
-            error.palette_metrics = {"off_palette_ratio": 1.0 - monochrome_ratio,
-                                     "palette_mode": mode or "achromatic"}
+            error.palette_metrics = achromatic_metrics
             raise error
-        if black_ratio < 0.02 or white_ratio < 0.02:
-            raise ValueError(
-                "Generated background must visibly contain both black and white "
-                f"(black ratio {black_ratio:.2f}, white ratio {white_ratio:.2f})."
+        if black_ratio < 0.02 or white_ratio < 0.02 or dynamic_range < 30:
+            error = ValueError(
+                "Generated background lacks useful black-and-white tonal separation "
+                f"(dark {black_ratio:.2f}, light {white_ratio:.2f}, range {dynamic_range:.1f})."
             )
+            error.palette_metrics = achromatic_metrics
+            raise error
 
         return {
             **quality_result,
@@ -2410,6 +2436,8 @@ def validate_palette(
                 1.0
                 - monochrome_ratio
             ),
+            **achromatic_metrics,
+            "palette_mode": "black-white",
             "primary_colour_ratio": black_ratio if primary_name == "black" else white_ratio,
             "secondary_colour_ratio": white_ratio if secondary_name == "white" else black_ratio,
             "requested_colour_counts": {},
@@ -2460,8 +2488,11 @@ def validate_palette(
                         name
                     )
                 ),
+                "lab": cv2.cvtColor(np.uint8([[rgb_value]]), cv2.COLOR_RGB2LAB)[0, 0].astype(np.float32),
             }
         )
+        requested_targets[-1]["lab"][0] *= 100.0 / 255.0
+        requested_targets[-1]["lab"][1:] -= 128.0
 
     requested_counts = dict.fromkeys(
         (name for name, _, _ in requested),
@@ -2476,31 +2507,52 @@ def validate_palette(
     off_palette_count = 0
     incidental_neutral_count = 0
     incidental_neutral_mask = np.zeros(total, dtype=np.uint8)
+    unrelated_chromatic_mask = np.zeros(total, dtype=np.uint8)
 
     off_palette_named_counts: dict[
         str,
         int,
     ] = {}
+    exclusive_palette = (mode in {"strict", "monochrome"}) or bool(re.search(
+        r"\b(?:only (?:these |the )?colou?rs|no third colou?r|strictly monochrome|exclusive palette)\b",
+        relationship or "", re.I,
+    ))
 
+    tonal_derivative_count = 0
+    unrelated_hue_count = 0
     for index, (hue, saturation, value) in enumerate(hsv_pixels):
-        family, tonal_name = _classify_palette_pixel(
-            int(hue), int(saturation), int(value), rgb_pixels[index],
-            requested_neutrals, requested_targets,
-        )
+        lab = lab_pixels[index]
+        chroma = float(np.linalg.norm(lab[1:]))
+        family = None
+        if chroma <= 18:
+            if "white" in requested_neutrals and lab[0] >= (80 if exclusive_palette else 65):
+                family = "white"
+            elif "black" in requested_neutrals and lab[0] <= 45:
+                family = "black"
+            elif "grey" in requested_neutrals or "gray" in requested_neutrals:
+                family = "grey" if "grey" in requested_neutrals else "gray"
         if family is None:
-            if int(saturation) <= 40:
+            family = _perceptual_palette_family(lab, requested_targets)
+        tonal_name = family or _nearest_named_colour(rgb_pixels[index])
+        if family in requested_neutrals and tonal_name == "white" and lab[0] < 90:
+            tonal_derivative_count += 1
+        elif family in {target["name"] for target in requested_targets}:
+            target = next(target for target in requested_targets if target["name"] == family)
+            if np.linalg.norm(lab - target["lab"]) > 12:
+                tonal_derivative_count += 1
+        if family is None:
+            if chroma <= 18:
                 incidental_neutral_count += 1
                 incidental_neutral_mask[index] = 1
+            else:
+                unrelated_hue_count += 1
+                unrelated_chromatic_mask[index] = 1
             off_palette_count += 1
             off_palette_named_counts[tonal_name] = off_palette_named_counts.get(tonal_name, 0) + 1
             continue
         requested_counts[family] = requested_counts.get(family, 0) + 1
         accepted_tonal_counts[tonal_name] = accepted_tonal_counts.get(tonal_name, 0) + 1
 
-    exclusive_palette = (mode in {"strict", "monochrome"}) or bool(re.search(
-        r"\b(?:only (?:these |the )?colou?rs|no third colou?r|strictly monochrome|exclusive palette)\b",
-        relationship or "", re.I,
-    ))
     # A bounded amount of near-neutral shadow or reflection is rendering,
     # not a newly chosen design colour. Explicit exclusive palettes do not
     # receive this allowance; chromatic third colours never receive it.
@@ -2511,11 +2563,35 @@ def validate_palette(
         int(np.max(neutral_components[1:, cv2.CC_STAT_AREA])) / total
         if len(neutral_components) > 1 else 0.0
     )
-    tolerated_neutral_count = (
-        0 if exclusive_palette or largest_neutral_region > 0.025
-        else min(incidental_neutral_count, int(total * 0.08))
+    _, _, chromatic_components, _ = cv2.connectedComponentsWithStats(
+        unrelated_chromatic_mask.reshape(176, 128), 8,
     )
-    off_palette_ratio = (off_palette_count - tolerated_neutral_count) / total
+    largest_unrequested_region = (
+        int(np.max(chromatic_components[1:, cv2.CC_STAT_AREA])) / total
+        if len(chromatic_components) > 1 else 0.0
+    )
+    structural_neutral_ratio = incidental_neutral_count / total
+    requested_chromatic_ratio = sum(
+        requested_counts.get(target["name"], 0) for target in requested_targets
+    ) / total
+    unrequested_chromatic_ratio = unrelated_hue_count / total
+    off_palette_ratio = (
+        (off_palette_count if exclusive_palette else unrelated_hue_count) / total
+    )
+    perceptual_metrics = {
+        "perceptual_in_family_ratio": 1.0 - off_palette_ratio,
+        "unrelated_hue_ratio": unrelated_hue_count / total,
+        "requested_chromatic_ratio": requested_chromatic_ratio,
+        "structural_neutral_ratio": structural_neutral_ratio,
+        "unrequested_chromatic_ratio": unrequested_chromatic_ratio,
+        "largest_unrequested_region_ratio": largest_unrequested_region,
+        "primary_ratio": requested_counts.get(primary_name, 0) / total,
+        "secondary_ratio": requested_counts.get(secondary_name, 0) / total,
+        "requested_palette_mode": "strict" if exclusive_palette else "dominant",
+        "tonal_derivative_ratio": tonal_derivative_count / total,
+        "primary_presence_ratio": requested_counts.get(primary_name, 0) / total,
+        "secondary_presence_ratio": requested_counts.get(secondary_name, 0) / total,
+    }
 
     breakdown = {
         name: (
@@ -2559,10 +2635,13 @@ def validate_palette(
         )
     }
 
-    if (
-        off_palette_ratio
-        > MAX_OFF_PALETTE_RATIO
-    ):
+    neutral_takeover = (
+        not exclusive_palette and bool(requested_targets)
+        and structural_neutral_ratio > 0.55 and requested_chromatic_ratio < 0.35
+    )
+    palette_limit = 0.01 if exclusive_palette else MAX_OFF_PALETTE_RATIO
+    if (off_palette_ratio > palette_limit or largest_unrequested_region > 0.035
+            or neutral_takeover):
         top_unrequested = [
             (
                 f"{name}="
@@ -2591,10 +2670,12 @@ def validate_palette(
             "that were not requested "
             f"(off-palette ratio "
             f"{off_palette_ratio:.2f}; "
-            f"strongest matches: {details})."
+            f"strongest matches: {details}; neutral ratio {structural_neutral_ratio:.2f}; "
+            f"largest unrelated region {largest_unrequested_region:.2f})."
         )
         error.palette_metrics = {
             "off_palette_ratio": off_palette_ratio,
+            **perceptual_metrics,
             "requested_colour_family_counts": requested_counts,
             "accepted_tonal_breakdown": tonal_breakdown,
             "unrequested_colour_breakdown": breakdown,
@@ -2603,10 +2684,15 @@ def validate_palette(
 
     primary_ratio, secondary_ratio = (None, None)
     if primary_name and secondary_name:
-        primary_ratio, secondary_ratio = _validate_palette_balance(
-            primary_name, primary_rgb, primary_descriptor, secondary_name,
-            secondary_rgb, requested_counts, total,
-        )
+        try:
+            primary_ratio, secondary_ratio = _validate_palette_balance(
+                primary_name, primary_rgb, primary_descriptor, secondary_name,
+                secondary_rgb, requested_counts, total,
+            )
+        except ValueError as error:
+            error.palette_metrics = {"off_palette_ratio": off_palette_ratio,
+                                     **perceptual_metrics, "palette_mode": mode or "dominant"}
+            raise
 
     palette_match_ratio = (
         1.0
@@ -2631,6 +2717,7 @@ def validate_palette(
         "off_palette_ratio": (
             off_palette_ratio
         ),
+        **perceptual_metrics,
 
         "primary_colour_ratio": (
             primary_ratio
@@ -2918,6 +3005,7 @@ def detect_human_signals(
             and box_width * box_height / image_area >= 0.003
         )
         evidence.append({"source": "hog", "bbox": box, "weight": numeric_weight,
+                         "area_ratio": box_width * box_height / image_area,
                          "confirmed": plausible,
                          "confirmation": "weight, human aspect and meaningful area" if plausible else "insufficient shape or confidence"})
         if plausible:
@@ -3008,10 +3096,15 @@ def detect_human_signals(
         ("profile_face", profiles, confirmed_profiles),
     ):
         for box in boxes:
-            corroborated = box in confirmed or any(_boxes_overlap(box, body) for body in upper_bodies + people)
-            plausible = 0.55 <= box[2] / max(1, box[3]) <= 1.8 and box[2] * box[3] / image_area >= 0.0005
+            area_ratio = box[2] * box[3] / image_area
+            body_overlap = any(_boxes_overlap(box, body) for body in upper_bodies + people)
+            corroborated = any(_boxes_overlap(box, body) for body in people) or (
+                box in confirmed and (body_overlap or area_ratio >= 0.004)
+            )
+            plausible = 0.55 <= box[2] / max(1, box[3]) <= 1.8 and area_ratio >= 0.0005
             accepted = corroborated and plausible
             evidence.append({"source": source, "bbox": box, "weight": None,
+                             "area_ratio": area_ratio, "body_overlap": body_overlap,
                              "confirmed": accepted,
                              "confirmation": "rescale or body corroboration" if accepted else "isolated cascade pattern"})
 
@@ -3035,12 +3128,17 @@ def detect_human_signals(
         or any(item["confirmed"] and item["source"] == "profile_face" for item in evidence)
         or strong_upper_body_signal
     )
+    strong_signals = [item for item in evidence if item["confirmed"]]
+    weak_signals = [item for item in evidence if not item["confirmed"]]
 
     return {
         "people": (
             people
         ),
         "evidence": evidence,
+        "strong_signals": strong_signals,
+        "weak_signals": weak_signals,
+        "overlaps": [item for item in evidence if item.get("body_overlap")],
         "people_weights": (
             people_weights
         ),
@@ -3058,5 +3156,14 @@ def detect_human_signals(
         ),
         "detected": (
             detected
+        ),
+        "human_detection_confidence": "high" if detected else "low",
+        "human_detection_reason": (
+            "confirmed person or repeat-scale face/profile" if detected
+            else "isolated detector patterns without independent confirmation"
+        ),
+        "largest_detection_area_ratio": max(
+            (item["bbox"][2] * item["bbox"][3] / image_area for item in evidence),
+            default=0.0,
         ),
     }

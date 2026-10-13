@@ -93,6 +93,9 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
     visual_design = {
         "primary_visual_subject": field(brief, "background_inspiration") or visual_sentence or field(brief, "theme_reference_treatment") or field(brief, "theme"),
         "event_context": field(brief, "event_context") or field(brief, "event_type"),
+        "render_exclusion_text": [field(brief, key) for key in (
+            "title_preference", "event_date", "venue"
+        ) if field(brief, key)],
         "audience_context": field(brief, "audience_context"),
         "mood": field(brief, "mood"),
         "visual_style": field(brief, "visual_style"),

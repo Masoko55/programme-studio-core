@@ -81,6 +81,17 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_event_label_is_planning_metadata_not_rendered_text(self):
+        document = document_for(CASES[2])
+        document["brief"]["title_preference"] = "THE BRIDAL SHOWER"
+        for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
+            spec = build_candidate_spec(document, engine, "B")
+            compiled = compile_candidate_prompt(spec, 2, "Generated background contains OCR text")
+            for prompt in (compiled.positive, compiled.clip_l, compiled.clip_g, compiled.t5 or ""):
+                self.assertNotIn("bridal shower", prompt.casefold())
+                self.assertNotIn("THE BRIDAL SHOWER", prompt)
+            self.assertIn("pseudo-typography", compiled.positive)
+
     def test_incomplete_direction_strategy_is_rejected(self):
         for name in (
             "composition_strategy", "focal_strategy", "depth_strategy",
@@ -102,9 +113,13 @@ class CandidateSpecCompilerTests(unittest.TestCase):
                 if compiled.t5:
                     fields += (compiled.t5,)
                 for prompt in fields:
-                    self.assertIn("asymmetric layered composition", prompt)
-                    self.assertIn("off-centre subject focus", prompt)
-                    self.assertIn("foreground to background depth", prompt)
+                    if engine == "sd-3-5-medium" and prompt == compiled.clip_l:
+                        self.assertIn("city skyline", prompt)
+                        self.assertLess(len(prompt.split()), 40)
+                    else:
+                        self.assertIn("asymmetric layered composition", prompt)
+                        self.assertIn("off-centre subject focus", prompt)
+                        self.assertIn("foreground to background depth", prompt)
 
     def test_spec_is_structured_and_deeply_immutable(self):
         document = document_for(CASES[0])
@@ -130,7 +145,7 @@ class CandidateSpecCompilerTests(unittest.TestCase):
                     compiled = compile_candidate_prompt(spec, attempt, reason)
                     with self.subTest(case=case[1], engine=engine, attempt=attempt):
                         text = compiled.positive.lower()
-                        for anchor in (case[7], case[8], case[4], case[5], case[6]):
+                        for anchor in (case[7], case[8], case[5], case[6]):
                             self.assertIn(anchor.lower(), text)
                         self.assertIn("intentional negative space", text)
                         self.assertIn("breathing room", text)
@@ -158,7 +173,7 @@ class CandidateSpecCompilerTests(unittest.TestCase):
             self.assertIn(CASES[0][3], compiled.positive)
             self.assertIn(expected[compiled.failure_category], compiled.positive)
             self.assertEqual(compiled.retry_stage, "rescue")
-            self.assertIn("coherent, varied visual forms", compiled.positive)
+            self.assertNotIn("Replace fine artefacts", compiled.positive)
 
     def test_dense_safe_region_is_not_misclassified_as_weak_outer_structure(self):
         self.assertEqual(
@@ -195,13 +210,13 @@ class CandidateSpecCompilerTests(unittest.TestCase):
         spec = build_candidate_spec(document_for(CASES[0]), "sd-3-5-medium", "B")
         compiled = compile_candidate_prompt(spec, 7, REASONS[4])
         self.assertIn("city skyline", compiled.clip_l.lower())
-        self.assertIn("expressive", compiled.clip_g.lower())
+        self.assertNotIn("expressive", compiled.clip_g.lower())
         self.assertIn("city skyline", compiled.clip_g.lower())
         self.assertIn("spiderweb", compiled.clip_g.lower())
         self.assertIn("royal blue", compiled.clip_g.lower())
         self.assertIn("intentional negative space", compiled.t5.lower())
         self.assertIn("breathing room", compiled.t5.lower())
-        for anchor in ("city skyline", "spiderweb", "expressive", "royal blue", "red"):
+        for anchor in ("city skyline", "spiderweb", "royal blue", "red"):
             self.assertIn(anchor.lower(), compiled.t5.lower())
         self.assertNotIn("spider-man", compiled.t5.lower())
         self.assertLess(len(compiled.negative), 200)
@@ -230,7 +245,7 @@ class CandidateSpecCompilerTests(unittest.TestCase):
             self.assertIn("Background inspiration: Create a comic-book city skyline", compiled.positive[:450])
             if engine == "sd-3-5-medium":
                 self.assertIn("Visual subject: Create a comic-book city skyline", compiled.clip_l)
-                self.assertIn("Direction motif:", compiled.clip_g)
+                self.assertIn("Visual motif:", compiled.clip_g)
                 self.assertIn("city skyline", compiled.t5)
 
     def test_missing_inspiration_fallback_is_theme_and_palette_independent(self):

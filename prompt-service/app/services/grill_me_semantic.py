@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 
 import httpx
 
@@ -331,6 +332,30 @@ def _safe_context(
     context = dict(DEFAULT_CONTEXT)
     context.update({key: item for key, item in value.items() if key in context})
     questions = _valid_clarification_questions(context)
+
+    event = str(answers.get("event_type") or "").strip()
+    theme = str(answers.get("theme") or "").strip()
+    if event and re.search(r"\b(birthday|party|wedding|shower|graduation|gala|ceremony|funeral|conference|celebration)\b", event, re.I):
+        context.update(event_type_status="known", event_type_interpretation=event,
+                       well_known_event_type=True)
+    if theme and context.get("theme_status") != "known":
+        context.update(theme_status="known", theme_interpretation=theme)
+    description = str(answers.get("creative_description") or "")
+    reference = re.search(r"\b([\w-]{4,})[- ]inspired\b", description, re.I)
+    if (reference and re.search(r"\b(superhero|character|franchise|fictional)\b",
+                                description + " " + theme, re.I)
+            and not context.get("reference_detected")):
+        context.update(reference_detected=True,
+                       reference_name=reference.group(1).replace("-", " ").title(),
+                       reference_type="well-known fictional-character inspiration")
+    if not context.get("background_generation_summary"):
+        inspiration = str(answers.get("background_inspiration") or "").strip()
+        treatment = str(answers.get("theme_reference_treatment") or "").strip()
+        if inspiration:
+            context["background_generation_summary"] = (
+                f"Background artwork: {inspiration}. {treatment}. No people, characters or generated text."
+            ).strip()
+    questions = [item for item in questions if not str(answers.get(item["field"]) or "").strip()]
 
     reference_detected = bool(
         context.get(

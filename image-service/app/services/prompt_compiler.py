@@ -33,6 +33,8 @@ def failure_category(reason: str) -> str:
     text = reason.casefold()
     if not text:
         return "INITIAL"
+    if "TITLE_PANEL" in reason.upper() or "TEMPLATE_PANEL" in reason.upper():
+        return "TITLE_PANEL"
     for category in ("BOILERPLATE_COMPOSITION", "DIRECTION_DUPLICATE", "PROTECTED_REGION_INTRUSION", "WEAK_TEMPLATE_STRUCTURE", "WEAK_DECORATIVE_DESIGN", "TEMPLATE_DRIFT"):
         if category.casefold() in text:
             return category
@@ -252,7 +254,8 @@ def _direction_motif(spec: CandidateSpec) -> str:
 
 _CORRECTIONS = {
     "HUMAN": "Remove people, faces, silhouettes and humanoid shapes from this same background scene.",
-    "TEXT": "Remove readable text, letters, numbers, logos and watermarks from this same design.",
+    "TEXT": "Remove readable text and pseudo-text. This is background artwork, not a poster or invitation. Render no glyphs, characters, alphabetic marks, numeric marks, signage or pseudo-typography. Leave the intended typography areas visually empty.",
+    "TITLE_PANEL": "Integrate the calm area into the scene itself. Remove separate panels, cards, banners, bordered boxes and blank sheets.",
     "PALETTE_OFF": "Correct the requested colour relationship while preserving this design's texture, shading and details.",
     "PRIMARY_MISSING": "Make the requested primary colour dominant across substantial surfaces of this same design.",
     "SECONDARY_MISSING": "Increase the requested secondary colour in several substantial visible regions of this same design.",
@@ -277,21 +280,42 @@ def _join_sections(*sections: str) -> str:
     return " ".join(section for section in sections if section)
 
 
+def _background_only(text: str, spec: CandidateSpec) -> str:
+    """Keep planning labels out of image-model conditioning."""
+    exclusions = [spec.event_type, spec.direction_role,
+                  *spec.visual_design.get("render_exclusion_text", [])]
+    for phrase in sorted(exclusions, key=len, reverse=True):
+        phrase = str(phrase).strip()
+        if len(phrase) >= 4:
+            text = re.sub(r"\b" + re.escape(phrase) + r"\b", "", text, flags=re.I)
+    text = re.sub(r"\bDirection\s+[ABC]\b\s*:?", "", text, flags=re.I)
+    text = re.sub(r"\bvisual character\b", "", text, flags=re.I)
+    text = re.sub(
+        r"\b(?:clear|blank|white|empty|bordered|rectangular)?\s*"
+        r"(?:title|programme|poster|text)?\s*"
+        r"(?:panel|box|card|banner|placard|signboard|rectangle)\b"
+        r"|\brectangular negative space\b",
+        "visually calm area integrated into the artwork", text, flags=re.I,
+    )
+    return re.sub(r"\s+", " ", text).strip()
+
+
 def _positive_prompt(
     spec: CandidateSpec, subject: str, motif: str,
-    treatment: str, identity: str, palette: str,
+    treatment: str, palette: str,
     composition: str, correction: str, attempt: int,
 ) -> str:
     shared = (
-        f"Direction artwork: {motif}." if motif else "",
+        f"Visual motif: {motif}." if motif else "",
         f"Theme treatment: {treatment}." if treatment else "",
-        identity,
         f"Brief anchors: {', '.join(spec.visual_design['visual_anchors'])}.",
         f"Composition: {composition}",
         f"Design language: {_design_language(spec)}." if _design_language(spec) else "",
         f"Palette: {palette}.",
     )
-    safety = "Background artwork with a clear visual subject and intentional breathing room."
+    safety = ("Text-free background artwork with a clear visual subject and natural low-detail breathing room. "
+              "No typography or glyph-like marks. Quiet areas remain part of the scene; "
+              "no separate panels, cards, banners, placards or signboards.")
     if spec.engine_id == "sdxl-1-0":
         return _join_sections(
             f"Background inspiration: {subject}." if subject != motif else "",
@@ -303,19 +327,19 @@ def _positive_prompt(
         f"Background inspiration: {subject}.", shared[0],
         f"Theme reference treatment: {treatment}." if treatment else "",
         *shared[2:],
-        f"Correction for attempt {attempt}: {correction}" if correction else "",
-        f"Direction design: {spec.original_positive_prompt}.",
+        f"Correction: {correction}" if correction else "",
+        f"Visual design: {spec.original_positive_prompt}.",
         safety,
     )
 
 
 def _encoder_fields(
     spec: CandidateSpec, subject: str, motif: str,
-    encoder_motif: str, treatment: str, identity: str,
+    encoder_motif: str, treatment: str,
     correction: str,
 ) -> tuple[str, str]:
     direction_detail = treatment or encoder_motif
-    direction = f"Direction motif: {direction_detail}." if direction_detail else ""
+    direction = f"Visual motif: {direction_detail}." if direction_detail else ""
     colour = f"Requested palette: {_palette(spec)}."
     anchors = spec.visual_design["visual_anchors"]
     distinct_anchors = [item for item in anchors if item.casefold() != subject.casefold()]
@@ -346,8 +370,23 @@ def _encoder_fields(
             _join_sections("Background artwork.", *common),
             _join_sections("Background artwork.", *common),
         )
+    if spec.engine_id == "sd-3-5-medium":
+        style = str(design.get("visual_style") or "").strip()
+        clip_l = _join_sections("Background artwork.", f"Visual subject: {subject}.",
+                                f"Style: {style}." if style else "")
+        clip_g = _join_sections(
+            "Text-free decorative background; no typography or glyphs.",
+            f"Visual subject: {subject}.", direction,
+            f"Composition: {design['composition_strategy']}.",
+            f"Focal: {design['focal_strategy']}.",
+            f"Depth: {design['depth_strategy']}.",
+            f"Perimeter: {design['border_or_perimeter_strategy']}.",
+            colour,
+            f"Correction: {short_correction}" if short_correction else "",
+        )
+        return clip_l, clip_g
     common = (f"Visual subject: {subject}.", anchor_text, motif_text, direction,
-              f"Direction {spec.direction_id}: {spec.direction_role}.", structure, material)
+              structure, material)
     return (
         _join_sections("Background artwork.", *common, colour),
         _join_sections(
@@ -373,7 +412,6 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     treatment = spec.theme_reference_treatment
     palette = _palette(spec)
     composition = _composition(spec)
-    identity = f"Direction {spec.direction_id}: {spec.direction_role} visual character."
     correction = _CORRECTIONS.get(category, "")
     if category in {"DIRECTION_DUPLICATE", "FLAT", "WEAK_OUTER_STRUCTURE"}:
         design = spec.visual_design
@@ -381,28 +419,27 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
             f" Keep the subject grounded in {design['focal_strategy']} "
             f"and {design['depth_strategy']}; retain {design['composition_strategy']}."
         )
-    if stage in {"strict_recovery", "rescue"}:
-        correction += (
-            " Replace fine artefacts with coherent, varied visual forms "
-            "while preserving the subject, direction, palette and composition."
-        )
 
     positive = _positive_prompt(
-        spec, subject, motif, treatment, identity, palette,
+        spec, subject, motif, treatment, palette,
         composition, correction, attempt,
     )
     negative = (
-        "people, faces, characters, costumes, masked figures, readable text, "
-        "letters, typography, logos, watermarks, photographed print, "
-        "poster mockup, unrelated subject"
+        "people, faces, text, words, letters, numbers, typography, caption, "
+        "title, logo, watermark, signage, glyphs, pseudo-text, poster mockup"
+        if spec.engine_id == "sdxl-1-0" else
+        "people, faces, text, letters, glyphs, watermark"
     )
+    negative += (", no blank title panel, no white card, no bordered text box, "
+                 "no poster frame, no banner, no placard, no signboard, "
+                 "no empty paper rectangle")
     extra_negative = {
         "RASTER": ", scanlines, raster grid",
         "NOISE": ", grain, noise",
     }
     negative += extra_negative.get(category, "")
     clip_l, clip_g = _encoder_fields(
-        spec, subject, motif, encoder_motif, treatment, identity, correction,
+        spec, subject, motif, encoder_motif, treatment, correction,
     )
     # T5 carries each distinct semantic field once. The original direction
     # prompt remains in CandidateSpec and in the SDXL positive prompt, but it
@@ -411,20 +448,19 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     t5 = " ".join(section for section in (
         f"Background inspiration: {subject}.",
         f"Composition: {composition}",
-        f"Theme: {spec.theme}." if spec.theme in spec.visual_design["visual_anchors"] else "",
+        "Decorative background artwork with no typography or glyph-like marks.",
         f"Visual anchors: {', '.join(spec.visual_design['visual_anchors'])}.",
         f"Design language: {_design_language(spec)}." if _design_language(spec) else "",
         f"Theme treatment: {treatment}." if treatment else "",
-        identity,
         f"Palette: {palette}.",
         f"Correction: {correction}" if correction else "",
     ) if section)
     return CompiledPrompt(
-        positive=positive,
+        positive=_background_only(positive, spec),
         negative=negative,
-        clip_l=clip_l,
-        clip_g=clip_g,
-        t5=t5 if spec.engine_id == "sd-3-5-medium" else None,
+        clip_l=_background_only(clip_l, spec),
+        clip_g=_background_only(clip_g, spec),
+        t5=_background_only(t5, spec) if spec.engine_id == "sd-3-5-medium" else None,
         failure_category=category,
         retry_stage=stage,
         spec_sha256=spec.spec_sha256,

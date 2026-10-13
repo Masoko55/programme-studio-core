@@ -11,6 +11,31 @@ from app.services.comfyui_client import _workflow_encoder_prompts
 
 
 class NativeRefinementTests(unittest.TestCase):
+    def test_pink_white_shading_is_not_a_third_colour(self):
+        tones = ((244, 175, 201), (227, 154, 178), (251, 224, 231),
+                 (235, 229, 226), (190, 186, 188))
+        image = Image.new("RGB", (500, 200))
+        for index, tone in enumerate(tones):
+            ImageDraw.Draw(image).rectangle((index * 100, 0, index * 100 + 99, 199), fill=tone)
+        result = validate_palette(image, "pink", "white", quality_result={})
+        self.assertLess(result["unrelated_hue_ratio"], 0.05)
+        self.assertGreater(result["tonal_derivative_ratio"], 0)
+        ImageDraw.Draw(image).rectangle((300, 0, 499, 199), fill=(30, 170, 45))
+        with self.assertRaisesRegex(ValueError, "not requested"):
+            validate_palette(image, "pink", "white", quality_result={})
+
+    def test_charcoal_and_off_white_are_valid_black_white(self):
+        image = Image.new("RGB", (500, 200))
+        for index, value in enumerate((12, 55, 105, 170, 220)):
+            ImageDraw.Draw(image).rectangle((index * 100, 0, index * 100 + 99, 199),
+                                            fill=(value, value, value))
+        result = validate_palette(image, "black", "white", quality_result={})
+        self.assertGreater(result["luminance_dynamic_range"], 30)
+        self.assertEqual(result["chromatic_contamination_ratio"], 0)
+        ImageDraw.Draw(image).rectangle((200, 0, 499, 199), fill=(10, 40, 220))
+        with self.assertRaisesRegex(ValueError, "black-and-white"):
+            validate_palette(image, "black", "white", quality_result={})
+
     def test_tonal_derivatives_are_in_family(self):
         cases = (
             (("black", "white"), ((0, 0, 0), (130, 130, 130), (255, 255, 255))),

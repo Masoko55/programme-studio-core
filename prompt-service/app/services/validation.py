@@ -580,12 +580,73 @@ def _strategy_tokens(value: str) -> set[str]:
     }
 
 
+def direction_signature(direction: CreativeDirectionOutput) -> dict[str, str]:
+    """Normalize spatial decisions so paraphrases cannot masquerade as variety."""
+    focal = direction.focal_strategy.casefold()
+    composition = direction.composition_strategy.casefold()
+    depth = direction.depth_strategy.casefold()
+    perimeter = direction.border_or_perimeter_strategy.casefold()
+    quiet = (direction.title_safe_region_strategy + " " +
+             direction.programme_safe_region_strategy).casefold()
+    full = " ".join((focal, composition, depth, perimeter))
+
+    def choose(text: str, choices: tuple[tuple[str, str], ...]) -> str:
+        return next((label for pattern, label in choices if re.search(pattern, text)), "unspecified")
+
+    return {
+        "focal_horizontal_band": choose(focal, ((r"\bleft\b", "left"), (r"\bright\b", "right"),
+                                                 (r"cent(?:er|re)|axis", "centre"))),
+        "focal_vertical_band": choose(focal, ((r"upper|top|high\b", "upper"),
+                                               (r"lower|bottom|low\b", "lower"),
+                                               (r"middle|mid|centr", "middle"))),
+        "viewpoint": choose(full, ((r"aerial|bird.?s.eye", "aerial"),
+                                    (r"low.angle|looking up", "low-angle"),
+                                    (r"street.canyon", "street-canyon"),
+                                    (r"panoramic|wide.angle", "panoramic"),
+                                    (r"close.crop|close.up", "close-crop"))),
+        "composition_family": choose(composition, ((r"radial|radiat|circular", "radial"),
+                                                  (r"diagonal", "diagonal-depth"),
+                                                  (r"panoramic|horizontal", "panoramic-layered"),
+                                                  (r"central|centre|center|monument", "central-monument"),
+                                                  (r"asymmetr", "asymmetric-cluster"))),
+        "depth_plan": choose(depth, ((r"foreground|mid.?ground|distant|layer", "layered"),
+                                      (r"flat|shallow", "shallow"),
+                                      (r"reced|perspective", "receding"))),
+        "perimeter_plan": choose(perimeter, ((r"radial|web", "radial-web"),
+                                            (r"frame|border", "framed"),
+                                            (r"open|minimal|quiet", "open"))),
+        "quiet_region_geometry": choose(quiet, ((r"top|upper", "upper"),
+                                                (r"left", "left"),
+                                                (r"right", "right"),
+                                                (r"bottom|lower", "lower"))),
+        "dominant_motif_placement": choose(focal, ((r"skyscraper|tower", "tower"),
+                                                     (r"flower|floral", "floral"),
+                                                     (r"arch", "arch"))),
+        "major_flow": choose(full, ((r"radial|radiat|web", "radial"),
+                                     (r"diagonal", "diagonal"),
+                                     (r"horizontal", "horizontal"),
+                                     (r"vertical", "vertical"),
+                                     (r"curv|wave", "curved"))),
+    }
+
+
 def validate_direction_diversity(
     direction: CreativeDirectionOutput,
     previous: list[CreativeDirectionOutput],
 ) -> None:
     """Reject plans whose spatial strategies repeat an earlier direction."""
     for earlier in previous:
+        current_signature = direction_signature(direction)
+        earlier_signature = direction_signature(earlier)
+        comparable = [key for key, value in current_signature.items()
+                      if value != "unspecified" and earlier_signature[key] != "unspecified"]
+        repeated = sum(current_signature[key] == earlier_signature[key] for key in comparable)
+        if len(comparable) >= 5 and repeated >= 5 and repeated / len(comparable) >= 0.72:
+            raise ValueError(
+                f"Direction {direction.direction_id} repeats {earlier.direction_id}'s "
+                "composition signature; move focal position, change flow or viewpoint, "
+                "and vary quiet-space placement."
+            )
         similar = 0
         for name in _STRUCTURAL_FIELDS:
             first = _strategy_tokens(getattr(direction, name))

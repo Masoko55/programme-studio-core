@@ -49,6 +49,21 @@ def boilerplate_metrics(image: Image.Image) -> dict[str, float]:
     names or event-specific assumptions are used.
     """
     gray, edges = _structure(image)
+    height, width = gray.shape
+    panel_score = 0.0
+    contours, _ = cv2.findContours(edges.astype(np.uint8), cv2.RETR_LIST,
+                                   cv2.CHAIN_APPROX_SIMPLE)
+    for contour in contours:
+        x, y, w, h = cv2.boundingRect(contour)
+        if w * h / gray.size < 0.07 or w < 25 or h < 20:
+            continue
+        inside = gray[y + 3:y + h - 3, x + 3:x + w - 3]
+        if inside.size == 0 or np.mean(inside) < 180 or np.std(inside) > 22:
+            continue
+        border = (np.mean(edges[y, x:x+w]), np.mean(edges[y+h-1, x:x+w]),
+                  np.mean(edges[y:y+h, x]), np.mean(edges[y:y+h, x+w-1]))
+        if min(border) >= 0.45:
+            panel_score = max(panel_score, min(1.0, w * h / gray.size * 2.5))
     flat = _flat_mask(gray, edges)
 
     count, _, stats, _ = cv2.connectedComponentsWithStats(
@@ -115,6 +130,7 @@ def boilerplate_metrics(image: Image.Image) -> dict[str, float]:
     multi_slab_score *= quiet_centre * frame_symmetry
     score = float(max(rectangular_score, multi_slab_score, frame_score))
     return {
+        "title_panel_score": panel_score,
         "boilerplate_score": score,
         "largest_flat_rectangle_ratio": float(largest_rectangle),
         "flat_rectangular_coverage_ratio": float(min(1.0, rectangular_coverage)),

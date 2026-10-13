@@ -6,6 +6,28 @@ from app.services.visual_quality import validate_visual_quality
 
 
 class VisualQualityCompositionTests(unittest.TestCase):
+    def test_central_architecture_can_have_quiet_perimeter(self):
+        image = Image.new("RGB", (512, 704), "white")
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((130, 110, 382, 625), outline="black", width=14)
+        for x in (165, 220, 290, 345):
+            draw.line((x, 160, x, 590), fill="#555555", width=8)
+        result = validate_visual_quality(image, visual_design={
+            "border_or_perimeter_strategy": "minimal quiet perimeter",
+            "focal_strategy": "central architectural doorway",
+        })
+        self.assertTrue(result["visual_quality_passed"])
+
+    def test_smooth_gradient_still_fails_with_quiet_perimeter(self):
+        image = Image.new("RGB", (512, 704))
+        for y in range(704):
+            shade = 180 + y // 40
+            ImageDraw.Draw(image).line((0, y, 511, y), fill=(shade, shade, shade))
+        with self.assertRaisesRegex(ValueError, "gradient|insufficient|flat"):
+            validate_visual_quality(image, visual_design={
+                "border_or_perimeter_strategy": "minimal quiet perimeter",
+            })
+
     def test_rejects_dense_central_programme_region(self):
         image = Image.new(
             "RGB",

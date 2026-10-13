@@ -206,14 +206,17 @@ def _palette_only_recovery(
     reference_number: str,
     primary_colour: str | None,
     secondary_colour: str | None,
+    visual_design: dict | None = None,
 ) -> tuple[dict, dict]:
     """Recolour only a raw candidate that passes every non-palette gate."""
-    structural = validate_background(source, reference_number=reference_number, enforce_palette=False)
+    structural = validate_background(source, reference_number=reference_number, enforce_palette=False,
+                                     visual_design=visual_design)
     with Image.open(source) as image:
         recoloured = constrain_to_requested_palette(image, primary_colour, secondary_colour)
         recoloured.save(target, format="PNG")
     try:
-        final = validate_background(target, reference_number=reference_number)
+        final = validate_background(target, reference_number=reference_number,
+                                    visual_design=visual_design)
         if _edge_geometry_similarity(source, target) < 0.60:
             raise ValueError("Palette normalization changed structural edge locations too much.")
         if not _preserves_structural_detail(structural, final):
@@ -735,162 +738,103 @@ def _confirm_ocr_candidate(
     return False
 
 
-def detected_text_tokens(
-    image: Image.Image,
-) -> list[str]:
-    """Detect meaningful readable text while suppressing texture hallucination.
-
-    First-pass OCR remains deliberately sensitive so that potential text is
-    noticed.
-
-    A moderate-confidence isolated token must then survive an independent OCR
-    pass over an enlarged crop before the background is rejected.
-
-    Very strong OCR detections are accepted immediately.
-    """
-
-    grey = (
-        image.convert(
-            "L"
-        )
-    )
-
-    data = (
-        pytesseract.image_to_data(
-            grey,
-            config="--psm 11",
-            output_type=(
-                pytesseract
-                .Output
-                .DICT
-            ),
-        )
-    )
-
-    confirmed_tokens: list[
-        str
-    ] = []
-
-    for index, (
-        raw_token,
-        raw_confidence,
-    ) in enumerate(
-        zip(
-            data[
-                "text"
-            ],
-            data[
-                "conf"
-            ],
-        )
-    ):
-        normalized = (
-            _normalise_ocr_token(
-                raw_token
-            )
-        )
-
-        score = (
-            _ocr_confidence(
-                raw_confidence
-            )
-        )
-
-        #
-        # Ignore very short fragments entirely.
-        #
-        # These are extremely common around window frames, web geometry and
-        # comic-book architectural details.
-        #
-        if (
-            len(
-                normalized
-            )
-            < 4
-        ):
+def _ocr_items(data: dict, image_size: tuple[int, int], scale: float = 1.0) -> list[dict]:
+    """Extract plausible word boxes with normalized coordinates."""
+    width, height = image_size
+    items = []
+    for index, (raw, confidence) in enumerate(zip(data.get("text", []), data.get("conf", []))):
+        token = _normalise_ocr_token(raw)
+        score = _ocr_confidence(confidence)
+        if len(token) < 4 or score < 45:
             continue
+        box = tuple(int(data.get(key, [0] * len(data.get("text", [])))[index] / scale)
+                    for key in ("left", "top", "width", "height"))
+        x, y, w, h = box
+        items.append({"token": token, "confidence": score, "bbox": box,
+                      "area_ratio": w * h / max(1, width * height),
+                      "passes": set(), "crop_confirmed": False})
+    return items
 
-        #
-        # Preserve the existing sensitive first-pass floor.
-        #
-        if (
-            score
-            < 45
-        ):
-            continue
 
-        #
-        # Strong longer detections are unlikely to be accidental.
-        #
-        # Example:
-        #
-        #     "BIRTHDAY" confidence 92
-        #
-        if (
-            score
-            >= 85
-            and len(
-                normalized
-            )
-            >= 5
-        ):
-            confirmed_tokens.append(
-                normalized
-            )
+def _ocr_same_region(first: dict, second: dict) -> bool:
+    if not _similar_ocr_tokens(first["token"], second["token"]):
+        return False
+    x1, y1, w1, h1 = first["bbox"]
+    x2, y2, w2, h2 = second["bbox"]
+    if not all((w1, h1, w2, h2)):
+        return True  # OCR mocks without box coordinates.
+    return abs((x1 + w1 / 2) - (x2 + w2 / 2)) <= max(w1, w2) and abs(y1 - y2) <= max(h1, h2)
 
-            continue
 
-        left = int(
-            data[
-                "left"
-            ][
-                index
-            ]
-        )
+def detect_text_evidence(image: Image.Image) -> dict:
+    """Confirm typography with crop and preprocessing evidence, then group lines."""
+    grey = image.convert("L")
+    raw = pytesseract.image_to_data(grey, config="--psm 11",
+                                    output_type=pytesseract.Output.DICT)
+    items = _ocr_items(raw, image.size)
+    for item in items:
+        x, y, w, h = item["bbox"]
+        item["passes"].add("original")
+        if w and h:
+            try:
+                item["crop_confirmed"] = _confirm_ocr_candidate(
+                    image, token=item["token"], left=x, top=y, width=w, height=h)
+            except StopIteration:
+                item["crop_confirmed"] = False
+            if item["crop_confirmed"]:
+                item["passes"].add("crop")
 
-        top = int(
-            data[
-                "top"
-            ][
-                index
-            ]
-        )
+    array = np.asarray(grey.resize((grey.width * 2, grey.height * 2)), dtype=np.uint8)
+    enhanced = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(array)
+    binary = cv2.adaptiveThreshold(enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                   cv2.THRESH_BINARY, 31, 9)
+    for pass_name, variant in (("contrast", enhanced), ("threshold", binary),
+                               ("inverted", 255 - binary)):
+        try:
+            result = pytesseract.image_to_data(Image.fromarray(variant), config="--psm 11",
+                                                output_type=pytesseract.Output.DICT)
+        except StopIteration:  # Unit-test mocks may provide only the first passes.
+            break
+        for candidate in _ocr_items(result, image.size, scale=2.0):
+            if candidate["confidence"] < 55:
+                continue
+            match = next((item for item in items if _ocr_same_region(item, candidate)), None)
+            if match is None:
+                candidate["passes"].add(pass_name)
+                items.append(candidate)
+            else:
+                match["passes"].add(pass_name)
+                match["confidence"] = max(match["confidence"], candidate["confidence"])
 
-        width = int(
-            data[
-                "width"
-            ][
-                index
-            ]
-        )
+    confirmed = [item for item in items if item["crop_confirmed"] or len(item["passes"]) >= 2]
+    lines = []
+    for index, first in enumerate(confirmed):
+        x1, y1, w1, h1 = first["bbox"]
+        for second in confirmed[index + 1:]:
+            x2, y2, w2, h2 = second["bbox"]
+            if h1 and h2 and abs((y1 + h1) - (y2 + h2)) <= max(h1, h2) * 0.6 and abs(x2 - x1) <= max(w1, w2) * 3:
+                lines.append([first["token"], second["token"]])
+    strong_single = [item for item in confirmed if len(item["token"]) >= 7 and
+                     (item["confidence"] >= 85 or len(item["passes"]) >= 2)]
+    strong_single.extend(item for item in confirmed if len(item["token"]) >= 5
+                         and item["area_ratio"] >= 0.01 and item["crop_confirmed"])
+    detected = bool(lines or strong_single)
+    selected = confirmed if detected else []
+    return {
+        "text_detected": detected,
+        "tokens": [item["token"] for item in items],
+        "confirmed_tokens": list(dict.fromkeys(item["token"] for item in selected)),
+        "text_lines": lines,
+        "max_confidence": max((item["confidence"] for item in items), default=0),
+        "confirmation_passes": sorted({name for item in selected for name in item["passes"]}),
+        "text_area_ratio": sum(item["area_ratio"] for item in selected),
+        "evidence": [{**item, "passes": sorted(item["passes"])} for item in items],
+    }
 
-        height = int(
-            data[
-                "height"
-            ][
-                index
-            ]
-        )
 
-        #
-        # Tiny boxes are particularly prone to false detections, but rather
-        # than simply ignoring them, require independent confirmation.
-        #
-        if (
-            _confirm_ocr_candidate(
-                image,
-                token=normalized,
-                left=left,
-                top=top,
-                width=width,
-                height=height,
-            )
-        ):
-            confirmed_tokens.append(
-                normalized
-            )
-
-    return confirmed_tokens
+def detected_text_tokens(image: Image.Image) -> list[str]:
+    """Compatibility wrapper for the structured OCR decision."""
+    return detect_text_evidence(image)["confirmed_tokens"]
 
 
 def _inject_workflow_values(value: Any, values: dict) -> Any:
@@ -1193,6 +1137,7 @@ def validate_background(
     reference_number: str | None = None,
     expected_sha256: str | None = None,
     enforce_palette: bool = True,
+    visual_design: dict | None = None,
 ) -> dict:
     data = (
         path.read_bytes()
@@ -1242,11 +1187,8 @@ def validate_background(
             image.size
         )
 
-        tokens = (
-            detected_text_tokens(
-                image
-            )
-        )
+        text_evidence = detect_text_evidence(image)
+        tokens = text_evidence["confirmed_tokens"]
 
         human_signals = (
             detect_human_signals(
@@ -1257,10 +1199,12 @@ def validate_background(
         problems: list[tuple[str, str]] = []
         collapse_metrics = boilerplate_metrics(image)
         collapse_score = collapse_metrics["boilerplate_score"]
+        if collapse_metrics.get("title_panel_score", 0.0) >= 0.65:
+            problems.append(("TITLE_PANEL", "TITLE_PANEL: a bordered blank card occupies the artwork"))
         if collapse_score >= 0.40:
             problems.append(("BOILERPLATE_COMPOSITION", f"BOILERPLATE_COMPOSITION: composition collapse {collapse_score:.2f}"))
         try:
-            quality_result = validate_visual_quality(image)
+            quality_result = validate_visual_quality(image, visual_design=visual_design)
         except ValueError as error:
             problems.append((classify_failure(str(error)), str(error)))
             quality_result = {}
@@ -1317,22 +1261,67 @@ def validate_background(
 
     metrics = {
         "boilerplate_score": collapse_score,
+        "entropy": quality_result.get("image_entropy"),
+        "high_pass_mean": quality_result.get("highpass_mean"),
         "ocr_tokens": tokens,
+        "text_detection": text_evidence,
+        "ocr_detected": bool(tokens),
+        "ocr_region_count": len(tokens),
         "human_detection": human_signals,
+        "human_detection_confidence": human_signals.get("human_detection_confidence", "low"),
+        "human_detection_evidence": human_signals.get("evidence", []),
         **quality_result,
         **palette_result,
     }
+    validation_report = {
+        "decision": "rejected" if problems else "accepted",
+        "failure_category": None,
+        "palette": {
+            "mode": metrics.get("requested_palette_mode", metrics.get("palette_mode")),
+            "primary_ratio": metrics.get("primary_ratio", metrics.get("primary_presence_ratio")),
+            "secondary_ratio": metrics.get("secondary_ratio", metrics.get("secondary_presence_ratio")),
+            "requested_chromatic_ratio": metrics.get("requested_chromatic_ratio"),
+            "neutral_ratio": metrics.get("structural_neutral_ratio"),
+            "unrequested_chromatic_ratio": metrics.get("unrequested_chromatic_ratio"),
+            "largest_unrequested_region_ratio": metrics.get("largest_unrequested_region_ratio"),
+        },
+        "text": {
+            "detected": text_evidence["text_detected"],
+            "tokens": text_evidence["tokens"],
+            "confirmed_tokens": text_evidence["confirmed_tokens"],
+            "text_lines": text_evidence["text_lines"],
+            "text_area_ratio": text_evidence["text_area_ratio"],
+        },
+        "human": {
+            "detected": human_signals["detected"],
+            "strong_signals": human_signals.get("strong_signals", []),
+            "weak_signals": human_signals.get("weak_signals", []),
+            "decision_reason": human_signals.get("human_detection_reason"),
+        },
+        "quality": {
+            key: metrics.get(key) for key in (
+                "structural_edge_density", "macro_structure_score", "coarse_edge_density",
+                "high_pass_mean", "boilerplate_score", "title_panel_score",
+                "fine_line_pair_ratio",
+            )
+        },
+    }
+    validation_report["quality"]["raster_score"] = metrics.get("fine_line_pair_ratio")
     if problems:
-        priority = {"HUMAN": 0, "TEXT": 1, "BOILERPLATE_COMPOSITION": 2,
+        priority = {"HUMAN": 0, "TEXT": 1, "TITLE_PANEL": 2,
+                    "BOILERPLATE_COMPOSITION": 2,
                     "DIRECTION_DUPLICATE": 3, "FLAT": 4, "DENSE_SAFE_REGION": 5,
                     "WEAK_OUTER_STRUCTURE": 6, "PALETTE_OFF": 7}
         category, message = min(problems, key=lambda item: priority.get(item[0], 8))
+        validation_report["failure_category"] = category
         error = ValueError(message)
-        error.diagnostics = {**metrics, "primary_failure_category": category,
+        error.diagnostics = {**metrics, "validation": validation_report,
+                             "primary_failure_category": category,
                              "all_failure_categories": [item[0] for item in problems]}
         raise error
 
     return {
+        "validation": validation_report,
         "output_path": (
             str(path)
         ),
@@ -1957,6 +1946,13 @@ class ComfyUIClient:
         reference_number = record["reference_number"]
         engine_id = record["engine_id"]
         direction_id = record["direction_id"]
+        try:
+            visual_design = build_candidate_spec(
+                load_prompts_document(reference_number), engine_id, direction_id
+            ).visual_design
+        except FileNotFoundError:
+            # Legacy fixture records can be validated without a prompts file.
+            visual_design = None
         record_path = image_path.with_suffix(".json")
         primary_colour, secondary_colour = palette
         raw_validation = None
@@ -1972,6 +1968,7 @@ class ComfyUIClient:
         peers = [path for path in peer_paths if path.is_file()]
         similarity = compare_directions(candidate_path, peers)
         record["direction_similarity_score"] = similarity
+        record["direction_similarity"] = similarity
         if conditioning.get("enabled"):
             try:
                 spec = persisted_conditioning_spec(conditioning)
@@ -1992,11 +1989,12 @@ class ComfyUIClient:
             try:
                 if adherence and not adherence["template_adherence_passed"]:
                     validate_background(candidate_path, reference_number=reference_number,
-                                        enforce_palette=False)
+                                        enforce_palette=False, visual_design=visual_design)
                     raise ValueError(adherence["template_failure_category"])
                 raw_validation = validate_background(
                     candidate_path,
                     reference_number=reference_number,
+                    visual_design=visual_design,
                 )
                 validation = raw_validation
                 if similarity >= 0.88:
@@ -2092,6 +2090,7 @@ class ComfyUIClient:
                                 reference_number,
                                 primary_colour,
                                 secondary_colour,
+                                visual_design,
                             )
                         )
 
@@ -2732,6 +2731,13 @@ class ComfyUIClient:
                 workflow
             ),
             "spec_sha256": spec_sha256,
+            "SPEC_SHA256": candidate_spec.spec_sha256,
+            "ENGINE": engine_id,
+            "DIRECTION": direction_id,
+            "DIRECTION_ROLE": direction_role,
+            "ATTEMPT": _candidate_attempt_number(previous, retrying_candidate),
+            "RETRY_STAGE": retry_stage,
+            "SEED": seed,
             "candidate_spec_sha256": candidate_spec.spec_sha256,
             "direction_role": direction_role,
             "creative_concept": candidate_spec.original_positive_prompt,
@@ -2739,6 +2745,8 @@ class ComfyUIClient:
             "composition_strategy": candidate_spec.visual_design["composition_strategy"],
             "resolved_palette": candidate_spec.visual_design["requested_palette"],
             "palette_mode": candidate_spec.visual_design["palette_mode"],
+            "requested_primary": primary_colour,
+            "requested_secondary": secondary_colour,
             "palette_roles": [item.get("role") for item in candidate_spec.visual_design["requested_palette"]],
             "safe_region_strategy": {
                 "title": candidate_spec.visual_design["title_safe_region_strategy"],

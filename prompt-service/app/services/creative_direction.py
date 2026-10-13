@@ -145,6 +145,29 @@ def requested_palette(
     return colours
 
 
+def resolve_palette_mode(brief: dict) -> str:
+    """Treat named colours as dominant unless the user explicitly excludes others."""
+    stated = str(brief.get("palette_mode") or "").lower()
+    if stated in {"dominant", "strict", "achromatic", "monochrome"}:
+        return stated
+    text = " ".join(str(brief.get(key) or "") for key in (
+        "creative_description", "background_inspiration", "palette_relationship",
+    )).lower()
+    if re.search(r"\b(?:strict(?:ly)? monochrome|monochromatic)\b", text):
+        return "monochrome"
+    if re.search(r"\b(?:only (?:these |the )?colou?rs?|no (?:other|third) colou?rs?|strict(?:ly)? black[- ]and[- ]white)\b", text):
+        return "strict"
+    primary = normalize_colour(brief.get("primary_colour"))
+    secondary = normalize_colour(brief.get("secondary_colour"))
+    for match in re.finditer(r"\bonly\b", text):
+        segment = text[match.start():match.start() + 90]
+        if primary and secondary and primary in segment and secondary in segment:
+            return "strict"
+    if set(requested_palette(brief)) == {"black", "white"}:
+        return "achromatic"
+    return "dominant"
+
+
 def positive_palette_description(
     brief: dict,
 ) -> str:
@@ -176,6 +199,7 @@ def positive_palette_description(
         else None
     )
 
+    mode = resolve_palette_mode(brief)
     if (
         set(
             colours
@@ -186,19 +210,19 @@ def positive_palette_description(
         }
     ):
         return (
-            "A strictly achromatic palette of black and white, "
-            "with tonal variation only inside those requested "
-            "neutral colours."
+            "An achromatic black and white palette with natural grey tonal "
+            "interpolation and clear contrast."
         )
 
     if secondary:
         relationship = str(brief.get("palette_relationship") or "respect the requested colour roles")
-        return f"A {', '.join(colours)} palette; {relationship}. Preserve tonal and material variation."
+        qualifier = "exclusive" if mode == "strict" else "dominant"
+        return f"A {qualifier} {', '.join(colours)} palette; {relationship}. Preserve tonal and material variation."
 
     return (
         f"A controlled {primary} palette with {primary} clearly "
         "dominant throughout the composition. "
-        "No additional colour family is allowed."
+        "Keep unrelated accent colours subordinate."
     )
 
 
@@ -218,16 +242,10 @@ def palette_negative(
             "unrelated hues"
         )
 
-    return (
-        "off-palette colours, colour drift, "
-        "unrequested accent colours, multicolour palette, "
-        "unrelated hues, any neutral or chromatic colour family "
-        "outside the requested palette. "
-        "The only requested colour families are: "
-        + ", ".join(
-            colours
-        )
-    )
+    mode = resolve_palette_mode(brief)
+    if mode == "strict":
+        return "large unrelated colour regions, third design colour, off-palette accents"
+    return "dominant unrelated colour regions, unrelated accent palette, colour drift"
 
 
 def _asset_zone(
@@ -512,6 +530,20 @@ def composition_variant(
         "strategy that follows this brief. Make it materially distinct from "
         "the other directions without assigning a fixed style to this slot."
     )
+
+
+def direction_structural_summary(direction: CreativeDirectionOutput, brief: dict) -> dict:
+    """Pass spatial decisions to the next model without long prompt prose."""
+    return {
+        "direction_id": direction.direction_id,
+        "composition_strategy": direction.composition_strategy,
+        "focal_strategy": direction.focal_strategy,
+        "depth_strategy": direction.depth_strategy,
+        "border_or_perimeter_strategy": direction.border_or_perimeter_strategy,
+        "title_safe_region_strategy": direction.title_safe_region_strategy,
+        "programme_safe_region_strategy": direction.programme_safe_region_strategy,
+        "visual_anchors": _list_values(brief, "visual_anchors") or [_background_inspiration(brief)],
+    }
 
 
 def _background_inspiration(brief: dict) -> str:
@@ -831,7 +863,7 @@ def build_creative_direction_prompt(
     direction_id: str,
     role: str,
     correction_error: str | None = None,
-    previous_directions: list[str] | None = None,
+    previous_directions: list[dict | str] | None = None,
 ) -> str:
     asset_type = (
         str(
@@ -881,8 +913,7 @@ def build_creative_direction_prompt(
         ),
         ("Respect the palette relationship specified by the user."),
         (
-            "Do not introduce visible colour families that were not "
-            "explicitly requested."
+            "Keep requested colour families dominant; allow natural shading and small reflections."
         ),
         (
             "Use strong tonal contrast without inventing an "
@@ -905,7 +936,9 @@ def build_creative_direction_prompt(
         ),
         (
             "The new direction must differ structurally from prior directions in at "
-            "least composition, focal treatment, depth, perimeter treatment and spatial rhythm."
+            "least several of visual-mass distribution, viewpoint, focal position, "
+            "depth, motif placement, scale, perimeter, symmetry, negative-space "
+            "location, perspective and spatial rhythm. Keep the requested subject."
         ),
         ("Describe the chosen composition, focal point, depth, perimeter treatment and separate calm title/programme areas in their strategy fields."),
         ("Use the prior direction concepts to choose a materially different arrangement, not just a new palette."),
@@ -1059,7 +1092,7 @@ async def generate_creative_direction(
     direction_id: str,
     brief: dict,
     correction_error: str | None = None,
-    previous_directions: list[str] | None = None,
+    previous_directions: list[dict | str] | None = None,
 ) -> CreativeDirectionOutput:
     model, role = (
         direction_configuration(

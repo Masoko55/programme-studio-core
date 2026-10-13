@@ -102,7 +102,8 @@ def _palette(spec: CandidateSpec) -> str:
     if not colours:
         return "the palette described by the brief"
     relationship = design["palette_relationship"] or "respect the requested colour roles"
-    return f"{', '.join(colours)}; {relationship}; preserve shading and local detail"
+    mode = design["palette_mode"]
+    return f"{', '.join(colours)}; {mode} palette; {relationship}; preserve shading and local detail"
 
 
 def _composition(spec: CandidateSpec) -> str:
@@ -256,17 +257,17 @@ _CORRECTIONS = {
     "PRIMARY_MISSING": "Make the requested primary colour dominant across substantial surfaces of this same design.",
     "SECONDARY_MISSING": "Increase the requested secondary colour in several substantial visible regions of this same design.",
     "GRADIENT": "Give this scene distinct subject-specific forms, tonal variation and visible depth.",
-    "FLAT": "Give this requested scene recognizable visual forms, texture and depth.",
+    "FLAT": "Strengthen the requested subject silhouette with coherent medium and large forms, clear depth and a visible focal structure.",
     "RASTER": "Render this scene with coherent forms and clean, varied edge structure.",
     "NOISE": "Render this scene with coherent forms and clear material detail.",
-    "WEAK_OUTER_STRUCTURE": "Increase meaningful requested design structure in the areas permitted by this direction without filling its reserved typography space.",
+    "WEAK_OUTER_STRUCTURE": "Strengthen coherent medium and large subject forms and depth in the areas permitted by this direction while keeping its quiet regions readable.",
     "DENSE_SAFE_REGION": "Relocate detail away from the reserved typography regions while preserving this direction's own composition strategy.",
     "PROTECTED_REGION_INTRUSION": "Relocate motifs away from reserved typography regions according to this direction's safe-region strategy.",
     "TEMPLATE_DRIFT": "Restore the direction's requested composition and subject-specific visual structure.",
     "WEAK_TEMPLATE_STRUCTURE": "Strengthen the direction's requested composition using subject-specific forms.",
     "WEAK_DECORATIVE_DESIGN": "Add richer subject-specific visual structure where this direction permits it while preserving usable negative space.",
     "BOILERPLATE_COMPOSITION": "Redistribute visual mass, move the focal structure, vary scale and depth, and integrate breathing room asymmetrically while retaining the requested subject and motifs.",
-    "DIRECTION_DUPLICATE": "Change arrangement, focal position, spatial hierarchy, perspective, depth and motif placement while retaining the requested subject, anchors and palette.",
+    "DIRECTION_DUPLICATE": "Change focal location, perspective, visual mass, scale hierarchy, depth, motif placement, symmetry and negative-space geometry while retaining the requested subject, anchors, palette and event meaning.",
     "RUNTIME": "Render this same design with fewer, larger forms to reduce generation complexity.",
     "UNKNOWN": "Correct the previous failure while retaining this exact requested scene, direction and palette.",
 }
@@ -286,9 +287,9 @@ def _positive_prompt(
         f"Theme treatment: {treatment}." if treatment else "",
         identity,
         f"Brief anchors: {', '.join(spec.visual_design['visual_anchors'])}.",
+        f"Composition: {composition}",
         f"Design language: {_design_language(spec)}." if _design_language(spec) else "",
         f"Palette: {palette}.",
-        f"Composition: {composition}",
     )
     safety = "Background artwork with a clear visual subject and intentional breathing room."
     if spec.engine_id == "sdxl-1-0":
@@ -299,7 +300,7 @@ def _positive_prompt(
             safety,
         )
     return _join_sections(
-        shared[0], f"Background inspiration: {subject}.",
+        f"Background inspiration: {subject}.", shared[0],
         f"Theme reference treatment: {treatment}." if treatment else "",
         *shared[2:],
         f"Correction for attempt {attempt}: {correction}" if correction else "",
@@ -313,29 +314,46 @@ def _encoder_fields(
     encoder_motif: str, treatment: str, identity: str,
     correction: str,
 ) -> tuple[str, str]:
-    direction = f"Direction: {encoder_motif}." if motif != subject else ""
+    direction_detail = treatment or encoder_motif
+    direction = f"Direction motif: {direction_detail}." if direction_detail else ""
     colour = f"Requested palette: {_palette(spec)}."
     anchors = spec.visual_design["visual_anchors"]
-    anchor_text = f"Visual anchors: {', '.join(anchors)}." if anchors else ""
+    distinct_anchors = [item for item in anchors if item.casefold() != subject.casefold()]
+    anchor_text = f"Visual anchors: {', '.join(distinct_anchors)}." if distinct_anchors else ""
     motifs = [*spec.visual_design["symbolic_motifs"], *spec.visual_design["environmental_motifs"]]
     motif_text = f"Motifs: {', '.join(motifs)}." if motifs else ""
+    design = spec.visual_design
+    structure = _join_sections(
+        f"Composition: {design['composition_strategy']}.",
+        f"Focal: {design['focal_strategy']}.",
+        f"Depth: {design['depth_strategy']}.",
+        f"Perimeter: {design['border_or_perimeter_strategy']}.",
+        f"Quiet areas: {design['title_safe_region_strategy']}; {design['programme_safe_region_strategy']}.",
+    )
+    material = _join_sections(
+        f"Materials: {design['material_language']}." if design['material_language'] else "",
+        f"Texture: {design['texture_language']}." if design['texture_language'] else "",
+        f"Lighting: {design['lighting_language']}." if design['lighting_language'] else "",
+    )
+    short_correction = " ".join(correction.split()[:6]) if correction else ""
     if spec.engine_id == "sdxl-1-0":
         common = (
-            f"Visual subject: {subject}.", anchor_text, motif_text, direction, colour,
-            f"Correction: {correction}" if correction else "",
+            f"Visual subject: {subject}.", anchor_text, motif_text, direction,
+            structure, material, colour,
+            f"Correction: {short_correction}" if short_correction else "",
         )
         return (
-            _join_sections("A4 portrait event-background artwork faithful to the requested visual subject and direction.", *common),
-            _join_sections("A4 portrait background artwork with the requested composition and intentional typography-safe negative space.", *common),
+            _join_sections("Background artwork.", *common),
+            _join_sections("Background artwork.", *common),
         )
-    common = (f"Visual subject: {subject}.", anchor_text, motif_text, direction)
+    common = (f"Visual subject: {subject}.", anchor_text, motif_text, direction,
+              f"Direction {spec.direction_id}: {spec.direction_role}.", structure, material)
     return (
-        _join_sections("A4 portrait event-background artwork faithful to the requested visual subject and direction.", *common, colour),
+        _join_sections("Background artwork.", *common, colour),
         _join_sections(
-            "A4 portrait background artwork with varied subject-specific forms and intentional negative space.",
-            *common, identity, colour,
-            f"Theme treatment: {treatment}." if treatment else "",
-            f"Correction: {correction}" if correction else "",
+            "Background artwork.",
+            *common, colour,
+            f"Correction: {short_correction}" if short_correction else "",
         ),
     )
 
@@ -357,6 +375,12 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     composition = _composition(spec)
     identity = f"Direction {spec.direction_id}: {spec.direction_role} visual character."
     correction = _CORRECTIONS.get(category, "")
+    if category in {"DIRECTION_DUPLICATE", "FLAT", "WEAK_OUTER_STRUCTURE"}:
+        design = spec.visual_design
+        correction += (
+            f" Keep the subject grounded in {design['focal_strategy']} "
+            f"and {design['depth_strategy']}; retain {design['composition_strategy']}."
+        )
     if stage in {"strict_recovery", "rescue"}:
         correction += (
             " Replace fine artefacts with coherent, varied visual forms "
@@ -386,13 +410,13 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     # in T5 can cross SD3.5 Medium's 256-token training context.
     t5 = " ".join(section for section in (
         f"Background inspiration: {subject}.",
+        f"Composition: {composition}",
         f"Theme: {spec.theme}." if spec.theme in spec.visual_design["visual_anchors"] else "",
         f"Visual anchors: {', '.join(spec.visual_design['visual_anchors'])}.",
         f"Design language: {_design_language(spec)}." if _design_language(spec) else "",
         f"Theme treatment: {treatment}." if treatment else "",
         identity,
         f"Palette: {palette}.",
-        f"Composition: {composition}",
         f"Correction: {correction}" if correction else "",
     ) if section)
     return CompiledPrompt(

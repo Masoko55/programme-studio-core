@@ -25,6 +25,12 @@ def document():
         "directions": [{"direction": {
             "direction_id": "B", "role": "expressive",
             "positive_prompt": "dynamic city architecture and bold web arcs",
+            "composition_strategy": "asymmetric layered skyline",
+            "focal_strategy": "off-centre tower focus",
+            "depth_strategy": "foreground to background depth",
+            "border_or_perimeter_strategy": "open irregular perimeter",
+            "title_safe_region_strategy": "quiet upper reading area",
+            "programme_safe_region_strategy": "quiet lower reading area",
             "negative_prompt": "people, text", "layout_guidance": {},
         }}],
     }

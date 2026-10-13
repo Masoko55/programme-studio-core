@@ -33,6 +33,12 @@ class NativeWorkflowProfileTests(unittest.TestCase):
             "directions": [{"direction": {
                 "direction_id": "B", "role": "expressive",
                 "positive_prompt": "dynamic asymmetric skyline",
+                "composition_strategy": "asymmetric layered skyline",
+                "focal_strategy": "off-centre tower focus",
+                "depth_strategy": "foreground to background depth",
+                "border_or_perimeter_strategy": "open irregular perimeter",
+                "title_safe_region_strategy": "quiet upper reading area",
+                "programme_safe_region_strategy": "quiet lower reading area",
                 "negative_prompt": "people", "layout_guidance": {},
             }}],
         }
@@ -141,6 +147,12 @@ class NativeWorkflowProfileTests(unittest.TestCase):
             "directions": [{"direction": {
                 "direction_id": "B", "role": "expressive",
                 "positive_prompt": "dynamic asymmetric city architecture",
+                "composition_strategy": "asymmetric layered skyline",
+                "focal_strategy": "off-centre tower focus",
+                "depth_strategy": "foreground to background depth",
+                "border_or_perimeter_strategy": "open irregular perimeter",
+                "title_safe_region_strategy": "quiet upper reading area",
+                "programme_safe_region_strategy": "quiet lower reading area",
                 "negative_prompt": "people", "layout_guidance": {},
             }}],
         }

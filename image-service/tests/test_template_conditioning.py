@@ -23,6 +23,12 @@ def candidate(engine, direction):
                   "secondary_colour": "red"},
         "directions": [{"direction": {"direction_id": direction, "role": "editorial",
                                      "positive_prompt": "broad edge decoration",
+                                     "composition_strategy": "asymmetric layered composition",
+                                     "focal_strategy": "off-centre subject focus",
+                                     "depth_strategy": "foreground to background depth",
+                                     "border_or_perimeter_strategy": "open irregular perimeter",
+                                     "title_safe_region_strategy": "quiet upper reading area",
+                                     "programme_safe_region_strategy": "quiet lower reading area",
                                      "layout_guidance": {
                                          "title_zone": {"x": .1, "y": .1, "width": .8, "height": .12},
                                          "programme_zone": {"x": .1, "y": .45, "width": .8, "height": .4},

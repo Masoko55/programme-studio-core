@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class LayoutZone(BaseModel):
@@ -48,12 +48,24 @@ class LayoutGuidance(BaseModel):
 
 
 class CreativeDirectionOutput(BaseModel):
-    composition_strategy: str = ""
-    focal_strategy: str = ""
-    depth_strategy: str = ""
-    border_or_perimeter_strategy: str = ""
-    title_safe_region_strategy: str = ""
-    programme_safe_region_strategy: str = ""
+    composition_strategy: str = Field(min_length=8)
+    focal_strategy: str = Field(min_length=8)
+    depth_strategy: str = Field(min_length=8)
+    border_or_perimeter_strategy: str = Field(min_length=8)
+    title_safe_region_strategy: str = Field(min_length=8)
+    programme_safe_region_strategy: str = Field(min_length=8)
+
+    @field_validator(
+        "composition_strategy", "focal_strategy", "depth_strategy",
+        "border_or_perimeter_strategy", "title_safe_region_strategy",
+        "programme_safe_region_strategy",
+    )
+    @classmethod
+    def require_strategy_content(cls, value: str) -> str:
+        value = value.strip()
+        if len(value) < 8:
+            raise ValueError("A direction strategy must contain meaningful content.")
+        return value
 
     direction_id: str = Field(
         min_length=1,

@@ -1295,6 +1295,7 @@ def validate_background(
                     ),
                     palette=brief.get("palette"),
                     relationship=brief.get("palette_relationship"),
+                    mode=brief.get("palette_mode"),
                     quality_result={},
                 )
             except ValueError as error:
@@ -2737,6 +2738,7 @@ class ComfyUIClient:
             "visual_anchors": candidate_spec.visual_design["visual_anchors"],
             "composition_strategy": candidate_spec.visual_design["composition_strategy"],
             "resolved_palette": candidate_spec.visual_design["requested_palette"],
+            "palette_mode": candidate_spec.visual_design["palette_mode"],
             "palette_roles": [item.get("role") for item in candidate_spec.visual_design["requested_palette"]],
             "safe_region_strategy": {
                 "title": candidate_spec.visual_design["title_safe_region_strategy"],

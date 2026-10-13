@@ -535,6 +535,14 @@ def validate_creative_direction(
     direction: CreativeDirectionOutput,
     brief: dict,
 ) -> None:
+    for name in (
+        "composition_strategy", "focal_strategy", "depth_strategy",
+        "border_or_perimeter_strategy", "title_safe_region_strategy",
+        "programme_safe_region_strategy",
+    ):
+        if len(str(getattr(direction, name, "")).strip()) < 8:
+            raise ValueError(f"{direction.direction_id}: {name} is missing or blank.")
+
     validate_direction_layout(
         direction
     )
@@ -551,3 +559,41 @@ def validate_creative_direction(
     validate_negative_prompt_quality(
         direction
     )
+
+
+_STRUCTURAL_FIELDS = (
+    "composition_strategy", "focal_strategy", "depth_strategy",
+    "border_or_perimeter_strategy", "title_safe_region_strategy",
+    "programme_safe_region_strategy",
+)
+_COMMON_STRUCTURE_WORDS = {
+    "a", "an", "and", "the", "with", "of", "in", "on", "for", "to",
+    "from", "visual", "design", "scene", "subject", "space", "area",
+    "quiet", "region", "requested", "background", "forms", "form",
+}
+
+
+def _strategy_tokens(value: str) -> set[str]:
+    return {
+        token for token in re.findall(r"[a-z]+", value.casefold())
+        if token not in _COMMON_STRUCTURE_WORDS
+    }
+
+
+def validate_direction_diversity(
+    direction: CreativeDirectionOutput,
+    previous: list[CreativeDirectionOutput],
+) -> None:
+    """Reject plans whose spatial strategies repeat an earlier direction."""
+    for earlier in previous:
+        similar = 0
+        for name in _STRUCTURAL_FIELDS:
+            first = _strategy_tokens(getattr(direction, name))
+            second = _strategy_tokens(getattr(earlier, name))
+            if first and second and len(first & second) / len(first | second) >= 0.60:
+                similar += 1
+        if similar >= 4:
+            raise ValueError(
+                f"Direction {direction.direction_id} repeats {earlier.direction_id}'s "
+                "composition plan; change focal position, depth, perimeter and quiet-area geometry."
+            )

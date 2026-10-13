@@ -1,6 +1,7 @@
 """Focused regression checks for generic native-background refinement."""
 
 import unittest
+from unittest.mock import patch
 
 from PIL import Image, ImageDraw
 
@@ -35,11 +36,22 @@ class NativeRefinementTests(unittest.TestCase):
 
     def test_dominant_palette_allows_small_neutral_rendering_but_exclusive_does_not(self):
         image = Image.new("RGB", (100, 100), "pink")
-        ImageDraw.Draw(image).rectangle((0, 0, 99, 5), fill=(125, 125, 125))
+        draw = ImageDraw.Draw(image)
+        for x in range(0, 100, 10):
+            for y in range(0, 100, 10):
+                draw.rectangle((x, y, x + 3, y + 2), fill=(125, 125, 125))
         ordinary = validate_palette(image, "pink", "white", quality_result={})
         self.assertEqual(ordinary["palette_mode"], "dominant-requested-colour-families")
         with self.assertRaisesRegex(ValueError, "not requested"):
             validate_palette(image, "pink", "white", relationship="only these colours", quality_result={})
+
+    def test_explicit_strict_black_white_rejects_chromatic_region(self):
+        image = Image.new("RGB", (100, 100), "white")
+        ImageDraw.Draw(image).rectangle((0, 50, 99, 99), fill="black")
+        ImageDraw.Draw(image).rectangle((0, 0, 99, 7), fill="red")
+        self.assertEqual(validate_palette(image, "black", "white", quality_result={})["palette_mode"], "black-white")
+        with self.assertRaisesRegex(ValueError, "black-and-white"):
+            validate_palette(image, "black", "white", mode="strict", quality_result={})
 
     def test_irregular_frame_is_detected_but_focal_structure_survives(self):
         frame = Image.new("RGB", (512, 704), "white")
@@ -56,6 +68,25 @@ class NativeRefinementTests(unittest.TestCase):
         draw.line((200, 330, 500, 690), fill="black", width=20)
         self.assertGreaterEqual(boilerplate_metrics(frame)["boilerplate_score"], 0.40)
         self.assertLess(boilerplate_metrics(focal)["boilerplate_score"], 0.40)
+
+    def test_city_canyon_and_asymmetric_florals_are_not_boilerplate(self):
+        city = Image.new("RGB", (512, 704), "white")
+        draw = ImageDraw.Draw(city)
+        for index, x in enumerate((0, 40, 85, 390, 440, 480)):
+            draw.rectangle((x, 80 + index % 3 * 40, x + 32, 620), fill="#152c57")
+            for y in range(180, 590, 40):
+                draw.rectangle((x + 8, y, x + 20, y + 12), fill="white")
+        draw.polygon(((150, 704), (256, 370), (360, 704)), fill="#445577")
+        draw.line((256, 370, 80, 704), fill="black", width=5)
+        draw.line((256, 370, 430, 704), fill="black", width=5)
+        floral = Image.new("RGB", (512, 704), "white")
+        draw = ImageDraw.Draw(floral)
+        for index in range(8):
+            draw.ellipse((index * 30 - 20, index * 55 - 30,
+                          index * 30 + 130, index * 55 + 100), fill="pink")
+        draw.line((140, 400, 380, 650), fill="green", width=15)
+        for image in (city, floral):
+            self.assertLess(boilerplate_metrics(image)["boilerplate_score"], 0.40)
 
     def test_duplicate_comparison_ignores_colour_but_respects_geometry(self):
         first = Image.new("RGB", (512, 704), "white")
@@ -87,6 +118,58 @@ class NativeRefinementTests(unittest.TestCase):
         for image in (flower, curtain):
             with self.subTest(shape=image.getpixel((160, 160))):
                 self.assertFalse(detect_human_signals(image)["detected"])
+
+    def test_isolated_face_pattern_is_diagnostic_not_confirmed(self):
+        class EmptyHog:
+            def setSVMDetector(self, value):
+                pass
+
+            def detectMultiScale(self, image, **kwargs):
+                return [], []
+
+        def cascade(detector, gray, size, neighbors):
+            return [(100, 100, 55, 55)] if neighbors == 6 else []
+
+        with patch("app.services.background_policy.cv2.HOGDescriptor", return_value=EmptyHog()), \
+             patch("app.services.background_policy.cv2.HOGDescriptor_getDefaultPeopleDetector", return_value=None), \
+             patch("app.services.background_policy._load_cascade", return_value=object()), \
+             patch("app.services.background_policy._cascade_detect", side_effect=cascade):
+            result = detect_human_signals(Image.new("RGB", (320, 448), "white"))
+        self.assertFalse(result["detected"])
+        self.assertTrue(any(item["source"] == "frontal_face" and not item["confirmed"]
+                            for item in result["evidence"]))
+
+    def test_credible_hog_person_remains_confirmed(self):
+        class PersonHog:
+            def setSVMDetector(self, value):
+                pass
+
+            def detectMultiScale(self, image, **kwargs):
+                return [(80, 100, 64, 180)], [1.7]
+
+        with patch("app.services.background_policy.cv2.HOGDescriptor", return_value=PersonHog()), \
+             patch("app.services.background_policy.cv2.HOGDescriptor_getDefaultPeopleDetector", return_value=None), \
+             patch("app.services.background_policy._load_cascade", return_value=None):
+            result = detect_human_signals(Image.new("RGB", (320, 448), "white"))
+        self.assertTrue(result["detected"])
+        self.assertTrue(any(item["source"] == "hog" and item["confirmed"]
+                            for item in result["evidence"]))
+
+    def test_moderate_hog_pattern_needs_independent_corroboration(self):
+        class PatternHog:
+            def setSVMDetector(self, value):
+                pass
+
+            def detectMultiScale(self, image, **kwargs):
+                return [(80, 100, 64, 180)], [1.0]
+
+        with patch("app.services.background_policy.cv2.HOGDescriptor", return_value=PatternHog()), \
+             patch("app.services.background_policy.cv2.HOGDescriptor_getDefaultPeopleDetector", return_value=None), \
+             patch("app.services.background_policy._load_cascade", return_value=None):
+            result = detect_human_signals(Image.new("RGB", (320, 448), "white"))
+        self.assertFalse(result["detected"])
+        self.assertTrue(any(item["source"] == "hog" and not item["confirmed"]
+                            for item in result["evidence"]))
 
 
 if __name__ == "__main__":

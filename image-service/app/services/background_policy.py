@@ -1433,18 +1433,17 @@ def palette_prompt_contract(
 
     statements = [
         (
-            "STRICT COLOUR PALETTE CONTRACT."
+            "REQUESTED COLOUR PALETTE CONTRACT."
         ),
         (
-            "Use only the explicitly requested colour families."
+            "Keep the requested colour families dominant while preserving natural tonal variation."
         ),
         (
             "Do not substitute the requested colours with colours "
             "that merely fit the event theme."
         ),
         (
-            "Do not introduce any additional chromatic colour "
-            "or neutral colour that was not requested."
+            "Avoid a large unrelated third-colour design region."
         ),
     ]
 
@@ -1510,8 +1509,7 @@ def palette_prompt_contract(
     if measurable_names:
         statements.append(
             (
-                "No other visible colour family is allowed. "
-                "The only allowed named colour families are: "
+                "The requested dominant colour families are: "
                 + ", ".join(
                     measurable_names
                 )
@@ -1594,10 +1592,8 @@ def palette_negative_contract(
         "off-palette colours, colour drift, "
         "unrequested accent colours, multicolour palette, "
         "rainbow colours, unrelated hues. "
-        "Do not add any neutral or chromatic colour family "
-        "that was not requested. "
-        "Keep every visible colour inside the requested "
-        "colour families: "
+        "Avoid large unrelated third-colour regions. "
+        "Keep the design grounded in the requested colour families: "
         + ", ".join(
             measurable
         )
@@ -2224,6 +2220,7 @@ def validate_palette(
     *,
     palette: list[dict] | None = None,
     relationship: str | None = None,
+    mode: str | None = None,
     quality_result: dict | None = None,
 ) -> dict:
     if quality_result is None:
@@ -2379,16 +2376,25 @@ def validate_palette(
                 <= NEUTRAL_MAX_SATURATION
             )
         )
+        values = hsv_pixels[:, 2]
+        black_ratio = float(np.mean(values <= 65))
+        white_ratio = float(np.mean(values >= 185))
 
-        if (
-            monochrome_ratio
-            < MIN_BLACK_WHITE_RATIO
-        ):
-            raise ValueError(
+        minimum_monochrome = (1.0 - MAX_OFF_PALETTE_RATIO) if mode == "strict" else MIN_BLACK_WHITE_RATIO
+        if monochrome_ratio < minimum_monochrome:
+            error = ValueError(
                 "Generated background left the requested "
                 "black-and-white palette "
                 f"(monochrome ratio "
                 f"{monochrome_ratio:.2f})."
+            )
+            error.palette_metrics = {"off_palette_ratio": 1.0 - monochrome_ratio,
+                                     "palette_mode": mode or "achromatic"}
+            raise error
+        if black_ratio < 0.02 or white_ratio < 0.02:
+            raise ValueError(
+                "Generated background must visibly contain both black and white "
+                f"(black ratio {black_ratio:.2f}, white ratio {white_ratio:.2f})."
             )
 
         return {
@@ -2404,8 +2410,8 @@ def validate_palette(
                 1.0
                 - monochrome_ratio
             ),
-            "primary_colour_ratio": None,
-            "secondary_colour_ratio": None,
+            "primary_colour_ratio": black_ratio if primary_name == "black" else white_ratio,
+            "secondary_colour_ratio": white_ratio if secondary_name == "white" else black_ratio,
             "requested_colour_counts": {},
             "requested_colour_family_counts": {},
             "accepted_tonal_breakdown": {},
@@ -2469,6 +2475,7 @@ def validate_palette(
 
     off_palette_count = 0
     incidental_neutral_count = 0
+    incidental_neutral_mask = np.zeros(total, dtype=np.uint8)
 
     off_palette_named_counts: dict[
         str,
@@ -2483,20 +2490,31 @@ def validate_palette(
         if family is None:
             if int(saturation) <= 40:
                 incidental_neutral_count += 1
+                incidental_neutral_mask[index] = 1
             off_palette_count += 1
             off_palette_named_counts[tonal_name] = off_palette_named_counts.get(tonal_name, 0) + 1
             continue
         requested_counts[family] = requested_counts.get(family, 0) + 1
         accepted_tonal_counts[tonal_name] = accepted_tonal_counts.get(tonal_name, 0) + 1
 
-    exclusive_palette = bool(re.search(
+    exclusive_palette = (mode in {"strict", "monochrome"}) or bool(re.search(
         r"\b(?:only (?:these |the )?colou?rs|no third colou?r|strictly monochrome|exclusive palette)\b",
         relationship or "", re.I,
     ))
     # A bounded amount of near-neutral shadow or reflection is rendering,
     # not a newly chosen design colour. Explicit exclusive palettes do not
     # receive this allowance; chromatic third colours never receive it.
-    tolerated_neutral_count = 0 if exclusive_palette else min(incidental_neutral_count, int(total * 0.08))
+    _, _, neutral_components, _ = cv2.connectedComponentsWithStats(
+        incidental_neutral_mask.reshape(176, 128), 8,
+    )
+    largest_neutral_region = (
+        int(np.max(neutral_components[1:, cv2.CC_STAT_AREA])) / total
+        if len(neutral_components) > 1 else 0.0
+    )
+    tolerated_neutral_count = (
+        0 if exclusive_palette or largest_neutral_region > 0.025
+        else min(incidental_neutral_count, int(total * 0.08))
+    )
     off_palette_ratio = (off_palette_count - tolerated_neutral_count) / total
 
     breakdown = {
@@ -2584,7 +2602,7 @@ def validate_palette(
         raise error
 
     primary_ratio, secondary_ratio = (None, None)
-    if not palette or "dominant" in (relationship or "").casefold():
+    if primary_name and secondary_name:
         primary_ratio, secondary_ratio = _validate_palette_balance(
             primary_name, primary_rgb, primary_descriptor, secondary_name,
             secondary_rgb, requested_counts, total,
@@ -2604,6 +2622,7 @@ def validate_palette(
             "strict-requested-colour-families" if exclusive_palette else "dominant-requested-colour-families"
         ),
         "incidental_neutral_ratio": incidental_neutral_count / total,
+        "largest_incidental_neutral_region_ratio": largest_neutral_region,
 
         "palette_match_ratio": (
             palette_match_ratio
@@ -2777,6 +2796,28 @@ def _centered_lower_upper_body(
     )
 
 
+def _boxes_overlap(first: tuple[int, int, int, int], second: tuple[int, int, int, int]) -> bool:
+    x0 = max(first[0], second[0])
+    y0 = max(first[1], second[1])
+    x1 = min(first[0] + first[2], second[0] + second[2])
+    y1 = min(first[1] + first[3], second[1] + second[3])
+    return x1 > x0 and y1 > y0
+
+
+def _confirm_cascade_boxes(
+    detector, gray: np.ndarray, boxes: list[tuple[int, int, int, int]],
+    minimum_size: int,
+) -> list[tuple[int, int, int, int]]:
+    if not boxes or detector is None:
+        return []
+    enlarged = cv2.resize(gray, None, fx=1.25, fy=1.25, interpolation=cv2.INTER_LINEAR)
+    repeated = _cascade_detect(detector, enlarged,
+                               (int(minimum_size * 1.25), int(minimum_size * 1.25)), 8)
+    scaled = [(round(x / 1.25), round(y / 1.25), round(w / 1.25), round(h / 1.25))
+              for x, y, w, h in repeated]
+    return [box for box in boxes if any(_boxes_overlap(box, other) for other in scaled)]
+
+
 def detect_human_signals(
     image: Image.Image,
 ) -> dict:
@@ -2854,6 +2895,8 @@ def detect_human_signals(
     people = []
 
     people_weights = []
+    evidence = []
+    image_area = float(bgr.shape[0] * bgr.shape[1])
 
     for (
         rectangle,
@@ -2866,18 +2909,20 @@ def detect_human_signals(
             weight
         )
 
-        if (
-            numeric_weight
-            >= MIN_HOG_PERSON_WEIGHT
-        ):
+        box = tuple(int(value) for value in rectangle)
+        _, _, box_width, box_height = box
+        plausible = (
+            numeric_weight >= MIN_HOG_PERSON_WEIGHT
+            and box_height > 0
+            and 0.22 <= box_width / box_height <= 0.90
+            and box_width * box_height / image_area >= 0.003
+        )
+        evidence.append({"source": "hog", "bbox": box, "weight": numeric_weight,
+                         "confirmed": plausible,
+                         "confirmation": "weight, human aspect and meaningful area" if plausible else "insufficient shape or confidence"})
+        if plausible:
             people.append(
-                tuple(
-                    int(
-                        value
-                    )
-                    for value
-                    in rectangle
-                )
+                box
             )
 
             people_weights.append(
@@ -2938,24 +2983,56 @@ def detect_human_signals(
         )
     )
 
-    # A single upper-body cascade hit in the lower centre is significant for
-    # a background whose centre must be clear. The SD3.5 E9EBE8 probe has a
-    # visible central silhouette here; HOG and face cascades miss it. An
-    # isolated hit at the outer decoration (as in FLUX B) remains insufficient.
+    corroborators = faces + profiles + upper_bodies
+    credible_people = []
+    credible_weights = []
+    for box, weight in zip(people, people_weights):
+        corroborated = weight >= 1.5 or any(_boxes_overlap(box, other) for other in corroborators)
+        for item in evidence:
+            if item["source"] == "hog" and item["bbox"] == box:
+                item["confirmed"] = corroborated
+                item["confirmation"] = (
+                    "strong HOG weight or independent detector overlap"
+                    if corroborated else "moderate HOG pattern without independent corroboration"
+                )
+        if corroborated:
+            credible_people.append(box)
+            credible_weights.append(weight)
+    people = credible_people
+    people_weights = credible_weights
+
+    confirmed_faces = _confirm_cascade_boxes(frontal_detector, gray, faces, MIN_FACE_SIZE)
+    confirmed_profiles = _confirm_cascade_boxes(profile_detector, gray, profiles, MIN_PROFILE_SIZE)
+    for source, boxes, confirmed in (
+        ("frontal_face", faces, confirmed_faces),
+        ("profile_face", profiles, confirmed_profiles),
+    ):
+        for box in boxes:
+            corroborated = box in confirmed or any(_boxes_overlap(box, body) for body in upper_bodies + people)
+            plausible = 0.55 <= box[2] / max(1, box[3]) <= 1.8 and box[2] * box[3] / image_area >= 0.0005
+            accepted = corroborated and plausible
+            evidence.append({"source": source, "bbox": box, "weight": None,
+                             "confirmed": accepted,
+                             "confirmation": "rescale or body corroboration" if accepted else "isolated cascade pattern"})
+
+    for box in upper_bodies:
+        evidence.append({"source": "upper_body", "bbox": box, "weight": None,
+                         "confirmed": False, "confirmation": "supporting evidence only"})
+
+    # Upper-body cascades alone frequently match architectural and floral
+    # patterns; they corroborate a person or face but never reject alone.
     image_height, image_width = gray.shape[:2]
     centered_lower_body = _centered_lower_upper_body(
         upper_bodies, image_width, image_height,
     )
     # The upper-body cascade often matches flowers, curtains and ornament.
     # A lone central hit is diagnostic evidence, not confirmation of a human.
-    strong_upper_body_signal = len(upper_bodies) >= 2 or (
-        centered_lower_body and bool(people or faces or profiles)
-    )
+    strong_upper_body_signal = centered_lower_body and bool(people or confirmed_faces or confirmed_profiles)
 
     detected = bool(
         people
-        or faces
-        or profiles
+        or any(item["confirmed"] and item["source"] == "frontal_face" for item in evidence)
+        or any(item["confirmed"] and item["source"] == "profile_face" for item in evidence)
         or strong_upper_body_signal
     )
 
@@ -2963,6 +3040,7 @@ def detect_human_signals(
         "people": (
             people
         ),
+        "evidence": evidence,
         "people_weights": (
             people_weights
         ),

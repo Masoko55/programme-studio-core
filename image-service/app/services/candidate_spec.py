@@ -49,6 +49,17 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
     if not isinstance(brief, dict):
         raise ValueError("prompts.json has no structured brief")
     direction = get_direction(document, direction_id)
+    required_strategies = (
+        "composition_strategy", "focal_strategy", "depth_strategy",
+        "border_or_perimeter_strategy", "title_safe_region_strategy",
+        "programme_safe_region_strategy",
+    )
+    missing = [name for name in required_strategies
+               if len(str(direction.get(name) or "").strip()) < 8]
+    if missing:
+        raise ValueError(
+            f"Direction {direction_id} lacks required structural strategies: {', '.join(missing)}"
+        )
     layout = direction.get("layout_guidance") or {}
     if not isinstance(layout, dict):
         raise ValueError("Direction layout guidance must be an object")
@@ -86,6 +97,7 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         "mood": field(brief, "mood"),
         "visual_style": field(brief, "visual_style"),
         "requested_palette": palette,
+        "palette_mode": field(brief, "palette_mode") or "dominant",
         "palette_relationship": field(brief, "palette_relationship"),
         "visual_anchors": anchors,
         "symbolic_motifs": values(brief, "symbolic_motifs"),
@@ -93,7 +105,7 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         "material_language": field(brief, "material_language"),
         "texture_language": field(brief, "texture_language"),
         "lighting_language": field(brief, "lighting_language"),
-        "composition_strategy": field(direction, "composition_strategy") or field(direction, "positive_prompt"),
+        "composition_strategy": field(direction, "composition_strategy"),
         "focal_strategy": field(direction, "focal_strategy"),
         "depth_strategy": field(direction, "depth_strategy"),
         "border_or_perimeter_strategy": field(direction, "border_or_perimeter_strategy"),

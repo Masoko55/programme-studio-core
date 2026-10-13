@@ -21,6 +21,7 @@ from app.schemas.grill_me import (
 from app.services.grill_me_semantic import (
     review_creative_context,
 )
+from app.services.creative_direction import resolve_palette_mode
 
 
 MAX_ASSET_BYTES = (
@@ -1433,6 +1434,11 @@ def freeze_for_generation(
             text_flow
         ),
     }
+    background_brief["palette_mode"] = resolve_palette_mode(background_brief)
+    background_brief["palette_relationship"] = (
+        "only these colours" if background_brief["palette_mode"] == "strict"
+        else "requested colours dominate with natural tonal variation"
+    )
 
     asset = (
         session.assets

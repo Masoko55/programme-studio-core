@@ -65,6 +65,12 @@ def document_for(case, direction_id="B"):
                 "role": role,
                 "positive_prompt": f"Render {inspiration} with {treatment}",
                 "negative_prompt": "people, readable text",
+                "composition_strategy": "asymmetric layered composition",
+                "focal_strategy": "off-centre subject focus",
+                "depth_strategy": "foreground to background depth",
+                "border_or_perimeter_strategy": "open irregular perimeter",
+                "title_safe_region_strategy": "quiet upper reading area",
+                "programme_safe_region_strategy": "quiet lower reading area",
                 "layout_guidance": {
                     "title_zone": {"x": 0.1, "y": 0.1, "width": 0.8, "height": 0.12},
                     "programme_zone": {"x": 0.1, "y": 0.45, "width": 0.8, "height": 0.4},
@@ -75,6 +81,31 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_incomplete_direction_strategy_is_rejected(self):
+        for name in (
+            "composition_strategy", "focal_strategy", "depth_strategy",
+            "border_or_perimeter_strategy", "title_safe_region_strategy",
+            "programme_safe_region_strategy",
+        ):
+            with self.subTest(name=name):
+                document = document_for(CASES[0])
+                document["directions"][0]["direction"].pop(name)
+                with self.assertRaisesRegex(ValueError, name):
+                    build_candidate_spec(document, "sdxl-1-0", "B")
+
+    def test_all_engines_receive_structured_strategies(self):
+        for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
+            with self.subTest(engine=engine):
+                spec = build_candidate_spec(document_for(CASES[0]), engine, "B")
+                compiled = compile_candidate_prompt(spec, 1)
+                fields = (compiled.positive, compiled.clip_l, compiled.clip_g)
+                if compiled.t5:
+                    fields += (compiled.t5,)
+                for prompt in fields:
+                    self.assertIn("asymmetric layered composition", prompt)
+                    self.assertIn("off-centre subject focus", prompt)
+                    self.assertIn("foreground to background depth", prompt)
+
     def test_spec_is_structured_and_deeply_immutable(self):
         document = document_for(CASES[0])
         spec = build_candidate_spec(document, "sdxl-1-0", "B")
@@ -195,11 +226,11 @@ class CandidateSpecCompilerTests(unittest.TestCase):
             if engine == "sdxl-1-0":
                 self.assertTrue(compiled.positive.startswith("Background inspiration:"))
             else:
-                self.assertTrue(compiled.positive.startswith("Direction artwork:"))
+                self.assertTrue(compiled.positive.startswith("Background inspiration:"))
             self.assertIn("Background inspiration: Create a comic-book city skyline", compiled.positive[:450])
             if engine == "sd-3-5-medium":
                 self.assertIn("Visual subject: Create a comic-book city skyline", compiled.clip_l)
-                self.assertIn("Direction:", compiled.clip_g)
+                self.assertIn("Direction motif:", compiled.clip_g)
                 self.assertIn("city skyline", compiled.t5)
 
     def test_missing_inspiration_fallback_is_theme_and_palette_independent(self):
@@ -238,7 +269,7 @@ class CandidateSpecCompilerTests(unittest.TestCase):
                 build_candidate_spec(document, "sdxl-1-0", "B"), 1
             )
             for field in (compiled.clip_g, compiled.clip_l):
-                self.assertTrue(field.startswith("A4 portrait"))
+                self.assertTrue(field.startswith("Background artwork"))
                 self.assertIn(primary, field)
                 self.assertIn(secondary, field)
                 self.assertIn("requested palette", field.lower())
@@ -275,8 +306,8 @@ class CandidateSpecCompilerTests(unittest.TestCase):
                 self.assertNotIn("flat page", field.lower())
             self.assertNotIn("four to six", compiled.positive)
             if engine == "sdxl-1-0":
-                self.assertIn("event-background artwork", compiled.clip_l.lower())
-                self.assertIn("intentional typography-safe negative space", compiled.clip_g.lower())
+                self.assertIn("background artwork", compiled.clip_l.lower())
+                self.assertIn("quiet upper reading area", compiled.clip_g.lower())
                 self.assertNotIn("No lettering or logos", compiled.clip_g)
                 self.assertIn("poster mockup", compiled.negative)
 

@@ -95,11 +95,15 @@ def boilerplate_metrics(image: Image.Image) -> dict[str, float]:
     right = cv2.resize(np.fliplr(edges[:, -width // 3:]).astype(np.float32), (4, 8), interpolation=cv2.INTER_AREA)
     symmetry = float(1.0 - np.mean(np.abs(left - right)) / max(0.04, float(np.mean(left + right))))
     symmetry = float(np.clip(symmetry, 0.0, 1.0))
-    # An irregular decorative frame has a quiet centre too, but lacks the
-    # rectangular connected component detected above. Require perimeter
-    # activity and bilateral similarity so ordinary breathing room survives.
-    frame_score = min(1.0, max(0.0, (perimeter_activity - centre_activity) * 5.0))
-    frame_score *= centre_flat * max(0.0, (symmetry - 0.70) / 0.30)
+    lower_centre = edges[2 * height // 3:, width // 4:3 * width // 4]
+    lower_centre_activity = float(np.mean(lower_centre))
+    quiet_centre = centre_flat * max(0.0, 1.0 - centre_activity / max(perimeter_activity, 0.01))
+    frame_symmetry = max(0.0, (symmetry - 0.55) / 0.45)
+    depth_break = max(0.0, 1.0 - lower_centre_activity * 10.0)
+    # Combine independent evidence. A skyline's quiet sky alone, or a large
+    # flat shape in an asymmetric composition, cannot condemn the image.
+    frame_score = min(1.0, max(0.0, (perimeter_activity - centre_activity) * 7.0))
+    frame_score *= quiet_centre * frame_symmetry * depth_break
     multi_slab_score = min(
         1.0,
         rectangular_coverage * 0.78
@@ -107,7 +111,9 @@ def boilerplate_metrics(image: Image.Image) -> dict[str, float]:
         + min(large_rectangle_count, 3) * 0.035,
     )
 
-    score = float(max(largest_rectangle, multi_slab_score, frame_score))
+    rectangular_score = largest_rectangle * quiet_centre * frame_symmetry
+    multi_slab_score *= quiet_centre * frame_symmetry
+    score = float(max(rectangular_score, multi_slab_score, frame_score))
     return {
         "boilerplate_score": score,
         "largest_flat_rectangle_ratio": float(largest_rectangle),
@@ -120,6 +126,8 @@ def boilerplate_metrics(image: Image.Image) -> dict[str, float]:
         "centre_flat_ratio": centre_flat,
         "bilateral_symmetry": symmetry,
         "irregular_frame_score": frame_score,
+        "lower_centre_edge_density": lower_centre_activity,
+        "quiet_centre_evidence": quiet_centre,
     }
 
 

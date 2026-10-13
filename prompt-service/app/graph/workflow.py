@@ -26,6 +26,7 @@ from app.schemas.prompts_document import (
 )
 
 from app.services.creative_direction import (
+    direction_structural_summary,
     generate_creative_direction,
 )
 
@@ -36,6 +37,7 @@ from app.services.persistence import (
 
 from app.services.validation import (
     validate_creative_direction,
+    validate_direction_diversity,
 )
 
 
@@ -353,7 +355,7 @@ async def generate_direction_b(
                 brief=state[
                     "brief"
                 ],
-                previous_directions=[state["direction_a"].positive_prompt] if state.get("direction_a") else [],
+                previous_directions=[direction_structural_summary(state["direction_a"], state["brief"])] if state.get("direction_a") else [],
                 correction_error=(
                     state.get(
                         "validation_error_b"
@@ -414,6 +416,8 @@ def validate_direction_b(
                 "brief"
             ],
         )
+        if state.get("direction_a"):
+            validate_direction_diversity(state["direction_b"], [state["direction_a"]])
 
         logger.info(
             "Direction B validation passed"
@@ -567,7 +571,8 @@ async def generate_direction_c(
                     "brief"
                 ],
                 previous_directions=[
-                    item.positive_prompt for item in (state.get("direction_a"), state.get("direction_b")) if item
+                    direction_structural_summary(item, state["brief"])
+                    for item in (state.get("direction_a"), state.get("direction_b")) if item
                 ],
                 correction_error=(
                     state.get(
@@ -628,6 +633,10 @@ def validate_direction_c(
             state[
                 "brief"
             ],
+        )
+        validate_direction_diversity(
+            state["direction_c"],
+            [item for item in (state.get("direction_a"), state.get("direction_b")) if item],
         )
 
         logger.info(

@@ -79,6 +79,33 @@ COLOUR_ALIASES = {
 }
 
 
+def resolve_palette_mode(brief: dict) -> str:
+    """Use the same dominant/strict distinction as image validation."""
+    requested = str(brief.get("palette_mode") or "").lower()
+    if requested in {"strict", "monochrome", "achromatic"}:
+        return "strict" if requested == "strict" else "achromatic"
+    description = " ".join(str(brief.get(key) or "") for key in (
+        "creative_description", "palette_relationship", "colour_palette",
+    )).lower()
+    if re.search(r"\b(?:only (?:these |the )?colou?rs|use only\b|no third colou?r|strictly monochrome|exclusive palette)\b", description):
+        return "strict"
+    return "dominant"
+
+
+def direction_structural_summary(direction: CreativeDirectionOutput, brief: dict) -> dict:
+    """Carry a previous direction's spatial plan into later direction prompts."""
+    return {
+        "direction_id": direction.direction_id,
+        "composition_strategy": direction.composition_strategy,
+        "focal_strategy": direction.focal_strategy,
+        "depth_strategy": direction.depth_strategy,
+        "border_or_perimeter_strategy": direction.border_or_perimeter_strategy,
+        "title_safe_region_strategy": direction.title_safe_region_strategy,
+        "programme_safe_region_strategy": direction.programme_safe_region_strategy,
+        "background_inspiration": brief.get("background_inspiration"),
+    }
+
+
 
 def normalize_colour(
     value: str | None,
@@ -175,6 +202,7 @@ def positive_palette_description(
         ) > 1
         else None
     )
+    mode = resolve_palette_mode(brief)
 
     if (
         set(
@@ -193,13 +221,17 @@ def positive_palette_description(
 
     if secondary:
         relationship = str(brief.get("palette_relationship") or "respect the requested colour roles")
-        return f"A {', '.join(colours)} palette; {relationship}. Preserve tonal and material variation."
+        if mode == "strict":
+            return f"A strict {', '.join(colours)} palette; {relationship}. Only the requested colour families are allowed, apart from microscopic anti-aliasing tolerance."
+        return (f"A {', '.join(colours)} palette; {relationship}. Requested colours control the chromatic design. "
+                "Bounded black, charcoal, grey and white detail may support linework, shadows, reflections and highlights. "
+                "Do not add a meaningful third chromatic design colour.")
 
-    return (
-        f"A controlled {primary} palette with {primary} clearly "
-        "dominant throughout the composition. "
-        "No additional colour family is allowed."
-    )
+    if mode == "strict":
+        return f"A strict {primary} palette. Only {primary} is allowed apart from microscopic anti-aliasing tolerance."
+    return (f"A controlled {primary} palette with {primary} clearly dominant. "
+            "Bounded achromatic linework, shadows and highlights are allowed. "
+            "Do not add a meaningful unrelated chromatic design colour.")
 
 
 def palette_negative(
@@ -217,6 +249,10 @@ def palette_negative(
             "unrequested accent colours, multicolour palette, "
             "unrelated hues"
         )
+
+    if resolve_palette_mode(brief) != "strict":
+        return ("unrequested chromatic design colours, colour drift, unrelated hues, "
+                "large neutral areas that displace the requested colours")
 
     return (
         "off-palette colours, colour drift, "
@@ -880,10 +916,7 @@ def build_creative_direction_prompt(
             "inside positive_prompt."
         ),
         ("Respect the palette relationship specified by the user."),
-        (
-            "Do not introduce visible colour families that were not "
-            "explicitly requested."
-        ),
+        (positive_palette_description(brief)),
         (
             "Use strong tonal contrast without inventing an "
             "unrequested colour family."

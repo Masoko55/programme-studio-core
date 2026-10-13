@@ -105,7 +105,15 @@ def _palette(spec: CandidateSpec) -> str:
         return "the palette described by the brief"
     relationship = design["palette_relationship"] or "respect the requested colour roles"
     mode = design["palette_mode"]
-    return f"{', '.join(colours)}; {mode} palette; {relationship}; preserve shading and local detail"
+    if mode == "strict":
+        policy = "only requested colour families, apart from microscopic anti-aliasing tolerance"
+    elif mode in {"monochrome", "achromatic"} or set(colours) == {"black", "white"}:
+        policy = "strictly achromatic black, white and grey tonal variation; no chromatic colour"
+    else:
+        policy = ("requested colours control the chromatic design; bounded black, charcoal, grey and white "
+                  "rendering detail supports linework, shadows, reflections and highlights; "
+                  "no meaningful third chromatic design colour")
+    return f"{', '.join(colours)}; {mode} palette; {relationship}; {policy}"
 
 
 def _composition(spec: CandidateSpec) -> str:
@@ -283,6 +291,8 @@ def _join_sections(*sections: str) -> str:
 def _background_only(text: str, spec: CandidateSpec) -> str:
     """Keep planning labels out of image-model conditioning."""
     exclusions = [spec.event_type, spec.direction_role,
+                  "Architectural Master", "Comic Book Cityscape Illustrator",
+                  "Creative Direction for A4 Portrait Event Background",
                   *spec.visual_design.get("render_exclusion_text", [])]
     for phrase in sorted(exclusions, key=len, reverse=True):
         phrase = str(phrase).strip()

@@ -107,8 +107,9 @@ class CandidateRetryIntegrationTests(unittest.TestCase):
         self.assertEqual(len(calls), 9)
         self.assertEqual(len({call[2]["spec_sha256"] for call in calls}), 1)
         for positive, _, kwargs in calls:
-            for anchor in ("city skyline", "spiderweb", "expressive", "royal blue", "red"):
+            for anchor in ("city skyline", "spiderweb", "royal blue", "red"):
                 self.assertIn(anchor, positive.lower())
+            self.assertNotIn("expressive", positive.lower())
             self.assertEqual(kwargs["compiled_prompt"].positive, positive)
 
     def test_resume_after_eight_attempts_has_one_remaining(self):

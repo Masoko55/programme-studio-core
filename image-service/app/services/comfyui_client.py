@@ -2445,6 +2445,13 @@ class ComfyUIClient:
                         )
                     ),
                     "failure_category": previous.get("failure_category"),
+                    "primary_failure_category": previous.get("primary_failure_category"),
+                    "all_failure_categories": previous.get("all_failure_categories"),
+                    "validation": previous.get("validation"),
+                    "palette_metrics": previous.get("palette_metrics"),
+                    "text_detection": previous.get("text_detection"),
+                    "human_detection": previous.get("human_detection"),
+                    "quality_metrics": previous.get("quality_metrics"),
                     "retry_stage": previous.get("retry_stage"),
                     "spec_sha256": previous.get("spec_sha256"),
                     "direction_role": previous.get("direction_role"),

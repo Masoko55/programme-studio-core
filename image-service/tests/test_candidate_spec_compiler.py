@@ -81,6 +81,21 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_model_conditioning_has_no_role_or_panel_language(self):
+        labels = ("Architectural Master", "Comic Book Cityscape Illustrator",
+                  "Creative Direction for A4 Portrait Event Background", "visual character")
+        for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
+            document = document_for(CASES[0])
+            document["directions"][0]["direction"]["role"] = labels[0]
+            document["directions"][0]["direction"]["positive_prompt"] += " " + " ".join(labels)
+            spec = build_candidate_spec(document, engine, "B")
+            compiled = compile_candidate_prompt(spec, 1)
+            conditioning = " ".join(value or "" for value in (compiled.positive, compiled.negative,
+                                     compiled.clip_l, compiled.clip_g, compiled.t5))
+            for label in labels:
+                self.assertNotIn(label.lower(), conditioning.lower())
+            self.assertIn("panel", conditioning.lower())
+
     def test_event_label_is_planning_metadata_not_rendered_text(self):
         document = document_for(CASES[2])
         document["brief"]["title_preference"] = "THE BRIDAL SHOWER"

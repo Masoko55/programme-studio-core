@@ -52,8 +52,6 @@ POSITIVE_PROMPT_FORBIDDEN_TERMS = (
     "heroes",
     "superhero",
     "superheroes",
-    "spiderman",
-    "spider-man",
     "masked person",
     "masked character",
     "costume",
@@ -80,46 +78,6 @@ COLOUR_ALIASES = {
     "rose-gold": "rose gold",
 }
 
-
-KNOWN_COLOURS = (
-    "black",
-    "white",
-    "grey",
-    "silver",
-    "charcoal",
-    "red",
-    "orange",
-    "yellow",
-    "lime",
-    "green",
-    "forest green",
-    "mint green",
-    "teal",
-    "turquoise",
-    "cyan",
-    "aqua",
-    "blue",
-    SKY_BLUE,
-    "royal blue",
-    "navy",
-    "purple",
-    "violet",
-    "lavender",
-    "magenta",
-    "pink",
-    "hot pink",
-    "rose",
-    "coral",
-    "peach",
-    "maroon",
-    "burgundy",
-    "brown",
-    "beige",
-    "cream",
-    "champagne",
-    "gold",
-    "rose gold",
-)
 
 
 def normalize_colour(
@@ -565,35 +523,97 @@ def _background_inspiration(brief: dict) -> str:
     ).strip()
 
 
-def reference_visual_language(
-    brief: dict,
-) -> str:
-    """Return safe abstract traits for recognizable-reference themes."""
-    reference = " ".join(
-        str(brief.get(field) or "")
-        for field in ("theme", "theme_reference_treatment")
-    ).casefold()
+def _list_values(brief: dict, key: str) -> list[str]:
+    value = brief.get(key) or []
+    if isinstance(value, str):
+        value = [value]
+    if not isinstance(value, list):
+        return []
+    return [
+        str(item).strip()
+        for item in value
+        if str(item).strip()
+    ]
 
-    if any(term in reference for term in ("spiderman", "spider-man", "spider man")):
-        return (
-            "Use radial web geometry, diagonal web strands, angular skyline "
-            "silhouettes and kinetic comic-book framing. "
-        )
 
-    return ""
+def _safe_visual_phrase(value: str | None) -> str:
+    """Keep generic visual-language prose while excluding renderable people/text."""
+    if not value:
+        return ""
 
+    clauses = []
+    for clause in re.split(r"[,;.!?]+", str(value)):
+        clause = " ".join(clause.split())
+        if not clause:
+            continue
+        if any(
+            re.search(rf"\b{re.escape(term)}\b", clause, re.IGNORECASE)
+            for term in POSITIVE_PROMPT_FORBIDDEN_TERMS
+        ):
+            continue
+        clauses.append(clause)
+
+    return ", ".join(clauses)
+
+
+def reference_visual_language(brief: dict) -> str:
+    """Build visual language only from clarified, generic brief fields.
+
+    This deliberately contains no franchise-, event-, colour-, or theme-specific
+    branches. A new user theme should work without a code change.
+    """
+    parts = []
+
+    for key, label in (
+        ("theme_reference_treatment", "reference treatment"),
+        ("visual_style", "visual style"),
+        ("material_language", "materials"),
+        ("texture_language", "texture"),
+        ("lighting_language", "lighting"),
+        ("mood", "mood"),
+    ):
+        phrase = _safe_visual_phrase(brief.get(key))
+        if phrase:
+            parts.append(f"{label}: {phrase}")
+
+    for key, label in (
+        ("visual_anchors", "visual anchors"),
+        ("symbolic_motifs", "symbolic motifs"),
+        ("environmental_motifs", "environmental motifs"),
+    ):
+        phrases = [
+            phrase
+            for phrase in (
+                _safe_visual_phrase(value)
+                for value in _list_values(brief, key)
+            )
+            if phrase
+        ]
+        if phrases:
+            parts.append(f"{label}: {', '.join(phrases)}")
+
+    return (
+        "Use these clarified visual-language cues where relevant: "
+        + "; ".join(parts)
+        + ". "
+        if parts
+        else ""
+    )
 
 def background_design_summary(
     brief: dict,
 ) -> str:
-    """Describe the user's visual request for the creative-direction model."""
+    """Describe the requested artwork without imposing a stock layout."""
     return (
         "User background inspiration: "
         + _background_inspiration(brief)
         + ". "
         + reference_visual_language(brief)
-        + "Preserve a calm open central field and keep decorative detail "
-        "toward the outer edges. Layout contract: "
+        + "Create original background artwork that follows the requested subject, "
+        + "aesthetic, palette and event context. Preserve usable negative space "
+        + "for later typography, but choose its shape and placement from the "
+        + "brief and the creative direction rather than a boilerplate frame. "
+        + "Layout contract: "
         + asset_layout_description(brief)
         + "."
     )
@@ -602,16 +622,15 @@ def background_design_summary(
 def background_positive_requirements(
     brief: dict,
 ) -> str:
-    """Safe positive-prompt material derived from the Grill-Me answer."""
+    """Positive rendering requirements derived only from the clarified brief."""
     return (
         "Make the visual subject clearly recognizable as: "
         + _background_inspiration(brief)
         + ". "
         + reference_visual_language(brief)
-        + "Keep decoration at the outer edges and lower corners, "
-        "with a calm open central field."
+        + "Use an original composition specific to the brief, with intentional negative space and breathing room "
+        + "for later title and programme typography."
     )
-
 
 def background_negative_constraints() -> str:
     return "unrelated generic imagery, crowded centre, readable text, people, characters"
@@ -623,10 +642,10 @@ def fallback_prompt(
 ) -> str:
     palette = positive_palette_description(brief)
     return (
-        f"{role} A4 portrait decorative event background, {palette} "
-        "strong tonal contrast, refined layered materials, controlled lighting, "
-        "balanced border details, generous visual breathing room, "
-        "calm upper and central regions, "
+        f"{role} A4 portrait event-background artwork, {palette} "
+        "with a brief-specific composition, coherent visual hierarchy, intentional "
+        "negative space for later typography, and subject-appropriate depth, materials, "
+        "texture and lighting. "
         + _background_inspiration(brief)
         + "."
     )
@@ -879,6 +898,15 @@ def build_creative_direction_prompt(
                 direction_id
             )
         ),
+        (
+            "Do not use a stock programme template, universal border, fixed central "
+            "panel, repeated side bars or a boilerplate composition. Invent the "
+            "composition from this brief."
+        ),
+        (
+            "The new direction must differ structurally from prior directions in at "
+            "least composition, focal treatment, depth, perimeter treatment and spatial rhythm."
+        ),
         ("Describe the chosen composition, focal point, depth, perimeter treatment and separate calm title/programme areas in their strategy fields."),
         ("Use the prior direction concepts to choose a materially different arrangement, not just a new palette."),
         (
@@ -1116,7 +1144,6 @@ async def generate_creative_direction(
                         "masked character, mascot, costume, "
                         "costumed figure, humanoid"
                     ),
-                    "spiderman, spider-man, spider man",
                     (
                         "text, typography, lettering, words, "
                         "letters, numbers, writing, calligraphy, "

@@ -322,15 +322,10 @@ BACKGROUND_ONLY_NEGATIVE = (
     "(human figure:2.4), "
     "(character:2.4), "
     "(fictional character:2.4), "
-    "(hero:2.4), "
-    "(superhero:2.4), "
     "(masked character:2.4), "
     "(costumed figure:2.4), "
     "(mascot:2.4), "
     "(humanoid:2.4), "
-    "(spiderman:2.5), "
-    "(spider-man:2.5), "
-    "(spider man:2.5), "
     "(man:2.2), "
     "(woman:2.2), "
     "(child:2.2), "
@@ -372,31 +367,22 @@ BACKGROUND_ONLY_NEGATIVE = (
 
 
 BACKGROUND_ONLY_SUFFIX = (
-    "A4 portrait decorative event background only. "
-    "Pure abstract nonrepresentational visual artwork. "
-    "No central subject. "
-    "No focal character. "
-    "No narrative human scene. "
-    "No photographic person. "
-    "No human silhouette. "
-    "No human-shaped geometry. "
-    "No body-shaped form. "
-    "No portrait composition. "
-    "Absolutely no people, human figures, faces, portraits, "
-    "characters, mannequins, heads, bodies, hands, arms, legs, "
-    "clothing or human-like subjects. "
-    "Absolutely no words, lettering, typography, logos, signatures, "
-    "watermarks, labels, numbers or readable characters. "
-    "Do not create a finished poster, invitation, card, certificate, "
-    "menu, document or signage. "
-    "Do not generate full-frame scanlines, raster banding, repetitive "
-    "horizontal or vertical line corruption, moire, glitch artefacts, "
-    "broken image textures or blank flat image fields. "
-    "Do not generate a featureless full-page gradient, plain colour wash, "
-    "grain-only texture or noise-only image. "
-    "Use coherent abstract patterns, ornament, lines, shapes, architecture "
-    "and environmental design elements. "
-    "Preserve visually quiet regions for later title and programme text."
+    "A4 portrait event-background artwork only. "
+    "Faithfully render the requested visual subject, whether representational, "
+    "illustrative, environmental, ornamental, graphic or abstract. "
+    "Do not introduce a human focal subject unless the product explicitly allows it. "
+    "No photographic person, human silhouette, human-shaped figure or body-shaped form. "
+    "Absolutely no people, human figures, faces, portraits, characters, mannequins, "
+    "heads, bodies, hands, arms, legs, clothing or human-like subjects. "
+    "Absolutely no words, lettering, typography, logos, signatures, watermarks, "
+    "labels, numbers or readable characters. "
+    "Do not create a finished poster, invitation, card, certificate, menu, document or signage. "
+    "Do not generate full-frame scanlines, raster banding, repetitive horizontal or "
+    "vertical line corruption, moire, glitch artefacts, broken image textures or blank flat fields. "
+    "Do not generate a featureless full-page gradient, plain colour wash, grain-only texture "
+    "or noise-only image. Use coherent subject-specific forms, materials, motifs, architecture, "
+    "environmental elements or abstract structure as requested by the brief. "
+    "Preserve intentional visually quiet regions for later title and programme typography."
 )
 
 
@@ -417,13 +403,6 @@ FORBIDDEN_PROMPT_TERMS = (
     "portrait",
     "character",
     "characters",
-    "hero",
-    "heroes",
-    "superhero",
-    "superheroes",
-    "spiderman",
-    "spider-man",
-    "spider man",
     "masked character",
     "costume",
     "costumed",

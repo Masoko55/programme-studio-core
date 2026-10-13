@@ -47,7 +47,7 @@ class RetrySeriesTests(unittest.TestCase):
         RejectingClient.calls = []
         with tempfile.TemporaryDirectory() as temporary:
             args = SimpleNamespace(source_reference="ABCDEF-123456", engine="sdxl-1-0",
-                                   direction="B", attempts=9, seed=20261010)
+                                   direction="B", attempts=9, seed=20261010, working_reference=None)
             with patch.object(series, "_parse_args", return_value=args), \
                  patch.object(series, "settings", SimpleNamespace(
                      programme_data_path=Path(temporary), max_candidate_retries=8)), \
@@ -84,7 +84,7 @@ class RetrySeriesTests(unittest.TestCase):
             )
             args = SimpleNamespace(
                 source_reference="ABCDEF-123456",
-                engine="sdxl-1-0", direction="B", attempts=2, seed=123,
+                engine="sdxl-1-0", direction="B", attempts=2, seed=123, working_reference=None,
             )
             with patch.object(series, "_parse_args", return_value=args), \
                  patch.object(series, "settings", settings), \

@@ -101,8 +101,11 @@ class CandidateSpecCompilerTests(unittest.TestCase):
                         text = compiled.positive.lower()
                         for anchor in (case[7], case[8], case[4], case[5], case[6]):
                             self.assertIn(anchor.lower(), text)
-                        self.assertIn("readable space", text)
-                        self.assertIn("keep key motifs outside", text)
+                        self.assertIn("intentional negative space", text)
+                        self.assertIn("breathing room", text)
+                        self.assertIn("spatial balance", text)
+                        self.assertNotIn("template boxes", text)
+                        self.assertNotIn("stock poster frames", text)
                         self.assertEqual(compiled.spec_sha256, spec.spec_sha256)
                         self.assertNotIn("previous attempt", text)
 
@@ -112,9 +115,9 @@ class CandidateSpecCompilerTests(unittest.TestCase):
             "PALETTE_OFF": "requested colour relationship",
             "HUMAN": "Remove people",
             "TEXT": "Remove readable text",
-            "GRADIENT": "discrete matte forms",
-            "WEAK_OUTER_STRUCTURE": "outer edges",
-            "RASTER": "scanlines",
+            "GRADIENT": "tonal variation and visible depth",
+            "WEAK_OUTER_STRUCTURE": "areas permitted by this direction",
+            "RASTER": "clean, varied edge structure",
             "RUNTIME": "fewer, larger forms",
             "SECONDARY_MISSING": "secondary colour",
         }
@@ -149,11 +152,11 @@ class CandidateSpecCompilerTests(unittest.TestCase):
             "DENSE_SAFE_REGION",
         )
         self.assertIn(
-            "Move detail from the calm overlay zones",
+            "Relocate detail away from the reserved typography regions",
             compiled.positive,
         )
         self.assertNotIn(
-            "Increase the requested motifs at the outer edges",
+            "Increase meaningful requested design structure",
             compiled.positive,
         )
 
@@ -165,7 +168,8 @@ class CandidateSpecCompilerTests(unittest.TestCase):
         self.assertIn("city skyline", compiled.clip_g.lower())
         self.assertIn("spiderweb", compiled.clip_g.lower())
         self.assertIn("royal blue", compiled.clip_g.lower())
-        self.assertIn("readable space", compiled.t5.lower())
+        self.assertIn("intentional negative space", compiled.t5.lower())
+        self.assertIn("breathing room", compiled.t5.lower())
         for anchor in ("city skyline", "spiderweb", "expressive", "royal blue", "red"):
             self.assertIn(anchor.lower(), compiled.t5.lower())
         self.assertNotIn("spider-man", compiled.t5.lower())
@@ -234,12 +238,14 @@ class CandidateSpecCompilerTests(unittest.TestCase):
                 build_candidate_spec(document, "sdxl-1-0", "B"), 1
             )
             for field in (compiled.clip_g, compiled.clip_l):
-                self.assertTrue(field.startswith("Front-facing"))
+                self.assertTrue(field.startswith("A4 portrait"))
                 self.assertIn(primary, field)
                 self.assertIn(secondary, field)
                 self.assertIn("requested palette", field.lower())
                 self.assertIn("spiderweb", field.lower())
                 self.assertLess(field.lower().index("spiderweb"), field.lower().index("requested palette"))
+                self.assertNotIn("flat page", field.lower())
+                self.assertNotIn("matte forms", field.lower())
 
     def test_sdxl_retries_keep_source_inspiration_in_both_encoders(self):
         document = document_for(CASES[0], "B")
@@ -266,9 +272,11 @@ class CandidateSpecCompilerTests(unittest.TestCase):
             for field in (compiled.clip_l, compiled.clip_g):
                 self.assertIn("background", field.lower())
                 self.assertIn("architectural frames", field.lower())
+                self.assertNotIn("flat page", field.lower())
             self.assertNotIn("four to six", compiled.positive)
             if engine == "sdxl-1-0":
-                self.assertIn("graphic background filling a flat page", compiled.clip_l)
+                self.assertIn("event-background artwork", compiled.clip_l.lower())
+                self.assertIn("intentional typography-safe negative space", compiled.clip_g.lower())
                 self.assertIn("No lettering or logos", compiled.clip_g)
                 self.assertIn("poster mockup", compiled.negative)
 

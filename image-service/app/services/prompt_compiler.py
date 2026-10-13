@@ -107,16 +107,114 @@ def _palette(spec: CandidateSpec) -> str:
 
 def _composition(spec: CandidateSpec) -> str:
     design = spec.visual_design
-    strategy = design["composition_strategy"]
-    safe = "; ".join(filter(None, (
-        design["title_safe_region_strategy"], design["programme_safe_region_strategy"]
-    )))
-    return (
-        f"{strategy}. Preserve calm, readable space for later typography"
-        + (f" according to {safe}" if safe else " where the direction requires it")
-        + "; keep key motifs outside those spaces."
+
+    parts = []
+
+    strategy = str(
+        design.get("composition_strategy")
+        or ""
+    ).strip()
+
+    focal = str(
+        design.get("focal_strategy")
+        or ""
+    ).strip()
+
+    depth = str(
+        design.get("depth_strategy")
+        or ""
+    ).strip()
+
+    perimeter = str(
+        design.get("border_or_perimeter_strategy")
+        or ""
+    ).strip()
+
+    title_safe = str(
+        design.get("title_safe_region_strategy")
+        or ""
+    ).strip()
+
+    programme_safe = str(
+        design.get("programme_safe_region_strategy")
+        or ""
+    ).strip()
+
+    if strategy:
+        parts.append(strategy)
+
+    if focal:
+        parts.append(
+            f"Focal strategy: {focal}"
+        )
+
+    if depth:
+        parts.append(
+            f"Depth strategy: {depth}"
+        )
+
+    if perimeter:
+        parts.append(
+            f"Perimeter strategy: {perimeter}"
+        )
+
+    safe_regions = [
+        value
+        for value in (
+            title_safe,
+            programme_safe,
+        )
+        if value
+    ]
+
+    if safe_regions:
+        parts.append(
+            "Preserve intentional negative space for later typography "
+            "according to "
+            + "; ".join(safe_regions)
+        )
+    else:
+        parts.append(
+            "Preserve intentional negative space for later typography "
+            "where the composition naturally supports it"
+        )
+
+    parts.append(
+        "Use natural visual hierarchy, breathing room and spatial balance "
+        "so later information can remain readable"
     )
 
+    return ". ".join(parts).rstrip(". ") + "."
+
+
+def _design_language(spec: CandidateSpec) -> str:
+    design = spec.visual_design
+    sections = []
+    for key, label in (
+        ("mood", "Mood"),
+        ("visual_style", "Visual style"),
+        ("material_language", "Materials"),
+        ("texture_language", "Texture"),
+        ("lighting_language", "Lighting"),
+        ("abstraction_level", "Abstraction"),
+        ("realism_level", "Realism"),
+        ("energy_level", "Energy"),
+        ("symmetry_preference", "Symmetry"),
+        ("density_preference", "Density"),
+    ):
+        value = str(design.get(key) or "").strip()
+        if value:
+            sections.append(f"{label}: {value}")
+
+    for key, label in (
+        ("symbolic_motifs", "Symbolic motifs"),
+        ("environmental_motifs", "Environmental motifs"),
+    ):
+        values = design.get(key) or []
+        if values:
+            sections.append(f"{label}: {', '.join(str(v) for v in values)}")
+
+    return ". ".join(sections)
 
 def _subject(spec: CandidateSpec) -> str:
     """Put the requested scene ahead of generic direction boilerplate.
@@ -157,16 +255,16 @@ _CORRECTIONS = {
     "PALETTE_OFF": "Correct the requested colour relationship while preserving this design's texture, shading and details.",
     "PRIMARY_MISSING": "Make the requested primary colour dominant across substantial surfaces of this same design.",
     "SECONDARY_MISSING": "Increase the requested secondary colour in several substantial visible regions of this same design.",
-    "GRADIENT": "Render this same design with discrete matte forms and visible boundaries instead of a smooth colour wash.",
-    "FLAT": "Give this same requested scene clearly bounded visual forms; avoid a blank or featureless field.",
-    "RASTER": "Render this same scene with broad clean forms; remove repeated fine lines, scanlines and grid artefacts.",
-    "NOISE": "Render this same scene with clean surfaces and coherent forms; remove grain and noise texture.",
-    "WEAK_OUTER_STRUCTURE": "Increase the requested motifs at the outer edges and lower corners of this same design.",
-    "DENSE_SAFE_REGION": "Move detail from the calm overlay zones to the requested outer-edge and lower-corner motifs.",
-    "PROTECTED_REGION_INTRUSION": "Move all motifs to the allowed edges and corners; leave title and programme areas calm.",
-    "TEMPLATE_DRIFT": "Follow the direction's edge-and-corner placement while retaining its requested motifs.",
-    "WEAK_TEMPLATE_STRUCTURE": "Strengthen the direction's allowed edge and corner decoration.",
-    "WEAK_DECORATIVE_DESIGN": "Add richer requested motifs inside the allowed decorative regions while keeping title and programme areas calm.",
+    "GRADIENT": "Give this scene distinct subject-specific forms, tonal variation and visible depth.",
+    "FLAT": "Give this requested scene recognizable visual forms, texture and depth.",
+    "RASTER": "Render this scene with coherent forms and clean, varied edge structure.",
+    "NOISE": "Render this scene with coherent forms and clear material detail.",
+    "WEAK_OUTER_STRUCTURE": "Increase meaningful requested design structure in the areas permitted by this direction without filling its reserved typography space.",
+    "DENSE_SAFE_REGION": "Relocate detail away from the reserved typography regions while preserving this direction's own composition strategy.",
+    "PROTECTED_REGION_INTRUSION": "Relocate motifs away from reserved typography regions according to this direction's safe-region strategy.",
+    "TEMPLATE_DRIFT": "Restore the direction's requested composition and subject-specific visual structure.",
+    "WEAK_TEMPLATE_STRUCTURE": "Strengthen the direction's requested composition using subject-specific forms.",
+    "WEAK_DECORATIVE_DESIGN": "Add richer subject-specific visual structure where this direction permits it while preserving usable negative space.",
     "BOILERPLATE_COMPOSITION": "Develop a materially different composition with richer subject-specific structure, spatial rhythm and depth.",
     "DIRECTION_DUPLICATE": "Choose a different arrangement, focal treatment and depth strategy while retaining the brief's anchors.",
     "RUNTIME": "Render this same design with fewer, larger forms to reduce generation complexity.",
@@ -188,7 +286,7 @@ def _positive_prompt(
         f"Theme treatment: {treatment}." if treatment else "",
         identity,
         f"Brief anchors: {', '.join(spec.visual_design['visual_anchors'])}.",
-        f"Mood and style: {spec.visual_design['mood']}; {spec.visual_design['visual_style']}.",
+        f"Design language: {_design_language(spec)}." if _design_language(spec) else "",
         f"Palette: {palette}.",
         f"Composition: {composition}",
     )
@@ -224,14 +322,14 @@ def _encoder_fields(
             f"Correction: {correction}" if correction else "",
         )
         return (
-            _join_sections("Front-facing graphic background filling a flat page with matte forms.", *common),
-            _join_sections("Front-facing graphic background artwork on a flat page, with matte forms.", *common),
+            _join_sections("A4 portrait event-background artwork faithful to the requested visual subject and direction.", *common),
+            _join_sections("A4 portrait background artwork with the requested composition and intentional typography-safe negative space.", *common),
         )
     common = (f"Visual subject: {subject}.", direction)
     return (
-        _join_sections("Front-facing graphic background illustration on a flat page.", *common, colour),
+        _join_sections("A4 portrait event-background artwork faithful to the requested visual subject and direction.", *common, colour),
         _join_sections(
-            "Front-facing graphic background on a flat page, varied forms and an open centre.",
+            "A4 portrait background artwork with varied subject-specific forms and intentional negative space.",
             *common, identity, colour,
             f"Theme treatment: {treatment}." if treatment else "",
             f"Correction: {correction}" if correction else "",
@@ -287,6 +385,7 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         f"Background inspiration: {subject}.",
         f"Theme: {spec.theme}." if spec.theme in spec.visual_design["visual_anchors"] else "",
         f"Visual anchors: {', '.join(spec.visual_design['visual_anchors'])}.",
+        f"Design language: {_design_language(spec)}." if _design_language(spec) else "",
         f"Theme treatment: {treatment}." if treatment else "",
         identity,
         f"Palette: {palette}.",

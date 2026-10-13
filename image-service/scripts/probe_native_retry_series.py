@@ -20,9 +20,9 @@ from app.config.settings import settings
 from app.services.atomic import write_json
 from app.services.candidate_spec import build_candidate_spec
 from app.services.comfyui_client import ComfyUIClient, ComfyUIError
-from app.services.prompt_compiler import compile_candidate_prompt, failure_category, retry_stage
-from app.services.image_execution import _initial_engine_prompts, _strengthen_prompts
+from app.services.prompt_compiler import compile_candidate_prompt
 from app.services.prompt_repository import load_prompts_document
+from app.services.job_persistence import validate_reference_number
 from app.services.sampling_profiles import select_sampling_profile, summarize_failures
 
 from probe_native_candidate import (
@@ -40,6 +40,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--source-reference", required=True)
     parser.add_argument("--engine", required=True, choices=(settings.engine_1_id, settings.engine_2_id, settings.engine_3_id))
     parser.add_argument("--direction", required=True, choices=("A", "B", "C"))
+    parser.add_argument("--working-reference", default=None,
+                        help="Reuse one fresh probe reference across A/B/C and all engines for a case.")
     parser.add_argument("--attempts", type=int, default=9, choices=range(1, 10))
     parser.add_argument("--seed", type=int, default=None,
                         help="Optional starting seed; each retry increments it by one.")
@@ -54,19 +56,30 @@ async def main() -> None:
         raise ValueError("Seed series must fit the supported signed 63-bit range")
 
     document = load_prompts_document(args.source_reference)
-    reference = _new_reference()
+    reference = args.working_reference or _new_reference()
+    if reference == args.source_reference:
+        raise ValueError("Probe reference must differ from the source reference")
+    reference = validate_reference_number(reference)
     directory = settings.programme_data_path / reference
-    directory.mkdir(parents=True, exist_ok=False)
-    document["reference_number"] = reference
-    write_json(directory / "prompts.json", document)
-    write_json(directory / "brief.json", document["brief"])
-    write_json(directory / "probe-source.json", {
-        "source_reference": args.source_reference,
-        "engine": args.engine,
-        "direction": args.direction,
-        "attempts_requested": args.attempts,
-        "starting_seed": args.seed,
-    })
+    if directory.exists():
+        marker = directory / "probe-source.json"
+        if not args.working_reference or not marker.is_file():
+            raise ValueError("Existing reference is not a reusable probe directory")
+        if json.loads(marker.read_text(encoding="utf-8")).get("source_reference") != args.source_reference:
+            raise ValueError("Probe reference belongs to another source brief")
+        document = load_prompts_document(reference)
+    else:
+        directory.mkdir(parents=True, exist_ok=False)
+        document["reference_number"] = reference
+        write_json(directory / "prompts.json", document)
+        write_json(directory / "brief.json", document["brief"])
+        write_json(directory / "probe-source.json", {
+            "source_reference": args.source_reference,
+            "engine": args.engine,
+            "direction": args.direction,
+            "attempts_requested": args.attempts,
+            "starting_seed": args.seed,
+        })
 
     spec = build_candidate_spec(document, args.engine, args.direction)
     print(f"NEW_REFERENCE={reference}", flush=True)
@@ -77,25 +90,9 @@ async def main() -> None:
         await client.health()
         for attempt in range(1, args.attempts + 1):
             previous = _load_record(reference, args.engine, args.direction)
-            if args.engine == settings.engine_1_id:
-                if attempt == 1:
-                    positive, negative = _initial_engine_prompts(
-                        args.engine, spec.original_positive_prompt, spec.original_negative_prompt,
-                        spec.primary_colour, spec.secondary_colour,
-                    )
-                else:
-                    positive, negative = _strengthen_prompts(
-                        spec.original_positive_prompt, spec.original_negative_prompt,
-                        previous_reason, spec.primary_colour, spec.secondary_colour,
-                        attempt - 1, args.engine,
-                    )
-                compiled = None
-                category = failure_category(previous_reason) if attempt > 1 else "INITIAL"
-                stage = retry_stage(attempt)
-            else:
-                compiled = compile_candidate_prompt(spec, attempt, previous_reason)
-                positive, negative = compiled.positive, compiled.negative
-                category, stage = compiled.failure_category, compiled.retry_stage
+            compiled = compile_candidate_prompt(spec, attempt, previous_reason)
+            positive, negative = compiled.positive, compiled.negative
+            category, stage = compiled.failure_category, compiled.retry_stage
             profile = select_sampling_profile(
                 args.engine, attempt, summarize_failures(previous)
             )
@@ -137,6 +134,7 @@ async def main() -> None:
             summary["attempt"] = attempt
             conditioning = record.get("template_conditioning") or {}
             summary.update({
+                "GENERATION_MODE": record.get("generation_mode"),
                 "TEMPLATE_CONDITIONING_ENABLED": conditioning.get("enabled", False),
                 "TEMPLATE_PATH": conditioning.get("template_path"),
                 "CONDITIONING_SHA256": conditioning.get("conditioning_sha256"),

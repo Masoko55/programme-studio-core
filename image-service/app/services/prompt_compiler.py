@@ -225,8 +225,8 @@ def _subject(spec: CandidateSpec) -> str:
     that scene early, so use its explicit creation sentence as the subject.
     The complete original direction remains in the positive prompt/spec.
     """
-    if spec.background_inspiration:
-        return spec.background_inspiration
+    if spec.visual_design.get("primary_visual_subject"):
+        return spec.visual_design["primary_visual_subject"]
     sentences = re.split(r"(?<=[.!?])\s+", spec.creative_description)
     for sentence in sentences:
         if re.match(r"\s*(?:create|draw|depict|illustrate|render|feature)\b", sentence, re.I):
@@ -265,8 +265,8 @@ _CORRECTIONS = {
     "TEMPLATE_DRIFT": "Restore the direction's requested composition and subject-specific visual structure.",
     "WEAK_TEMPLATE_STRUCTURE": "Strengthen the direction's requested composition using subject-specific forms.",
     "WEAK_DECORATIVE_DESIGN": "Add richer subject-specific visual structure where this direction permits it while preserving usable negative space.",
-    "BOILERPLATE_COMPOSITION": "Develop a materially different composition with richer subject-specific structure, spatial rhythm and depth.",
-    "DIRECTION_DUPLICATE": "Choose a different arrangement, focal treatment and depth strategy while retaining the brief's anchors.",
+    "BOILERPLATE_COMPOSITION": "Redistribute visual mass, move the focal structure, vary scale and depth, and integrate breathing room asymmetrically while retaining the requested subject and motifs.",
+    "DIRECTION_DUPLICATE": "Change arrangement, focal position, spatial hierarchy, perspective, depth and motif placement while retaining the requested subject, anchors and palette.",
     "RUNTIME": "Render this same design with fewer, larger forms to reduce generation complexity.",
     "UNKNOWN": "Correct the previous failure while retaining this exact requested scene, direction and palette.",
 }
@@ -290,7 +290,7 @@ def _positive_prompt(
         f"Palette: {palette}.",
         f"Composition: {composition}",
     )
-    safety = "Background artwork only; no people, characters, costumes, masked figures, readable text or logos."
+    safety = "Background artwork with a clear visual subject and intentional breathing room."
     if spec.engine_id == "sdxl-1-0":
         return _join_sections(
             f"Background inspiration: {subject}." if subject != motif else "",
@@ -315,17 +315,20 @@ def _encoder_fields(
 ) -> tuple[str, str]:
     direction = f"Direction: {encoder_motif}." if motif != subject else ""
     colour = f"Requested palette: {_palette(spec)}."
+    anchors = spec.visual_design["visual_anchors"]
+    anchor_text = f"Visual anchors: {', '.join(anchors)}." if anchors else ""
+    motifs = [*spec.visual_design["symbolic_motifs"], *spec.visual_design["environmental_motifs"]]
+    motif_text = f"Motifs: {', '.join(motifs)}." if motifs else ""
     if spec.engine_id == "sdxl-1-0":
         common = (
-            f"Visual subject: {subject}.", direction, colour,
-            "No lettering or logos.",
+            f"Visual subject: {subject}.", anchor_text, motif_text, direction, colour,
             f"Correction: {correction}" if correction else "",
         )
         return (
             _join_sections("A4 portrait event-background artwork faithful to the requested visual subject and direction.", *common),
             _join_sections("A4 portrait background artwork with the requested composition and intentional typography-safe negative space.", *common),
         )
-    common = (f"Visual subject: {subject}.", direction)
+    common = (f"Visual subject: {subject}.", anchor_text, motif_text, direction)
     return (
         _join_sections("A4 portrait event-background artwork faithful to the requested visual subject and direction.", *common, colour),
         _join_sections(
@@ -391,7 +394,6 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         f"Palette: {palette}.",
         f"Composition: {composition}",
         f"Correction: {correction}" if correction else "",
-        "No people, characters, costumes, masked figures, readable text or logos.",
     ) if section)
     return CompiledPrompt(
         positive=positive,

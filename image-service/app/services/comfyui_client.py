@@ -53,7 +53,7 @@ from app.services.template_conditioning import (
     persisted_conditioning_spec, verify_conditioning_artifacts,
 )
 from app.services.template_adherence import assess_template_adherence
-from app.services.composition_diversity import boilerplate_score, compare_directions
+from app.services.composition_diversity import boilerplate_metrics, boilerplate_score, compare_directions
 
 
 logger = logging.getLogger(
@@ -269,11 +269,7 @@ def _engine_positive_prompt(
         # engine-specific subject and palette must therefore come first. The
         # general background wrapper is useful for other engines but consumed
         # the whole SD3.5 encoder budget before the actual creative direction.
-        return (
-            positive_prompt.rstrip(". ")
-            + ". Background artwork only; no people, characters, readable "
-            "text, logos, watermarks, scanlines or raster artefacts."
-        )
+        return positive_prompt.rstrip(". ") + ". Background artwork with the requested visual subject."
 
     return build_engine_prompt(
         positive_prompt,
@@ -302,7 +298,6 @@ def _transport_prompts(
             ) if value
         )
     if engine_id == settings.engine_1_id:
-        positive += " Keep title and programme areas blank and free of any writing or signage."
         negative += ", words, letters, numbers, typography, signage, invitation text, labels, captions, calligraphy, writing"
     return positive, negative
 
@@ -920,8 +915,7 @@ def _workflow_encoder_prompts(engine_id: str, positive_prompt: str, compiled_pro
     )
     clip_g = (
         compiled_prompt.clip_g if compiled_prompt and compiled_prompt.clip_g
-        else "portrait event background, edge-weighted composition, open title "
-             "and programme zones, large matte graphic forms, requested palette"
+        else _compact_prompt(positive_prompt, 220)
     )
     t5 = (
         compiled_prompt.t5 if compiled_prompt and compiled_prompt.t5
@@ -1260,15 +1254,17 @@ def validate_background(
             )
         )
 
-        collapse_score = boilerplate_score(image)
+        problems: list[tuple[str, str]] = []
+        collapse_metrics = boilerplate_metrics(image)
+        collapse_score = collapse_metrics["boilerplate_score"]
         if collapse_score >= 0.40:
-            raise ValueError(f"BOILERPLATE_COMPOSITION: flat rectangular coverage {collapse_score:.2f}")
-        quality_result = (
-            validate_visual_quality(
-                image
-            )
-        )
-        quality_result["boilerplate_score"] = collapse_score
+            problems.append(("BOILERPLATE_COMPOSITION", f"BOILERPLATE_COMPOSITION: composition collapse {collapse_score:.2f}"))
+        try:
+            quality_result = validate_visual_quality(image)
+        except ValueError as error:
+            problems.append((classify_failure(str(error)), str(error)))
+            quality_result = {}
+        quality_result.update(collapse_metrics)
 
         palette_result = {
             "palette_checked": False,
@@ -1288,8 +1284,8 @@ def validate_background(
                 )
             )
 
-            palette_result = (
-                validate_palette(
+            try:
+                palette_result = validate_palette(
                     image,
                     brief.get(
                         "primary_colour"
@@ -1299,32 +1295,41 @@ def validate_background(
                     ),
                     palette=brief.get("palette"),
                     relationship=brief.get("palette_relationship"),
+                    quality_result={},
                 )
-            )
+            except ValueError as error:
+                problems.append((classify_failure(str(error)), str(error)))
+                palette_result.update(getattr(error, "palette_metrics", {}))
 
     if (width, height) not in _valid_background_dimensions():
-        raise ValueError(
-            "Unexpected background dimensions: "
-            f"{width}x{height}."
-        )
+        problems.append(("DIMENSIONS", f"Unexpected background dimensions: {width}x{height}."))
 
     if tokens:
-        raise ValueError(
-            "Generated background contains OCR text: "
-            + ", ".join(
-                tokens[:8]
-            )
-        )
+        problems.append(("TEXT", "Generated background contains OCR text: " + ", ".join(tokens[:8])))
 
     if (
         human_signals[
             "detected"
         ]
     ):
-        raise ValueError(
-            "Generated background appears to contain "
-            "a human figure or face."
-        )
+        problems.append(("HUMAN", "Generated background appears to contain a human figure or face."))
+
+    metrics = {
+        "boilerplate_score": collapse_score,
+        "ocr_tokens": tokens,
+        "human_detection": human_signals,
+        **quality_result,
+        **palette_result,
+    }
+    if problems:
+        priority = {"HUMAN": 0, "TEXT": 1, "BOILERPLATE_COMPOSITION": 2,
+                    "DIRECTION_DUPLICATE": 3, "FLAT": 4, "DENSE_SAFE_REGION": 5,
+                    "WEAK_OUTER_STRUCTURE": 6, "PALETTE_OFF": 7}
+        category, message = min(problems, key=lambda item: priority.get(item[0], 8))
+        error = ValueError(message)
+        error.diagnostics = {**metrics, "primary_failure_category": category,
+                             "all_failure_categories": [item[0] for item in problems]}
+        raise error
 
     return {
         "output_path": (
@@ -1369,6 +1374,9 @@ def validate_background(
         ),
         **quality_result,
         **palette_result,
+        "ocr_tokens": tokens,
+        "human_detection": human_signals,
+        "all_failure_categories": [],
     }
 
 
@@ -1956,6 +1964,13 @@ class ComfyUIClient:
         raw_palette_error = None
         conditioning = record.get("template_conditioning") or {}
         adherence = None
+        peer_paths = [
+            image_path.with_name(f"image-{letter}.png")
+            for letter in "abc" if letter != direction_id.lower()
+        ]
+        peers = [path for path in peer_paths if path.is_file()]
+        similarity = compare_directions(candidate_path, peers)
+        record["direction_similarity_score"] = similarity
         if conditioning.get("enabled"):
             try:
                 spec = persisted_conditioning_spec(conditioning)
@@ -1983,13 +1998,6 @@ class ComfyUIClient:
                     reference_number=reference_number,
                 )
                 validation = raw_validation
-                peer_paths = [
-                    image_path.with_name(f"image-{letter}.png")
-                    for letter in "abc" if letter != direction_id.lower()
-                ]
-                peers = [path for path in peer_paths if path.is_file()]
-                similarity = compare_directions(candidate_path, peers)
-                record["direction_similarity_score"] = similarity
                 if similarity >= 0.88:
                     raise ValueError(f"DIRECTION_DUPLICATE: structural similarity {similarity:.2f}")
 
@@ -1999,6 +2007,13 @@ class ComfyUIClient:
                         error
                     )
                 )
+                diagnostics = getattr(error, "diagnostics", None)
+                if diagnostics:
+                    record.update(diagnostics)
+                if similarity >= 0.88 and "DIRECTION_DUPLICATE" not in record.get("all_failure_categories", []):
+                    record["all_failure_categories"] = [*record.get("all_failure_categories", []), "DIRECTION_DUPLICATE"]
+                    if record.get("primary_failure_category") not in {"HUMAN", "TEXT", "BOILERPLATE_COMPOSITION"}:
+                        error = ValueError(f"DIRECTION_DUPLICATE: structural similarity {similarity:.2f}")
 
                 # ====================================================
                 # Engine-specific deterministic palette-only recovery
@@ -2137,6 +2152,8 @@ class ComfyUIClient:
                             )
                         ),
                         outcome_category=classify_failure(str(error)),
+                        primary_failure_category=record.get("primary_failure_category", classify_failure(str(error))),
+                        all_failure_categories=record.get("all_failure_categories", [classify_failure(str(error))]),
                         error=None,
                         remote_image=(
                             descriptor
@@ -2730,6 +2747,7 @@ class ComfyUIClient:
             "GENERATION_MODE": "native_text_to_image",
             "TEMPLATE_CONDITIONING_ENABLED": False,
             "MASKED_DENOISING_ENABLED": False,
+            "TEMPLATE_PATH": None,
             "template_conditioning": {"enabled": False, "masked_denoising_enabled": False},
         }
         record.update(_record_prompt_metadata(

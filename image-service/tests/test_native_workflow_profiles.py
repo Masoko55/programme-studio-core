@@ -169,7 +169,7 @@ class NativeWorkflowProfileTests(unittest.TestCase):
                 self.assertEqual(workflow["16"]["inputs"]["t5xxl"], compiled.t5)
                 self.assertEqual(workflow["40"]["inputs"]["t5xxl"], compiled.negative)
 
-    def test_sd35_keeps_its_subject_before_safety_suffix(self):
+    def test_sd35_keeps_its_subject_without_negative_concepts_in_positive(self):
         prompt = _engine_positive_prompt(
             settings.engine_3_id,
             "Comic city skyline with red web geometry on royal blue",
@@ -178,7 +178,7 @@ class NativeWorkflowProfileTests(unittest.TestCase):
         )
 
         self.assertTrue(prompt.startswith("Comic city skyline"))
-        self.assertIn("no people", prompt)
+        self.assertNotIn("no people", prompt)
         self.assertNotIn("STRICT COLOUR PALETTE CONTRACT", prompt)
 
     def test_persisted_candidate_cannot_exceed_nine_attempts(self):

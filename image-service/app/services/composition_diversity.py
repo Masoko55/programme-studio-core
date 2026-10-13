@@ -84,6 +84,22 @@ def boilerplate_metrics(image: Image.Image) -> dict[str, float]:
     ))
 
     flat_coverage = float(np.mean(flat))
+    height, width = edges.shape
+    centre = edges[height // 4:3 * height // 4, width // 4:3 * width // 4]
+    perimeter = edges.copy()
+    perimeter[height // 4:3 * height // 4, width // 4:3 * width // 4] = False
+    centre_activity = float(np.mean(centre))
+    perimeter_activity = float(np.count_nonzero(perimeter) / max(1, perimeter.size - centre.size))
+    centre_flat = float(np.mean(flat[height // 4:3 * height // 4, width // 4:3 * width // 4]))
+    left = cv2.resize(edges[:, :width // 3].astype(np.float32), (4, 8), interpolation=cv2.INTER_AREA)
+    right = cv2.resize(np.fliplr(edges[:, -width // 3:]).astype(np.float32), (4, 8), interpolation=cv2.INTER_AREA)
+    symmetry = float(1.0 - np.mean(np.abs(left - right)) / max(0.04, float(np.mean(left + right))))
+    symmetry = float(np.clip(symmetry, 0.0, 1.0))
+    # An irregular decorative frame has a quiet centre too, but lacks the
+    # rectangular connected component detected above. Require perimeter
+    # activity and bilateral similarity so ordinary breathing room survives.
+    frame_score = min(1.0, max(0.0, (perimeter_activity - centre_activity) * 5.0))
+    frame_score *= centre_flat * max(0.0, (symmetry - 0.70) / 0.30)
     multi_slab_score = min(
         1.0,
         rectangular_coverage * 0.78
@@ -91,7 +107,7 @@ def boilerplate_metrics(image: Image.Image) -> dict[str, float]:
         + min(large_rectangle_count, 3) * 0.035,
     )
 
-    score = float(max(largest_rectangle, multi_slab_score))
+    score = float(max(largest_rectangle, multi_slab_score, frame_score))
     return {
         "boilerplate_score": score,
         "largest_flat_rectangle_ratio": float(largest_rectangle),
@@ -99,6 +115,11 @@ def boilerplate_metrics(image: Image.Image) -> dict[str, float]:
         "flat_coverage_ratio": flat_coverage,
         "long_axis_separator_ratio": long_axis_ratio,
         "large_flat_rectangle_count": float(large_rectangle_count),
+        "centre_edge_density": centre_activity,
+        "perimeter_edge_density": perimeter_activity,
+        "centre_flat_ratio": centre_flat,
+        "bilateral_symmetry": symmetry,
+        "irregular_frame_score": frame_score,
     }
 
 

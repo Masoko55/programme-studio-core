@@ -80,6 +80,7 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
             and not visual_sentence and not field(brief, "theme_reference_treatment") else "",
     ) if value]
     visual_design = {
+        "primary_visual_subject": field(brief, "background_inspiration") or visual_sentence or field(brief, "theme_reference_treatment") or field(brief, "theme"),
         "event_context": field(brief, "event_context") or field(brief, "event_type"),
         "audience_context": field(brief, "audience_context"),
         "mood": field(brief, "mood"),

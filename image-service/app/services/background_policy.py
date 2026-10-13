@@ -2074,6 +2074,19 @@ def _classify_palette_pixel(
     if chromatic is not None:
         return chromatic, chromatic
 
+    # A pale tint or a shaded pigment may be closer in RGB to a named neutral
+    # than to its source pigment. Hue is still informative above very low
+    # saturation; classify that relationship before the finite colour table.
+    if saturation >= 12:
+        candidates = [
+            (_hue_distance(hue, target["hue"]), target["name"])
+            for target in requested_targets
+            if _hue_distance(hue, target["hue"]) <= min(10, _target_hue_limit(target["name"], target["rgb"]))
+        ]
+        if candidates:
+            _, family = min(candidates)
+            return family, family
+
     nearest = _nearest_named_colour(pixel_rgb)
     family = _nearest_requested_family(nearest, pixel_rgb, requested_targets)
     if family is not None:
@@ -2211,12 +2224,10 @@ def validate_palette(
     *,
     palette: list[dict] | None = None,
     relationship: str | None = None,
+    quality_result: dict | None = None,
 ) -> dict:
-    quality_result = (
-        validate_visual_quality(
-            image
-        )
-    )
+    if quality_result is None:
+        quality_result = validate_visual_quality(image)
 
     primary_descriptor = (
         colour_descriptor(
@@ -2457,6 +2468,7 @@ def validate_palette(
     ] = {}
 
     off_palette_count = 0
+    incidental_neutral_count = 0
 
     off_palette_named_counts: dict[
         str,
@@ -2469,16 +2481,23 @@ def validate_palette(
             requested_neutrals, requested_targets,
         )
         if family is None:
+            if int(saturation) <= 40:
+                incidental_neutral_count += 1
             off_palette_count += 1
             off_palette_named_counts[tonal_name] = off_palette_named_counts.get(tonal_name, 0) + 1
             continue
         requested_counts[family] = requested_counts.get(family, 0) + 1
         accepted_tonal_counts[tonal_name] = accepted_tonal_counts.get(tonal_name, 0) + 1
 
-    off_palette_ratio = (
-        off_palette_count
-        / total
-    )
+    exclusive_palette = bool(re.search(
+        r"\b(?:only (?:these |the )?colou?rs|no third colou?r|strictly monochrome|exclusive palette)\b",
+        relationship or "", re.I,
+    ))
+    # A bounded amount of near-neutral shadow or reflection is rendering,
+    # not a newly chosen design colour. Explicit exclusive palettes do not
+    # receive this allowance; chromatic third colours never receive it.
+    tolerated_neutral_count = 0 if exclusive_palette else min(incidental_neutral_count, int(total * 0.08))
+    off_palette_ratio = (off_palette_count - tolerated_neutral_count) / total
 
     breakdown = {
         name: (
@@ -2549,13 +2568,20 @@ def validate_palette(
             or "unclassified"
         )
 
-        raise ValueError(
+        error = ValueError(
             "Generated background contains colours "
             "that were not requested "
             f"(off-palette ratio "
             f"{off_palette_ratio:.2f}; "
             f"strongest matches: {details})."
         )
+        error.palette_metrics = {
+            "off_palette_ratio": off_palette_ratio,
+            "requested_colour_family_counts": requested_counts,
+            "accepted_tonal_breakdown": tonal_breakdown,
+            "unrequested_colour_breakdown": breakdown,
+        }
+        raise error
 
     primary_ratio, secondary_ratio = (None, None)
     if not palette or "dominant" in (relationship or "").casefold():
@@ -2575,8 +2601,9 @@ def validate_palette(
         "palette_checked": True,
 
         "palette_mode": (
-            "strict-requested-colour-families"
+            "strict-requested-colour-families" if exclusive_palette else "dominant-requested-colour-families"
         ),
+        "incidental_neutral_ratio": incidental_neutral_count / total,
 
         "palette_match_ratio": (
             palette_match_ratio
@@ -2919,7 +2946,11 @@ def detect_human_signals(
     centered_lower_body = _centered_lower_upper_body(
         upper_bodies, image_width, image_height,
     )
-    strong_upper_body_signal = len(upper_bodies) >= 2 or centered_lower_body
+    # The upper-body cascade often matches flowers, curtains and ornament.
+    # A lone central hit is diagnostic evidence, not confirmation of a human.
+    strong_upper_body_signal = len(upper_bodies) >= 2 or (
+        centered_lower_body and bool(people or faces or profiles)
+    )
 
     detected = bool(
         people

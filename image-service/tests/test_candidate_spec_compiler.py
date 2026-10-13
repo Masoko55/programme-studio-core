@@ -277,7 +277,7 @@ class CandidateSpecCompilerTests(unittest.TestCase):
             if engine == "sdxl-1-0":
                 self.assertIn("event-background artwork", compiled.clip_l.lower())
                 self.assertIn("intentional typography-safe negative space", compiled.clip_g.lower())
-                self.assertIn("No lettering or logos", compiled.clip_g)
+                self.assertNotIn("No lettering or logos", compiled.clip_g)
                 self.assertIn("poster mockup", compiled.negative)
 
     def test_named_character_in_backstory_does_not_become_image_subject(self):

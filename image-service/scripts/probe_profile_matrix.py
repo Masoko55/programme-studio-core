@@ -33,6 +33,7 @@ sys.path.insert(
 from app.config.settings import settings
 from app.services.sampling_profiles import (
     probe_profiles,
+    recommended_probe_profiles,
 )
 
 
@@ -75,12 +76,13 @@ def main() -> None:
             "rather than random noise."
         ),
     )
+    parser.add_argument("--all-profiles", action="store_true",
+                        help="Print every diagnostic profile instead of the small recommended matrix")
 
     args = parser.parse_args()
 
-    profiles = probe_profiles(
-        args.engine
-    )
+    profiles = (probe_profiles(args.engine) if args.all_profiles
+                else recommended_probe_profiles(args.engine))
 
     print(
         "# Controlled profile matrix"

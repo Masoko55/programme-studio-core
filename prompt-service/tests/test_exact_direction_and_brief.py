@@ -20,6 +20,24 @@ def direction(letter, composition, focal, depth, perimeter, title, programme):
 
 
 class ExactDirectionCases(unittest.TestCase):
+    def test_saved_style_three_city_web_plans_need_more_spatial_separation(self):
+        plans = [
+            direction("A", "Angular Cityscape with Web Geometry", "Dynamic Focal Points with Radial Web Focus",
+                      "Layered City Depth with Angular Architecture", "Invisible Perimeter with Radial Web Edges",
+                      "Upper-Right Calm Area", "Lower-Left Calm Area"),
+            direction("B", "Asymmetrical Skyscraper Cluster with Converging Web Lines",
+                      "Off-Center Vertical Cluster with Dynamic Web Focal Point",
+                      "Dramatic Atmospheric Perspective with Radial Web Layering",
+                      "Fractured Perimeter with Web-Inspired Spikes", "Wide Upper Band", "Right-Side Vertical Column"),
+            direction("C", "Central Asymmetrical Tower Cluster with Diagonal Web Patterns",
+                      "Diagonal Web Focal Points with Central Dynamic Cluster",
+                      "Graduated Depth with Radial Web Layering and Angular Architecture",
+                      "Dynamic Perimeter with Web-Inspired Diagonal Lines", "Top Left Quiet Area", "Bottom-Right Quiet Area"),
+        ]
+        for item in plans[1:]:
+            with self.assertRaisesRegex(ValueError, "repeats"):
+                validate_direction_diversity(item, [plans[0]])
+
     def test_paraphrased_central_tower_web_plan_is_duplicate(self):
         plans = [
             direction("A", "radial web around central skyline", "slightly off-centre central skyscraper",

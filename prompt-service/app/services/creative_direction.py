@@ -938,8 +938,12 @@ def build_creative_direction_prompt(
         ),
         (
             "The new direction must differ structurally from prior directions in at "
-            "least composition, focal treatment, depth, perimeter treatment and spatial rhythm."
+            "least three independent spatial decisions: composition family, viewpoint, "
+            "focal band, mass distribution, major flow, depth, perimeter, motif placement "
+            "or quiet-region geometry. Rewording the same arrangement does not count."
         ),
+        ("Name the viewpoint and distribution of major visual masses in the strategy fields; "
+         "use the user's requested subject in every direction, but invent a distinct camera and layout plan."),
         ("Describe the chosen composition, focal point, depth, perimeter treatment and separate calm title/programme areas in their strategy fields."),
         ("Use the prior direction concepts to choose a materially different arrangement, not just a new palette."),
         (

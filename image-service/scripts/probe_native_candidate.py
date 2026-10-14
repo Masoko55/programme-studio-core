@@ -230,6 +230,7 @@ class ProbeValidationCapture:
             str
             | None
         ) = None
+        self.full_validation: dict[str, Any] | None = None
 
         self.rejected_image_preserved = (
             False
@@ -265,6 +266,9 @@ class ProbeValidationCapture:
                 error
             )
         )
+        diagnostics = getattr(error, "diagnostics", None)
+        if isinstance(diagnostics, dict):
+            self.full_validation = diagnostics.get("validation")
 
         self.rejected_image_path.parent.mkdir(
             parents=True,
@@ -338,11 +342,13 @@ def _capture_probe_validation(
             )
             is False
         ):
-            return original_validate(
+            result = original_validate(
                 path,
                 *args,
                 **kwargs,
             )
+            capture.full_validation = result.get("validation") if isinstance(result, dict) else None
+            return result
 
         #
         # Probe-only raw QA pass.
@@ -519,6 +525,7 @@ def _persist_probe_diagnostics(
     ] = (
         capture.full_validation_error
     )
+    record["full_validation"] = capture.full_validation or record.get("validation")
 
     record[
         "rejected_image_path"
@@ -559,6 +566,7 @@ def _persist_probe_diagnostics(
                 in {
                     "output_path",
                     "palette_checked",
+                    "validation",
                 }
             ):
                 continue
@@ -636,6 +644,20 @@ def _diagnostic_summary(
         "sampling_profile": (
             profile
         ),
+        "selection_reason": record.get("selection_reason"),
+        "failure_history": record.get("failure_history"),
+        "renderer_recovery_type": record.get("renderer_recovery_type"),
+        "compiled_conditioning": record.get("compiled_prompt"),
+        "probe_raw_validation": record.get("probe_raw_validation"),
+        "full_validation": record.get("full_validation"),
+        "probe_full_validation_error": record.get("probe_full_validation_error"),
+        "raw_non_palette_decision": (raw.get("validation") or {}).get("decision"),
+        "full_decision": (record.get("full_validation") or {}).get("decision"),
+        "full_failure_category": (record.get("full_validation") or {}).get("failure_category") or record.get("outcome_category"),
+        "palette_recovery": record.get("palette_recovery"),
+        "subject_adherence": record.get("subject_adherence"),
+        "direction_similarity_diagnostics": record.get("direction_similarity_diagnostics"),
+        "output_path": record.get("output_path"),
         "retry_stage": (
             record.get(
                 "retry_stage"

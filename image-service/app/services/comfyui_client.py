@@ -46,14 +46,15 @@ from app.services.job_persistence import (
 from app.services.prompt_repository import (
     load_prompts_document,
 )
-from app.services.sampling_profiles import SamplingProfile, select_sampling_profile, summarize_failures
+from app.services.sampling_profiles import SamplingProfile, select_sampling_profile, summarize_failures, profile_selection_diagnostics
 from app.services.prompt_compiler import failure_category as classify_failure
 from app.services.candidate_spec import build_candidate_spec
 from app.services.template_conditioning import (
     persisted_conditioning_spec, verify_conditioning_artifacts,
 )
 from app.services.template_adherence import assess_template_adherence
-from app.services.composition_diversity import boilerplate_metrics, boilerplate_score, compare_directions
+from app.services.composition_diversity import boilerplate_metrics, boilerplate_score, compare_directions_metrics
+from app.services.subject_adherence import assess_subject_adherence
 
 
 logger = logging.getLogger(
@@ -207,6 +208,7 @@ def _palette_only_recovery(
     primary_colour: str | None,
     secondary_colour: str | None,
     visual_design: dict | None = None,
+    recovery_diagnostics: dict | None = None,
 ) -> tuple[dict, dict]:
     """Recolour only a raw candidate that passes every non-palette gate."""
     structural = validate_background(source, reference_number=reference_number, enforce_palette=False,
@@ -217,12 +219,30 @@ def _palette_only_recovery(
     try:
         final = validate_background(target, reference_number=reference_number,
                                     visual_design=visual_design)
-        if _edge_geometry_similarity(source, target) < 0.60:
+        geometry = _edge_geometry_similarity(source, target)
+        detail = _preserves_structural_detail(structural, final)
+        if recovery_diagnostics is not None:
+            recovery_diagnostics.update(
+                normalized_off_palette_ratio=final.get("off_palette_ratio"),
+                edge_geometry_similarity=geometry,
+                structural_detail_preserved=detail,
+            )
+        if geometry < 0.60:
             raise ValueError("Palette normalization changed structural edge locations too much.")
-        if not _preserves_structural_detail(structural, final):
+        if not detail:
             raise ValueError("Palette normalization erased too much structural detail.")
+        if visual_design:
+            subject = assess_subject_adherence(target, visual_design)
+            if recovery_diagnostics is not None:
+                recovery_diagnostics["normalized_subject_adherence"] = subject
+            if subject["decision"] == "SUBJECT_DRIFT":
+                raise ValueError("Palette normalization changed the requested visual subject.")
         return structural, final
-    except Exception:
+    except Exception as error:
+        if recovery_diagnostics is not None:
+            diagnostics = getattr(error, "diagnostics", None)
+            if isinstance(diagnostics, dict):
+                recovery_diagnostics["normalized_off_palette_ratio"] = diagnostics.get("off_palette_ratio")
         target.unlink(missing_ok=True)
         raise
 
@@ -1960,6 +1980,11 @@ class ComfyUIClient:
         normalized_path = image_path.with_suffix(".normalized.part.png")
         palette_normalized = False
         raw_palette_error = None
+        recovery = {"eligible": False, "attempted": False,
+                    "source_off_palette_ratio": None, "result": "not_attempted",
+                    "failure_reason": None, "normalized_off_palette_ratio": None,
+                    "edge_geometry_similarity": None, "structural_detail_preserved": None}
+        record["palette_recovery"] = recovery
         conditioning = record.get("template_conditioning") or {}
         adherence = None
         peer_paths = [
@@ -1967,9 +1992,11 @@ class ComfyUIClient:
             for letter in "abc" if letter != direction_id.lower()
         ]
         peers = [path for path in peer_paths if path.is_file()]
-        similarity = compare_directions(candidate_path, peers)
+        similarity_metrics = compare_directions_metrics(candidate_path, peers)
+        similarity = similarity_metrics["similarity"]
         record["direction_similarity_score"] = similarity
         record["direction_similarity"] = similarity
+        record["direction_similarity_diagnostics"] = similarity_metrics
         if conditioning.get("enabled"):
             try:
                 spec = persisted_conditioning_spec(conditioning)
@@ -1998,6 +2025,16 @@ class ComfyUIClient:
                     visual_design=visual_design,
                 )
                 validation = raw_validation
+                if visual_design:
+                    adherence_result = assess_subject_adherence(candidate_path, visual_design)
+                    record["subject_adherence"] = adherence_result
+                    if adherence_result["decision"] == "SUBJECT_DRIFT":
+                        record["primary_failure_category"] = "SUBJECT_DRIFT"
+                        record["all_failure_categories"] = ["SUBJECT_DRIFT"]
+                        record["validation"] = {**record.get("validation", {}),
+                                                "decision": "rejected", "failure_category": "SUBJECT_DRIFT",
+                                                "subject_adherence": adherence_result}
+                        raise ValueError("SUBJECT_DRIFT: " + adherence_result["reason"])
                 if similarity >= 0.88:
                     raise ValueError(f"DIRECTION_DUPLICATE: structural similarity {similarity:.2f}")
 
@@ -2010,9 +2047,10 @@ class ComfyUIClient:
                 diagnostics = getattr(error, "diagnostics", None)
                 if diagnostics:
                     record.update(diagnostics)
+                    recovery["source_off_palette_ratio"] = diagnostics.get("off_palette_ratio")
                 if similarity >= 0.88 and "DIRECTION_DUPLICATE" not in record.get("all_failure_categories", []):
                     record["all_failure_categories"] = [*record.get("all_failure_categories", []), "DIRECTION_DUPLICATE"]
-                    if record.get("primary_failure_category") not in {"HUMAN", "TEXT", "BOILERPLATE_COMPOSITION"}:
+                    if record.get("primary_failure_category") not in {"HUMAN", "TEXT", "BOILERPLATE_COMPOSITION", "SUBJECT_DRIFT"}:
                         error = ValueError(f"DIRECTION_DUPLICATE: structural similarity {similarity:.2f}")
 
                 # ====================================================
@@ -2025,8 +2063,8 @@ class ComfyUIClient:
                 #   off-palette drift;
                 # - a requested primary colour exists;
                 # - the engine is SDXL or SD3.5;
-                # - SDXL has reached its existing minimum attempt
-                #   threshold;
+                # - SDXL is eligible from the first attempt when the
+                #   measured drift is bounded;
                 # - SD3.5 is within its tighter 0.15 recovery ceiling.
                 #
                 # _palette_only_recovery() first executes complete
@@ -2049,14 +2087,9 @@ class ComfyUIClient:
                     }
                 )
 
-                sdxl_recovery_ready = bool(
-                    engine_id
-                    == settings.engine_2_id
-                    and record[
-                        "attempt_count"
-                    ]
-                    >= 3
-                )
+                # Controlled one-shot probes and production candidates use the
+                # same bounded recovery path from their first attempt.
+                sdxl_recovery_ready = engine_id == settings.engine_2_id
 
                 sd35_recovery_ready = bool(
                     engine_id
@@ -2076,10 +2109,16 @@ class ComfyUIClient:
                     and primary_colour
                     and len((load_prompts_document(reference_number).get("brief") or {}).get("palette") or []) <= 2
                 )
+                recovery["eligible"] = palette_recovery_ready
+                if not palette_recovery_ready:
+                    recovery["failure_reason"] = (
+                        "Palette-only recovery conditions were not met"
+                    )
 
                 if (
                     palette_recovery_ready
                 ):
+                    recovery["attempted"] = True
                     try:
                         (
                             raw_validation,
@@ -2092,11 +2131,18 @@ class ComfyUIClient:
                                 primary_colour,
                                 secondary_colour,
                                 visual_design,
+                                recovery,
                             )
                         )
 
                         palette_normalized = (
                             True
+                        )
+                        recovery.update(
+                            result="accepted",
+                            normalized_off_palette_ratio=validation.get("off_palette_ratio"),
+                            edge_geometry_similarity=_edge_geometry_similarity(candidate_path, normalized_path),
+                            structural_detail_preserved=_preserves_structural_detail(raw_validation, validation),
                         )
 
                         logger.info(
@@ -2116,6 +2162,7 @@ class ComfyUIClient:
                         )
 
                     except ValueError as recovery_error:
+                        recovery.update(result="rejected", failure_reason=str(recovery_error)[:240])
                         logger.info(
                             "event=palette_normalization_rejected "
                             "reference=%s "
@@ -2449,6 +2496,8 @@ class ComfyUIClient:
                     "primary_failure_category": previous.get("primary_failure_category"),
                     "all_failure_categories": previous.get("all_failure_categories"),
                     "validation": previous.get("validation"),
+                    "subject_adherence": previous.get("subject_adherence"),
+                    "direction_similarity_diagnostics": previous.get("direction_similarity_diagnostics"),
                     "palette_metrics": previous.get("palette_metrics"),
                     "text_detection": previous.get("text_detection"),
                     "human_detection": previous.get("human_detection"),
@@ -2458,6 +2507,9 @@ class ComfyUIClient:
                     "direction_role": previous.get("direction_role"),
                     "compiled_prompt": previous.get("compiled_prompt"),
                     "sampling_profile": previous.get("sampling_profile"),
+                    "selection_reason": previous.get("selection_reason"),
+                    "failure_history": previous.get("failure_history"),
+                    "renderer_recovery_type": previous.get("renderer_recovery_type"),
                     "outcome_category": previous.get("outcome_category"),
                     "template_conditioning": previous.get("template_conditioning"),
                     "template_adherence": previous.get("template_adherence"),
@@ -2660,10 +2712,11 @@ class ComfyUIClient:
             primary_colour, secondary_colour, compiled_prompt,
         )
 
+        failure_history = summarize_failures(previous)
         selected_profile = sampling_profile or select_sampling_profile(
             engine_id,
             int(previous.get("attempt_count", 0)) + 1 if retrying_candidate else 1,
-            summarize_failures(previous),
+            failure_history,
         )
 
         resume_frozen = bool(previous and previous.get("status") in {"prepared", "submitted"}
@@ -2761,6 +2814,7 @@ class ComfyUIClient:
                 "programme": candidate_spec.visual_design["programme_safe_region_strategy"],
             },
             "sampling_profile": selected_profile.record() if selected_profile else None,
+            **profile_selection_diagnostics(selected_profile, failure_history),
             "generation_mode": "native_text_to_image",
             "GENERATION_MODE": "native_text_to_image",
             "TEMPLATE_CONDITIONING_ENABLED": False,

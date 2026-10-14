@@ -219,6 +219,8 @@ class Settings(
     ollama_base_url: str = (
         "http://192.168.68.115:11434"
     )
+    subject_vision_model: str = ""
+    subject_adherence_threshold: float = Field(default=0.55, ge=0.0, le=1.0)
 
     gpu_lease_timeout_seconds: float = 1800
 

@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import colorsys
 import re
 
 from app.services.candidate_spec import CandidateSpec
+from app.services.background_policy import COLOUR_ALIASES, COLOUR_FAMILIES, NAMED_COLOURS
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +37,8 @@ def failure_category(reason: str) -> str:
         return "INITIAL"
     if "TITLE_PANEL" in reason.upper() or "TEMPLATE_PANEL" in reason.upper():
         return "TITLE_PANEL"
+    if "SUBJECT_DRIFT" in reason.upper():
+        return "SUBJECT_DRIFT"
     for category in ("BOILERPLATE_COMPOSITION", "DIRECTION_DUPLICATE", "PROTECTED_REGION_INTRUSION", "WEAK_TEMPLATE_STRUCTURE", "WEAK_DECORATIVE_DESIGN", "TEMPLATE_DRIFT"):
         if category.casefold() in text:
             return category
@@ -105,15 +109,110 @@ def _palette(spec: CandidateSpec) -> str:
         return "the palette described by the brief"
     relationship = design["palette_relationship"] or "respect the requested colour roles"
     mode = design["palette_mode"]
-    if mode == "strict":
-        policy = "only requested colour families, apart from microscopic anti-aliasing tolerance"
-    elif mode in {"monochrome", "achromatic"} or set(colours) == {"black", "white"}:
+    if mode in {"monochrome", "achromatic"} or set(colours) == {"black", "white"}:
         policy = "strictly achromatic black, white and grey tonal variation; no chromatic colour"
+    elif mode == "strict":
+        policy = "only requested colour families, apart from microscopic anti-aliasing tolerance"
     else:
         policy = ("requested colours control the chromatic design; bounded black, charcoal, grey and white "
                   "rendering detail supports linework, shadows, reflections and highlights; "
                   "no meaningful third chromatic design colour")
     return f"{', '.join(colours)}; {mode} palette; {relationship}; {policy}"
+
+
+def _encoder_palette(spec: CandidateSpec) -> str:
+    design = spec.visual_design
+    colours = ", ".join(str(item["colour"]) for item in design["requested_palette"])
+    mode = design["palette_mode"]
+    if mode in {"monochrome", "achromatic"} or set(colours.split(", ")) == {"black", "white"}:
+        policy = "strictly achromatic"
+    elif mode == "strict":
+        policy = "only requested colours"
+    else:
+        policy = "requested chromatic colours dominate; neutral shading subordinate"
+    return f"Requested palette: {colours}; {policy}. {_chromatic_boundaries(spec)}".strip()
+
+
+def _chromatic_boundaries(spec: CandidateSpec) -> str:
+    """Name nearby unrequested hues using the validator's colour metadata."""
+    requested = [COLOUR_ALIASES.get(str(item["colour"]).casefold(), str(item["colour"]).casefold())
+                 for item in spec.visual_design["requested_palette"]]
+    allowed = set().union(*(COLOUR_FAMILIES.get(name, {name}) for name in requested))
+    clauses = []
+    for name in requested:
+        rgb = NAMED_COLOURS.get(name)
+        if not rgb:
+            continue
+        hue, saturation, _ = colorsys.rgb_to_hsv(*(channel / 255 for channel in rgb))
+        if saturation < .18:
+            continue
+        alternatives = []
+        for other, other_rgb in NAMED_COLOURS.items():
+            if other in allowed or other in {"black", "white", "grey", "silver", "charcoal"}:
+                continue
+            other_hue, other_saturation, _ = colorsys.rgb_to_hsv(*(channel / 255 for channel in other_rgb))
+            distance = min(abs(hue - other_hue), 1 - abs(hue - other_hue))
+            if other_saturation >= .25 and distance <= .16:
+                alternatives.append((distance, other))
+        alternatives.sort()
+        if alternatives:
+            names = [item for _, item in alternatives[:6]]
+            clauses.append(f"Keep {name} distinctly {name}, avoiding {', '.join(names)} drift")
+    return "; ".join(clauses) + ("." if clauses else "")
+
+
+def _atmosphere(spec: CandidateSpec) -> str:
+    design = spec.visual_design
+    source = " ".join(str(part or "") for part in (design.get("mood"), spec.creative_description,
+                                                     design.get("event_context"), spec.event_type))
+    words = re.findall(r"\b(?:joyful|playful|energetic|high-energy|refined|formal|luxurious|restrained|dignified|calm|polished|professional|organic|warm|elegant|celebratory|festive)\b", source, re.I)
+    mood = ", ".join(dict.fromkeys(word.casefold() for word in words))
+    if not mood:
+        event = (spec.event_type + " " + spec.theme).casefold()
+        if any(word in event for word in ("child", "kid", "school")):
+            mood = "playful, joyful, energetic"
+        elif any(word in event for word in ("black tie", "black-tie", "gala")):
+            mood = "refined, formal, luxurious"
+        elif "memorial" in event:
+            mood = "restrained, dignified, calm"
+        elif "corporate" in event or "conference" in event:
+            mood = "polished, professional"
+        elif "botanical" in event or "garden" in event:
+            mood = "organic, warm, elegant"
+    audience = str(design.get("audience_context") or "")
+    child_safe = any(word in (spec.event_type + " " + audience).casefold() for word in ("child", "kid", "age 7", "age 8", "age 9", "age 10"))
+    if child_safe:
+        mood = (mood + ", playful child-friendly" if mood else "playful child-friendly")
+    if not mood:
+        mood = "event-appropriate"
+    event_label = str(design.get("event_context") or spec.event_type).casefold()
+    if "birthday" in event_label:
+        purpose = "birthday celebration"
+    elif "conference" in event_label or "corporate" in event_label:
+        purpose = "professional gathering"
+    elif "memorial" in event_label:
+        purpose = "remembrance gathering"
+    elif any(word in event_label for word in ("wedding", "bridal", "shower", "gala", "awards")):
+        purpose = "celebration gathering"
+    else:
+        purpose = "event gathering" if event_label else ""
+    context = f"Visual purpose: {purpose}; " if purpose else ""
+    return f"{context}Event atmosphere: {mood}; no people or characters."
+
+
+def _motif_structure(spec: CandidateSpec) -> str:
+    motifs = [*spec.visual_design["symbolic_motifs"], *spec.visual_design["environmental_motifs"]]
+    treatment = spec.theme_reference_treatment
+    source = " ".join([treatment, *motifs]).casefold()
+    clues = []
+    for key, detail in (("web", "connected radial strands with curved cross-links and web-like network topology"),
+                        ("botanic", "leaves, stems and organic branching"),
+                        ("floral", "petals and branching stems"),
+                        ("fabric", "folds, drape and flowing surfaces"),
+                        ("technolog", "panels, circuitry and luminous grids")):
+        if key in source:
+            clues.append(detail)
+    return f"Motif structure: {', '.join(clues)}." if clues else ""
 
 
 def _composition(spec: CandidateSpec) -> str:
@@ -264,6 +363,7 @@ _CORRECTIONS = {
     "HUMAN": "Remove people, faces, silhouettes and humanoid shapes from this same background scene.",
     "TEXT": "Remove readable text and pseudo-text. This is background artwork, not a poster or invitation. Render no glyphs, characters, alphabetic marks, numeric marks, signage or pseudo-typography. Leave the intended typography areas visually empty.",
     "TITLE_PANEL": "Integrate the calm area into the scene itself. Remove separate panels, cards, banners, bordered boxes and blank sheets.",
+    "SUBJECT_DRIFT": "Depict the requested visual environment with recognizable subject-specific forms and the supplied visual anchors. Retain this direction's composition and palette.",
     "PALETTE_OFF": "Correct the requested colour relationship while preserving this design's texture, shading and details.",
     "PRIMARY_MISSING": "Make the requested primary colour dominant across substantial surfaces of this same design.",
     "SECONDARY_MISSING": "Increase the requested secondary colour in several substantial visible regions of this same design.",
@@ -288,9 +388,13 @@ def _join_sections(*sections: str) -> str:
     return " ".join(section for section in sections if section)
 
 
+def _first_words(value: str, limit: int) -> str:
+    return " ".join(str(value or "").split()[:limit]).rstrip(". ;")
+
+
 def _background_only(text: str, spec: CandidateSpec) -> str:
     """Keep planning labels out of image-model conditioning."""
-    exclusions = [spec.event_type, spec.direction_role,
+    exclusions = [spec.direction_role,
                   "Architectural Master", "Comic Book Cityscape Illustrator",
                   "Creative Direction for A4 Portrait Event Background",
                   *spec.visual_design.get("render_exclusion_text", [])]
@@ -300,6 +404,7 @@ def _background_only(text: str, spec: CandidateSpec) -> str:
             text = re.sub(r"\b" + re.escape(phrase) + r"\b", "", text, flags=re.I)
     text = re.sub(r"\bDirection\s+[ABC]\b\s*:?", "", text, flags=re.I)
     text = re.sub(r"\bvisual character\b", "", text, flags=re.I)
+    text = re.sub(r"\bfor (?:later )?(?:title|programme|program|typography)\b", "", text, flags=re.I)
     text = re.sub(
         r"\b(?:clear|blank|white|empty|bordered|rectangular)?\s*"
         r"(?:title|programme|poster|text)?\s*"
@@ -350,7 +455,7 @@ def _encoder_fields(
 ) -> tuple[str, str]:
     direction_detail = treatment or encoder_motif
     direction = f"Visual motif: {direction_detail}." if direction_detail else ""
-    colour = f"Requested palette: {_palette(spec)}."
+    colour = _encoder_palette(spec)
     anchors = spec.visual_design["visual_anchors"]
     distinct_anchors = [item for item in anchors if item.casefold() != subject.casefold()]
     anchor_text = f"Visual anchors: {', '.join(distinct_anchors)}." if distinct_anchors else ""
@@ -371,26 +476,32 @@ def _encoder_fields(
     )
     short_correction = " ".join(correction.split()[:6]) if correction else ""
     if spec.engine_id == "sdxl-1-0":
-        common = (
-            f"Visual subject: {subject}.", anchor_text, motif_text, direction,
-            structure, material, colour,
-            f"Correction: {short_correction}" if short_correction else "",
-        )
+        subject_line = f"Visual subject: {subject}."
+        structure_line = _join_sections(
+            f"Composition: {_first_words(design['composition_strategy'], 12)}.",
+            f"Focal: {_first_words(design['focal_strategy'], 10)}.",
+            f"Depth: {_first_words(design['depth_strategy'], 9)}.")
+        global_line = _join_sections(
+            f"Style: {_first_words(design.get('visual_style'), 8)}." if design.get('visual_style') else "",
+            f"Motifs: {_first_words(', '.join(motifs) or direction_detail, 12)}.")
         return (
-            _join_sections("Background artwork.", *common),
-            _join_sections("Background artwork.", *common),
+            _join_sections("Background artwork.", subject_line, direction, structure_line, colour,
+                           f"Correction: {short_correction}" if short_correction else ""),
+            _join_sections("Background artwork.", subject_line, direction, structure_line, global_line,
+                           f"Quiet areas: {design['title_safe_region_strategy']}; {design['programme_safe_region_strategy']}.", colour,
+                           f"Correction: {short_correction}" if short_correction else ""),
         )
     if spec.engine_id == "sd-3-5-medium":
         style = str(design.get("visual_style") or "").strip()
         clip_l = _join_sections("Background artwork.", f"Visual subject: {subject}.",
-                                f"Style: {style}." if style else "")
+                                f"Anchors: {_first_words(', '.join(anchors), 14)}." if anchors else "")
         clip_g = _join_sections(
-            "Text-free decorative background; no typography or glyphs.",
-            f"Visual subject: {subject}.", direction,
-            f"Composition: {design['composition_strategy']}.",
-            f"Focal: {design['focal_strategy']}.",
-            f"Depth: {design['depth_strategy']}.",
-            f"Perimeter: {design['border_or_perimeter_strategy']}.",
+            "Background artwork.", f"Visual subject: {subject}.", direction,
+            f"Style: {_first_words(style, 8)}." if style else "",
+            _atmosphere(spec),
+            f"Composition: {_first_words(design['composition_strategy'], 10)}.",
+            f"Focal: {_first_words(design['focal_strategy'], 8)}.",
+            f"Depth: {_first_words(design['depth_strategy'], 8)}.",
             colour,
             f"Correction: {short_correction}" if short_correction else "",
         )
@@ -423,6 +534,17 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     palette = _palette(spec)
     composition = _composition(spec)
     correction = _CORRECTIONS.get(category, "")
+    if category == "DIRECTION_DUPLICATE":
+        recovery = (
+            "Emphasize this direction's stated focal location and perimeter rhythm."
+            if attempt <= 3 else
+            "Separate the largest visual masses and negative-space geometry more clearly from prior candidates."
+            if attempt <= 6 else
+            "Use a distinct viewpoint and focal band within this direction's spatial intent; keep its subject and palette."
+            if attempt <= 8 else
+            "Make the strongest valid change in viewpoint, visual mass and motif placement while preserving this direction's identity."
+        )
+        correction = f"{correction} {recovery}"
     if category in {"DIRECTION_DUPLICATE", "FLAT", "WEAK_OUTER_STRUCTURE"}:
         design = spec.visual_design
         correction += (
@@ -456,13 +578,17 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     # often repeats the inspiration and palette several times. Repeating it
     # in T5 can cross SD3.5 Medium's 256-token training context.
     t5 = " ".join(section for section in (
-        f"Background inspiration: {subject}.",
-        f"Composition: {composition}",
-        "Decorative background artwork with no typography or glyph-like marks.",
+        f"Visual subject and environment: {subject}.",
         f"Visual anchors: {', '.join(spec.visual_design['visual_anchors'])}.",
+        _atmosphere(spec),
+        f"Composition and spatial depth: {composition}",
+        _motif_structure(spec),
+        f"Environmental motifs: {', '.join(spec.visual_design['environmental_motifs'])}." if spec.visual_design['environmental_motifs'] else "",
+        f"Symbolic motifs: {', '.join(spec.visual_design['symbolic_motifs'])}." if spec.visual_design['symbolic_motifs'] else "",
+        f"Palette: {palette}.",
+        "Decorative background artwork with no typography or glyph-like marks.",
         f"Design language: {_design_language(spec)}." if _design_language(spec) else "",
         f"Theme treatment: {treatment}." if treatment else "",
-        f"Palette: {palette}.",
         f"Correction: {correction}" if correction else "",
     ) if section)
     return CompiledPrompt(

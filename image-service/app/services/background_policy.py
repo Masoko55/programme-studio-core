@@ -63,6 +63,7 @@ NAMED_COLOURS = {
 
 
 COLOUR_ALIASES = {
+    "emerald": "green",
     "gray": "grey",
     "light gray": "grey",
     "light grey": "grey",

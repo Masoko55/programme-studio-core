@@ -627,6 +627,20 @@ def direction_signature(direction: CreativeDirectionOutput) -> dict[str, str]:
                                      (r"horizontal", "horizontal"),
                                      (r"vertical", "vertical"),
                                      (r"curv|wave", "curved"))),
+        "mass_distribution": choose(composition + " " + focal,
+                                    ((r"dense left|left mass|left-heavy", "left-heavy"),
+                                     (r"dense right|right mass|right-heavy", "right-heavy"),
+                                     (r"central|centre|center|middle axis", "central"),
+                                     (r"panoramic|distributed|wide", "distributed"),
+                                     (r"asymmetr|off.centr", "asymmetric"))),
+        "quiet_region_pair": (
+            choose(direction.title_safe_region_strategy.casefold(),
+                   ((r"upper|top", "upper"), (r"lower|bottom", "lower"),
+                    (r"left", "left"), (r"right", "right"))) + "/" +
+            choose(direction.programme_safe_region_strategy.casefold(),
+                   ((r"lower|bottom", "lower"), (r"upper|top", "upper"),
+                    (r"left", "left"), (r"right", "right")))
+        ),
     }
 
 
@@ -641,6 +655,18 @@ def validate_direction_diversity(
         comparable = [key for key, value in current_signature.items()
                       if value != "unspecified" and earlier_signature[key] != "unspecified"]
         repeated = sum(current_signature[key] == earlier_signature[key] for key in comparable)
+        specified_current = sum(value != "unspecified" for value in current_signature.values())
+        specified_earlier = sum(value != "unspecified" for value in earlier_signature.values())
+        material_changes = sum(
+            current_signature[key] != earlier_signature[key]
+            for key in comparable
+        )
+        if specified_current >= 5 and specified_earlier >= 5 and len(comparable) >= 4 and material_changes < 3:
+            raise ValueError(
+                f"Direction {direction.direction_id} repeats {earlier.direction_id}'s "
+                "spatial plan; change at least three of viewpoint, focal band, mass, "
+                "flow, depth, perimeter and quiet-region geometry."
+            )
         if len(comparable) >= 5 and repeated >= 5 and repeated / len(comparable) >= 0.72:
             raise ValueError(
                 f"Direction {direction.direction_id} repeats {earlier.direction_id}'s "

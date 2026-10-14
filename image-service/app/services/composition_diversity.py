@@ -175,6 +175,14 @@ def _cosine_similarity(first: np.ndarray, second: np.ndarray) -> float:
 
 def direction_similarity(first: Image.Image, second: Image.Image) -> float:
     """Compare composition even when colours, shading or small details differ."""
+    return direction_similarity_metrics(first, second)["similarity"]
+
+
+def direction_similarity_metrics(first: Image.Image, second: Image.Image) -> dict[str, float]:
+    """Require coarse visual mass as well as matching fine structure.
+
+    Shared linework and motifs alone cannot establish an identical layout.
+    """
     _, first_edges = _structure(first)
     _, second_edges = _structure(second)
 
@@ -204,14 +212,34 @@ def direction_similarity(first: Image.Image, second: Image.Image) -> float:
     )
 
     broad_structure = 0.65 * soft_similarity + 0.35 * regional_similarity
-    return float(max(edge_iou, broad_structure))
+    edge_similarity = float(max(edge_iou, broad_structure))
+
+    def mass(image: Image.Image) -> np.ndarray:
+        gray = np.asarray(image.convert("L").resize((64, 88)), dtype=np.uint8)
+        broad = cv2.GaussianBlur(gray, (0, 0), 3.2)
+        return broad < np.percentile(broad, 42)
+
+    first_mass, second_mass = mass(first), mass(second)
+    mass_union = np.count_nonzero(first_mass | second_mass)
+    mass_iou = (float(np.count_nonzero(first_mass & second_mass) / mass_union)
+                if mass_union else 0.0)
+    similarity = float(min(edge_similarity, mass_iou + 0.16))
+    return {"similarity": similarity, "edge_similarity": edge_similarity,
+            "coarse_mass_iou": mass_iou, "fine_edge_iou": edge_iou,
+            "regional_edge_similarity": regional_similarity}
 
 
 def compare_directions(candidate: Path, peers: list[Path]) -> float:
+    return compare_directions_metrics(candidate, peers)["similarity"]
+
+
+def compare_directions_metrics(candidate: Path, peers: list[Path]) -> dict:
     with Image.open(candidate) as image:
         candidate_image = image.convert("RGB")
         scores = []
         for path in peers:
             with Image.open(path) as peer:
-                scores.append(direction_similarity(candidate_image, peer.convert("RGB")))
-        return max(scores, default=0.0)
+                scores.append({"peer": str(path), **direction_similarity_metrics(candidate_image, peer.convert("RGB"))})
+        best = max(scores, key=lambda item: item["similarity"], default=None)
+        return {"similarity": best["similarity"] if best else 0.0,
+                "closest_peer": best, "peer_comparisons": scores}

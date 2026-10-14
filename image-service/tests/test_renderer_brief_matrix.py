@@ -111,13 +111,36 @@ class RendererBriefMatrixTests(unittest.TestCase):
         compiled = compile_candidate_prompt(build_candidate_spec(city, "sd-3-5-medium", "A"), 1)
         self.assertIn("joyful", compiled.clip_g)
         self.assertIn("child-friendly", compiled.t5)
-        self.assertIn("curved cross-links", compiled.t5)
+        self.assertIn("cross-link arcs", compiled.t5)
         garden = fixture(201, "garden celebration", "botanical garden", "green", "cream",
                          "dominant", "none", "asymmetric")
         other = compile_candidate_prompt(build_candidate_spec(garden, "sd-3-5-medium", "A"), 1)
         self.assertNotIn("web-like", other.t5)
         self.assertNotIn("city", other.t5)
         self.assertNotIn("child-friendly", other.t5)
+
+    def test_case_specific_tone_and_motif_exclusions(self):
+        cases = (
+            ("children birthday", "joyful playful city", "web network", "dystopian", "cross-link arcs"),
+            ("black-tie gala", "refined ballroom", "draped fabric", "childish", "folds"),
+            ("memorial service", "dignified remembrance", "stone forms", "neon party", None),
+            ("corporate conference", "professional technology hall", "circuit panels", "whimsical", "circuitry"),
+        )
+        for index, (event, description, motif, excluded, topology) in enumerate(cases):
+            with self.subTest(event=event):
+                document = fixture(index + 300, event, description, "navy", "white", "dominant", "none", "asymmetric")
+                document["brief"]["creative_description"] = description
+                document["brief"]["symbolic_motifs"] = [motif]
+                prompt = compile_candidate_prompt(build_candidate_spec(document, "sd-3-5-medium", "A"), 1)
+                self.assertIn(excluded, prompt.negative)
+                if topology:
+                    self.assertIn(topology, prompt.t5)
+                if event != "children birthday":
+                    self.assertNotIn("child-friendly", prompt.t5)
+                if event == "memorial service":
+                    self.assertNotIn("celebratory atmosphere", prompt.t5)
+                if event == "corporate conference":
+                    self.assertNotIn("web-like", prompt.t5)
 
     def test_twelve_seeded_randomized_briefs(self):
         rng = random.Random(RANDOM_SEED)

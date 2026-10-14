@@ -497,7 +497,7 @@ def recommended_probe_profiles(engine_id: str) -> tuple[SamplingProfile, ...]:
     if engine_id == settings.engine_2_id:
         names = ("baseline", "composition_variability")
     elif engine_id == settings.engine_3_id:
-        names = ("alternate_sampler", "lower_guidance_trial", "subject_rescue_trial",
+        names = ("alternate_sampler", "subject_rescue_trial",
                  "structural_rescue_trial")
     else:
         raise ValueError(f"No native profile matrix for {engine_id}")

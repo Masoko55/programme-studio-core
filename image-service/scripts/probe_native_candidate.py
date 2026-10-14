@@ -342,13 +342,11 @@ def _capture_probe_validation(
             )
             is False
         ):
-            result = original_validate(
+            return original_validate(
                 path,
                 *args,
                 **kwargs,
             )
-            capture.full_validation = result.get("validation") if isinstance(result, dict) else None
-            return result
 
         #
         # Probe-only raw QA pass.
@@ -398,11 +396,13 @@ def _capture_probe_validation(
         # Nothing about its thresholds or behavior is changed.
         #
         try:
-            return original_validate(
+            result = original_validate(
                 path,
                 *args,
                 **kwargs,
             )
+            capture.full_validation = result.get("validation") if isinstance(result, dict) else None
+            return result
 
         except ValueError as validation_error:
             #
@@ -483,6 +483,20 @@ def _load_record(
         return {}
 
 
+def _final_validation(record: dict, captured: dict | None) -> dict:
+    """Represent the final candidate outcome, including failed recovery."""
+    result = dict(captured or record.get("validation") or {})
+    if record.get("status") == "rejected":
+        result["decision"] = "rejected"
+        result["failure_category"] = (
+            record.get("primary_failure_category") or record.get("outcome_category")
+            or result.get("failure_category")
+        )
+    recovery = record.get("palette_recovery") or {}
+    result["recovery_attempted"] = bool(recovery.get("attempted"))
+    return result
+
+
 def _persist_probe_diagnostics(
     *,
     reference: str,
@@ -525,7 +539,7 @@ def _persist_probe_diagnostics(
     ] = (
         capture.full_validation_error
     )
-    record["full_validation"] = capture.full_validation or record.get("validation")
+    record["full_validation"] = _final_validation(record, capture.full_validation)
 
     record[
         "rejected_image_path"

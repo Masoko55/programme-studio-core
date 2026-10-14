@@ -205,14 +205,42 @@ def _motif_structure(spec: CandidateSpec) -> str:
     treatment = spec.theme_reference_treatment
     source = " ".join([treatment, *motifs]).casefold()
     clues = []
-    for key, detail in (("web", "connected radial strands with curved cross-links and web-like network topology"),
+    for key, detail in (("web", "interconnected strands, cross-link arcs, network cells and curved connecting segments visibly linking radial strands into web-like geometry"),
                         ("botanic", "leaves, stems and organic branching"),
                         ("floral", "petals and branching stems"),
                         ("fabric", "folds, drape and flowing surfaces"),
+                        ("circuit", "panels, circuitry and luminous grids"),
                         ("technolog", "panels, circuitry and luminous grids")):
         if key in source:
             clues.append(detail)
     return f"Motif structure: {', '.join(clues)}." if clues else ""
+
+
+def _scene_tone(spec: CandidateSpec) -> tuple[str, str]:
+    """Translate stated atmosphere into lighting and incompatible treatments."""
+    source = " ".join(str(value or "") for value in (
+        spec.visual_design.get("mood"), spec.creative_description, spec.event_type
+    )).casefold()
+    if any(word in source for word in ("joyful", "playful", "high-energy", "cheerful", "festive")):
+        return ("Uplifting clean graphic energy, vibrant daylight or bright illustrative lighting, friendly celebratory atmosphere.",
+                "ominous, grim, dystopian, horror, post-apocalyptic, burning city, dark noir")
+    if any(word in source for word in ("memorial", "dignified", "restrained")):
+        return ("Gentle, calm and dignified lighting with restrained visual energy.",
+                "neon party, playful, celebratory spectacle")
+    if any(word in source for word in ("formal", "luxurious", "black-tie", "black tie")):
+        return ("Refined controlled lighting and composed formal atmosphere.",
+                "childish, cartoonish, chaotic")
+    if any(word in source for word in ("corporate", "professional", "conference")):
+        return ("Clear polished lighting and professional visual atmosphere.",
+                "whimsical, childish, fantasy-heavy")
+    return "", ""
+
+
+def _motif_avoidances(spec: CandidateSpec) -> str:
+    source = " ".join([spec.theme_reference_treatment,
+                       *spec.visual_design["symbolic_motifs"],
+                       *spec.visual_design["environmental_motifs"]]).casefold()
+    return "explosion, radial sparks, energy burst, disconnected rays, starburst" if "web" in source else ""
 
 
 def _composition(spec: CandidateSpec) -> str:
@@ -499,6 +527,7 @@ def _encoder_fields(
             "Background artwork.", f"Visual subject: {subject}.", direction,
             f"Style: {_first_words(style, 8)}." if style else "",
             _atmosphere(spec),
+            _scene_tone(spec)[0],
             f"Composition: {_first_words(design['composition_strategy'], 10)}.",
             f"Focal: {_first_words(design['focal_strategy'], 8)}.",
             f"Depth: {_first_words(design['depth_strategy'], 8)}.",
@@ -556,20 +585,20 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         spec, subject, motif, treatment, palette,
         composition, correction, attempt,
     )
-    negative = (
-        "people, faces, text, words, letters, numbers, typography, caption, "
-        "title, logo, watermark, signage, glyphs, pseudo-text, poster mockup"
-        if spec.engine_id == "sdxl-1-0" else
-        "people, faces, text, letters, glyphs, watermark"
-    )
-    negative += (", no blank title panel, no white card, no bordered text box, "
-                 "no poster frame, no banner, no placard, no signboard, "
-                 "no empty paper rectangle")
+    if spec.engine_id == "sdxl-1-0":
+        negative = ("people, faces, text, words, letters, numbers, typography, caption, "
+                    "title, logo, watermark, signage, glyphs, pseudo-text, poster mockup, "
+                    "no blank title panel, no white card, no bordered text box, "
+                    "no poster frame, no banner, no placard, no signboard, no empty paper rectangle")
+    else:
+        negative = "people, faces, characters, text, glyphs, logos, title panels"
     extra_negative = {
         "RASTER": ", scanlines, raster grid",
         "NOISE": ", grain, noise",
     }
     negative += extra_negative.get(category, "")
+    if spec.engine_id == "sd-3-5-medium":
+        negative += ", " + ", ".join(value for value in (_scene_tone(spec)[1], _motif_avoidances(spec)) if value)
     clip_l, clip_g = _encoder_fields(
         spec, subject, motif, encoder_motif, treatment, correction,
     )
@@ -581,6 +610,7 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         f"Visual subject and environment: {subject}.",
         f"Visual anchors: {', '.join(spec.visual_design['visual_anchors'])}.",
         _atmosphere(spec),
+        _scene_tone(spec)[0],
         f"Composition and spatial depth: {composition}",
         _motif_structure(spec),
         f"Environmental motifs: {', '.join(spec.visual_design['environmental_motifs'])}." if spec.visual_design['environmental_motifs'] else "",

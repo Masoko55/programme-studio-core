@@ -141,6 +141,22 @@ class SubjectAdherenceTests(unittest.TestCase):
                 result = assess_subject_adherence(path, {"primary_visual_subject": "garden"}, model="qwen3-vl:30b")
             self.assertFalse(result["checked"])
 
+    def test_thinking_only_response_remains_unchecked_and_think_is_disabled(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "candidate.png"
+            Image.new("RGB", (16, 16), "white").save(path)
+            response = Mock(status_code=200, headers={"content-type": "application/json"})
+            response.json.return_value = {"response": "", "thinking": "private reasoning " * 1000}
+            response.raise_for_status.return_value = None
+            with patch("app.services.subject_adherence.httpx.post", return_value=response) as send:
+                result = assess_subject_adherence(path, {"primary_visual_subject": "garden"}, model="qwen3-vl:30b")
+            self.assertIs(send.call_args.kwargs["json"]["think"], False)
+            self.assertEqual(result["decision"], "unavailable")
+            self.assertTrue(result["vision_debug"]["thinking_present"])
+            self.assertEqual(result["vision_debug"]["response_length"], 0)
+            self.assertIsNone(result["vision_debug"]["final_source"])
+            self.assertNotIn("private reasoning", str(result))
+
     def assess(self, answer):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "candidate.png"

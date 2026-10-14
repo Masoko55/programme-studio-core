@@ -43,7 +43,8 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
     chosen_model = settings.subject_vision_model if model is None else model
     threshold = settings.subject_adherence_threshold
     base = {"checked": False, "score": None, "threshold": threshold,
-            "subject": subject, "anchors": anchors, "decision": "unavailable", "reason": ""}
+            "subject": subject, "anchors": anchors, "model": chosen_model,
+            "decision": "unavailable", "reason": ""}
     if not chosen_model or not subject:
         return {**base, "reason": "Vision model or requested visual subject is not configured"}
 
@@ -67,7 +68,7 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
             settings.ollama_base_url.rstrip("/") + endpoint,
             json={"model": chosen_model, "prompt": prompt,
                   "images": [base64.b64encode(buffer.getvalue()).decode("ascii")],
-                  "stream": False, "format": "json", "keep_alive": 0}, timeout=90,
+                  "stream": False, "format": "json", "think": False, "keep_alive": 0}, timeout=90,
         )
         debug["http_status"] = response.status_code
         debug["response_content_type"] = response.headers.get("content-type", "")[:80]
@@ -77,6 +78,11 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
         if not isinstance(payload, dict):
             raise ValueError("Ollama response must be an object")
         raw_text = payload.get("response")
+        thinking = payload.get("thinking")
+        debug["thinking_present"] = bool(thinking)
+        debug["thinking_preview_length"] = len(thinking) if isinstance(thinking, str) else 0
+        debug["response_length"] = len(raw_text) if isinstance(raw_text, str) else 0
+        debug["final_source"] = "response" if isinstance(raw_text, str) and raw_text.strip() else None
         if isinstance(raw_text, str):
             debug["raw_text_preview"] = raw_text[:400]
         answer = _model_answer(payload, endpoint)
@@ -93,4 +99,4 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
     decision = "pass" if score >= threshold else "SUBJECT_DRIFT"
     return {**base, "checked": True, "score": score, "decision": decision,
             "reason": str(answer.get("reason") or ""), "observed_evidence": evidence,
-            "model": chosen_model}
+            "model": chosen_model, "vision_debug": debug}

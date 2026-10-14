@@ -4,7 +4,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from PIL import Image
+from PIL import Image, ImageDraw
+import numpy as np
 
 from app.config.settings import settings
 
@@ -12,10 +13,12 @@ from app.services.comfyui_client import (
     MAX_SD35_RECOVERABLE_OFF_PALETTE_RATIO,
     MAX_SDXL_RECOVERABLE_OFF_PALETTE_RATIO,
     _palette_only_recovery,
+    _edge_geometry_similarity,
     _preserves_structural_detail,
     _recoverable_palette_error,
     build_workflow,
 )
+from app.services.background_policy import constrain_to_requested_palette
 
 from app.services.prompt_compiler import (
     retry_stage,
@@ -89,6 +92,29 @@ def failure_record(
 class SamplingRecoveryTests(
     unittest.TestCase
 ):
+    def test_mild_cyan_drift_correction_preserves_architectural_detail(self):
+        image = Image.new("RGB", (480, 640), (42, 72, 180))
+        draw = ImageDraw.Draw(image)
+        for x in range(8, 480, 24):
+            draw.line((x, 0, x, 639), fill=(170, 180, 210), width=2)
+        for y in range(15, 640, 29):
+            draw.line((0, y, 479, y), fill=(21, 31, 70), width=2)
+        draw.rectangle((250, 50, 274, 600), fill=(30, 175, 190))
+        for y in range(55, 600, 14):
+            draw.line((250, y, 274, y), fill=(15, 105, 125), width=2)
+        corrected = constrain_to_requested_palette(image, "royal blue", "red", palette_mode="dominant")
+        before = np.asarray(image)
+        after = np.asarray(corrected)
+        self.assertTrue(np.array_equal(before[100, 50], after[100, 50]))
+        self.assertTrue(np.array_equal(before[100, 240], after[100, 240]))
+        self.assertFalse(np.array_equal(before[100, 260], after[100, 260]))
+        with TemporaryDirectory() as directory:
+            source = Path(directory) / "source.png"
+            target = Path(directory) / "target.png"
+            image.save(source)
+            corrected.save(target)
+            self.assertGreater(_edge_geometry_similarity(source, target), .85)
+
     def test_palette_recovery_preserves_structural_detail(self):
         raw = {"structural_edge_density": 0.22}
         self.assertFalse(_preserves_structural_detail(raw, {"structural_edge_density": 0.15}))

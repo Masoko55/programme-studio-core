@@ -197,8 +197,14 @@ def _preserves_structural_detail(raw: dict, recoloured: dict) -> bool:
     after = float(recoloured.get("structural_edge_density") or 0.0)
     entropy_before = float(raw.get("image_entropy") or 0.0)
     entropy_after = float(recoloured.get("image_entropy") or 0.0)
+    macro_before = float(raw.get("macro_structure_score") or 0.0)
+    macro_after = float(recoloured.get("macro_structure_score") or 0.0)
+    highpass_before = float(raw.get("high_pass_mean") or 0.0)
+    highpass_after = float(recoloured.get("high_pass_mean") or 0.0)
     return (after >= before * 0.90 and
-            entropy_after >= entropy_before * 0.85)
+            entropy_after >= entropy_before * 0.85 and
+            macro_after >= macro_before * 0.90 and
+            highpass_after >= highpass_before * 0.85)
 
 
 def _palette_only_recovery(
@@ -213,8 +219,10 @@ def _palette_only_recovery(
     """Recolour only a raw candidate that passes every non-palette gate."""
     structural = validate_background(source, reference_number=reference_number, enforce_palette=False,
                                      visual_design=visual_design)
+    palette_mode = (visual_design or {}).get("palette_mode", "strict")
     with Image.open(source) as image:
-        recoloured = constrain_to_requested_palette(image, primary_colour, secondary_colour)
+        recoloured = constrain_to_requested_palette(image, primary_colour, secondary_colour,
+                                                    palette_mode=palette_mode)
         recoloured.save(target, format="PNG")
     try:
         final = validate_background(target, reference_number=reference_number,
@@ -226,8 +234,16 @@ def _palette_only_recovery(
                 normalized_off_palette_ratio=final.get("off_palette_ratio"),
                 edge_geometry_similarity=geometry,
                 structural_detail_preserved=detail,
+                structural_edge_density_ratio=(float(final.get("structural_edge_density") or 0) /
+                                               max(float(structural.get("structural_edge_density") or 0), 1e-9)),
+                macro_structure_ratio=(float(final.get("macro_structure_score") or 0) /
+                                       max(float(structural.get("macro_structure_score") or 0), 1e-9)),
+                entropy_ratio=(float(final.get("image_entropy") or 0) /
+                               max(float(structural.get("image_entropy") or 0), 1e-9)),
+                highpass_ratio=(float(final.get("high_pass_mean") or 0) /
+                                max(float(structural.get("high_pass_mean") or 0), 1e-9)),
             )
-        if geometry < 0.60:
+        if geometry < 0.80:
             raise ValueError("Palette normalization changed structural edge locations too much.")
         if not detail:
             raise ValueError("Palette normalization erased too much structural detail.")
@@ -975,9 +991,8 @@ def build_workflow(
 
     # SD3.5 has three encoders with different jobs. CLIP-L receives a short
     # visual label, CLIP-G receives the composition contract, and T5 receives
-    # a compact creative description. Negative conditioning is intentionally
-    # empty for SD3.5: long negative prompts make this model collapse into
-    # flat fields and raster artifacts.
+    # a compact creative description. Legacy calls leave negative conditioning
+    # empty; compiled prompts supply a short, case-specific exclusion contract.
     clip_l_positive, clip_g_positive, sd35_positive, sd35_negative = (
         _workflow_encoder_prompts(engine_id, positive_prompt, compiled_prompt)
     )

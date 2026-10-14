@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from scripts.probe_native_candidate import (
-    ProbeValidationCapture, _capture_probe_validation, _diagnostic_summary,
+    ProbeValidationCapture, _capture_probe_validation, _diagnostic_summary, _final_validation,
 )
 
 
@@ -37,4 +37,13 @@ class ProbeValidationDiagnosticsTests(unittest.TestCase):
             self.assertEqual(summary["full_decision"], "rejected")
             self.assertEqual(summary["full_failure_category"], "PALETTE_OFF")
             self.assertTrue(capture.rejected_image_preserved)
+
+    def test_failed_palette_recovery_overrides_earlier_accepted_diagnostic(self):
+        record = {"status": "rejected", "outcome_category": "PALETTE_OFF",
+                  "palette_recovery": {"attempted": True, "result": "rejected"},
+                  "validation": {"decision": "accepted"}}
+        full = _final_validation(record, {"decision": "accepted"})
+        self.assertEqual(full["decision"], "rejected")
+        self.assertEqual(full["failure_category"], "PALETTE_OFF")
+        self.assertTrue(full["recovery_attempted"])
 

@@ -872,6 +872,7 @@ def constrain_to_requested_palette(
     image: Image.Image,
     primary_colour: str | None,
     secondary_colour: str | None,
+    palette_mode: str = "strict",
 ) -> Image.Image:
     """Constrain artwork to any requested palette while preserving structure.
 
@@ -935,6 +936,19 @@ def constrain_to_requested_palette(
     target_hue = target_hsv[:, 0]
     target_saturation = target_hsv[:, 1]
     target_value = target_hsv[:, 2]
+
+    # A mild recovery must leave already-correct material shading untouched.
+    # Rewriting these pixels with one target hue/saturation destroys fine
+    # contrast even though the requested family was already present.
+    keep_original = np.zeros(source_hue.shape, dtype=bool)
+    for target_h, target_s in zip(target_hue, target_saturation):
+        if target_s < 35:
+            continue
+        distance = np.abs(source_hue - target_h)
+        distance = np.minimum(distance, 180.0 - distance)
+        keep_original |= (distance <= 9.0) & (source_saturation >= 35.0)
+    if palette_mode == "dominant":
+        keep_original |= source_saturation < 25.0
 
     target_names = [
         descriptor["base_name"]
@@ -1300,6 +1314,7 @@ def constrain_to_requested_palette(
         ),
         cv2.COLOR_HSV2RGB,
     )
+    constrained_rgb[keep_original] = source_rgb[keep_original]
 
     return Image.fromarray(
         constrained_rgb,

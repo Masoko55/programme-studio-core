@@ -1,0 +1,65 @@
+"""Build the portable semantic payload before creative directions are rendered."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+
+
+VERSION = "1.0"
+
+
+def contract_hash(contract: dict) -> str:
+    return hashlib.sha256(json.dumps(contract, sort_keys=True, separators=(",", ":"),
+                                     ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def build_semantic_contract(brief: dict) -> dict:
+    semantics = brief.get("visual_semantics") or {}
+    context = brief.get("grill_me_context") or {}
+    inferred_sources = context.get("semantic_provenance") or {}
+    palette = brief.get("palette")
+    if not isinstance(palette, list):
+        palette = [{"colour": str(brief[key]).strip(), "role": role}
+                   for key, role in (("primary_colour", "primary"), ("secondary_colour", "secondary"))
+                   if brief.get(key)]
+    fields = {
+        "primary_visual_subject": brief.get("background_inspiration") or brief.get("theme") or "",
+        "visual_anchors": brief.get("visual_anchors") or ([brief["background_inspiration"]] if brief.get("background_inspiration") else []),
+        "atmosphere_descriptors": semantics.get("atmosphere_descriptors") or [],
+        "audience_descriptors": semantics.get("audience_descriptors") or [],
+        "motif_descriptors": semantics.get("motif_descriptors") or [],
+        "motif_structure_description": semantics.get("motif_structure_description") or "",
+        "lighting_descriptors": semantics.get("lighting_descriptors") or [],
+        "material_descriptors": semantics.get("material_descriptors") or [],
+        "texture_descriptors": semantics.get("texture_descriptors") or [],
+        "incompatible_treatments": semantics.get("incompatible_treatments") or [],
+        "scene_family": semantics.get("scene_family") or "general",
+        "composition_affinities": semantics.get("composition_affinities") or [],
+        "palette": palette,
+        "palette_mode": brief.get("palette_mode") or "dominant",
+        "palette_relationship": brief.get("palette_relationship") or "",
+        "abstraction_level": brief.get("abstraction_level") or "",
+        "realism_level": brief.get("realism_level") or "",
+        "energy_level": brief.get("energy_level") or "",
+        "symmetry_preference": brief.get("symmetry_preference") or "",
+        "density_preference": brief.get("density_preference") or "",
+        "theme_reference_treatment": brief.get("theme_reference_treatment") or "",
+    }
+    sources = {}
+    for key, value in fields.items():
+        if not value:
+            sources[key] = "SAFE_FALLBACK"
+        elif key in inferred_sources:
+            sources[key] = inferred_sources[key]
+        elif key in {"primary_visual_subject", "visual_anchors", "palette", "palette_mode", "palette_relationship", "theme_reference_treatment"}:
+            sources[key] = "USER_EXPLICIT" if brief.get("background_inspiration" if key in {"primary_visual_subject", "visual_anchors"} else key) else "SAFE_FALLBACK"
+        elif key in semantics:
+            sources[key] = "SEMANTIC_INFERENCE"
+        else:
+            sources[key] = "USER_EXPLICIT"
+    confidence = {key: value for key, value in (context.get("semantic_confidence") or {}).items()
+                  if key in fields and sources[key] != "USER_EXPLICIT" and isinstance(value, (float, int))
+                  and not isinstance(value, bool) and 0 <= value <= 1}
+    return {"semantic_contract_version": VERSION, **fields,
+            "semantic_provenance": sources, "semantic_confidence": confidence}

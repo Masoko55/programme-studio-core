@@ -2192,6 +2192,9 @@ def _attempt_prompts(
 def _check_candidate_spec(existing: dict, spec) -> None:
     if existing.get("spec_sha256") and existing["spec_sha256"] != spec.spec_sha256:
         raise ValueError("Candidate specification changed across attempts; use a new reference")
+    if (existing.get("semantic_contract_sha256")
+            and existing["semantic_contract_sha256"] != spec.semantic_contract_sha256):
+        raise ValueError("Semantic contract changed across attempts; use a new reference")
 
 
 async def _attempt_output_wave(

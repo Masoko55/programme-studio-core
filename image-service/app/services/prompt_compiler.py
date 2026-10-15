@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import colorsys
 import re
 
 from app.services.candidate_spec import CandidateSpec
 from app.services.background_policy import COLOUR_ALIASES, COLOUR_FAMILIES, NAMED_COLOURS
+from app.services.engine_capabilities import engine_capabilities
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,6 +24,10 @@ class CompiledPrompt:
     negative_prompt_channel_active: bool = True
     negative_semantics_preserved: bool = True
     incompatible_treatments: tuple[str, ...] = ()
+    semantic_contract_sha256: str = ""
+    conditioning_coverage: dict = field(default_factory=dict)
+    engine_capabilities: dict = field(default_factory=dict)
+    truncated: bool = False
 
     def record(self) -> dict:
         return {
@@ -34,6 +39,16 @@ class CompiledPrompt:
             "negative_prompt_channel_active": self.negative_prompt_channel_active,
             "negative_semantics_preserved": self.negative_semantics_preserved,
             "incompatible_treatments": list(self.incompatible_treatments),
+            "semantic_contract_sha256": self.semantic_contract_sha256,
+            "conditioning_coverage": self.conditioning_coverage,
+            "engine_capabilities": self.engine_capabilities,
+            "prompt_budget": {key: {"characters": len(value or ""),
+                                    "approx_tokens": len((value or "").split()),
+                                    "budget_risk": (len((value or "").split()) > 75 if key in {"clip_l", "clip_g"}
+                                                    else len((value or "").split()) > 256 if key == "t5" else False)}
+                              for key, value in (("positive", self.positive), ("negative", self.negative),
+                                                 ("clip_l", self.clip_l), ("clip_g", self.clip_g), ("t5", self.t5))},
+            "truncated": self.truncated,
         }
 
 
@@ -45,6 +60,9 @@ def failure_category(reason: str) -> str:
         return "TITLE_PANEL"
     if "SUBJECT_DRIFT" in reason.upper():
         return "SUBJECT_DRIFT"
+    for dimension in ("ATMOSPHERE_DRIFT", "MOTIF_DRIFT", "AUDIENCE_DRIFT"):
+        if dimension in reason.upper():
+            return dimension
     if "BRIEF_FIDELITY_DRIFT" in reason.upper():
         return "BRIEF_FIDELITY_DRIFT"
     if "VISION_UNAVAILABLE" in reason.upper():
@@ -177,11 +195,12 @@ def _chromatic_boundaries(spec: CandidateSpec) -> str:
 
 def _atmosphere(spec: CandidateSpec) -> str:
     semantics = spec.visual_design["visual_semantics"]
-    mood = _first_words(", ".join(semantics["atmosphere_descriptors"]), 50) or "event-appropriate"
-    audience = _first_words(", ".join(semantics["audience_descriptors"]), 15)
+    mood = ", ".join(semantics["atmosphere_descriptors"]) or "event-appropriate"
+    audience = ", ".join(semantics["audience_descriptors"])
     return _join_sections(
         f"Event atmosphere: {mood}.",
         f"Audience fit: {audience}." if audience else "",
+        f"Scene family: {semantics['scene_family']}." if semantics["scene_family"] != "general" else "",
         "no people or characters.",
     )
 
@@ -356,6 +375,9 @@ _CORRECTIONS = {
     "TEXT": "Remove readable text and pseudo-text. This is background artwork, not a poster or invitation. Render no glyphs, characters, alphabetic marks, numeric marks, signage or pseudo-typography. Leave the intended typography areas visually empty.",
     "TITLE_PANEL": "Integrate the calm area into the scene itself. Remove separate panels, cards, banners, bordered boxes and blank sheets.",
     "SUBJECT_DRIFT": "Depict the requested visual environment with recognizable subject-specific forms and the supplied visual anchors. Retain this direction's composition and palette.",
+    "ATMOSPHERE_DRIFT": "Strengthen the supplied atmosphere and lighting descriptors while preserving the same subject, motif, audience and palette.",
+    "MOTIF_DRIFT": "Make the supplied motif structure visibly legible while preserving the same subject, atmosphere, audience and palette.",
+    "AUDIENCE_DRIFT": "Strengthen the supplied audience-appropriate visual treatment while preserving the same subject, motif, atmosphere and palette.",
     "PALETTE_OFF": "Correct the requested colour relationship while preserving this design's texture, shading and details.",
     "PRIMARY_MISSING": "Make the requested primary colour dominant across substantial surfaces of this same design.",
     "SECONDARY_MISSING": "Increase the requested secondary colour in several substantial visible regions of this same design.",
@@ -482,11 +504,11 @@ def _encoder_fields(
             f"Motifs: {_first_words(', '.join(motifs) or direction_detail, 12)}.")
         return (
             _join_sections("Background artwork.", subject_line, atmosphere_line,
-                           _first_words(tone_line, 12), _exclude_incompatible(direction, spec),
+                           tone_line, _exclude_incompatible(direction, spec),
                            _exclude_incompatible(structure_line, spec), colour,
                            f"Correction: {short_correction}" if short_correction else ""),
             _join_sections("Background artwork.", subject_line, atmosphere_line,
-                           _first_words(tone_line, 12), _exclude_incompatible(direction, spec),
+                           tone_line, _exclude_incompatible(direction, spec),
                            _exclude_incompatible(structure_line, spec),
                            _exclude_incompatible(global_line, spec), _motif_structure(spec),
                            f"Quiet areas: {design['title_safe_region_strategy']}; {design['programme_safe_region_strategy']}.", colour,
@@ -598,15 +620,41 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         f"Theme treatment: {treatment}." if treatment else "",
         f"Correction: {correction}" if correction else "",
     ) if section)
+    positive = _background_only(_exclude_incompatible(positive, spec), spec)
+    clip_l = _background_only(clip_l, spec)
+    clip_g = _background_only(clip_g, spec)
+    t5 = _background_only(t5, spec) if spec.engine_id == "sd-3-5-medium" else None
+    channels = {"positive": positive, "clip_l": clip_l, "clip_g": clip_g, "t5": t5 or ""}
+    contract = spec.semantic_contract
+    probes = {
+        "subject": contract["primary_visual_subject"],
+        "atmosphere": ", ".join(contract["atmosphere_descriptors"]),
+        "audience": ", ".join(contract["audience_descriptors"]),
+        "motif": contract["motif_structure_description"] or ", ".join(contract["motif_descriptors"]),
+        "palette": ", ".join(str(item["colour"]) for item in contract["palette"]),
+        "scene_family": contract["scene_family"],
+    }
+    coverage = {name: [channel for channel, value in channels.items()
+                       if probe and probe.casefold() in value.casefold()]
+                for name, probe in probes.items()}
+    coverage["incompatible_treatments"] = ["negative"] if spec.engine_id != "flux-2" and contract["incompatible_treatments"] else []
+    effective = ("positive",) if spec.engine_id == "flux-2" else (
+        ("clip_g", "t5") if spec.engine_id == "sd-3-5-medium" else ("clip_g",))
+    truncated = any(probes[key] and not any(channel in coverage[key] for channel in effective)
+                    for key in ("subject", "atmosphere", "audience", "motif", "palette"))
     return CompiledPrompt(
-        positive=_background_only(_exclude_incompatible(positive, spec), spec),
+        positive=positive,
         negative=negative,
-        clip_l=_background_only(clip_l, spec),
-        clip_g=_background_only(clip_g, spec),
-        t5=_background_only(t5, spec) if spec.engine_id == "sd-3-5-medium" else None,
+        clip_l=clip_l,
+        clip_g=clip_g,
+        t5=t5,
         failure_category=category,
         retry_stage=stage,
         spec_sha256=spec.spec_sha256,
-        negative_prompt_channel_active=spec.engine_id != "flux-2",
+        negative_prompt_channel_active=engine_capabilities(spec.engine_id)["negative_prompt_channel"],
         incompatible_treatments=tuple(spec.visual_design["visual_semantics"]["incompatible_treatments"]),
+        semantic_contract_sha256=spec.semantic_contract_sha256,
+        conditioning_coverage=coverage,
+        engine_capabilities=engine_capabilities(spec.engine_id),
+        truncated=truncated,
     )

@@ -25,6 +25,8 @@ class GrillMeBackgroundInspirationTests(unittest.TestCase):
         self.assertEqual(semantics["motif_structure_description"], "irregular nested mineral clusters")
         self.assertEqual(semantics["incompatible_treatments"], ["harsh metallic glare"])
         self.assertEqual(semantics["scene_family"], "abstract")
+        self.assertEqual(context["semantic_provenance"]["atmosphere_descriptors"], "SEMANTIC_INFERENCE")
+        self.assertNotIn("atmosphere_descriptors", context["semantic_confidence"])
 
     def test_generic_brief_gets_one_plain_language_background_question(self):
         context = _safe_context(

@@ -50,7 +50,7 @@ def brief_fidelity_record(result: dict) -> dict:
     return {key: result.get(key) for key in (
         "checked", "subject_score", "atmosphere_score", "motif_score",
         "audience_fit_score", "thresholds", "decision", "reason",
-        "observed_evidence", "model",
+        "observed_evidence", "model", "failure_category", "dimension_availability",
     )}
 
 
@@ -82,7 +82,8 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
             "atmosphere_score": None, "motif_score": None, "audience_fit_score": None,
             "thresholds": required, "observed_evidence": []}
     if not chosen_model or not subject:
-        return {**base, "reason": "Vision model or requested visual subject is not configured"}
+        return {**base, "reason": "Vision model or requested visual subject is not configured",
+                "dimension_availability": {field: "UNAVAILABLE" for field in required}}
 
     with Image.open(path) as source:
         image = source.convert("RGB")
@@ -154,12 +155,20 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
     except (httpx.HTTPError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
         debug["parse_error"] = f"{type(error).__name__}: {str(error)[:160]}"
         return {**base, "reason": f"Vision check unavailable: {type(error).__name__}",
-                "vision_debug": debug}
+                "vision_debug": debug,
+                "dimension_availability": {field: "UNAVAILABLE" for field in required}}
     failed = [field for field, limit in required.items() if scores[field] < limit]
     decision = ("SUBJECT_DRIFT" if "subject_score" in failed else
                 "BRIEF_FIDELITY_DRIFT" if failed else "pass")
+    category_by_field = {"subject_score": "SUBJECT_DRIFT", "atmosphere_score": "ATMOSPHERE_DRIFT",
+                         "motif_score": "MOTIF_DRIFT", "audience_fit_score": "AUDIENCE_DRIFT"}
+    worst = min(failed, key=lambda field: scores[field] / required[field]) if failed else None
     return {**base, "checked": True, "score": scores["subject_score"], **scores,
             "decision": decision,
+            "failure_category": category_by_field[worst] if worst else None,
+            "dimension_availability": {field: ("FAIL" if field in failed else "PASS")
+                                       if scores.get(field) is not None else "UNAVAILABLE"
+                                       for field in required},
             "reason": str(answer.get("reason") or "")[:300],
             "observed_evidence": [str(item)[:120] for item in evidence[:8]],
             "model": chosen_model, "vision_debug": debug}

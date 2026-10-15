@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from app.services.candidate_spec import build_candidate_spec
 from app.services.prompt_compiler import compile_candidate_prompt
 from app.services.subject_adherence import assess_subject_adherence
+from tests.fixtures.holdout_cases import CASES as HOLDOUT_CASES
 
 
 CASES = (
@@ -97,15 +98,20 @@ def _vision_contract(design: dict) -> tuple[dict, str]:
     return result, post.call_args.kwargs["json"]["messages"][0]["content"]
 
 
-def audit_briefs() -> list[dict]:
+def audit_briefs(cases: tuple = (*CASES, *UNKNOWN_CASES)) -> list[dict]:
     findings = []
-    for index, case in enumerate((*CASES, *UNKNOWN_CASES)):
+    for index, case in enumerate(cases):
         event, theme, mood, audience, motif, primary, secondary, incompatible = case
         document = _document(index, case)
         for engine in ENGINES:
-            spec = build_candidate_spec(document, engine, "A")
-            compiled = compile_candidate_prompt(spec, 1)
-            result, vision_prompt = _vision_contract(spec.visual_design)
+            try:
+                spec = build_candidate_spec(document, engine, "A")
+                compiled = compile_candidate_prompt(spec, 1)
+                result, vision_prompt = _vision_contract(spec.visual_design)
+            except (ValueError, KeyError, TypeError) as error:
+                findings.append({"event": event, "engine": engine,
+                                 "missing": ["compile_success"], "error": str(error)[:180]})
+                continue
             active_atmosphere = compiled.positive if engine == "flux-2" else compiled.clip_g
             checks = {
                 "subject": spec.visual_design["primary_visual_subject"] in compiled.positive
@@ -130,44 +136,53 @@ def audit_briefs() -> list[dict]:
     return findings
 
 
+def classify_source(relative: str, source: str) -> list[dict]:
+    """Separate educational examples from named-event production decisions."""
+    tree = ast.parse(source, filename=relative)
+    findings = []
+    condition_nodes = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.If, ast.IfExp)):
+            continue
+        condition_nodes.update(ast.walk(node.test))
+        expression = ast.unparse(node.test)
+        if EVENT_LITERALS.search(expression) or re.search(r"\bevent_type\s*==\s*['\"]", expression):
+            taxonomy = relative.endswith("/grill_me_semantic.py")
+            findings.append({"file": relative, "line": node.lineno,
+                             "literal": expression[:180],
+                             "classification": "GENERIC_TAXONOMY" if taxonomy else "CASE_SPECIFIC_BEHAVIOUR",
+                             "reason": ("Semantic review classification; does not select rendering treatment"
+                                        if taxonomy else "Named event or theme changes production behavior")})
+    if relative.endswith("/grill_me_semantic.py"):
+        for node in ast.walk(tree):
+            if (isinstance(node, ast.Constant) and isinstance(node.value, str)
+                    and node not in condition_nodes and EVENT_LITERALS.search(node.value)):
+                findings.append({"file": relative, "line": node.lineno,
+                                 "literal": EVENT_LITERALS.search(node.value).group(),
+                                 "classification": "EXAMPLE_ONLY",
+                                 "reason": "Instructional or data literal, not a rendering branch"})
+    return findings
+
+
 def audit_branches() -> list[dict]:
     root = Path(__file__).resolve().parents[2]
     findings = []
     for service in ("image-service", "prompt-service"):
         for path in (root / service / "app").rglob("*.py"):
-            source = path.read_text(encoding="utf-8")
-            tree = ast.parse(source, filename=str(path))
-            for node in ast.walk(tree):
-                if not isinstance(node, (ast.If, ast.IfExp)):
-                    continue
-                expression = ast.unparse(node.test)
-                if EVENT_LITERALS.search(expression) or re.search(r"\bevent_type\s*==", expression):
-                    relative = str(path.relative_to(root))
-                    taxonomy = relative.endswith("/grill_me_semantic.py")
-                    findings.append({"file": relative, "line": node.lineno,
-                                     "literal": expression[:180],
-                                     "classification": "GENERIC_TAXONOMY" if taxonomy else "CASE_SPECIFIC_BEHAVIOUR",
-                                     "reason": ("Semantic review classification; does not select rendering treatment"
-                                                if taxonomy else "Named event or theme changes production behavior")})
-            if path.name == "grill_me_semantic.py":
-                for node in ast.walk(tree):
-                    if isinstance(node, ast.Constant) and isinstance(node.value, str) and EVENT_LITERALS.search(node.value):
-                        if not any(isinstance(parent, (ast.If, ast.IfExp)) and node in ast.walk(parent.test) for parent in ast.walk(tree)):
-                            findings.append({"file": str(path.relative_to(root)), "line": node.lineno,
-                                             "literal": EVENT_LITERALS.search(node.value).group(),
-                                             "classification": "EXAMPLE_ONLY",
-                                             "reason": "Instructional or data literal, not a rendering branch"})
+            findings.extend(classify_source(str(path.relative_to(root)), path.read_text(encoding="utf-8")))
     return findings
 
 
 def main() -> int:
-    report = {"briefs": len(CASES), "unknown_briefs": len(UNKNOWN_CASES), "engines": len(ENGINES),
-              "brief_findings": audit_briefs(), "branch_findings": audit_branches()}
+    report = {"briefs": len(CASES), "unknown_briefs": len(UNKNOWN_CASES),
+              "holdout_briefs": len(HOLDOUT_CASES), "engines": len(ENGINES),
+              "brief_findings": audit_briefs(), "holdout_findings": audit_briefs(HOLDOUT_CASES),
+              "branch_findings": audit_branches()}
     bad_branches = [item for item in report["branch_findings"] if item["classification"] == "CASE_SPECIFIC_BEHAVIOUR"]
     report["result"] = ("GENERICITY AUDIT FAIL — CASE-SPECIFIC BEHAVIOUR REMAINS"
-                        if report["brief_findings"] or bad_branches else "GENERICITY AUDIT PASS")
+                        if report["brief_findings"] or report["holdout_findings"] or bad_branches else "GENERICITY AUDIT PASS")
     print(json.dumps(report, indent=2))
-    return 1 if report["brief_findings"] or bad_branches else 0
+    return 1 if report["brief_findings"] or report["holdout_findings"] or bad_branches else 0
 
 
 if __name__ == "__main__":

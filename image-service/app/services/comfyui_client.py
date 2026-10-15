@@ -48,6 +48,8 @@ from app.services.prompt_repository import (
     load_prompts_document,
 )
 from app.services.sampling_profiles import SamplingProfile, select_sampling_profile, summarize_failures, profile_selection_diagnostics
+from app.services.candidate_quality import score_candidate
+from app.services.reproducibility import build_reproducibility_manifest
 from app.services.prompt_compiler import failure_category as classify_failure
 from app.services.candidate_spec import build_candidate_spec
 from app.services.template_conditioning import (
@@ -2127,7 +2129,7 @@ class ComfyUIClient:
                     record["brief_fidelity"] = brief_fidelity_record(adherence_result)
                     if adherence_result["decision"] != "pass":
                         category = ("VISION_UNAVAILABLE" if adherence_result["decision"] == "unavailable"
-                                    else adherence_result["decision"])
+                                    else adherence_result.get("failure_category") or adherence_result["decision"])
                         record["primary_failure_category"] = category
                         record["all_failure_categories"] = [category]
                         record["validation"] = {**record.get("validation", {}),
@@ -2308,6 +2310,8 @@ class ComfyUIClient:
                         ),
                         rejected_image_path=str(rejected_path),
                     )
+                    record["quality_evaluation"] = score_candidate(record)
+                    record["reproducibility_manifest"] = build_reproducibility_manifest(record)
 
                     write_json(
                         record_path,
@@ -2860,10 +2864,19 @@ class ComfyUIClient:
             previous, retrying_rejected_candidate, retrying_failed_execution,
         )
 
+        source_marker = get_job_directory(reference_number) / "probe-source.json"
+        source_reference = reference_number
+        if source_marker.is_file():
+            try:
+                source_reference = json.loads(source_marker.read_text(encoding="utf-8")).get("source_reference") or reference_number
+            except (OSError, ValueError):
+                source_reference = reference_number
+
         record = {
             "reference_number": (
                 reference_number
             ),
+            "source_reference": source_reference,
             "engine_id": (
                 engine_id
             ),
@@ -2901,6 +2914,12 @@ class ComfyUIClient:
             "RETRY_STAGE": retry_stage,
             "SEED": seed,
             "candidate_spec_sha256": candidate_spec.spec_sha256,
+            "semantic_contract_version": candidate_spec.semantic_contract["semantic_contract_version"],
+            "semantic_contract_sha256": candidate_spec.semantic_contract_sha256,
+            "semantic_consistency": candidate_spec.visual_design["semantic_consistency"],
+            "semantic_completeness": candidate_spec.visual_design["semantic_completeness"],
+            "vision_model": settings.subject_vision_model,
+            "ocr_config": {"timeout_seconds": settings.ocr_timeout_seconds},
             "direction_role": direction_role,
             "creative_concept": candidate_spec.original_positive_prompt,
             "visual_anchors": candidate_spec.visual_design["visual_anchors"],
@@ -2927,6 +2946,7 @@ class ComfyUIClient:
             engine_id, actual_positive_prompt, actual_negative_prompt,
             compiled_prompt, retry_stage, failure_category,
         ))
+        record["reproducibility_manifest"] = build_reproducibility_manifest(record)
 
         if rejected_attempts:
             record[
@@ -3017,6 +3037,8 @@ class ComfyUIClient:
                 descriptor
             ),
         )
+        record["quality_evaluation"] = score_candidate(record)
+        record["reproducibility_manifest"] = build_reproducibility_manifest(record)
 
         write_json(
             record_path,

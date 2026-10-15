@@ -8,6 +8,9 @@ import re
 from dataclasses import asdict, dataclass
 
 from app.services.prompt_repository import get_direction
+from app.services.semantic_contract import (
+    VERSION, contract_hash, normalize_contract, semantic_completeness, semantic_consistency,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,6 +32,7 @@ class CandidateSpec:
     # dataclass. Callers receive a fresh dict from the property below.
     layout_guidance_json: str
     visual_design_json: str
+    semantic_contract_json: str = ""
 
     @property
     def visual_design(self) -> dict:
@@ -37,6 +41,14 @@ class CandidateSpec:
     @property
     def layout_guidance(self) -> dict:
         return json.loads(self.layout_guidance_json)
+
+    @property
+    def semantic_contract(self) -> dict:
+        return json.loads(self.semantic_contract_json)
+
+    @property
+    def semantic_contract_sha256(self) -> str:
+        return contract_hash(self.semantic_contract)
 
     @property
     def spec_sha256(self) -> str:
@@ -119,12 +131,64 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         "motif_descriptors": values(semantics, "motif_descriptors") or motif_words,
         "motif_structure_description": field(semantics, "motif_structure_description") or ", ".join(motif_words),
         "lighting_descriptors": values(semantics, "lighting_descriptors") or values(brief, "lighting_language"),
+        "material_descriptors": values(semantics, "material_descriptors") or values(brief, "material_language"),
+        "texture_descriptors": values(semantics, "texture_descriptors") or values(brief, "texture_language"),
         "incompatible_treatments": values(semantics, "incompatible_treatments") or values(brief, "negative_constraints"),
         "scene_family": field(semantics, "scene_family") or "general",
         "composition_affinities": values(semantics, "composition_affinities"),
     }
+    subject = field(brief, "background_inspiration") or visual_sentence or field(brief, "theme_reference_treatment") or field(brief, "theme")
+    supplied_contract = brief.get("semantic_contract")
+    if supplied_contract is not None:
+        contract = normalize_contract(supplied_contract)
+        expected_hash = field(brief, "semantic_contract_sha256")
+        if not expected_hash or contract_hash(supplied_contract) != expected_hash or contract_hash(contract) != expected_hash:
+            raise ValueError("Semantic contract hash mismatch between prompt and image services")
+        if (field(brief, "background_inspiration") and contract["primary_visual_subject"] != field(brief, "background_inspiration")):
+            raise ValueError("Semantic subject changed after contract creation")
+        if not field(brief, "background_inspiration") and field(brief, "theme") and contract["primary_visual_subject"] != field(brief, "theme"):
+            raise ValueError("Semantic subject changed after contract creation")
+        if contract["palette"] != palette:
+            raise ValueError("Semantic palette changed after contract creation")
+        for key in ("palette_mode", "palette_relationship", "theme_reference_treatment",
+                    "abstraction_level", "realism_level", "energy_level",
+                    "symmetry_preference", "density_preference"):
+            if field(brief, key) and contract[key] != field(brief, key):
+                raise ValueError(f"Semantic {key} changed after contract creation")
+        if values(brief, "visual_anchors") and contract["visual_anchors"] != values(brief, "visual_anchors"):
+            raise ValueError("Semantic anchors changed after contract creation")
+        for key, value in semantics.items():
+            if key in contract and value and contract[key] != value:
+                raise ValueError(f"Semantic {key} changed after contract creation")
+    else:
+        contract = normalize_contract({
+            "semantic_contract_version": VERSION,
+            "primary_visual_subject": subject, "visual_anchors": anchors,
+            **visual_semantics, "palette": palette,
+            "palette_mode": field(brief, "palette_mode") or "dominant",
+            "palette_relationship": field(brief, "palette_relationship"),
+            "abstraction_level": field(brief, "abstraction_level"),
+            "realism_level": field(brief, "realism_level"),
+            "energy_level": field(brief, "energy_level"),
+            "symmetry_preference": field(brief, "symmetry_preference"),
+            "density_preference": field(brief, "density_preference"),
+            "theme_reference_treatment": field(brief, "theme_reference_treatment"),
+            "semantic_provenance": {
+                "primary_visual_subject": "USER_EXPLICIT" if field(brief, "background_inspiration") else "SAFE_FALLBACK",
+                "atmosphere_descriptors": ("SEMANTIC_INFERENCE" if values(semantics, "atmosphere_descriptors")
+                                           else "USER_EXPLICIT" if field(brief, "mood") or fallback_description
+                                           else "SAFE_FALLBACK"),
+                "palette": "USER_EXPLICIT" if palette else "SAFE_FALLBACK",
+            },
+        })
+    consistency = semantic_consistency(contract)
+    if not consistency["valid"]:
+        error = ValueError(f"Semantic contract requires clarification: {consistency['conflicts']}")
+        error.semantic_consistency = consistency
+        raise error
+    completeness = semantic_completeness(contract)
     visual_design = {
-        "primary_visual_subject": field(brief, "background_inspiration") or visual_sentence or field(brief, "theme_reference_treatment") or field(brief, "theme"),
+        "primary_visual_subject": contract["primary_visual_subject"],
         "event_context": field(brief, "event_context") or field(brief, "event_type"),
         "render_exclusion_text": [field(brief, key) for key in (
             "title_preference", "event_date", "venue"
@@ -132,19 +196,23 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         "audience_context": field(brief, "audience_context"),
         "age_group": field(brief, "age_group"),
         "creative_description": field(brief, "creative_description"),
-        "visual_semantics": visual_semantics,
-        "theme_reference_treatment": field(brief, "theme_reference_treatment"),
+        "visual_semantics": {key: contract[key] for key in visual_semantics},
+        "semantic_contract_version": VERSION,
+        "semantic_contract_sha256": contract_hash(contract),
+        "semantic_consistency": consistency,
+        "semantic_completeness": completeness,
+        "theme_reference_treatment": contract["theme_reference_treatment"],
         "mood": field(brief, "mood"),
         "visual_style": field(brief, "visual_style"),
-        "requested_palette": palette,
-        "palette_mode": field(brief, "palette_mode") or "dominant",
-        "palette_relationship": field(brief, "palette_relationship"),
-        "visual_anchors": anchors,
+        "requested_palette": contract["palette"],
+        "palette_mode": contract["palette_mode"],
+        "palette_relationship": contract["palette_relationship"],
+        "visual_anchors": contract["visual_anchors"],
         "symbolic_motifs": values(brief, "symbolic_motifs"),
         "environmental_motifs": values(brief, "environmental_motifs"),
-        "material_language": field(brief, "material_language"),
-        "texture_language": field(brief, "texture_language"),
-        "lighting_language": field(brief, "lighting_language"),
+        "material_language": ", ".join(contract["material_descriptors"]) or field(brief, "material_language"),
+        "texture_language": ", ".join(contract["texture_descriptors"]) or field(brief, "texture_language"),
+        "lighting_language": ", ".join(contract["lighting_descriptors"]) or field(brief, "lighting_language"),
         "composition_strategy": field(direction, "composition_strategy"),
         "focal_strategy": field(direction, "focal_strategy"),
         "depth_strategy": field(direction, "depth_strategy"),
@@ -152,11 +220,11 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         "negative_constraints": values(brief, "negative_constraints"),
         "title_safe_region_strategy": field(direction, "title_safe_region_strategy"),
         "programme_safe_region_strategy": field(direction, "programme_safe_region_strategy"),
-        "abstraction_level": field(brief, "abstraction_level"),
-        "realism_level": field(brief, "realism_level"),
-        "energy_level": field(brief, "energy_level"),
-        "symmetry_preference": field(brief, "symmetry_preference"),
-        "density_preference": field(brief, "density_preference"),
+        "abstraction_level": contract["abstraction_level"],
+        "realism_level": contract["realism_level"],
+        "energy_level": contract["energy_level"],
+        "symmetry_preference": contract["symmetry_preference"],
+        "density_preference": contract["density_preference"],
     }
 
     spec = CandidateSpec(
@@ -175,6 +243,7 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         secondary_colour=field(brief, "secondary_colour"),
         layout_guidance_json=json.dumps(layout, sort_keys=True, separators=(",", ":")),
         visual_design_json=json.dumps(visual_design, sort_keys=True, separators=(",", ":")),
+        semantic_contract_json=json.dumps(contract, sort_keys=True, separators=(",", ":"), ensure_ascii=False),
     )
     if not spec.reference_number or not spec.original_positive_prompt:
         raise ValueError("Candidate specification lacks reference or direction prompt")

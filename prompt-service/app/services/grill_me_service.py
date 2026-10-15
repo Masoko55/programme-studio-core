@@ -22,6 +22,7 @@ from app.services.grill_me_semantic import (
     review_creative_context,
 )
 from app.services.creative_direction import resolve_palette_mode
+from app.services.semantic_contract import build_semantic_contract, contract_hash
 
 
 MAX_ASSET_BYTES = (
@@ -1440,6 +1441,10 @@ def freeze_for_generation(
         "only these colours" if background_brief["palette_mode"] == "strict"
         else "requested colours dominate with natural tonal variation"
     )
+    contract = build_semantic_contract(background_brief)
+    background_brief["semantic_contract"] = contract
+    background_brief["semantic_contract_version"] = contract["semantic_contract_version"]
+    background_brief["semantic_contract_sha256"] = contract_hash(contract)
 
     asset = (
         session.assets

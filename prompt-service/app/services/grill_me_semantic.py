@@ -60,6 +60,8 @@ DEFAULT_CONTEXT = {
     "reference_needs_clarification": False,
     "background_generation_summary": None,
     "visual_semantics": {},
+    "semantic_provenance": {},
+    "semantic_confidence": {},
     "generation_constraints": [
         "background only",
         "no people",
@@ -235,10 +237,13 @@ def _review_prompt(
                 "motif_descriptors": ["visible motif"],
                 "motif_structure_description": "how the motif visibly connects or repeats",
                 "lighting_descriptors": ["brief-compatible lighting"],
+                "material_descriptors": ["brief-compatible material"],
+                "texture_descriptors": ["brief-compatible texture"],
                 "incompatible_treatments": ["visually incompatible treatment"],
                 "scene_family": "organic, architectural-interior, abstract, or general",
                 "composition_affinities": ["brief-compatible structural family"],
             },
+            "semantic_confidence": {"inferred field name": "optional number from 0 to 1; omit if unknown"},
             "generation_constraints": [
                 "constraint"
             ],
@@ -375,9 +380,24 @@ def _safe_context(
         "motif_descriptors": descriptors("motif_descriptors"),
         "motif_structure_description": str(raw_semantics.get("motif_structure_description") or "").strip()[:360],
         "lighting_descriptors": descriptors("lighting_descriptors"),
+        "material_descriptors": descriptors("material_descriptors"),
+        "texture_descriptors": descriptors("texture_descriptors"),
         "incompatible_treatments": descriptors("incompatible_treatments"),
         "scene_family": family,
         "composition_affinities": descriptors("composition_affinities"),
+    }
+    context["semantic_provenance"] = {
+        key: ("USER_EXPLICIT" if isinstance(supplied_semantics, dict) and key in supplied_semantics
+              else "SEMANTIC_INFERENCE" if key in raw_semantics
+              else "USER_EXPLICIT" if (key == "atmosphere_descriptors" and answers.get("creative_description"))
+              or (key == "audience_descriptors" and answers.get("age_group"))
+              else "SAFE_FALLBACK")
+        for key in context["visual_semantics"]
+    }
+    context["semantic_confidence"] = {
+        key: float(score) for key, score in (value.get("semantic_confidence") or {}).items()
+        if key in context["visual_semantics"] and context["semantic_provenance"][key] != "USER_EXPLICIT"
+        and isinstance(score, (float, int)) and not isinstance(score, bool) and 0 <= score <= 1
     }
     questions = _valid_clarification_questions(context)
 

@@ -222,6 +222,15 @@ class Settings(
     subject_vision_model: str = "minicpm-v4.5:latest"
     subject_adherence_threshold: float = Field(default=0.55, ge=0.0, le=1.0)
     brief_fidelity_threshold: float = Field(default=0.55, ge=0.0, le=1.0)
+    # Neutral soft-ranking weights; override via QUALITY_WEIGHTS JSON after
+    # collecting human calibration data. Hard gates are never weighted.
+    quality_weights: dict[str, float] = Field(default_factory=lambda: {
+        "subject_fidelity": 1.0, "atmosphere_fidelity": 1.0,
+        "motif_fidelity": 1.0, "audience_fit": 1.0,
+        "composition_quality": 1.0, "visual_structure_quality": 1.0,
+        "direction_distinctiveness": 1.0, "quiet_region_usability": 1.0,
+        "palette_quality": 1.0,
+    })
     ocr_timeout_seconds: float = Field(default=7.0, gt=0, le=60)
 
     gpu_lease_timeout_seconds: float = 1800

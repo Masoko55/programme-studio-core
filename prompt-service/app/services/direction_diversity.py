@@ -25,6 +25,11 @@ def _compatible_choices(brief: dict) -> dict[str, tuple[str, ...]]:
         "architectural-interior": ("central-monument", "diagonal-depth", "panoramic-layered", "asymmetric-cluster"),
         "general": ("asymmetric-cluster", "central-monument", "diagonal-depth", "panoramic-layered"),
     }[kind]
+    semantics = brief.get("visual_semantics") or (brief.get("grill_me_context") or {}).get("visual_semantics") or {}
+    affinities = semantics.get("composition_affinities") or []
+    if isinstance(affinities, list):
+        preferred = [value for value in affinities if value in composition]
+        composition = tuple(dict.fromkeys((*preferred, *composition)))
     viewpoint = {
         "organic": ("low-angle", "panoramic", "close-crop", "oblique"),
         "abstract": ("close-crop", "low-angle", "panoramic", "oblique"),

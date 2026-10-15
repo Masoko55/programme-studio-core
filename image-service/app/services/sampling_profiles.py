@@ -793,6 +793,9 @@ def profile_selection_diagnostics(profile: SamplingProfile | None,
     category = history.consecutive_category or "INITIAL"
     recovery = {
         "SUBJECT_DRIFT": "subject_adherence",
+        "ATMOSPHERE_DRIFT": "atmosphere_fidelity",
+        "MOTIF_DRIFT": "motif_fidelity",
+        "AUDIENCE_DRIFT": "audience_fit",
         "DIRECTION_DUPLICATE": "composition_diversity",
         "FLAT": "macro_structure", "GRADIENT": "macro_structure",
         "RASTER": "raster_safety",

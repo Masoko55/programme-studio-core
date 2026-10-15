@@ -306,6 +306,7 @@ def select_final(
             "direction_id": (
                 request.direction_id
             ),
+            "selection_reason": "User selected this completed background candidate for final composition.",
         },
         "asset_sha256": asset_hashes,
         "source_candidate": {

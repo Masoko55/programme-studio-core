@@ -15,7 +15,7 @@ from app.services.sampling_profiles import (
     FailureHistorySummary, probe_profiles, select_sampling_profile,
     profile_selection_diagnostics, recommended_probe_profiles,
 )
-from app.services.subject_adherence import assess_subject_adherence, _model_answer
+from app.services.subject_adherence import assess_subject_adherence, _model_answer, select_vision_endpoint
 
 
 def document(subject="A layered botanical garden with paper flowers", primary="green", secondary="cream"):
@@ -110,6 +110,37 @@ class RendererConditioningTests(unittest.TestCase):
 
 
 class SubjectAdherenceTests(unittest.TestCase):
+    def test_model_specific_endpoint_selection(self):
+        self.assertEqual(select_vision_endpoint("minicpm-v4.5:latest"), "/api/chat")
+        self.assertEqual(select_vision_endpoint("MINICPM-V4.5:Q8"), "/api/chat")
+        self.assertEqual(select_vision_endpoint("qwen3-vl:30b"), "/api/generate")
+        self.assertEqual(select_vision_endpoint("other-vision:latest"), "/api/generate")
+
+    def test_minicpm_chat_response_uses_message_content(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "candidate.png"
+            Image.new("RGB", (16, 16), "white").save(path)
+            response = Mock(status_code=200, headers={"content-type": "application/json"})
+            response.raise_for_status.return_value = None
+            answer = '{"score":0.95,"observed_evidence":["angular architecture"],"reason":"city visible"}'
+            for content in (answer, f"```json\n{answer}\n```", f"Result:\n{answer}", "", "{broken}"):
+                with self.subTest(content=content):
+                    response.json.return_value = {"message": {"content": content, "thinking": "private"}}
+                    with patch("app.services.subject_adherence.httpx.post", return_value=response) as send:
+                        result = assess_subject_adherence(path, {"primary_visual_subject": "city"}, model="minicpm-v4.5:latest")
+                    self.assertTrue(send.call_args.args[0].endswith("/api/chat"))
+                    request = send.call_args.kwargs["json"]
+                    self.assertIn("messages", request)
+                    self.assertNotIn("prompt", request)
+                    self.assertEqual(result["vision_debug"]["endpoint"], "/api/chat")
+                    if content in ("", "{broken}"):
+                        self.assertFalse(result["checked"])
+                        self.assertEqual(result["decision"], "unavailable")
+                    else:
+                        self.assertTrue(result["checked"])
+                        self.assertEqual(result["score"], .95)
+                        self.assertEqual(result["vision_debug"]["final_source"], "message.content")
+
     def test_ollama_envelopes_and_wrapped_json(self):
         answer = '{"score":0.82,"observed_evidence":["skyline"]}'
         for endpoint, payload in (("/api/generate", {"response": answer}),

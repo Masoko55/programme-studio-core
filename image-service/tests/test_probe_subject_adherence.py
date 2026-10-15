@@ -25,3 +25,16 @@ class ProbeSubjectAdherenceTests(unittest.TestCase):
         self.assertEqual(check.call_args.args[1]["visual_anchors"], parsed.anchor)
         self.assertEqual(json.loads(output.getvalue()), result)
 
+    def test_default_model_uses_working_minicpm_path(self):
+        args = parse_args(["--image", "/tmp/existing.png", "--subject", "city skyline"])
+        self.assertEqual(args.model, "minicpm-v4.5:latest")
+        result = {"checked": True, "score": .95, "decision": "pass",
+                  "reason": "city visible", "model": args.model,
+                  "vision_debug": {"endpoint": "/api/chat", "final_source": "message.content"}}
+        output = io.StringIO()
+        with patch("scripts.probe_subject_adherence.assess_subject_adherence", return_value=result) as check:
+            with contextlib.redirect_stdout(output):
+                main(["--image", "/tmp/existing.png", "--subject", "city skyline"])
+        self.assertEqual(check.call_args.kwargs["model"], args.model)
+        self.assertEqual(json.loads(output.getvalue()), result)
+

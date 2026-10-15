@@ -1,4 +1,5 @@
 import logging
+import json
 
 from datetime import (
     datetime,
@@ -29,6 +30,7 @@ from app.services.creative_direction import (
     direction_structural_summary,
     generate_creative_direction,
 )
+from app.services.direction_diversity import build_diversity_constraints
 
 from app.services.persistence import (
     persist_direction_checkpoint,
@@ -84,12 +86,15 @@ def _log_generation_failure(
     retry_count: int,
     error: Exception,
 ) -> None:
+    label = ("initial" if retry_count == 1 else
+             f"retry={retry_count - 1}/{MAX_RETRIES}")
     logger.warning(
         "Creative direction generation failed: "
-        "direction=%s retry=%s/%s error=%s",
+        "direction=%s attempt=%s/%s %s error=%s",
         direction_id,
         retry_count,
-        MAX_RETRIES,
+        MAX_RETRIES + 1,
+        label,
         str(
             error
         ),
@@ -101,16 +106,29 @@ def _log_validation_failure(
     retry_count: int,
     error: Exception,
 ) -> None:
+    label = ("initial" if retry_count == 1 else
+             f"retry={retry_count - 1}/{MAX_RETRIES}")
     logger.warning(
         "Creative direction validation failed: "
-        "direction=%s retry=%s/%s error=%s",
+        "direction=%s attempt=%s/%s %s error=%s",
         direction_id,
         retry_count,
-        MAX_RETRIES,
+        MAX_RETRIES + 1,
+        label,
         str(
             error
         ),
     )
+
+
+def _diversity_failure(error: ValueError, direction_id: str) -> dict | None:
+    diagnostic = getattr(error, "diversity_diagnostics", None)
+    if isinstance(diagnostic, dict):
+        logger.warning("direction_diversity=%s", json.dumps(
+            {"direction_id": direction_id, **diagnostic}, sort_keys=True
+        ))
+        return diagnostic
+    return None
 
 
 async def generate_direction_a(
@@ -356,6 +374,11 @@ async def generate_direction_b(
                     "brief"
                 ],
                 previous_directions=[direction_structural_summary(state["direction_a"], state["brief"])] if state.get("direction_a") else [],
+                diversity_constraints=build_diversity_constraints(
+                    "B", [state["direction_a"]] if state.get("direction_a") else [], state["brief"],
+                    retry_count=current_retry,
+                    failed_diagnostic=state.get("diversity_diagnostics_b"),
+                ),
                 correction_error=(
                     state.get(
                         "validation_error_b"
@@ -425,9 +448,11 @@ def validate_direction_b(
 
         return {
             "validation_error_b": None,
+            "diversity_diagnostics_b": None,
         }
 
     except ValueError as error:
+        diversity_diagnostic = _diversity_failure(error, "B")
         next_retry = (
             _retry_count(
                 state,
@@ -451,6 +476,7 @@ def validate_direction_b(
             "retry_count_b": (
                 next_retry
             ),
+            "diversity_diagnostics_b": diversity_diagnostic,
             "direction_b": None,
         }
 
@@ -574,6 +600,11 @@ async def generate_direction_c(
                     direction_structural_summary(item, state["brief"])
                     for item in (state.get("direction_a"), state.get("direction_b")) if item
                 ],
+                diversity_constraints=build_diversity_constraints(
+                    "C", [item for item in (state.get("direction_a"), state.get("direction_b")) if item],
+                    state["brief"], retry_count=current_retry,
+                    failed_diagnostic=state.get("diversity_diagnostics_c"),
+                ),
                 correction_error=(
                     state.get(
                         "validation_error_c"
@@ -645,9 +676,11 @@ def validate_direction_c(
 
         return {
             "validation_error_c": None,
+            "diversity_diagnostics_c": None,
         }
 
     except ValueError as error:
+        diversity_diagnostic = _diversity_failure(error, "C")
         next_retry = (
             _retry_count(
                 state,
@@ -671,6 +704,7 @@ def validate_direction_c(
             "retry_count_c": (
                 next_retry
             ),
+            "diversity_diagnostics_c": diversity_diagnostic,
             "direction_c": None,
         }
 

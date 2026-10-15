@@ -94,6 +94,8 @@ async def run_prompt_workflow(
         "validation_error_a": None,
         "validation_error_b": None,
         "validation_error_c": None,
+        "diversity_diagnostics_b": None,
+        "diversity_diagnostics_c": None,
     }
 
     try:

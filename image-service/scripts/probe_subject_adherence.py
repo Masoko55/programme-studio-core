@@ -1,4 +1,9 @@
-"""Check an existing image with the production subject-adherence path."""
+"""Check an existing image with the production subject-adherence path.
+
+Example: python scripts/probe_subject_adherence.py --image image.png \
+  --subject "stylised city skyline" --anchor "angular architecture" \
+  --model minicpm-v4.5:latest
+"""
 
 from __future__ import annotations
 
@@ -17,7 +22,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--image", type=Path, required=True)
     parser.add_argument("--subject", required=True)
     parser.add_argument("--anchor", action="append", default=[])
-    parser.add_argument("--model", required=True)
+    parser.add_argument("--model", default="minicpm-v4.5:latest",
+                        help="Installed Ollama vision model (default: minicpm-v4.5:latest)")
     return parser.parse_args(argv)
 
 

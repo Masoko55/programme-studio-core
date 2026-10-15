@@ -661,14 +661,28 @@ def validate_direction_diversity(
             current_signature[key] != earlier_signature[key]
             for key in comparable
         )
+        diagnostic = {
+            "compared_to": earlier.direction_id,
+            "current_signature": current_signature,
+            "previous_signature": earlier_signature,
+            "repeated_fields": [key for key in comparable if current_signature[key] == earlier_signature[key]],
+            "changed_fields": [key for key in comparable if current_signature[key] != earlier_signature[key]],
+            "required_material_changes": 3,
+        }
+
+        def reject(message: str) -> None:
+            error = ValueError(message)
+            error.diversity_diagnostics = diagnostic
+            raise error
+
         if specified_current >= 5 and specified_earlier >= 5 and len(comparable) >= 4 and material_changes < 3:
-            raise ValueError(
+            reject(
                 f"Direction {direction.direction_id} repeats {earlier.direction_id}'s "
                 "spatial plan; change at least three of viewpoint, focal band, mass, "
                 "flow, depth, perimeter and quiet-region geometry."
             )
         if len(comparable) >= 5 and repeated >= 5 and repeated / len(comparable) >= 0.72:
-            raise ValueError(
+            reject(
                 f"Direction {direction.direction_id} repeats {earlier.direction_id}'s "
                 "composition signature; move focal position, change flow or viewpoint, "
                 "and vary quiet-space placement."
@@ -680,7 +694,7 @@ def validate_direction_diversity(
             if first and second and len(first & second) / len(first | second) >= 0.60:
                 similar += 1
         if similar >= 4:
-            raise ValueError(
+            reject(
                 f"Direction {direction.direction_id} repeats {earlier.direction_id}'s "
                 "composition plan; change focal position, depth, perimeter and quiet-area geometry."
             )

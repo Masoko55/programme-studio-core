@@ -7,10 +7,16 @@ from app.services.job_service import calculate_sha256
 from app.services.prompt_workflow import run_prompt_workflow
 
 
-async def main() -> None:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("reference_number")
-    args = parser.parse_args()
+    parser.add_argument("--resume", action="store_true",
+                        help="Reuse existing direction checkpoints for a failed prompt job")
+    return parser.parse_args(argv)
+
+
+async def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv)
 
     reference_number = args.reference_number.upper()
 
@@ -40,7 +46,7 @@ async def main() -> None:
         reference_number=reference_number,
         input_sha256=input_sha256,
         brief=brief,
-        resume=False,
+        resume=args.resume,
     )
 
     print(

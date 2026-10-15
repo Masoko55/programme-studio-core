@@ -17,9 +17,17 @@ from PIL import Image
 from app.config.settings import settings
 
 
+def select_vision_endpoint(model_name: str) -> str:
+    """Use the endpoint verified for the installed MiniCPM vision model."""
+    return "/api/chat" if model_name.strip().casefold().startswith("minicpm-v4.5") else "/api/generate"
+
+
 def _model_answer(payload: dict, endpoint: str) -> dict:
     """Decode the Ollama envelope and one complete JSON object in its text."""
-    content = (payload.get("message") or {}).get("content") if endpoint == "/api/chat" else payload.get("response")
+    message = payload.get("message")
+    if endpoint == "/api/chat" and not isinstance(message, dict):
+        raise ValueError("Missing Ollama chat message")
+    content = message.get("content") if endpoint == "/api/chat" else payload.get("response")
     if not isinstance(content, str) or not content.strip():
         raise ValueError("Empty or missing model response")
     content = re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", content.strip(), flags=re.I)
@@ -61,14 +69,19 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
         "Return JSON with score between 0 and 1, observed_evidence as a list of visible objects/forms, "
         "and reason. Requested subject: " + subject + ". Anchors: " + "; ".join(anchors[:5]) + "."
     )
-    endpoint = "/api/generate"
+    endpoint = select_vision_endpoint(chosen_model)
     debug = {"endpoint": endpoint, "model": chosen_model}
     try:
+        encoded_image = base64.b64encode(buffer.getvalue()).decode("ascii")
+        request = {"model": chosen_model, "stream": False, "format": "json",
+                   "think": False, "keep_alive": 0}
+        if endpoint == "/api/chat":
+            request["messages"] = [{"role": "user", "content": prompt, "images": [encoded_image]}]
+        else:
+            request.update(prompt=prompt, images=[encoded_image])
         response = httpx.post(
             settings.ollama_base_url.rstrip("/") + endpoint,
-            json={"model": chosen_model, "prompt": prompt,
-                  "images": [base64.b64encode(buffer.getvalue()).decode("ascii")],
-                  "stream": False, "format": "json", "think": False, "keep_alive": 0}, timeout=90,
+            json=request, timeout=90,
         )
         debug["http_status"] = response.status_code
         debug["response_content_type"] = response.headers.get("content-type", "")[:80]
@@ -77,12 +90,13 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
         debug["response_shape"] = sorted(str(key) for key in payload)[:20] if isinstance(payload, dict) else type(payload).__name__
         if not isinstance(payload, dict):
             raise ValueError("Ollama response must be an object")
-        raw_text = payload.get("response")
-        thinking = payload.get("thinking")
+        message = payload.get("message") if endpoint == "/api/chat" else None
+        raw_text = message.get("content") if isinstance(message, dict) else payload.get("response")
+        thinking = message.get("thinking") if isinstance(message, dict) else payload.get("thinking")
         debug["thinking_present"] = bool(thinking)
         debug["thinking_preview_length"] = len(thinking) if isinstance(thinking, str) else 0
         debug["response_length"] = len(raw_text) if isinstance(raw_text, str) else 0
-        debug["final_source"] = "response" if isinstance(raw_text, str) and raw_text.strip() else None
+        debug["final_source"] = ("message.content" if endpoint == "/api/chat" else "response") if isinstance(raw_text, str) and raw_text.strip() else None
         if isinstance(raw_text, str):
             debug["raw_text_preview"] = raw_text[:400]
         answer = _model_answer(payload, endpoint)

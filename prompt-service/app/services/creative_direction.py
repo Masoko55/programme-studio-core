@@ -868,6 +868,7 @@ def build_creative_direction_prompt(
     role: str,
     correction_error: str | None = None,
     previous_directions: list[str] | None = None,
+    diversity_constraints: dict | None = None,
 ) -> str:
     asset_type = (
         str(
@@ -1069,6 +1070,9 @@ def build_creative_direction_prompt(
         ),
     }
 
+    if diversity_constraints:
+        payload["structural_diversity_plan"] = diversity_constraints
+
     if correction_error:
         payload[
             "correction_required"
@@ -1082,6 +1086,19 @@ def build_creative_direction_prompt(
                 "the original event brief."
             ),
         }
+        if diversity_constraints and diversity_constraints.get("failed_diagnostic"):
+            retry_count = int(diversity_constraints.get("retry_count") or 0)
+            payload["correction_required"]["diversity_overlap"] = diversity_constraints["failed_diagnostic"]
+            payload["correction_required"]["instruction"] = (
+                "Second retry: choose an unused focal location, unused flow or composition family, "
+                "and different quiet-region geometry. Also vary mass, depth and perimeter where "
+                "the brief permits. Change at least three material fields relative to EACH "
+                "accepted direction; do not repeat the failed signature."
+                if retry_count >= 2 else
+                "First retry: inspect the repeated signature fields and change at least three "
+                "material structural choices relative to EACH accepted direction. Use the "
+                "available alternatives without changing the subject or inventing a new scene."
+            )
 
     return (
         json.dumps(
@@ -1097,6 +1114,7 @@ async def generate_creative_direction(
     brief: dict,
     correction_error: str | None = None,
     previous_directions: list[str] | None = None,
+    diversity_constraints: dict | None = None,
 ) -> CreativeDirectionOutput:
     model, role = (
         direction_configuration(
@@ -1121,6 +1139,7 @@ async def generate_creative_direction(
                 correction_error
             ),
             previous_directions=previous_directions,
+            diversity_constraints=diversity_constraints,
         )
     )
 

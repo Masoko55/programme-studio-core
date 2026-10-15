@@ -221,6 +221,8 @@ class Settings(
     )
     subject_vision_model: str = "minicpm-v4.5:latest"
     subject_adherence_threshold: float = Field(default=0.55, ge=0.0, le=1.0)
+    brief_fidelity_threshold: float = Field(default=0.55, ge=0.0, le=1.0)
+    ocr_timeout_seconds: float = Field(default=7.0, gt=0, le=60)
 
     gpu_lease_timeout_seconds: float = 1800
 

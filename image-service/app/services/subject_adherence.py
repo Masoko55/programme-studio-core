@@ -45,14 +45,38 @@ def _model_answer(payload: dict, endpoint: str) -> dict:
     return answer
 
 
+def brief_fidelity_record(result: dict) -> dict:
+    """Persist the bounded event-fit contract without the raw model response."""
+    return {key: result.get(key) for key in (
+        "checked", "subject_score", "atmosphere_score", "motif_score",
+        "audience_fit_score", "thresholds", "decision", "reason",
+        "observed_evidence", "model",
+    )}
+
+
 def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | None = None) -> dict:
     subject = str(visual_design.get("primary_visual_subject") or "").strip()
     anchors = [str(value) for value in visual_design.get("visual_anchors", []) if str(value).strip()]
     chosen_model = settings.subject_vision_model if model is None else model
     threshold = settings.subject_adherence_threshold
+    fidelity_threshold = settings.brief_fidelity_threshold
+    motifs = [str(value) for value in visual_design.get("symbolic_motifs", []) if str(value).strip()]
+    atmosphere = str(visual_design.get("creative_description") or visual_design.get("mood") or "").strip()
+    audience = str(visual_design.get("audience_context") or visual_design.get("age_group") or "").strip()
+    event = str(visual_design.get("event_context") or "").strip()
+    treatment = str(visual_design.get("theme_reference_treatment") or "").strip()
+    required = {"subject_score": threshold}
+    if atmosphere or event:
+        required["atmosphere_score"] = fidelity_threshold
+    if motifs:
+        required["motif_score"] = fidelity_threshold
+    if audience:
+        required["audience_fit_score"] = fidelity_threshold
     base = {"checked": False, "score": None, "threshold": threshold,
             "subject": subject, "anchors": anchors, "model": chosen_model,
-            "decision": "unavailable", "reason": ""}
+            "decision": "unavailable", "reason": "", "subject_score": None,
+            "atmosphere_score": None, "motif_score": None, "audience_fit_score": None,
+            "thresholds": required, "observed_evidence": []}
     if not chosen_model or not subject:
         return {**base, "reason": "Vision model or requested visual subject is not configured"}
 
@@ -62,12 +86,18 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
         buffer = io.BytesIO()
         image.save(buffer, format="JPEG", quality=85)
     prompt = (
-        "Assess whether this generated background visibly depicts the requested visual subject. "
-        "Judge the environment and its distinctive anchors, not the palette alone. "
+        "Assess this background against the requested brief using independent scores between 0 and 1: "
+        "subject_score, atmosphere_score, motif_score, audience_fit_score. "
+        "Judge visible subject, event mood, motif structure, and audience fit separately. "
+        "Do not judge colours. Do not infer a subject or motif from decorative lines alone. "
         "Intentional abstract or sculptural subjects are valid when requested. "
-        "Do not infer a subject from colour or decorative lines alone. "
-        "Return JSON with score between 0 and 1, observed_evidence as a list of visible objects/forms, "
-        "and reason. Requested subject: " + subject + ". Anchors: " + "; ".join(anchors[:5]) + "."
+        "For a web motif, require connected radial strands, curved cross-links and repeated cells; "
+        "isolated rays, cracks or speed lines alone are insufficient. "
+        "Return only JSON scores, observed_evidence as a list of visible forms, and a short reason. "
+        "Requested subject: " + subject + ". Anchors: " + "; ".join(anchors[:5]) +
+        ". Event: " + event + ". Atmosphere: " + atmosphere[:350] +
+        ". Audience: " + audience + ". Theme treatment: " + treatment[:200] +
+        ". Symbolic motifs: " + "; ".join(motifs[:5]) + "."
     )
     endpoint = select_vision_endpoint(chosen_model)
     debug = {"endpoint": endpoint, "model": chosen_model}
@@ -98,11 +128,20 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
         debug["response_length"] = len(raw_text) if isinstance(raw_text, str) else 0
         debug["final_source"] = ("message.content" if endpoint == "/api/chat" else "response") if isinstance(raw_text, str) and raw_text.strip() else None
         if isinstance(raw_text, str):
-            debug["raw_text_preview"] = raw_text[:400]
+            debug["raw_text_preview"] = "<omitted>"
         answer = _model_answer(payload, endpoint)
-        score = float(answer["score"])
-        if not 0 <= score <= 1:
-            raise ValueError("Vision score must be between zero and one")
+        scores = {}
+        for field in ("subject_score", "atmosphere_score", "motif_score", "audience_fit_score"):
+            raw_score = answer.get(field, answer.get("score") if field == "subject_score" else None)
+            if raw_score is None:
+                if field in required:
+                    raise ValueError(f"Vision response lacks {field}")
+                scores[field] = None
+                continue
+            score_value = float(raw_score)
+            if not 0 <= score_value <= 1:
+                raise ValueError(f"{field} must be between zero and one")
+            scores[field] = score_value
         evidence = answer.get("observed_evidence", answer.get("matched_anchors", []))
         if not isinstance(evidence, list):
             raise ValueError("Vision response lacks observed evidence")
@@ -110,7 +149,11 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
         debug["parse_error"] = f"{type(error).__name__}: {str(error)[:160]}"
         return {**base, "reason": f"Vision check unavailable: {type(error).__name__}",
                 "vision_debug": debug}
-    decision = "pass" if score >= threshold else "SUBJECT_DRIFT"
-    return {**base, "checked": True, "score": score, "decision": decision,
-            "reason": str(answer.get("reason") or ""), "observed_evidence": evidence,
+    failed = [field for field, limit in required.items() if scores[field] < limit]
+    decision = ("SUBJECT_DRIFT" if "subject_score" in failed else
+                "BRIEF_FIDELITY_DRIFT" if failed else "pass")
+    return {**base, "checked": True, "score": scores["subject_score"], **scores,
+            "decision": decision,
+            "reason": str(answer.get("reason") or "")[:300],
+            "observed_evidence": [str(item)[:120] for item in evidence[:8]],
             "model": chosen_model, "vision_debug": debug}

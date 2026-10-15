@@ -11,6 +11,7 @@ import re
 import secrets
 import time
 import uuid
+from collections import OrderedDict
 
 from pathlib import Path
 from typing import Any
@@ -54,7 +55,7 @@ from app.services.template_conditioning import (
 )
 from app.services.template_adherence import assess_template_adherence
 from app.services.composition_diversity import boilerplate_metrics, boilerplate_score, compare_directions_metrics
-from app.services.subject_adherence import assess_subject_adherence
+from app.services.subject_adherence import assess_subject_adherence, brief_fidelity_record
 
 
 logger = logging.getLogger(
@@ -86,6 +87,8 @@ QUEUE_ENDPOINT = "/queue"
 
 MAX_SDXL_RECOVERABLE_OFF_PALETTE_RATIO = 0.35
 MAX_SD35_RECOVERABLE_OFF_PALETTE_RATIO = 0.15
+_OCR_CACHE: OrderedDict[tuple[str, int], dict] = OrderedDict()
+_OCR_CACHE_LIMIT = 32
 
 
 def _palette_recovery_limit(
@@ -251,8 +254,9 @@ def _palette_only_recovery(
             subject = assess_subject_adherence(target, visual_design)
             if recovery_diagnostics is not None:
                 recovery_diagnostics["normalized_subject_adherence"] = subject
-            if subject["decision"] == "SUBJECT_DRIFT":
-                raise ValueError("Palette normalization changed the requested visual subject.")
+                recovery_diagnostics["normalized_brief_fidelity"] = brief_fidelity_record(subject)
+            if subject["decision"] != "pass":
+                raise ValueError(f"Palette normalization failed brief fidelity: {subject['decision']}.")
         return structural, final
     except Exception as error:
         if recovery_diagnostics is not None:
@@ -609,6 +613,7 @@ def _confirm_ocr_candidate(
     top: int,
     width: int,
     height: int,
+    diagnostics: dict | None = None,
 ) -> bool:
     """Confirm a first-pass OCR token using an enlarged local crop.
 
@@ -716,19 +721,9 @@ def _confirm_ocr_candidate(
         7,
         6,
     ):
-        data = (
-            pytesseract.image_to_data(
-                crop,
-                config=(
-                    f"--psm {psm}"
-                ),
-                output_type=(
-                    pytesseract
-                    .Output
-                    .DICT
-                ),
-            )
-        )
+        data = _ocr_data(crop, f"--psm {psm}", f"crop-psm-{psm}", diagnostics)
+        if data is None:
+            continue
 
         for (
             confirmed_text,
@@ -802,19 +797,50 @@ def _ocr_same_region(first: dict, second: dict) -> bool:
     return abs((x1 + w1 / 2) - (x2 + w2 / 2)) <= max(w1, w2) and abs(y1 - y2) <= max(h1, h2)
 
 
+def _ocr_data(image: Image.Image, config: str, variant: str, diagnostics: dict | None) -> dict | None:
+    """Bound every subprocess-backed Tesseract pass and retain failure evidence."""
+    if diagnostics is not None:
+        diagnostics["attempted"].append(variant)
+    remaining = ((diagnostics["_deadline"] - time.monotonic())
+                 if diagnostics is not None and "_deadline" in diagnostics else settings.ocr_timeout_seconds)
+    if remaining <= 0:
+        if diagnostics is not None:
+            diagnostics["timed_out_variants"].append(variant)
+            diagnostics["failure_reasons"][variant] = "OCR total time budget exhausted"
+        return None
+    try:
+        result = pytesseract.image_to_data(
+            image, config=config, output_type=pytesseract.Output.DICT,
+            timeout=min(settings.ocr_timeout_seconds, remaining),
+        )
+    except (RuntimeError, pytesseract.TesseractError, OSError) as error:
+        if diagnostics is not None:
+            timed_out = isinstance(error, RuntimeError) and "timeout" in str(error).casefold()
+            key = "timed_out_variants" if timed_out else "failed_variants"
+            diagnostics[key].append(variant)
+            diagnostics["failure_reasons"][variant] = f"{type(error).__name__}: {str(error)[:120]}"
+        return None
+    if diagnostics is not None:
+        diagnostics["completed_variants"].append(variant)
+    return result
+
+
 def detect_text_evidence(image: Image.Image) -> dict:
     """Confirm typography with crop and preprocessing evidence, then group lines."""
+    diagnostics = {"attempted": [], "completed_variants": [], "timed_out_variants": [],
+                   "failed_variants": [], "failure_reasons": {},
+                   "_deadline": time.monotonic() + max(30.0, settings.ocr_timeout_seconds * 5)}
     grey = image.convert("L")
-    raw = pytesseract.image_to_data(grey, config="--psm 11",
-                                    output_type=pytesseract.Output.DICT)
-    items = _ocr_items(raw, image.size)
+    raw = _ocr_data(grey, "--psm 11", "original", diagnostics)
+    items = _ocr_items(raw or {}, image.size)
     for item in items:
         x, y, w, h = item["bbox"]
         item["passes"].add("original")
         if w and h:
             try:
                 item["crop_confirmed"] = _confirm_ocr_candidate(
-                    image, token=item["token"], left=x, top=y, width=w, height=h)
+                    image, token=item["token"], left=x, top=y, width=w, height=h,
+                    diagnostics=diagnostics)
             except StopIteration:
                 item["crop_confirmed"] = False
             if item["crop_confirmed"]:
@@ -827,10 +853,11 @@ def detect_text_evidence(image: Image.Image) -> dict:
     for pass_name, variant in (("contrast", enhanced), ("threshold", binary),
                                ("inverted", 255 - binary)):
         try:
-            result = pytesseract.image_to_data(Image.fromarray(variant), config="--psm 11",
-                                                output_type=pytesseract.Output.DICT)
+            result = _ocr_data(Image.fromarray(variant), "--psm 11", pass_name, diagnostics)
         except StopIteration:  # Unit-test mocks may provide only the first passes.
             break
+        if result is None:
+            continue
         for candidate in _ocr_items(result, image.size, scale=2.0):
             if candidate["confidence"] < 55:
                 continue
@@ -857,6 +884,10 @@ def detect_text_evidence(image: Image.Image) -> dict:
                          and (item["crop_confirmed"] or len(item["passes"]) >= 2))
     detected = bool(lines or strong_single)
     selected = confirmed if detected else []
+    diagnostics["decision"] = ("OCR_UNAVAILABLE" if not diagnostics["completed_variants"] else
+                               "OCR_PARTIAL" if diagnostics["timed_out_variants"] or diagnostics["failed_variants"]
+                               else "complete")
+    diagnostics.pop("_deadline")
     return {
         "text_detected": detected,
         "tokens": [item["token"] for item in items],
@@ -866,7 +897,21 @@ def detect_text_evidence(image: Image.Image) -> dict:
         "confirmation_passes": sorted({name for item in selected for name in item["passes"]}),
         "text_area_ratio": sum(item["area_ratio"] for item in selected),
         "evidence": [{**item, "passes": sorted(item["passes"])} for item in items],
+        "ocr_diagnostics": diagnostics,
     }
+
+
+def _cached_text_evidence(image: Image.Image, digest: str) -> dict:
+    """Reuse OCR only for identical pixels and the same OCR implementation."""
+    key = (digest, id(pytesseract.image_to_data))
+    if key in _OCR_CACHE:
+        _OCR_CACHE.move_to_end(key)
+        return _OCR_CACHE[key]
+    evidence = detect_text_evidence(image)
+    _OCR_CACHE[key] = evidence
+    if len(_OCR_CACHE) > _OCR_CACHE_LIMIT:
+        _OCR_CACHE.popitem(last=False)
+    return evidence
 
 
 def detected_text_tokens(image: Image.Image) -> list[str]:
@@ -1030,6 +1075,33 @@ def build_workflow(
     if template_image is not None:
         workflow = apply_template_img2img(workflow, engine_id, template_image, denoise, generation_mask)
     return workflow
+
+
+def effective_workflow_summary(workflow: dict, engine_id: str) -> dict:
+    """Bounded renderer audit for the exact workflow sent to ComfyUI."""
+    digest = hashlib.sha256(json.dumps(workflow, sort_keys=True).encode("utf-8")).hexdigest()
+    summary = {"workflow_sha256": digest}
+    if engine_id != settings.engine_3_id:
+        return summary
+    loader = workflow["4"]["inputs"]
+    encoders = workflow["54"]["inputs"]
+    sampler = workflow["3"]["inputs"]
+    latent = workflow["53"]["inputs"]
+    sampling_node = workflow.get("55")
+    summary.update(
+        checkpoint=loader["ckpt_name"],
+        clip_l=encoders["clip_name1"], clip_g=encoders["clip_name2"],
+        t5=encoders["clip_name3"], vae=workflow["8"]["inputs"]["vae"],
+        sampler=sampler["sampler_name"], scheduler=sampler["scheduler"],
+        cfg=sampler["cfg"], steps=sampler["steps"],
+        shift=sampling_node["inputs"]["shift"] if sampling_node else None,
+        width=latent["width"], height=latent["height"], seed=sampler["seed"],
+        positive_fields={key: workflow["16"]["inputs"][key] for key in ("clip_l", "clip_g", "t5xxl")},
+        negative_fields={key: workflow["40"]["inputs"][key] for key in ("clip_l", "clip_g", "t5xxl")},
+        positive_route=sampler["positive"], negative_route=sampler["negative"],
+        model_route=sampler["model"],
+    )
+    return summary
 
 
 def apply_template_img2img(
@@ -1223,7 +1295,7 @@ def validate_background(
             image.size
         )
 
-        text_evidence = detect_text_evidence(image)
+        text_evidence = _cached_text_evidence(image, digest)
         tokens = text_evidence["confirmed_tokens"]
 
         human_signals = (
@@ -1233,6 +1305,11 @@ def validate_background(
         )
 
         problems: list[tuple[str, str]] = []
+        ocr_diagnostics = text_evidence.get("ocr_diagnostics", {})
+        if ocr_diagnostics.get("decision") in {"OCR_UNAVAILABLE", "OCR_PARTIAL"}:
+            category = ("OCR_TIMEOUT" if ocr_diagnostics.get("timed_out_variants") else
+                        ocr_diagnostics["decision"])
+            problems.append((category, f"{category}: text validation did not complete"))
         collapse_metrics = boilerplate_metrics(image)
         collapse_score = collapse_metrics["boilerplate_score"]
         if collapse_metrics.get("title_panel_score", 0.0) >= 0.65:
@@ -1301,6 +1378,7 @@ def validate_background(
         "high_pass_mean": quality_result.get("highpass_mean"),
         "ocr_tokens": tokens,
         "text_detection": text_evidence,
+        "ocr_diagnostics": ocr_diagnostics,
         "ocr_detected": bool(tokens),
         "ocr_region_count": len(tokens),
         "human_detection": human_signals,
@@ -1322,6 +1400,7 @@ def validate_background(
             "largest_unrequested_region_ratio": metrics.get("largest_unrequested_region_ratio"),
         },
         "text": {
+            "ocr_diagnostics": ocr_diagnostics,
             "detected": text_evidence["text_detected"],
             "tokens": text_evidence["tokens"],
             "confirmed_tokens": text_evidence["confirmed_tokens"],
@@ -1344,7 +1423,8 @@ def validate_background(
     }
     validation_report["quality"]["raster_score"] = metrics.get("fine_line_pair_ratio")
     if problems:
-        priority = {"HUMAN": 0, "TEXT": 1, "TITLE_PANEL": 2,
+        priority = {"HUMAN": 0, "TEXT": 1, "OCR_TIMEOUT": 1, "OCR_UNAVAILABLE": 1,
+                    "OCR_PARTIAL": 1, "TITLE_PANEL": 2,
                     "BOILERPLATE_COMPOSITION": 2,
                     "DIRECTION_DUPLICATE": 3, "FLAT": 4, "DENSE_SAFE_REGION": 5,
                     "WEAK_OUTER_STRUCTURE": 6, "PALETTE_OFF": 7}
@@ -1401,6 +1481,7 @@ def validate_background(
         **quality_result,
         **palette_result,
         "ocr_tokens": tokens,
+        "ocr_diagnostics": ocr_diagnostics,
         "human_detection": human_signals,
         "all_failure_categories": [],
     }
@@ -2043,13 +2124,17 @@ class ComfyUIClient:
                 if visual_design:
                     adherence_result = assess_subject_adherence(candidate_path, visual_design)
                     record["subject_adherence"] = adherence_result
-                    if adherence_result["decision"] == "SUBJECT_DRIFT":
-                        record["primary_failure_category"] = "SUBJECT_DRIFT"
-                        record["all_failure_categories"] = ["SUBJECT_DRIFT"]
+                    record["brief_fidelity"] = brief_fidelity_record(adherence_result)
+                    if adherence_result["decision"] != "pass":
+                        category = ("VISION_UNAVAILABLE" if adherence_result["decision"] == "unavailable"
+                                    else adherence_result["decision"])
+                        record["primary_failure_category"] = category
+                        record["all_failure_categories"] = [category]
                         record["validation"] = {**record.get("validation", {}),
-                                                "decision": "rejected", "failure_category": "SUBJECT_DRIFT",
-                                                "subject_adherence": adherence_result}
-                        raise ValueError("SUBJECT_DRIFT: " + adherence_result["reason"])
+                                                "decision": "rejected", "failure_category": category,
+                                                "subject_adherence": adherence_result,
+                                                "brief_fidelity": record["brief_fidelity"]}
+                        raise ValueError(category + ": " + adherence_result["reason"])
                 if similarity >= 0.88:
                     raise ValueError(f"DIRECTION_DUPLICATE: structural similarity {similarity:.2f}")
 
@@ -2791,6 +2876,7 @@ class ComfyUIClient:
             "workflow_sha256": (
                 fingerprint
             ),
+            "effective_workflow": effective_workflow_summary(workflow, engine_id),
             "request_id": (
                 str(
                     uuid.uuid4()

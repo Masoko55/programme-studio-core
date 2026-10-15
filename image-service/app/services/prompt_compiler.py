@@ -39,6 +39,14 @@ def failure_category(reason: str) -> str:
         return "TITLE_PANEL"
     if "SUBJECT_DRIFT" in reason.upper():
         return "SUBJECT_DRIFT"
+    if "BRIEF_FIDELITY_DRIFT" in reason.upper():
+        return "BRIEF_FIDELITY_DRIFT"
+    if "VISION_UNAVAILABLE" in reason.upper():
+        return "VISION_UNAVAILABLE"
+    if "OCR_TIMEOUT" in reason.upper():
+        return "OCR_TIMEOUT"
+    if "OCR_UNAVAILABLE" in reason.upper() or "OCR_PARTIAL" in reason.upper():
+        return "OCR_UNAVAILABLE"
     for category in ("BOILERPLATE_COMPOSITION", "DIRECTION_DUPLICATE", "PROTECTED_REGION_INTRUSION", "WEAK_TEMPLATE_STRUCTURE", "WEAK_DECORATIVE_DESIGN", "TEMPLATE_DRIFT"):
         if category.casefold() in text:
             return category
@@ -165,7 +173,7 @@ def _atmosphere(spec: CandidateSpec) -> str:
     design = spec.visual_design
     source = " ".join(str(part or "") for part in (design.get("mood"), spec.creative_description,
                                                      design.get("event_context"), spec.event_type))
-    words = re.findall(r"\b(?:joyful|playful|energetic|high-energy|refined|formal|luxurious|restrained|dignified|calm|polished|professional|organic|warm|elegant|celebratory|festive)\b", source, re.I)
+    words = re.findall(r"\b(?:joyful|playful|energetic|high-energy|refined|formal|luxurious|prestigious|contemporary|restrained|dignified|calm|polished|professional|organic|warm|elegant|celebratory|festive)\b", source, re.I)
     mood = ", ".join(dict.fromkeys(word.casefold() for word in words))
     if not mood:
         event = (spec.event_type + " " + spec.theme).casefold()
@@ -173,6 +181,8 @@ def _atmosphere(spec: CandidateSpec) -> str:
             mood = "playful, joyful, energetic"
         elif any(word in event for word in ("black tie", "black-tie", "gala")):
             mood = "refined, formal, luxurious"
+        elif "award" in event:
+            mood = "prestigious, contemporary, polished"
         elif "memorial" in event:
             mood = "restrained, dignified, calm"
         elif "corporate" in event or "conference" in event:
@@ -230,6 +240,9 @@ def _scene_tone(spec: CandidateSpec) -> tuple[str, str]:
     if any(word in source for word in ("formal", "luxurious", "black-tie", "black tie")):
         return ("Refined controlled lighting and composed formal atmosphere.",
                 "childish, cartoonish, chaotic")
+    if "award" in source or "prestigious" in source:
+        return ("Polished contemporary lighting and prestigious celebratory atmosphere.",
+                "childish, shabby, chaotic")
     if any(word in source for word in ("corporate", "professional", "conference")):
         return ("Clear polished lighting and professional visual atmosphere.",
                 "whimsical, childish, fantasy-heavy")
@@ -241,6 +254,24 @@ def _motif_avoidances(spec: CandidateSpec) -> str:
                        *spec.visual_design["symbolic_motifs"],
                        *spec.visual_design["environmental_motifs"]]).casefold()
     return "explosion, radial sparks, energy burst, disconnected rays, starburst" if "web" in source else ""
+
+
+def _soften_playful_tone(text: str, spec: CandidateSpec) -> str:
+    """Remove aggressive planning language only when the brief asks for play."""
+    if not _scene_tone(spec)[0].startswith("Uplifting"):
+        return text
+    replacements = {
+        "dramatic atmospheric perspective": "clear graphic depth",
+        "fractured perimeter": "clean shaped perimeter",
+        "spikes": "bold shapes",
+        "speed-line energy": "celebratory motion",
+        "dynamic focal points": "playful focal rhythm",
+        "violent burst": "celebratory motion",
+        "dark cinematic": "bright illustrative",
+    }
+    for original, friendly in replacements.items():
+        text = re.sub(re.escape(original), friendly, text, flags=re.I)
+    return text
 
 
 def _composition(spec: CandidateSpec) -> str:
@@ -463,6 +494,7 @@ def _positive_prompt(
         return _join_sections(
             f"Background inspiration: {subject}." if subject != motif else "",
             *shared,
+            _atmosphere(spec), _scene_tone(spec)[0], _motif_structure(spec),
             f"Correction: {correction}" if correction else "",
             safety,
         )
@@ -505,6 +537,8 @@ def _encoder_fields(
     short_correction = " ".join(correction.split()[:6]) if correction else ""
     if spec.engine_id == "sdxl-1-0":
         subject_line = f"Visual subject: {subject}."
+        atmosphere_line = _atmosphere(spec)
+        tone_line = _scene_tone(spec)[0]
         structure_line = _join_sections(
             f"Composition: {_first_words(design['composition_strategy'], 12)}.",
             f"Focal: {_first_words(design['focal_strategy'], 10)}.",
@@ -513,9 +547,14 @@ def _encoder_fields(
             f"Style: {_first_words(design.get('visual_style'), 8)}." if design.get('visual_style') else "",
             f"Motifs: {_first_words(', '.join(motifs) or direction_detail, 12)}.")
         return (
-            _join_sections("Background artwork.", subject_line, direction, structure_line, colour,
+            _join_sections("Background artwork.", subject_line, atmosphere_line,
+                           _first_words(tone_line, 12), _soften_playful_tone(direction, spec),
+                           _soften_playful_tone(structure_line, spec), colour,
                            f"Correction: {short_correction}" if short_correction else ""),
-            _join_sections("Background artwork.", subject_line, direction, structure_line, global_line,
+            _join_sections("Background artwork.", subject_line, atmosphere_line,
+                           _first_words(tone_line, 12), _soften_playful_tone(direction, spec),
+                           _soften_playful_tone(structure_line, spec),
+                           _soften_playful_tone(global_line, spec), _motif_structure(spec),
                            f"Quiet areas: {design['title_safe_region_strategy']}; {design['programme_safe_region_strategy']}.", colour,
                            f"Correction: {short_correction}" if short_correction else ""),
         )
@@ -590,6 +629,7 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
                     "title, logo, watermark, signage, glyphs, pseudo-text, poster mockup, "
                     "no blank title panel, no white card, no bordered text box, "
                     "no poster frame, no banner, no placard, no signboard, no empty paper rectangle")
+        negative += ", " + ", ".join(value for value in (_scene_tone(spec)[1], _motif_avoidances(spec)) if value)
     else:
         negative = "people, faces, characters, text, glyphs, logos, title panels"
     extra_negative = {
@@ -622,7 +662,7 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         f"Correction: {correction}" if correction else "",
     ) if section)
     return CompiledPrompt(
-        positive=_background_only(positive, spec),
+        positive=_background_only(_soften_playful_tone(positive, spec), spec),
         negative=negative,
         clip_l=_background_only(clip_l, spec),
         clip_g=_background_only(clip_g, spec),

@@ -113,6 +113,24 @@ from app.services.sampling_profiles import (
 )
 
 
+def classify_probe_failure(record: dict, error: BaseException) -> str:
+    """Keep validator, vision, and renderer failures distinct in probe output."""
+    category = str(record.get("primary_failure_category") or record.get("outcome_category") or "").upper()
+    if category in {"OCR_TIMEOUT", "OCR_UNAVAILABLE", "OCR_PARTIAL",
+                    "VISION_UNAVAILABLE", "BRIEF_FIDELITY_DRIFT"}:
+        return "OCR_UNAVAILABLE" if category == "OCR_PARTIAL" else category
+    message = str(error).casefold()
+    if "ocr_timeout" in message or ("tesseract" in message and "timeout" in message):
+        return "OCR_TIMEOUT"
+    if "ocr_unavailable" in message or "ocr_partial" in message:
+        return "OCR_UNAVAILABLE"
+    if "vision_unavailable" in message or "vision check unavailable" in message:
+        return "VISION_UNAVAILABLE"
+    if isinstance(error, asyncio.TimeoutError) or "timeout" in message or "timed out" in message:
+        return "COMFYUI_TIMEOUT"
+    return category or "PROBE_FAILURE"
+
+
 # ============================================================
 # Reference helpers
 # ============================================================
@@ -670,6 +688,8 @@ def _diagnostic_summary(
         "full_failure_category": (record.get("full_validation") or {}).get("failure_category") or record.get("outcome_category"),
         "palette_recovery": record.get("palette_recovery"),
         "subject_adherence": record.get("subject_adherence"),
+        "brief_fidelity": record.get("brief_fidelity"),
+        "effective_workflow": record.get("effective_workflow"),
         "direction_similarity_diagnostics": record.get("direction_similarity_diagnostics"),
         "output_path": record.get("output_path"),
         "retry_stage": (
@@ -1029,7 +1049,7 @@ async def main() -> None:
                 )
 
                 result = (
-                    await client.generate_image(
+                    await asyncio.wait_for(client.generate_image(
                         reference,
                         args.engine,
                         args.direction,
@@ -1056,10 +1076,10 @@ async def main() -> None:
                         seed_override=(
                             args.seed
                         ),
-                    )
+                    ), timeout=settings.comfyui_generation_timeout_seconds + 90)
                 )
 
-    except ComfyUIError as error:
+    except (ComfyUIError, asyncio.TimeoutError) as error:
         #
         # generate_image() has already persisted the normal rejection record.
         #
@@ -1073,6 +1093,8 @@ async def main() -> None:
                 capture=capture,
             )
         )
+        stored["probe_failure_category"] = classify_probe_failure(stored, error)
+        write_json(_record_path(reference, args.engine, args.direction), stored)
 
         print(
             json.dumps(

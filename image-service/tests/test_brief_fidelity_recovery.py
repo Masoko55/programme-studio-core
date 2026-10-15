@@ -1,0 +1,216 @@
+"""Offline regressions for event fit and bounded OCR."""
+
+import json
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import Mock, patch
+
+from PIL import Image
+
+from app.config.settings import settings
+from app.services.candidate_spec import build_candidate_spec
+from app.services.comfyui_client import (
+    _cached_text_evidence, _ocr_data, _OCR_CACHE, build_workflow, detect_text_evidence,
+    effective_workflow_summary, validate_background,
+)
+from app.services.prompt_compiler import compile_candidate_prompt
+from app.services.sampling_profiles import profile_by_name
+from app.services.subject_adherence import assess_subject_adherence
+from scripts.probe_native_candidate import classify_probe_failure
+from tests.test_renderer_brief_matrix import fixture
+
+
+class BriefFidelityRecoveryTests(unittest.TestCase):
+    def _assess(self, brief, scores):
+        with tempfile.TemporaryDirectory() as directory:
+            image = Path(directory) / "candidate.png"
+            Image.new("RGB", (32, 32), "white").save(image)
+            response = Mock(status_code=200, headers={"content-type": "application/json"})
+            response.raise_for_status.return_value = None
+            response.json.return_value = {"message": {"content": json.dumps({
+                **scores, "observed_evidence": ["visible forms"], "reason": "brief fit",
+            })}}
+            with patch("app.services.subject_adherence.httpx.post", return_value=response) as send:
+                result = assess_subject_adherence(image, brief, model="minicpm-v4.5:latest")
+        prompt = send.call_args.kwargs["json"]["messages"][0]["content"]
+        self.assertNotIn("correct colours", prompt)
+        return result, prompt
+
+    def test_visible_city_with_wrong_event_fit_fails(self):
+        with tempfile.TemporaryDirectory() as directory:
+            image = Path(directory) / "candidate.png"
+            Image.new("RGB", (32, 32), "white").save(image)
+            response = Mock(status_code=200, headers={"content-type": "application/json"})
+            response.raise_for_status.return_value = None
+            response.json.return_value = {"message": {"content": json.dumps({
+                "subject_score": .85, "atmosphere_score": .2, "motif_score": .1,
+                "audience_fit_score": .15, "observed_evidence": ["dark city"],
+                "reason": "No playful mood or connected web motif",
+            })}}
+            brief = {"primary_visual_subject": "comic city", "event_context": "children's birthday",
+                     "audience_context": "children", "creative_description": "joyful playful celebration",
+                     "symbolic_motifs": ["connected web geometry"]}
+            with patch("app.services.subject_adherence.httpx.post", return_value=response):
+                result = assess_subject_adherence(image, brief, model="minicpm-v4.5:latest")
+        self.assertEqual(result["decision"], "BRIEF_FIDELITY_DRIFT")
+        self.assertEqual(result["subject_score"], .85)
+        self.assertEqual(result["motif_score"], .1)
+
+    def test_missing_web_topology_fails_even_with_good_subject_and_mood(self):
+        brief = {"primary_visual_subject": "comic city", "event_context": "children birthday",
+                 "creative_description": "joyful playful celebration", "audience_context": "children",
+                 "symbolic_motifs": ["connected web geometry"]}
+        result, prompt = self._assess(brief, {"subject_score": .9,
+            "atmosphere_score": .9, "motif_score": .1, "audience_fit_score": .9})
+        self.assertEqual(result["decision"], "BRIEF_FIDELITY_DRIFT")
+        self.assertIn("curved cross-links", prompt)
+        self.assertIn("isolated rays", prompt)
+
+    def test_ocr_timeout_is_bounded_and_explicit(self):
+        with patch("app.services.comfyui_client.pytesseract.image_to_data",
+                   side_effect=RuntimeError("Tesseract process timeout")) as ocr:
+            result = detect_text_evidence(Image.new("RGB", (64, 64), "white"))
+        self.assertGreater(ocr.call_args.kwargs["timeout"], 0)
+        self.assertEqual(result["ocr_diagnostics"]["timed_out_variants"],
+                         ["original", "contrast", "threshold", "inverted"])
+        self.assertEqual(result["ocr_diagnostics"]["decision"], "OCR_UNAVAILABLE")
+
+    def test_exhausted_ocr_budget_starts_no_more_processes(self):
+        diagnostics = {"attempted": [], "completed_variants": [],
+                       "timed_out_variants": [], "failed_variants": [],
+                       "failure_reasons": {}, "_deadline": 0.0}
+        with patch("app.services.comfyui_client.pytesseract.image_to_data") as ocr:
+            self.assertIsNone(_ocr_data(Image.new("L", (16, 16)), "--psm 11", "original", diagnostics))
+        ocr.assert_not_called()
+        self.assertEqual(diagnostics["timed_out_variants"], ["original"])
+
+    def test_five_event_families_require_atmosphere_and_audience_when_given(self):
+        cases = (
+            ("black-tie gala", "refined formal ballroom", "adults", "formal"),
+            ("garden celebration", "warm organic garden", "families", "organic"),
+            ("modern awards", "prestigious contemporary abstraction", "adults", "prestigious"),
+            ("corporate conference", "professional polished stage", "professionals", "professional"),
+            ("memorial service", "dignified restrained memorial", "family", "dignified"),
+        )
+        for event, atmosphere, audience, expected in cases:
+            with self.subTest(event=event):
+                brief = {"primary_visual_subject": "abstract forms" if event == "modern awards" else event,
+                         "event_context": event, "creative_description": atmosphere,
+                         "audience_context": audience}
+                result, prompt = self._assess(brief, {"subject_score": .9,
+                    "atmosphere_score": .9, "audience_fit_score": .9})
+                self.assertEqual(result["decision"], "pass")
+                self.assertIn(expected, prompt)
+                wrong, _ = self._assess(brief, {"subject_score": .9,
+                    "atmosphere_score": .2, "audience_fit_score": .9})
+                self.assertEqual(wrong["decision"], "BRIEF_FIDELITY_DRIFT")
+
+    def test_sdxl_child_mood_and_web_topology_are_explicit(self):
+        document = fixture(401, "children birthday", "comic city web geometry",
+                           "royal blue", "red", "dominant", "none", "asymmetric")
+        document["brief"].update(creative_description="joyful playful celebration",
+                                 audience_context="children", symbolic_motifs=["connected web network"])
+        direction = document["directions"][0]["direction"]
+        direction["composition_strategy"] = "dramatic atmospheric perspective with fractured perimeter and spikes"
+        prompt = compile_candidate_prompt(build_candidate_spec(document, "sdxl-1-0", "A"), 1)
+        for field in (prompt.clip_l, prompt.clip_g):
+            self.assertIn("joyful", field)
+            self.assertIn("child-friendly", field)
+            self.assertNotIn("fractured perimeter", field)
+        self.assertIn("cross-link arcs", prompt.clip_g)
+        self.assertIn("dystopian", prompt.negative)
+
+    def test_sdxl_formal_and_botanical_mood_do_not_inherit_playful_city(self):
+        for event, scene, description, expected in (
+            ("black-tie gala", "ballroom columns", "refined formal luxury", "refined"),
+            ("garden celebration", "botanical garden", "warm organic garden", "organic"),
+            ("modern awards", "abstract sculptural geometry", "prestigious contemporary awards", "prestigious"),
+        ):
+            with self.subTest(event=event):
+                document = fixture(403, event, scene, "purple", "silver", "dominant", "none", "asymmetric")
+                document["brief"]["creative_description"] = description
+                prompt = compile_candidate_prompt(build_candidate_spec(document, "sdxl-1-0", "A"), 1)
+                self.assertIn(expected, prompt.clip_g)
+                self.assertNotIn("child-friendly", prompt.clip_g)
+                self.assertNotIn("web-like", prompt.clip_g)
+
+    def test_ocr_same_sha_reuses_one_result(self):
+        _OCR_CACHE.clear()
+        image = Image.new("RGB", (32, 32), "white")
+        with patch("app.services.comfyui_client.detect_text_evidence",
+                   return_value={"confirmed_tokens": []}) as detect:
+            first = _cached_text_evidence(image, "same-sha")
+            second = _cached_text_evidence(image, "same-sha")
+        self.assertIs(first, second)
+        self.assertEqual(detect.call_count, 1)
+
+    def test_validator_rejects_ocr_timeout_and_reuses_source_sha(self):
+        _OCR_CACHE.clear()
+        evidence = {"confirmed_tokens": [], "text_detected": False, "tokens": [],
+                    "text_lines": [], "text_area_ratio": 0,
+                    "ocr_diagnostics": {"decision": "OCR_UNAVAILABLE",
+                                        "timed_out_variants": ["original"]}}
+        with tempfile.TemporaryDirectory() as directory:
+            image = Path(directory) / "candidate.png"
+            Image.new("RGB", (64, 64), "white").save(image)
+            with patch("app.services.comfyui_client.detect_text_evidence", return_value=evidence) as ocr, \
+                 patch("app.services.comfyui_client.detect_human_signals", return_value={"detected": False,
+                       "people": [], "faces": [], "profiles": [], "upper_bodies": []}), \
+                 patch("app.services.comfyui_client.boilerplate_metrics", return_value={"boilerplate_score": 0}), \
+                 patch("app.services.comfyui_client.validate_visual_quality", return_value={}), \
+                 patch("app.services.comfyui_client._valid_background_dimensions", return_value={(64, 64)}):
+                for _ in range(2):
+                    with self.assertRaisesRegex(ValueError, "OCR_TIMEOUT") as caught:
+                        validate_background(image)
+                    self.assertEqual(caught.exception.diagnostics["primary_failure_category"], "OCR_TIMEOUT")
+                    self.assertEqual(caught.exception.diagnostics["ocr_diagnostics"], evidence["ocr_diagnostics"])
+            self.assertEqual(ocr.call_count, 1)
+
+    def test_sd35_effective_workflow_wiring_and_profile(self):
+        document = fixture(402, "garden celebration", "botanical garden", "green",
+                           "cream", "dominant", "none", "asymmetric")
+        compiled = compile_candidate_prompt(build_candidate_spec(document, settings.engine_3_id, "A"), 1)
+        profile = profile_by_name(settings.engine_3_id, "alternate_sampler")
+        seed = 20261009
+        workflow = build_workflow(settings.engine_3_id, compiled.positive, compiled.negative,
+                                  seed, "probe/static", compiled_prompt=compiled, sampling_profile=profile)
+        audit = effective_workflow_summary(workflow, settings.engine_3_id)
+        self.assertEqual(audit["checkpoint"], settings.sd35_checkpoint)
+        self.assertEqual((audit["clip_l"], audit["clip_g"], audit["t5"]),
+                         (settings.sd35_clip_l, settings.sd35_clip_g, settings.sd35_t5))
+        self.assertEqual((audit["width"], audit["height"]),
+                         (settings.sd35_generation_width, settings.sd35_generation_height))
+        self.assertEqual(audit["seed"], seed)
+        self.assertEqual((audit["sampler"], audit["scheduler"], audit["cfg"],
+                          audit["steps"], audit["shift"]),
+                         (profile.sampler_name, profile.scheduler, profile.cfg,
+                          profile.steps, profile.shift))
+        self.assertEqual(audit["positive_fields"],
+                         {"clip_l": compiled.clip_l, "clip_g": compiled.clip_g, "t5xxl": compiled.t5})
+        self.assertEqual(audit["positive_route"], ["16", 0])
+        self.assertEqual(audit["negative_route"], ["40", 0])
+        self.assertEqual(audit["vae"], ["4", 2])
+        baseline = profile_by_name(settings.engine_3_id, "official_baseline")
+        native = build_workflow(settings.engine_3_id, compiled.positive, compiled.negative,
+                                seed, "probe/native", compiled_prompt=compiled,
+                                sampling_profile=baseline)
+        native_audit = effective_workflow_summary(native, settings.engine_3_id)
+        self.assertIsNone(native_audit["shift"])
+        self.assertEqual(native_audit["model_route"], ["4", 0])
+        self.assertEqual(audit["model_route"], ["4", 0])
+        self.assertEqual(native_audit["seed"], seed)
+        self.assertEqual(audit["positive_fields"], native_audit["positive_fields"])
+        shifted_profile = profile_by_name(settings.engine_3_id, "raster_rescue_trial")
+        shifted = build_workflow(settings.engine_3_id, compiled.positive, compiled.negative,
+                                 seed, "probe/shifted", compiled_prompt=compiled,
+                                 sampling_profile=shifted_profile)
+        shifted_audit = effective_workflow_summary(shifted, settings.engine_3_id)
+        self.assertEqual(shifted_audit["model_route"], ["55", 0])
+        self.assertEqual(shifted_audit["shift"], shifted_profile.shift)
+
+    def test_probe_failure_categories_stay_distinct(self):
+        for category in ("OCR_TIMEOUT", "OCR_UNAVAILABLE", "VISION_UNAVAILABLE"):
+            self.assertEqual(classify_probe_failure({"primary_failure_category": category},
+                                                    RuntimeError("failed")), category)
+        self.assertEqual(classify_probe_failure({}, TimeoutError("ComfyUI timed out")), "COMFYUI_TIMEOUT")

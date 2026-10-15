@@ -97,6 +97,9 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
             "title_preference", "event_date", "venue"
         ) if field(brief, key)],
         "audience_context": field(brief, "audience_context"),
+        "age_group": field(brief, "age_group"),
+        "creative_description": field(brief, "creative_description"),
+        "theme_reference_treatment": field(brief, "theme_reference_treatment"),
         "mood": field(brief, "mood"),
         "visual_style": field(brief, "visual_style"),
         "requested_palette": palette,

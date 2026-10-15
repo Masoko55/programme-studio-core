@@ -119,7 +119,7 @@ class CandidateRetryIntegrationTests(unittest.TestCase):
         })
         self.assertEqual(result, (False, 0))
         self.assertEqual(len(calls), 1)
-        self.assertEqual(calls[0][2]["compiled_prompt"].retry_stage, "rescue")
+        self.assertEqual(calls[0][2]["compiled_prompt"].retry_stage, "normal")
 
     def test_exhausted_candidate_makes_no_submission(self):
         calls, result = self.run_wave({

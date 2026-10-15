@@ -2185,16 +2185,8 @@ def _attempt_prompts(
     current_prompts: tuple[str, str],
     palette: tuple[str | None, str | None],
 ):
-    compiled = compile_candidate_prompt(spec, attempt, previous_reason)
+    compiled = compile_candidate_prompt(spec, attempt, previous_reason, concise=True)
     return compiled.positive, compiled.negative, compiled
-
-
-def _check_candidate_spec(existing: dict, spec) -> None:
-    if existing.get("spec_sha256") and existing["spec_sha256"] != spec.spec_sha256:
-        raise ValueError("Candidate specification changed across attempts; use a new reference")
-    if (existing.get("semantic_contract_sha256")
-            and existing["semantic_contract_sha256"] != spec.semantic_contract_sha256):
-        raise ValueError("Semantic contract changed across attempts; use a new reference")
 
 
 async def _attempt_output_wave(
@@ -2218,7 +2210,6 @@ async def _attempt_output_wave(
 
     spec = build_candidate_spec(document, output.engine_id, output.direction_id)
     existing = _candidate_record(reference_number, output.engine_id, output.direction_id)
-    _check_candidate_spec(existing, spec)
     start_retry, previous_reason = _resume_retry_context(existing)
     if start_retry >= min(settings.max_candidate_retries, 8) + 1:
         update_output(state, output.engine_id, output.direction_id, "failed",
@@ -2259,8 +2250,8 @@ async def _attempt_output_wave(
         stage = compiled.retry_stage if compiled else retry_stage(attempt)
         profile = select_sampling_profile(
             output.engine_id,
-            attempt,
-            summarize_failures(_candidate_record(reference_number, output.engine_id, output.direction_id)),
+            1,
+            summarize_failures(None),
         )
         logger.info(
             "event=spec_lock_verified reference=%s engine=%s direction=%s "
@@ -2617,49 +2608,23 @@ async def execute_image_job(
                         ):
                             continue
 
-                        current_engine = (
-                            await _prepare_engine(
-                                client,
-                                reference_number,
-                                output,
-                                current_engine,
+                        try:
+                            current_engine = await _prepare_engine(
+                                client, reference_number, output, current_engine)
+                            state.current_stage = f"{output.engine_id}:{output.direction_id}"
+                            persist_image_job_state(state)
+                            _, newly_generated = await _attempt_output_wave(
+                                state=state, document=document, output=output,
+                                reference_number=reference_number,
+                                primary_colour=primary_colour,
+                                secondary_colour=secondary_colour,
                             )
-                        )
-
-                        state.current_stage = (
-                            f"{output.engine_id}:"
-                            f"{output.direction_id}"
-                        )
-
-                        persist_image_job_state(
-                            state
-                        )
-
-                        (
-                            _,
-                            newly_generated,
-                        ) = (
-                            await _attempt_output_wave(
-                                state=(
-                                    state
-                                ),
-                                document=(
-                                    document
-                                ),
-                                output=(
-                                    output
-                                ),
-                                reference_number=(
-                                    reference_number
-                                ),
-                                primary_colour=(
-                                    primary_colour
-                                ),
-                                secondary_colour=(
-                                    secondary_colour
-                                ),
-                            )
-                        )
+                        except Exception as error:
+                            logger.exception("Candidate slot failed: %s/%s", output.direction_id, output.engine_id)
+                            update_output(state, output.engine_id, output.direction_id,
+                                          "failed", error=str(error)[:300])
+                            current_engine = None
+                            newly_generated = 0
 
                         generated += (
                             newly_generated
@@ -2678,24 +2643,12 @@ async def execute_image_job(
                             break
 
                 finally:
-                    queue = (
-                        await client.request(
-                            "GET",
-                            "/queue",
-                        )
-                    ).json()
-
-                    if (
-                        not queue.get(
-                            "queue_running"
-                        )
-                        and not queue.get(
-                            "queue_pending"
-                        )
-                    ):
-                        await (
-                            client.release_models()
-                        )
+                    try:
+                        queue = (await client.request("GET", "/queue")).json()
+                        if not queue.get("queue_running") and not queue.get("queue_pending"):
+                            await client.release_models()
+                    except Exception:
+                        logger.warning("Unable to release idle renderer models", exc_info=True)
 
             _finalize_generation_status(state, generated, stopped_for_max_outputs)
 

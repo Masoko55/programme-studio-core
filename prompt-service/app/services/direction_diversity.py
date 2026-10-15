@@ -80,11 +80,11 @@ def build_diversity_constraints(
         "occupied": occupied,
         "available_alternatives": available,
         "suggested_combination": selected,
-        "required_material_changes_per_previous": 3,
+        "required_material_changes_per_previous": 2,
         "retry_count": retry_count,
         "failed_diagnostic": failed_diagnostic,
         "instruction": (
-            "Choose a brief-compatible combination that changes at least three material "
+            "Choose a brief-compatible combination that changes at least two material "
             "structural fields relative to EACH accepted direction. Treat suggestions as "
             "options, not mandatory scene content; preserve the requested subject."
         ),

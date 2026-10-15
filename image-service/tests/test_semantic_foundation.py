@@ -62,9 +62,8 @@ class SemanticFoundationTests(unittest.TestCase):
                 saved = persist.call_args.args[1]
                 self.assertEqual(saved["semantic_contract_sha256"], spec.semantic_contract_sha256)
                 self.assertEqual(saved["reproducibility_manifest"]["candidate_spec_sha256"], spec.spec_sha256)
-                self.assertIn("validator_availability", saved)
-                self.assertEqual(saved["quality_evaluation"]["quality"] is not None,
-                                 record["status"] == "complete")
+                self.assertNotIn("quality_evaluation", saved)
+                self.assertIn("validation", saved)
 
     def test_version_hash_provenance_confidence_and_change_detection(self):
         spec_path = ROOT / "prompt-service/app/services/semantic_contract.py"
@@ -83,12 +82,12 @@ class SemanticFoundationTests(unittest.TestCase):
         self.assertEqual(spec.semantic_contract["semantic_provenance"]["atmosphere_descriptors"], "SEMANTIC_INFERENCE")
         self.assertEqual(spec.semantic_contract["semantic_confidence"]["atmosphere_descriptors"], .81)
         data["brief"]["visual_semantics"]["atmosphere_descriptors"] = ["somber"]
-        with self.assertRaisesRegex(ValueError, "changed"):
-            build_candidate_spec(data, "sdxl-1-0", "A")
+        updated = build_candidate_spec(data, "sdxl-1-0", "A")
+        self.assertEqual(updated.visual_design["visual_semantics"]["atmosphere_descriptors"], ["somber"])
         data["brief"]["visual_semantics"]["atmosphere_descriptors"] = ["quietly luminous", "meditative", "weightless"]
         data["brief"]["primary_colour"] = "red"
-        with self.assertRaisesRegex(ValueError, "palette changed"):
-            build_candidate_spec(data, "sdxl-1-0", "A")
+        updated = build_candidate_spec(data, "sdxl-1-0", "A")
+        self.assertEqual(updated.visual_design["requested_palette"][0]["colour"], "red")
 
     def test_generic_contradictions_and_completeness(self):
         base = build_candidate_spec(document(), "sdxl-1-0", "A").semantic_contract

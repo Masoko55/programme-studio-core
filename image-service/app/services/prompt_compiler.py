@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 import colorsys
 import re
 
@@ -573,7 +573,7 @@ def _encoder_fields(
     )
 
 
-def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = "") -> CompiledPrompt:
+def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = "", *, concise: bool = False) -> CompiledPrompt:
     stage = retry_stage(attempt)
     category = failure_category(reason) if attempt > 1 else "INITIAL"
     if attempt > 1 and category == "INITIAL":
@@ -679,7 +679,7 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         ("clip_g", "t5") if spec.engine_id == "sd-3-5-medium" else ("clip_g",))
     truncated = any(probes[key] and not any(channel in coverage[key] for channel in effective)
                     for key in ("subject", "atmosphere", "audience", "motif", "palette"))
-    return CompiledPrompt(
+    result = CompiledPrompt(
         positive=positive,
         negative=negative,
         clip_l=clip_l,
@@ -695,3 +695,96 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         engine_capabilities=engine_capabilities(spec.engine_id),
         truncated=truncated,
     )
+    return _concise_runtime_prompt(result, spec, reason) if concise else result
+
+
+def runtime_retry_category(reason: str) -> str:
+    """The six correction paths used by production retries."""
+    raw = reason.strip().upper().split(":", 1)[0]
+    category = raw if raw in {"TEXT", "HUMAN", "PALETTE_OFF", "SUBJECT_DRIFT",
+                              "RUNTIME", "DENSITY_DRIFT", "MOTIF_DRIFT"} else failure_category(reason)
+    if category == "INITIAL":
+        return "INITIAL"
+    if category in {"HUMAN"}:
+        return "HUMAN"
+    if category in {"TEXT", "OCR_TIMEOUT", "OCR_UNAVAILABLE", "TITLE_PANEL"}:
+        return "TEXT_OR_LOGO"
+    if category in {"PALETTE_OFF", "PALETTE_ROLE_DRIFT", "PRIMARY_MISSING", "SECONDARY_MISSING"}:
+        return "PALETTE"
+    if category == "SUBJECT_DRIFT":
+        return "SUBJECT"
+    if category in {"RUNTIME", "VISION_UNAVAILABLE"}:
+        return "GENERATION_FAILURE"
+    return "UNKNOWN"
+
+
+def _spatial_instruction(design: dict) -> str:
+    """Translate direction prose into layout only; never import a new object."""
+    text = " ".join(str(design.get(key) or "") for key in (
+        "composition_strategy", "focal_strategy", "depth_strategy"))
+    patterns = (
+        (r"\b(?:panoramic|wide[- ]angle)\b", "panoramic viewpoint"),
+        (r"\b(?:low[- ]angle|looking up)\b", "low viewpoint"),
+        (r"\b(?:aerial|bird.?s[- ]eye)\b", "aerial viewpoint"),
+        (r"\b(?:oblique|frontal)\b", "oblique viewpoint"),
+        (r"\b(?:left|right|cent(?:er|re)|off[- ]cent(?:er|re))\b", "off-centre focal placement"),
+        (r"\bdiagonal\b", "diagonal flow"),
+        (r"\b(?:horizontal|panoramic)\b", "horizontal flow"),
+        (r"\b(?:vertical|radial|curved)\b", "curved flow"),
+        (r"\b(?:receding|perspective)\b", "receding depth"),
+        (r"\b(?:layered|foreground|background)\b", "layered depth"),
+        (r"\bshallow\b", "shallow depth"),
+    )
+    choices = [label for pattern, label in patterns if re.search(pattern, text, re.I)]
+    return ", ".join(dict.fromkeys(choices[:4])) or "balanced layered composition"
+
+
+def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec, reason: str) -> CompiledPrompt:
+    design = spec.visual_design
+    semantics = design["visual_semantics"]
+    subject = _subject(spec)
+    anchors = ", ".join(design["visual_anchors"])
+    mood = ", ".join(semantics["atmosphere_descriptors"])
+    audience = ", ".join(semantics["audience_descriptors"])
+    motif = _direction_motif(spec)
+    colours = ", ".join(str(item["colour"]) for item in design["requested_palette"])
+    palette = f"{colours}; {_first_words(design['palette_relationship'] or 'primary leading, secondary supporting', 12)}"
+    composition = _spatial_instruction(design)
+    correction = {
+        "TEXT_OR_LOGO": "Continuous image surfaces without lettering or logo-like marks.",
+        "HUMAN": "Environment-only composition with no human figures.",
+        "PALETTE": "Keep the requested primary and secondary colour relationship clear.",
+        "SUBJECT": "Make the requested subject and anchors recognizable.",
+        "GENERATION_FAILURE": "Use the same subject in a simpler spatial arrangement.",
+        "UNKNOWN": "Keep the same subject in a simpler coherent composition.",
+    }.get(runtime_retry_category(reason), "")
+    subject_line = f"Visual subject: {subject}."
+    anchor_line = f"Anchors: {_first_words(anchors, 14)}." if anchors else ""
+    mood_line = f"Mood: {_first_words(mood, 10)}." if mood else ""
+    audience_line = f"Audience: {_first_words(audience, 7)}." if audience else ""
+    motif_line = f"Motif: {_first_words(motif, 16)}." if motif else ""
+    treatment_line = (f"Reference treatment: {_first_words(spec.theme_reference_treatment, 12)}."
+                      if spec.theme_reference_treatment else "")
+    style_line = (f"Style: {_first_words(design.get('visual_style'), 8)}."
+                  if design.get("visual_style") else "")
+    palette_line = f"Palette: {palette}." if colours else ""
+    spatial_line = f"Composition: {composition}." if composition else ""
+    light_line = f"Lighting: {_first_words(design.get('lighting_language'), 8)}." if design.get("lighting_language") else ""
+    clip_l = _join_sections(subject_line, anchor_line)
+    clip_g = _join_sections(subject_line, mood_line, audience_line, motif_line,
+                           treatment_line, palette_line, spatial_line, style_line, light_line)
+    positive = _join_sections(clip_g, correction,
+                             "Continuous background artwork with integrated calm visual space.")
+    if spec.engine_id == "flux-2":
+        positive = _join_sections(positive, "Environment-only composition; uninterrupted visual surfaces.")
+    t5 = _join_sections(subject_line, anchor_line, mood_line, audience_line, motif_line,
+                       treatment_line, palette_line, spatial_line, style_line, light_line, correction,
+                       "Recognizable scene with foreground, middle distance and background.")
+    def clean(value: str) -> str:
+        value = _background_only(value, spec)
+        return re.sub(r"\b(?:8k|4k|masterpiece|ultra[- ]detailed|trending on artstation|"
+                      r"award[- ]winning|unreal engine|octane render|cinematic masterpiece)\b",
+                      "", value, flags=re.I).strip()
+    return replace(compiled, positive=clean(positive), clip_l=clean(clip_l),
+                   clip_g=clean(clip_g), t5=clean(t5) if spec.engine_id == "sd-3-5-medium" else None,
+                   failure_category=runtime_retry_category(reason), retry_stage="normal")

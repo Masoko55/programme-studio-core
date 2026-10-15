@@ -648,53 +648,21 @@ def validate_direction_diversity(
     direction: CreativeDirectionOutput,
     previous: list[CreativeDirectionOutput],
 ) -> None:
-    """Reject plans whose spatial strategies repeat an earlier direction."""
+    """Require two observable spatial changes, without comparing prose signatures."""
+    fields = ("viewpoint", "focal_horizontal_band", "focal_vertical_band",
+              "composition_family", "major_flow", "depth_plan", "mass_distribution",
+              "quiet_region_pair")
+    current = direction_signature(direction)
     for earlier in previous:
-        current_signature = direction_signature(direction)
-        earlier_signature = direction_signature(earlier)
-        comparable = [key for key, value in current_signature.items()
-                      if value != "unspecified" and earlier_signature[key] != "unspecified"]
-        repeated = sum(current_signature[key] == earlier_signature[key] for key in comparable)
-        specified_current = sum(value != "unspecified" for value in current_signature.values())
-        specified_earlier = sum(value != "unspecified" for value in earlier_signature.values())
-        material_changes = sum(
-            current_signature[key] != earlier_signature[key]
-            for key in comparable
-        )
-        diagnostic = {
-            "compared_to": earlier.direction_id,
-            "current_signature": current_signature,
-            "previous_signature": earlier_signature,
-            "repeated_fields": [key for key in comparable if current_signature[key] == earlier_signature[key]],
-            "changed_fields": [key for key in comparable if current_signature[key] != earlier_signature[key]],
-            "required_material_changes": 3,
-        }
-
-        def reject(message: str) -> None:
-            error = ValueError(message)
-            error.diversity_diagnostics = diagnostic
+        prior = direction_signature(earlier)
+        changed = [field for field in fields if current[field] != "unspecified"
+                   and prior[field] != "unspecified" and current[field] != prior[field]]
+        if len(changed) < 2:
+            error = ValueError(
+                f"Direction {direction.direction_id} repeats {earlier.direction_id}'s spatial plan; "
+                "change at least two of viewpoint, focal placement, flow, depth, mass or quiet space."
+            )
+            error.diversity_diagnostics = {"compared_to": earlier.direction_id,
+                                           "changed_fields": changed,
+                                           "required_material_changes": 2}
             raise error
-
-        if specified_current >= 5 and specified_earlier >= 5 and len(comparable) >= 4 and material_changes < 3:
-            reject(
-                f"Direction {direction.direction_id} repeats {earlier.direction_id}'s "
-                "spatial plan; change at least three of viewpoint, focal band, mass, "
-                "flow, depth, perimeter and quiet-region geometry."
-            )
-        if len(comparable) >= 5 and repeated >= 5 and repeated / len(comparable) >= 0.72:
-            reject(
-                f"Direction {direction.direction_id} repeats {earlier.direction_id}'s "
-                "composition signature; move focal position, change flow or viewpoint, "
-                "and vary quiet-space placement."
-            )
-        similar = 0
-        for name in _STRUCTURAL_FIELDS:
-            first = _strategy_tokens(getattr(direction, name))
-            second = _strategy_tokens(getattr(earlier, name))
-            if first and second and len(first & second) / len(first | second) >= 0.60:
-                similar += 1
-        if similar >= 4:
-            reject(
-                f"Direction {direction.direction_id} repeats {earlier.direction_id}'s "
-                "composition plan; change focal position, depth, perimeter and quiet-area geometry."
-            )

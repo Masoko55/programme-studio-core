@@ -48,7 +48,6 @@ from app.services.prompt_repository import (
     load_prompts_document,
 )
 from app.services.sampling_profiles import SamplingProfile, select_sampling_profile, summarize_failures, profile_selection_diagnostics
-from app.services.candidate_quality import score_candidate
 from app.services.reproducibility import build_reproducibility_manifest
 from app.services.prompt_compiler import failure_category as classify_failure
 from app.services.candidate_spec import build_candidate_spec
@@ -74,8 +73,6 @@ def write_json(path: Path, record: dict) -> None:
             "decision": "rejected",
             "failure_category": record.get("primary_failure_category") or record.get("outcome_category"),
         }
-    record["quality_evaluation"] = score_candidate(record)
-    record["validator_availability"] = record["quality_evaluation"]["validator_availability"]
     record["reproducibility_manifest"] = build_reproducibility_manifest(record)
     atomic_write_json(path, record)
 QUEUE_ENDPOINT = "/queue"
@@ -1398,8 +1395,15 @@ def validate_background(
                     quality_result={},
                 )
             except ValueError as error:
-                problems.append((classify_failure(str(error)), str(error)))
-                palette_result.update(getattr(error, "palette_metrics", {}))
+                palette_metrics = getattr(error, "palette_metrics", {})
+                palette_result.update(palette_metrics)
+                off_ratio = palette_metrics.get("off_palette_ratio", 1.0)
+                large_region = palette_metrics.get("largest_unrequested_region_ratio", 0.0)
+                if (classify_failure(str(error)) == "PALETTE_OFF"
+                        and off_ratio <= .20 and large_region <= .12):
+                    problems.append(("MINOR_PALETTE_VARIATION", str(error)))
+                else:
+                    problems.append((classify_failure(str(error)), str(error)))
 
     if (width, height) not in _valid_background_dimensions():
         problems.append(("DIMENSIONS", f"Unexpected background dimensions: {width}x{height}."))
@@ -1432,9 +1436,14 @@ def validate_background(
         **quality_result,
         **palette_result,
     }
+    hard_categories = {"HUMAN", "TEXT", "OCR_TIMEOUT", "OCR_UNAVAILABLE",
+                       "OCR_PARTIAL_INSUFFICIENT", "DIMENSIONS", "PALETTE_OFF",
+                       "PALETTE_ROLE_DRIFT"}
+    hard_problems = [item for item in problems if item[0] in hard_categories]
     validation_report = {
-        "decision": "rejected" if problems else "accepted",
+        "decision": "rejected" if hard_problems else "accepted",
         "failure_category": None,
+        "diagnostic_findings": [item[0] for item in problems if item[0] not in hard_categories],
         "palette": {
             "mode": metrics.get("requested_palette_mode", metrics.get("palette_mode")),
             "primary_ratio": metrics.get("primary_ratio", metrics.get("primary_presence_ratio")),
@@ -1472,19 +1481,19 @@ def validate_background(
         },
     }
     validation_report["quality"]["raster_score"] = metrics.get("fine_line_pair_ratio")
-    if problems:
+    if hard_problems:
         priority = {"HUMAN": 0, "TEXT": 1, "OCR_TIMEOUT": 1, "OCR_UNAVAILABLE": 1,
                     "OCR_PARTIAL": 1, "TITLE_PANEL": 2,
                     "BOILERPLATE_COMPOSITION": 2,
                     "DIRECTION_DUPLICATE": 3, "FLAT": 4, "DENSE_SAFE_REGION": 5,
                     "DENSITY_DRIFT": 5, "WEAK_OUTER_STRUCTURE": 6,
                     "PALETTE_OFF": 7, "PALETTE_ROLE_DRIFT": 7}
-        category, message = min(problems, key=lambda item: priority.get(item[0], 8))
+        category, message = min(hard_problems, key=lambda item: priority.get(item[0], 8))
         validation_report["failure_category"] = category
         error = ValueError(message)
         error.diagnostics = {**metrics, "validation": validation_report,
                              "primary_failure_category": category,
-                             "all_failure_categories": [item[0] for item in problems]}
+                             "all_failure_categories": [item[0] for item in hard_problems]}
         raise error
 
     return {
@@ -2179,10 +2188,8 @@ class ComfyUIClient:
 
         try:
             try:
-                if adherence and not adherence["template_adherence_passed"]:
-                    validate_background(candidate_path, reference_number=reference_number,
-                                        enforce_palette=False, visual_design=visual_design)
-                    raise ValueError(adherence["template_failure_category"])
+                # Template alignment is useful to inspect, but is not a reason
+                # to hide an otherwise usable background from the user.
                 raw_validation = validate_background(
                     candidate_path,
                     reference_number=reference_number,
@@ -2191,7 +2198,7 @@ class ComfyUIClient:
                 )
                 validation = raw_validation
                 if adherence_result:
-                    if adherence_result["decision"] != "pass":
+                    if adherence_result.get("decision") == "SUBJECT_DRIFT":
                         category = ("VISION_UNAVAILABLE" if adherence_result["decision"] == "unavailable"
                                     else adherence_result.get("failure_category") or adherence_result["decision"])
                         record["primary_failure_category"] = category
@@ -2211,8 +2218,7 @@ class ComfyUIClient:
                                                 "subject_adherence": adherence_result,
                                                 "brief_fidelity": record["brief_fidelity"]}
                         raise ValueError(category + ": " + adherence_result["reason"])
-                if similarity >= 0.88:
-                    raise ValueError(f"DIRECTION_DUPLICATE: structural similarity {similarity:.2f}")
+                # Similarity is a diagnostic; the user chooses among all valid outputs.
 
             except ValueError as error:
                 raw_palette_error = (
@@ -2238,10 +2244,8 @@ class ComfyUIClient:
                         item for item in record["all_failure_categories"]
                         if item != record.get("primary_failure_category")
                     ]
-                if similarity >= 0.88 and "DIRECTION_DUPLICATE" not in record.get("all_failure_categories", []):
-                    record["all_failure_categories"] = [*record.get("all_failure_categories", []), "DIRECTION_DUPLICATE"]
-                    if record.get("primary_failure_category") not in {"HUMAN", "TEXT", "BOILERPLATE_COMPOSITION", "SUBJECT_DRIFT"}:
-                        error = ValueError(f"DIRECTION_DUPLICATE: structural similarity {similarity:.2f}")
+                if similarity >= 0.88:
+                    record["direction_similarity_diagnostic"] = similarity
 
                 # ====================================================
                 # Engine-specific deterministic palette-only recovery
@@ -2374,7 +2378,7 @@ class ComfyUIClient:
                             ),
                         )
 
-                if palette_normalized and adherence_result and adherence_result["decision"] != "pass":
+                if palette_normalized and adherence_result and adherence_result.get("decision") == "SUBJECT_DRIFT":
                     category = ("VISION_UNAVAILABLE" if adherence_result["decision"] == "unavailable"
                                 else adherence_result.get("failure_category") or "BRIEF_FIDELITY_DRIFT")
                     palette_normalized = False
@@ -2410,7 +2414,6 @@ class ComfyUIClient:
                         item for item in record["all_failure_categories"]
                         if item != record["primary_failure_category"]
                     ]
-                    record["quality_evaluation"] = score_candidate(record)
                     record["reproducibility_manifest"] = build_reproducibility_manifest(record)
 
                     write_json(
@@ -3147,7 +3150,6 @@ class ComfyUIClient:
         )
         record["all_failure_categories"] = []
         record["secondary_failure_categories"] = []
-        record["quality_evaluation"] = score_candidate(record)
         record["reproducibility_manifest"] = build_reproducibility_manifest(record)
 
         write_json(

@@ -141,27 +141,20 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
     subject = field(brief, "background_inspiration") or visual_sentence or field(brief, "theme_reference_treatment") or field(brief, "theme")
     supplied_contract = brief.get("semantic_contract")
     if supplied_contract is not None:
-        contract = normalize_contract(supplied_contract)
-        expected_hash = field(brief, "semantic_contract_sha256")
-        if not expected_hash or contract_hash(supplied_contract) != expected_hash or contract_hash(contract) != expected_hash:
-            raise ValueError("Semantic contract hash mismatch between prompt and image services")
-        if (field(brief, "background_inspiration") and contract["primary_visual_subject"] != field(brief, "background_inspiration")):
-            raise ValueError("Semantic subject changed after contract creation")
-        if not field(brief, "background_inspiration") and field(brief, "theme") and contract["primary_visual_subject"] != field(brief, "theme"):
-            raise ValueError("Semantic subject changed after contract creation")
-        if contract["palette"] != palette:
-            raise ValueError("Semantic palette changed after contract creation")
-        for key in ("palette_mode", "palette_relationship", "theme_reference_treatment",
-                    "abstraction_level", "realism_level", "energy_level",
-                    "symmetry_preference", "density_preference"):
-            if field(brief, key) and contract[key] != field(brief, key):
-                raise ValueError(f"Semantic {key} changed after contract creation")
-        if values(brief, "visual_anchors") and contract["visual_anchors"] != values(brief, "visual_anchors"):
-            raise ValueError("Semantic anchors changed after contract creation")
-        for key, value in semantics.items():
-            if key in contract and value and contract[key] != value:
-                raise ValueError(f"Semantic {key} changed after contract creation")
-    else:
+        try:
+            contract = normalize_contract(supplied_contract)
+        except (TypeError, ValueError, KeyError):
+            supplied_contract = None
+        # The clarified brief wins over stale or missing provenance metadata.
+        # Keep the contract for diagnostics, but rebuild it from current brief
+        # fields below when it disagrees with what the user confirmed.
+        if supplied_contract is not None and ((subject and contract["primary_visual_subject"] != subject)
+                or contract["palette"] != palette
+                or any(value and contract.get(key) != value
+                       for key, value in visual_semantics.items()
+                       if key in contract)):
+            supplied_contract = None
+    if supplied_contract is None:
         contract = normalize_contract({
             "semantic_contract_version": VERSION,
             "primary_visual_subject": subject, "visual_anchors": anchors,
@@ -183,10 +176,7 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
             },
         })
     consistency = semantic_consistency(contract)
-    if not consistency["valid"]:
-        error = ValueError(f"Semantic contract requires clarification: {consistency['conflicts']}")
-        error.semantic_consistency = consistency
-        raise error
+    # Semantic contradictions are useful diagnostics, not a second schema gate.
     completeness = semantic_completeness(contract)
     visual_design = {
         "primary_visual_subject": contract["primary_visual_subject"],

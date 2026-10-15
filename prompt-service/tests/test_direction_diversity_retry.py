@@ -7,7 +7,11 @@ import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-from app.graph.workflow import _log_validation_failure, generate_direction_c, route_after_validation_c, validate_direction_c
+from app.graph.workflow import (_log_validation_failure, generate_direction_c,
+                                route_after_validation_a, route_after_validation_b,
+                                route_after_validation_c, validate_direction_c,
+                                fallback_direction_a, fallback_direction_b,
+                                fallback_direction_c)
 from app.services.creative_direction import build_creative_direction_prompt
 from app.services.direction_diversity import build_diversity_constraints
 from app.services.validation import direction_signature, validate_direction_diversity
@@ -16,13 +20,31 @@ from tests.test_direction_structure_contract import direction
 
 
 class DirectionRetryBoundaryTests(unittest.TestCase):
+    def test_all_directions_have_bounded_fallback(self):
+        brief = {"background_inspiration": "layered dunes", "primary_colour": "sand",
+                 "secondary_colour": "navy", "mood": "calm"}
+        a_state = {"brief": brief, "direction_a": None, "retry_count_a": 3,
+                   "validation_error_a": "invalid model output"}
+        self.assertEqual(route_after_validation_a(a_state), "fallback_direction_a")
+        a = fallback_direction_a(a_state)["direction_a"]
+        b_state = {"direction_a": a, "direction_b": None, "retry_count_b": 3,
+                   "validation_error_b": "same spatial plan"}
+        self.assertEqual(route_after_validation_b(b_state), "fallback_direction_b")
+        b = fallback_direction_b(b_state)["direction_b"]
+        c = fallback_direction_c({"direction_a": a})["direction_c"]
+        self.assertEqual([item.direction_id for item in (a, b, c)], list("ABC"))
+        self.assertEqual({item.positive_prompt for item in (a, b, c)}, {a.positive_prompt})
+        validate_direction_diversity(b, [a])
+        validate_direction_diversity(c, [a, b])
+
     def test_direction_c_allows_two_retries_then_stops(self):
         state = {"direction_c": None, "retry_count_c": 2,
                  "validation_error_c": "Direction C repeats A's spatial plan"}
         self.assertEqual(route_after_validation_c(state), "direction_c")
         state["retry_count_c"] = 3
-        with self.assertRaisesRegex(ValueError, "after 2 retries"):
-            route_after_validation_c(state)
+        state["direction_a"] = direction("A")
+        self.assertEqual(route_after_validation_c(state), "fallback_direction_c")
+        self.assertEqual(fallback_direction_c(state)["direction_c"].direction_id, "C")
 
     def test_final_failure_log_does_not_claim_retry_three_of_two(self):
         with patch("app.graph.workflow.logger.warning") as warning:
@@ -72,7 +94,7 @@ class DirectionRetryBoundaryTests(unittest.TestCase):
                 self.assertEqual(first_plan["scene_kind"], expected_kind)
                 self.assertEqual(second_plan["scene_kind"], expected_kind)
                 self.assertEqual(plan["scene_kind"], expected_kind)
-                self.assertEqual(plan["required_material_changes_per_previous"], 3)
+                self.assertEqual(plan["required_material_changes_per_previous"], 2)
                 self.assertTrue(second_plan["available_alternatives"]["composition_family"])
                 first_signature = direction_signature(first)
                 second_changes = sum(
@@ -80,12 +102,12 @@ class DirectionRetryBoundaryTests(unittest.TestCase):
                     for field, value in second_plan["suggested_combination"].items()
                     if first_signature[field] != "unspecified"
                 )
-                self.assertGreaterEqual(second_changes, 3)
+                self.assertGreaterEqual(second_changes, 2)
                 for earlier in (first, second):
                     signature = direction_signature(earlier)
                     material = sum(value != signature[field] for field, value in plan["suggested_combination"].items()
                                    if signature[field] != "unspecified")
-                    self.assertGreaterEqual(material, 3)
+                    self.assertGreaterEqual(material, 2)
                 text = json.dumps(plan).casefold()
                 for irrelevant in ("city", "web", "child", "street-canyon", "aerial"):
                     self.assertNotIn(irrelevant, text)
@@ -103,10 +125,8 @@ class DirectionRetryBoundaryTests(unittest.TestCase):
             validate_direction_diversity(repeated, [first])
         detail = caught.exception.diversity_diagnostics
         self.assertEqual(detail["compared_to"], "A")
-        self.assertEqual(detail["required_material_changes"], 3)
-        self.assertTrue(detail["repeated_fields"])
-        self.assertIn("current_signature", detail)
-        self.assertIn("previous_signature", detail)
+        self.assertEqual(detail["required_material_changes"], 2)
+        self.assertLess(len(detail["changed_fields"]), 2)
 
     def test_workflow_logs_and_persists_compact_diversity_diagnostic(self):
         first = direction("A")

@@ -7,6 +7,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from app.services.candidate_quality import hard_validity, rank_candidates, score_candidate, validator_availability
 from app.services.candidate_spec import build_candidate_spec
@@ -37,6 +38,34 @@ def document():
 
 
 class SemanticFoundationTests(unittest.TestCase):
+    def test_production_candidate_record_persistence(self):
+        from app.services import comfyui_client
+        spec = build_candidate_spec(document(), "sdxl-1-0", "A")
+        compiled = compile_candidate_prompt(spec, 1)
+        base = {
+            "reference_number": "TEST", "engine_id": "sdxl-1-0", "direction_id": "A",
+            "semantic_contract_version": "1.0",
+            "semantic_contract_sha256": spec.semantic_contract_sha256,
+            "candidate_spec_sha256": spec.spec_sha256,
+            "compiled_prompt": compiled.record(), "workflow_sha256": "workflow",
+            "sampling_profile": {"name": "baseline"}, "attempt_count": 1,
+        }
+        valid = {**base, "status": "complete", "sha256": "image",
+                 "validation": {"decision": "accepted", "quality": {"macro_structure_score": .7}},
+                 "brief_fidelity": {"decision": "pass", "subject_score": .9,
+                                    "atmosphere_score": .8, "motif_score": .8,
+                                    "audience_fit_score": .8}}
+        for record in (valid, {**base, "status": "rejected", "primary_failure_category": "PALETTE_OFF"},
+                       {**base, "status": "runtime_failed", "error": "ComfyUI timeout"}):
+            with self.subTest(record=record["status"]), patch.object(comfyui_client, "atomic_write_json") as persist:
+                comfyui_client.write_json(Path("candidate.json"), record)
+                saved = persist.call_args.args[1]
+                self.assertEqual(saved["semantic_contract_sha256"], spec.semantic_contract_sha256)
+                self.assertEqual(saved["reproducibility_manifest"]["candidate_spec_sha256"], spec.spec_sha256)
+                self.assertIn("validator_availability", saved)
+                self.assertEqual(saved["quality_evaluation"]["quality"] is not None,
+                                 record["status"] == "complete")
+
     def test_version_hash_provenance_confidence_and_change_detection(self):
         spec_path = ROOT / "prompt-service/app/services/semantic_contract.py"
         module_spec = importlib.util.spec_from_file_location("prompt_semantic_contract", spec_path)
@@ -158,6 +187,10 @@ class SemanticFoundationTests(unittest.TestCase):
         self.assertIsNone(score_candidate(bad)["quality"])
         self.assertIsNotNone(score_candidate(valid)["quality"]["overall_quality"])
         self.assertEqual(rank_candidates([bad, valid])["chosen_reference"], "A")
+        tied = {**valid, "reference_number": "C"}
+        self.assertEqual(rank_candidates([tied, valid])["chosen_reference"], "A")
+        no_signal = {"reference_number": "Z", "validation": {"decision": "accepted"}}
+        self.assertIsNone(rank_candidates([no_signal])["chosen_reference"])
         semantically_poor = {**valid, "brief_fidelity": {**valid["brief_fidelity"],
                            "atmosphere_score": .3, "motif_score": .35, "audience_fit_score": .4}}
         self.assertFalse(hard_validity(semantically_poor)["passed"])

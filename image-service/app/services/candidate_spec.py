@@ -11,6 +11,7 @@ from app.services.prompt_repository import get_direction
 from app.services.semantic_contract import (
     VERSION, contract_hash, normalize_contract, semantic_completeness, semantic_consistency,
 )
+from app.services.visual_hierarchy import derive_visual_hierarchy
 
 
 @dataclass(frozen=True, slots=True)
@@ -225,6 +226,7 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         "energy_level": contract["energy_level"],
         "symmetry_preference": contract["symmetry_preference"],
         "density_preference": contract["density_preference"],
+        "visual_hierarchy": derive_visual_hierarchy(contract, direction),
     }
 
     spec = CandidateSpec(

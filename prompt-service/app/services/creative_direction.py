@@ -945,6 +945,10 @@ def build_creative_direction_prompt(
         ),
         ("Name the viewpoint and distribution of major visual masses in the strategy fields; "
          "use the user's requested subject in every direction, but invent a distinct camera and layout plan."),
+        ("Invent viewpoint, mass placement, depth, lighting treatment and spatial flow only. "
+         "Do not introduce unsupported scene-defining objects. Keep each supplied motif at its stated "
+         "importance: a subtle accent must not expand to cover the scene. Prefer a few coherent large "
+         "forms over uniformly distributed micro-detail unless the brief explicitly requests density."),
         ("Describe the chosen composition, focal point, depth, perimeter treatment and separate calm title/programme areas in their strategy fields."),
         ("Use the prior direction concepts to choose a materially different arrangement, not just a new palette."),
         (

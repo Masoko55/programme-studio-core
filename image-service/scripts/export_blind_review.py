@@ -15,8 +15,6 @@ def blind_rows(records: list[dict]) -> list[dict]:
         manifest = record.get("reproducibility_manifest") or {}
         rows.append({"candidate_reference": record.get("reference_number"),
                      "brief_identifier": manifest.get("source_reference") or record.get("reference_number"),
-                     "engine": record.get("engine_id"),
-                     "profile": (record.get("sampling_profile") or {}).get("name"),
                      "direction": record.get("direction_id"),
                      "image_path": record.get("output_path"),
                      "semantic_contract_summary": {

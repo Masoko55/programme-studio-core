@@ -89,7 +89,7 @@ def score_candidate(record: dict, *, weights: dict[str, float] | None = None,
         "atmosphere_fidelity": fidelity.get("atmosphere_score"),
         "motif_fidelity": fidelity.get("motif_score"),
         "audience_fit": fidelity.get("audience_fit_score"),
-        "composition_quality": quality.get("composition_score"),
+        "composition_quality": fidelity.get("background_usability_score", quality.get("composition_score")),
         "visual_structure_quality": quality.get("macro_structure_score"),
         "direction_distinctiveness": (1 - record["direction_similarity_score"]
                                       if isinstance(record.get("direction_similarity_score"), (float, int)) else None),
@@ -109,13 +109,17 @@ def score_candidate(record: dict, *, weights: dict[str, float] | None = None,
 
 def rank_candidates(records: list[dict], **options) -> dict:
     evaluations = [(record, score_candidate(record, **options)) for record in records]
-    valid = [(record, result["quality"]) for record, result in evaluations if result["quality"] is not None]
-    valid.sort(key=lambda pair: (pair[1]["overall_quality"] is not None,
-                                 pair[1]["overall_quality"] or 0,
-                                 str(pair[0].get("reference_number") or "")), reverse=True)
+    valid = [(record, result["quality"]) for record, result in evaluations
+             if result["quality"] is not None and result["quality"]["overall_quality"] is not None]
+    # Higher score wins; exact ties use ascending reference for stable selection.
+    valid.sort(key=lambda pair: (-pair[1]["overall_quality"],
+                                 str(pair[0].get("reference_number") or "")))
     if not valid:
         return {"chosen_reference": None, "compared_candidates": len(records),
-                "hard_gate_passed": False, "selection_reason": "No candidate passed hard validity gates"}
+                "hard_gate_passed": any(result["hard_gate"]["passed"] for _, result in evaluations),
+                "selection_reason": "No hard-valid candidate has usable soft quality signals" if any(
+                    result["hard_gate"]["passed"] for _, result in evaluations) else
+                    "No candidate passed hard validity gates"}
     chosen, quality = valid[0]
     scores = quality["dimensions"]
     ordered = sorted(((name, value) for name, value in scores.items() if value is not None), key=lambda pair: pair[1])
@@ -124,4 +128,4 @@ def rank_candidates(records: list[dict], **options) -> dict:
             "quality_score": quality["overall_quality"],
             "strongest_dimensions": [key for key, _ in ordered[-3:]],
             "weaker_dimensions": [key for key, _ in ordered[:3]],
-            "selection_reason": "Highest available weighted quality among hard-valid candidates"}
+            "selection_reason": "Highest available weighted quality; ties use ascending reference"}

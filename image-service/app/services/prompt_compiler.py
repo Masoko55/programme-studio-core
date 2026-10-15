@@ -65,6 +65,8 @@ def failure_category(reason: str) -> str:
             return dimension
     if "BRIEF_FIDELITY_DRIFT" in reason.upper():
         return "BRIEF_FIDELITY_DRIFT"
+    if "DENSITY_DRIFT" in reason.upper():
+        return "DENSITY_DRIFT"
     if "VISION_UNAVAILABLE" in reason.upper():
         return "VISION_UNAVAILABLE"
     if "OCR_TIMEOUT" in reason.upper():
@@ -146,9 +148,8 @@ def _palette(spec: CandidateSpec) -> str:
     elif mode == "strict":
         policy = "only requested colour families, apart from microscopic anti-aliasing tolerance"
     else:
-        policy = ("requested colours control the chromatic design; bounded black, charcoal, grey and white "
-                  "rendering detail supports linework, shadows, reflections and highlights; "
-                  "no meaningful third chromatic design colour")
+        policy = ("primary family occupies the largest visual masses; secondary family forms visible supporting masses; "
+                  "neutral shadows and highlights remain subordinate; no large unrequested chromatic region")
     return f"{', '.join(colours)}; {mode} palette; {relationship}; {policy}"
 
 
@@ -161,7 +162,7 @@ def _encoder_palette(spec: CandidateSpec) -> str:
     elif mode == "strict":
         policy = "only requested colours"
     else:
-        policy = "requested chromatic colours dominate; neutral shading subordinate"
+        policy = "primary colour in largest masses, secondary in supporting masses; no major third colour"
     return f"Requested palette: {colours}; {policy}. {_chromatic_boundaries(spec)}".strip()
 
 
@@ -208,7 +209,25 @@ def _atmosphere(spec: CandidateSpec) -> str:
 def _motif_structure(spec: CandidateSpec) -> str:
     semantics = spec.visual_design["visual_semantics"]
     structure = semantics["motif_structure_description"] or ", ".join(semantics["motif_descriptors"])
-    return f"Motif structure: {structure}." if structure else ""
+    prominence = spec.visual_design["visual_hierarchy"]["motif_prominence"]
+    return f"{prominence.capitalize()} motif topology visibly follows: {structure}." if structure else ""
+
+
+def _hierarchy(spec: CandidateSpec) -> str:
+    hierarchy = spec.visual_design["visual_hierarchy"]
+    density = hierarchy["detail_density"]
+    amount = {
+        "sparse": "few forms, broad calm areas and very limited small detail",
+        "moderate": "coherent large forms, limited mid-size forms and concentrated small detail",
+        "rich": "layered large and medium forms with rich detail concentrated away from calm areas",
+        "dense": "many layered forms with clear size hierarchy and at least one calm visual region",
+    }[density]
+    return (f"Visual hierarchy: the subject is present without saturating the frame; {amount}. "
+            "Large forms establish the subject, medium forms carry motif topology, small details support texture. "
+            "Preserve integrated low-detail breathing room and readable depth; avoid uniformly distributed micro-detail. "
+            f"Motif prominence is {hierarchy['motif_prominence']}. "
+            "Lighting, contrast and edge character should express the requested atmosphere and audience without changing the subject. "
+            "Keep the result usable as background artwork rather than a crowded standalone illustration.")
 
 
 def _scene_tone(spec: CandidateSpec) -> tuple[str, str]:
@@ -290,19 +309,18 @@ def _composition(spec: CandidateSpec) -> str:
 
     if safe_regions:
         parts.append(
-            "Preserve intentional negative space for later typography "
-            "according to "
+            "Preserve intentional negative space as integrated low-detail visual breathing room according to "
             + "; ".join(safe_regions)
         )
     else:
         parts.append(
-            "Preserve intentional negative space for later typography "
+            "Preserve intentional negative space as integrated low-detail visual breathing room "
             "where the composition naturally supports it"
         )
 
     parts.append(
         "Use natural visual hierarchy, breathing room and spatial balance "
-        "so later information can remain readable"
+        "with controlled subject concentration"
     )
 
     return ". ".join(parts).rstrip(". ") + "."
@@ -387,6 +405,7 @@ _CORRECTIONS = {
     "NOISE": "Render this scene with coherent forms and clear material detail.",
     "WEAK_OUTER_STRUCTURE": "Strengthen coherent medium and large subject forms and depth in the areas permitted by this direction while keeping its quiet regions readable.",
     "DENSE_SAFE_REGION": "Relocate detail away from the reserved typography regions while preserving this direction's own composition strategy.",
+    "DENSITY_DRIFT": "Restore the requested spatial density and coherent large-to-small form hierarchy; reduce uniformly distributed detail while preserving subject, motif, atmosphere and palette.",
     "PROTECTED_REGION_INTRUSION": "Relocate motifs away from reserved typography regions according to this direction's safe-region strategy.",
     "TEMPLATE_DRIFT": "Restore the direction's requested composition and subject-specific visual structure.",
     "WEAK_TEMPLATE_STRUCTURE": "Strengthen the direction's requested composition using subject-specific forms.",
@@ -441,6 +460,7 @@ def _positive_prompt(
         f"Composition: {composition}",
         f"Design language: {_design_language(spec)}." if _design_language(spec) else "",
         f"Palette: {palette}.",
+        _hierarchy(spec),
     )
     safety = ("Text-free background artwork with a clear visual subject and natural low-detail breathing room. "
               "No typography or glyph-like marks. Quiet areas remain part of the scene; "
@@ -495,23 +515,28 @@ def _encoder_fields(
         subject_line = f"Visual subject: {subject}."
         atmosphere_line = _atmosphere(spec)
         tone_line = _scene_tone(spec)[0]
-        structure_line = _join_sections(
-            f"Composition: {_first_words(design['composition_strategy'], 12)}.",
-            f"Focal: {_first_words(design['focal_strategy'], 10)}.",
-            f"Depth: {_first_words(design['depth_strategy'], 9)}.")
-        global_line = _join_sections(
-            f"Style: {_first_words(design.get('visual_style'), 8)}." if design.get('visual_style') else "",
-            f"Motifs: {_first_words(', '.join(motifs) or direction_detail, 12)}.")
+        structure_line = f"Composition: {_first_words(design['composition_strategy'], 10)}."
+        compact_motif = _motif_structure(spec) or f"Motif: {_first_words(direction_detail, 12)}."
+        spatial_line = _join_sections(
+            structure_line,
+            f"Focal: {_first_words(design['focal_strategy'], 7)}.",
+            f"Depth: {_first_words(design['depth_strategy'], 7)}.")
+        hierarchy_line = (f"{design['visual_hierarchy']['detail_density']} density; "
+                          "large forms first, concentrated detail, integrated calm space.")
         return (
-            _join_sections("Background artwork.", subject_line, atmosphere_line,
-                           tone_line, _exclude_incompatible(direction, spec),
-                           _exclude_incompatible(structure_line, spec), colour,
+            _join_sections("Background artwork.", subject_line,
+                           f"Atmosphere: {_first_words(', '.join(design['visual_semantics']['atmosphere_descriptors']), 10)}."
+                           if design['visual_semantics']['atmosphere_descriptors'] else "",
+                           f"Audience: {_first_words(', '.join(design['visual_semantics']['audience_descriptors']), 8)}."
+                           if design['visual_semantics']['audience_descriptors'] else "",
+                           compact_motif, _exclude_incompatible(spatial_line, spec), colour,
                            f"Correction: {short_correction}" if short_correction else ""),
             _join_sections("Background artwork.", subject_line, atmosphere_line,
-                           tone_line, _exclude_incompatible(direction, spec),
-                           _exclude_incompatible(structure_line, spec),
-                           _exclude_incompatible(global_line, spec), _motif_structure(spec),
-                           f"Quiet areas: {design['title_safe_region_strategy']}; {design['programme_safe_region_strategy']}.", colour,
+                           compact_motif, _exclude_incompatible(spatial_line, spec),
+                           f"Quiet areas: {_first_words(design['title_safe_region_strategy'], 9)}; "
+                           f"{_first_words(design['programme_safe_region_strategy'], 9)}.",
+                           colour, hierarchy_line,
+                           tone_line,
                            f"Correction: {short_correction}" if short_correction else ""),
         )
     if spec.engine_id == "sd-3-5-medium":
@@ -582,10 +607,8 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         composition, correction, attempt,
     )
     if spec.engine_id == "sdxl-1-0":
-        negative = ("people, faces, text, words, letters, numbers, typography, caption, "
-                    "title, logo, watermark, signage, glyphs, pseudo-text, poster mockup, "
-                    "no blank title panel, no white card, no bordered text box, "
-                    "no poster frame, no banner, no placard, no signboard, no empty paper rectangle")
+        negative = ("people, faces, characters, readable text, lettering, numbers, logos, watermark, "
+                    "pseudo-glyphs, signage, poster mockup, bordered panel, blank card, banner")
         if _scene_tone(spec)[1]:
             negative += ", " + _scene_tone(spec)[1]
     else:
@@ -598,6 +621,7 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     if spec.engine_id == "sd-3-5-medium":
         if _scene_tone(spec)[1]:
             negative += ", " + _scene_tone(spec)[1]
+    negative = ", ".join(dict.fromkeys(part.strip().casefold() for part in negative.split(",") if part.strip()))
     clip_l, clip_g = _encoder_fields(
         spec, subject, motif, encoder_motif, treatment, correction,
     )
@@ -615,6 +639,8 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         f"Environmental motifs: {', '.join(spec.visual_design['environmental_motifs'])}." if spec.visual_design['environmental_motifs'] else "",
         f"Symbolic motifs: {', '.join(spec.visual_design['symbolic_motifs'])}." if spec.visual_design['symbolic_motifs'] else "",
         f"Palette: {palette}.",
+        (f"{spec.visual_design['visual_hierarchy']['detail_density']} density; "
+         "large subject forms, readable motif, concentrated detail, calm visual space."),
         "Decorative background artwork with no typography or glyph-like marks.",
         f"Design language: {_design_language(spec)}." if _design_language(spec) else "",
         f"Theme treatment: {treatment}." if treatment else "",

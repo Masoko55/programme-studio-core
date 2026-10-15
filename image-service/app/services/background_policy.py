@@ -1314,6 +1314,16 @@ def constrain_to_requested_palette(
         ),
         cv2.COLOR_HSV2RGB,
     )
+    # Hue/saturation recovery should not rewrite the scene's luminance edges.
+    # Preserve the original Lab lightness for chromatic targets. Neutral
+    # targets keep their bounded tonal mapping because black/white roles need
+    # different absolute lightness, while still retaining local variation.
+    chromatic_mask = np.isin(target_index, chromatic_indices)
+    if np.any(chromatic_mask):
+        original_lab = cv2.cvtColor(source_rgb, cv2.COLOR_RGB2LAB)
+        recovered_lab = cv2.cvtColor(constrained_rgb, cv2.COLOR_RGB2LAB)
+        recovered_lab[:, :, 0][chromatic_mask] = original_lab[:, :, 0][chromatic_mask]
+        constrained_rgb = cv2.cvtColor(recovered_lab, cv2.COLOR_LAB2RGB)
     constrained_rgb[keep_original] = source_rgb[keep_original]
 
     return Image.fromarray(

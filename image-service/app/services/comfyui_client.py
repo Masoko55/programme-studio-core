@@ -27,7 +27,7 @@ from app.config.settings import settings
 
 from app.services.atomic import (
     write_bytes,
-    write_json,
+    write_json as atomic_write_json,
 )
 
 from app.services.background_policy import (
@@ -58,11 +58,25 @@ from app.services.template_conditioning import (
 from app.services.template_adherence import assess_template_adherence
 from app.services.composition_diversity import boilerplate_metrics, boilerplate_score, compare_directions_metrics
 from app.services.subject_adherence import assess_subject_adherence, brief_fidelity_record
+from app.services.scene_density import assess_scene_density
 
 
 logger = logging.getLogger(
     "uvicorn.error"
 )
+
+
+def write_json(path: Path, record: dict) -> None:
+    """Persist one candidate with the same diagnostics at every outcome."""
+    if record.get("status") in {"rejected", "failed", "runtime_failed"} and not record.get("validation"):
+        record["validation"] = {
+            "decision": "rejected",
+            "failure_category": record.get("primary_failure_category") or record.get("outcome_category"),
+        }
+    record["quality_evaluation"] = score_candidate(record)
+    record["validator_availability"] = record["quality_evaluation"]["validator_availability"]
+    record["reproducibility_manifest"] = build_reproducibility_manifest(record)
+    atomic_write_json(path, record)
 QUEUE_ENDPOINT = "/queue"
 
 # A large third-colour area needs a new generation, not automatic recolouring.
@@ -983,6 +997,10 @@ def _record_prompt_metadata(
     failure_category: str | None,
 ) -> dict:
     flux = engine_id == settings.engine_1_id
+    compiled_record = compiled_prompt.record() if compiled_prompt else {
+        "positive": positive_prompt, "negative": negative_prompt,
+        "clip_l": None, "clip_g": None, "t5": None,
+    }
     return {
         "negative_prompt": None if flux else negative_prompt,
         "adaptations": [
@@ -993,13 +1011,10 @@ def _record_prompt_metadata(
         "failure_category": (
             compiled_prompt.failure_category if compiled_prompt else failure_category
         ),
-        "compiled_prompt": compiled_prompt.record() if compiled_prompt else {
-            "positive": positive_prompt,
-            "negative": negative_prompt,
-            "clip_l": None,
-            "clip_g": None,
-            "t5": None,
-        },
+        "compiled_prompt": compiled_record,
+        "conditioning_coverage": compiled_record.get("conditioning_coverage", {}),
+        "prompt_budget": compiled_record.get("prompt_budget", {}),
+        "engine_capabilities": compiled_record.get("engine_capabilities", {}),
     }
 
 
@@ -1324,6 +1339,12 @@ def validate_background(
             problems.append((classify_failure(str(error)), str(error)))
             quality_result = {}
         quality_result.update(collapse_metrics)
+        if visual_design:
+            density = assess_scene_density(image, visual_design.get("density_preference", ""))
+            quality_result["scene_density"] = density
+            quality_result["macro_form_balance"] = density["macro_form_balance"]
+            if density["decision"] == "DENSITY_DRIFT":
+                problems.append(("DENSITY_DRIFT", "DENSITY_DRIFT: scene has no usable calm region for requested density"))
 
         palette_result = {
             "palette_checked": False,
@@ -1420,6 +1441,7 @@ def validate_background(
                 "structural_edge_density", "macro_structure_score", "coarse_edge_density",
                 "high_pass_mean", "boilerplate_score", "title_panel_score",
                 "fine_line_pair_ratio",
+                "macro_form_balance", "scene_density",
             )
         },
     }
@@ -1429,7 +1451,7 @@ def validate_background(
                     "OCR_PARTIAL": 1, "TITLE_PANEL": 2,
                     "BOILERPLATE_COMPOSITION": 2,
                     "DIRECTION_DUPLICATE": 3, "FLAT": 4, "DENSE_SAFE_REGION": 5,
-                    "WEAK_OUTER_STRUCTURE": 6, "PALETTE_OFF": 7}
+                    "DENSITY_DRIFT": 5, "WEAK_OUTER_STRUCTURE": 6, "PALETTE_OFF": 7}
         category, message = min(problems, key=lambda item: priority.get(item[0], 8))
         validation_report["failure_category"] = category
         error = ValueError(message)
@@ -2131,7 +2153,17 @@ class ComfyUIClient:
                         category = ("VISION_UNAVAILABLE" if adherence_result["decision"] == "unavailable"
                                     else adherence_result.get("failure_category") or adherence_result["decision"])
                         record["primary_failure_category"] = category
-                        record["all_failure_categories"] = [category]
+                        failed_fields = adherence_result.get("failed_dimensions") or []
+                        field_categories = {
+                            "subject_score": "SUBJECT_DRIFT",
+                            "atmosphere_score": "ATMOSPHERE_DRIFT",
+                            "motif_score": "MOTIF_DRIFT",
+                            "audience_fit_score": "AUDIENCE_DRIFT",
+                        }
+                        record["all_failure_categories"] = [
+                            category, *(field_categories[field] for field in failed_fields
+                                        if field_categories[field] != category)
+                        ]
                         record["validation"] = {**record.get("validation", {}),
                                                 "decision": "rejected", "failure_category": category,
                                                 "subject_adherence": adherence_result,
@@ -2617,6 +2649,9 @@ class ComfyUIClient:
                     "outcome_category": previous.get("outcome_category"),
                     "template_conditioning": previous.get("template_conditioning"),
                     "template_adherence": previous.get("template_adherence"),
+                    "quality_evaluation": previous.get("quality_evaluation"),
+                    "validator_availability": previous.get("validator_availability"),
+                    "reproducibility_manifest": previous.get("reproducibility_manifest"),
                 }
             )
 
@@ -3019,6 +3054,7 @@ class ComfyUIClient:
 
         record.update(
             validation,
+            validation=validation,
             raw_validation=raw_validation,
             final_validation=validation,
             palette_normalized=palette_normalized,

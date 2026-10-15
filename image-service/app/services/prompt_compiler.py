@@ -28,6 +28,7 @@ class CompiledPrompt:
     conditioning_coverage: dict = field(default_factory=dict)
     engine_capabilities: dict = field(default_factory=dict)
     truncated: bool = False
+    retry_strength_level: str = "BASE"
 
     def record(self) -> dict:
         return {
@@ -49,6 +50,7 @@ class CompiledPrompt:
                               for key, value in (("positive", self.positive), ("negative", self.negative),
                                                  ("clip_l", self.clip_l), ("clip_g", self.clip_g), ("t5", self.t5))},
             "truncated": self.truncated,
+            "retry_strength_level": self.retry_strength_level,
         }
 
 
@@ -695,25 +697,26 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         engine_capabilities=engine_capabilities(spec.engine_id),
         truncated=truncated,
     )
-    return _concise_runtime_prompt(result, spec, reason) if concise else result
+    return _concise_runtime_prompt(result, spec, attempt, reason) if concise else result
 
 
 def runtime_retry_category(reason: str) -> str:
     """The six correction paths used by production retries."""
     raw = reason.strip().upper().split(":", 1)[0]
-    category = raw if raw in {"TEXT", "HUMAN", "PALETTE_OFF", "SUBJECT_DRIFT",
+    category = raw if raw in {"TEXT", "TEXT_OR_LOGO", "HUMAN", "PALETTE", "PALETTE_OFF",
+                              "SUBJECT", "SUBJECT_DRIFT", "GENERATION_FAILURE", "UNKNOWN",
                               "RUNTIME", "DENSITY_DRIFT", "MOTIF_DRIFT"} else failure_category(reason)
     if category == "INITIAL":
         return "INITIAL"
     if category in {"HUMAN"}:
         return "HUMAN"
-    if category in {"TEXT", "OCR_TIMEOUT", "OCR_UNAVAILABLE", "TITLE_PANEL"}:
+    if category in {"TEXT", "TEXT_OR_LOGO", "OCR_TIMEOUT", "OCR_UNAVAILABLE", "TITLE_PANEL"}:
         return "TEXT_OR_LOGO"
-    if category in {"PALETTE_OFF", "PALETTE_ROLE_DRIFT", "PRIMARY_MISSING", "SECONDARY_MISSING"}:
+    if category in {"PALETTE", "PALETTE_OFF", "PALETTE_ROLE_DRIFT", "PRIMARY_MISSING", "SECONDARY_MISSING"}:
         return "PALETTE"
-    if category == "SUBJECT_DRIFT":
+    if category in {"SUBJECT", "SUBJECT_DRIFT"}:
         return "SUBJECT"
-    if category in {"RUNTIME", "VISION_UNAVAILABLE"}:
+    if category in {"GENERATION_FAILURE", "RUNTIME", "VISION_UNAVAILABLE"}:
         return "GENERATION_FAILURE"
     return "UNKNOWN"
 
@@ -739,7 +742,52 @@ def _spatial_instruction(design: dict) -> str:
     return ", ".join(dict.fromkeys(choices[:4])) or "balanced layered composition"
 
 
-def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec, reason: str) -> CompiledPrompt:
+def retry_strength_level(attempt: int) -> str:
+    if attempt <= 1:
+        return "BASE"
+    if attempt == 2:
+        return "CORRECTION"
+    if attempt == 3:
+        return "STRONG_CORRECTION"
+    return "STRICT_CORRECTION"
+
+
+_RETRY_CORRECTIONS = {
+    "TEXT_OR_LOGO": (
+        "Continuous visual artwork with uninterrupted image surfaces.",
+        "Strongly preserve uninterrupted imagery and natural scene forms across every region.",
+        "Strictly continuous scene surfaces with natural forms in place of glyphs, signage and artificial marks.",
+    ),
+    "HUMAN": (
+        "Environment-only composition across the canvas.",
+        "Strongly preserve a purely environmental scene with natural, non-human forms.",
+        "Strict environment-only artwork across focal and incidental scene elements.",
+    ),
+    "PALETTE": (
+        "Keep the requested primary and secondary colour relationship clear.",
+        "Strengthen requested colour dominance while retaining the same scene and shading.",
+        "Prioritize requested colour families across major masses in the same scene.",
+    ),
+    "SUBJECT": (
+        "Make the requested subject and anchors recognizable.",
+        "Strengthen original subject forms and supplied anchors in this composition.",
+        "Make the original environment immediately recognizable in this exact direction.",
+    ),
+    "GENERATION_FAILURE": (
+        "Retry the same requested scene cleanly.",
+        "Render the same requested scene with simpler technical execution.",
+        "Use cleaner broad forms while retaining subject, composition and palette.",
+    ),
+    "UNKNOWN": (
+        "Retry the same direction faithfully.",
+        "Strengthen clarity of the original subject and composition without new content.",
+        "Render the original direction literally with the same scene content.",
+    ),
+}
+
+
+def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
+                            attempt: int, reason: str) -> CompiledPrompt:
     design = spec.visual_design
     semantics = design["visual_semantics"]
     subject = _subject(spec)
@@ -750,14 +798,12 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec, reaso
     colours = ", ".join(str(item["colour"]) for item in design["requested_palette"])
     palette = f"{colours}; {_first_words(design['palette_relationship'] or 'primary leading, secondary supporting', 12)}"
     composition = _spatial_instruction(design)
-    correction = {
-        "TEXT_OR_LOGO": "Continuous image surfaces without lettering or logo-like marks.",
-        "HUMAN": "Environment-only composition with no human figures.",
-        "PALETTE": "Keep the requested primary and secondary colour relationship clear.",
-        "SUBJECT": "Make the requested subject and anchors recognizable.",
-        "GENERATION_FAILURE": "Use the same subject in a simpler spatial arrangement.",
-        "UNKNOWN": "Keep the same subject in a simpler coherent composition.",
-    }.get(runtime_retry_category(reason), "")
+    strength = retry_strength_level(attempt)
+    correction = (_RETRY_CORRECTIONS[runtime_retry_category(reason)][min(attempt - 2, 2)]
+                  if attempt > 1 else "")
+    if correction:
+        correction += (" Preserve original subject, anchors, reference treatment, palette, "
+                       "mood, audience, motifs and spatial direction.")
     subject_line = f"Visual subject: {subject}."
     anchor_line = f"Anchors: {_first_words(anchors, 14)}." if anchors else ""
     mood_line = f"Mood: {_first_words(mood, 10)}." if mood else ""
@@ -772,8 +818,9 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec, reaso
     light_line = f"Lighting: {_first_words(design.get('lighting_language'), 8)}." if design.get("lighting_language") else ""
     clip_l = _join_sections(subject_line, anchor_line)
     clip_g = _join_sections(subject_line, mood_line, audience_line, motif_line,
-                           treatment_line, palette_line, spatial_line, style_line, light_line)
-    positive = _join_sections(clip_g, correction,
+                           treatment_line, palette_line, spatial_line, style_line, light_line,
+                           correction if spec.engine_id != "flux-2" else "")
+    positive = _join_sections(clip_g, correction if spec.engine_id == "flux-2" else "",
                              "Continuous background artwork with integrated calm visual space.")
     if spec.engine_id == "flux-2":
         positive = _join_sections(positive, "Environment-only composition; uninterrupted visual surfaces.")
@@ -787,4 +834,5 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec, reaso
                       "", value, flags=re.I).strip()
     return replace(compiled, positive=clean(positive), clip_l=clean(clip_l),
                    clip_g=clean(clip_g), t5=clean(t5) if spec.engine_id == "sd-3-5-medium" else None,
-                   failure_category=runtime_retry_category(reason), retry_stage="normal")
+                   failure_category=runtime_retry_category(reason), retry_stage="normal",
+                   retry_strength_level=strength)

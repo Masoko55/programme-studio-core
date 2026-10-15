@@ -9,7 +9,8 @@ from PIL import Image
 from app.services.candidate_spec import build_candidate_spec
 from app.services.execution_plan import build_execution_plan
 from app.services.image_execution import _finalize_generation_status
-from app.services.prompt_compiler import compile_candidate_prompt, runtime_retry_category
+from app.services.prompt_compiler import (_RETRY_CORRECTIONS, compile_candidate_prompt,
+                                          runtime_retry_category)
 from app.services.comfyui_client import validate_background
 from app.schemas.image_job_state import ImageJobState, ImageOutputRecord
 from tests.test_semantic_foundation import document
@@ -69,6 +70,42 @@ class SimplifiedPipelineTests(unittest.TestCase):
         self.assertEqual({runtime_retry_category(reason) for reason in reasons},
                          {"TEXT_OR_LOGO", "HUMAN", "PALETTE", "SUBJECT",
                           "GENERATION_FAILURE", "UNKNOWN"})
+
+    def test_progressive_retries_preserve_immutable_spec_without_history(self):
+        source = document()
+        levels = ("BASE", "CORRECTION", "STRONG_CORRECTION", "STRICT_CORRECTION")
+        for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
+            spec = build_candidate_spec(source, engine, "A")
+            design = spec.visual_design
+            for category, phrases in _RETRY_CORRECTIONS.items():
+                with self.subTest(engine=engine, category=category):
+                    attempts = [compile_candidate_prompt(spec, attempt,
+                                category if attempt > 1 else "", concise=True)
+                                for attempt in range(1, 5)]
+                    self.assertEqual(tuple(item.retry_strength_level for item in attempts), levels)
+                    self.assertEqual({item.spec_sha256 for item in attempts}, {spec.spec_sha256})
+                    self.assertEqual({item.clip_l for item in attempts}, {attempts[0].clip_l})
+                    for index, compiled in enumerate(attempts):
+                        effective = " ".join((compiled.positive, compiled.clip_g, compiled.t5 or ""))
+                        for expected in (design["primary_visual_subject"], spec.primary_colour,
+                                         design["visual_semantics"]["atmosphere_descriptors"][0],
+                                         design["visual_semantics"]["audience_descriptors"][0],
+                                         design["visual_semantics"]["motif_structure_description"],
+                                         spec.theme_reference_treatment):
+                            self.assertIn(expected, effective)
+                        self.assertIn("Composition:", effective)
+                        if index:
+                            self.assertIn(phrases[index - 1], effective)
+                        for other in phrases:
+                            if other != (phrases[index - 1] if index else None):
+                                self.assertNotIn(other, effective)
+                    if engine == "sdxl-1-0":
+                        self.assertIn(phrases[2], attempts[3].clip_g)
+                    elif engine == "sd-3-5-medium":
+                        self.assertIn(phrases[2], attempts[3].t5)
+                    else:
+                        self.assertFalse(attempts[3].negative_prompt_channel_active)
+                        self.assertIn(phrases[2], attempts[3].positive)
 
     def test_one_failed_slot_does_not_hide_valid_backgrounds(self):
         outputs = [ImageOutputRecord(engine_id=f"engine-{i}", engine_label=str(i),

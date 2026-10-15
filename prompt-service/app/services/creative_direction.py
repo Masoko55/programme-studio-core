@@ -1094,14 +1094,16 @@ def build_creative_direction_prompt(
             retry_count = int(diversity_constraints.get("retry_count") or 0)
             payload["correction_required"]["diversity_overlap"] = diversity_constraints["failed_diagnostic"]
             payload["correction_required"]["instruction"] = (
-                "Second retry: choose an unused focal location, unused flow or composition family, "
-                "and different quiet-region geometry. Also vary mass, depth and perimeter where "
-                "the brief permits. Change at least three material fields relative to EACH "
-                "accepted direction; do not repeat the failed signature."
+                "Second retry: choose clearly unused viewpoint, focal placement, flow, depth, "
+                "mass distribution or quiet-space placement from the available alternatives. "
+                "Change at least two major spatial choices relative to EACH accepted direction. "
+                "Preserve exactly the subject, event, theme, audience, palette, mood, important "
+                "motifs and reference treatment. Do not invent scene-defining objects."
                 if retry_count >= 2 else
-                "First retry: inspect the repeated signature fields and change at least three "
-                "material structural choices relative to EACH accepted direction. Use the "
-                "available alternatives without changing the subject or inventing a new scene."
+                "First retry: change at least two major spatial choices relative to EACH accepted "
+                "direction: viewpoint, focal placement, flow, depth, mass distribution or quiet-space "
+                "placement. Preserve exactly the subject, event, theme, audience, palette, mood, "
+                "important motifs and reference treatment. Do not invent scene-defining objects."
             )
 
     return (

@@ -1560,6 +1560,7 @@ def _strengthen_prompts(
     str,
     str,
 ]:
+    """Legacy offline comparison helper; production uses compile_candidate_prompt()."""
     (
         positive_prompt,
         negative_prompt,

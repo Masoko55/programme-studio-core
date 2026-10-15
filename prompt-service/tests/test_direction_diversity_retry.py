@@ -153,8 +153,12 @@ class DirectionRetryBoundaryTests(unittest.TestCase):
                 brief, "C", "visual designer", "Direction C repeats A's spatial plan",
                 diversity_constraints=plan,
             )))
-        self.assertIn("at least three", prompts[0]["correction_required"]["instruction"])
-        self.assertIn("unused focal location", prompts[1]["correction_required"]["instruction"])
+        self.assertIn("at least two", prompts[0]["correction_required"]["instruction"])
+        self.assertIn("clearly unused", prompts[1]["correction_required"]["instruction"])
+        for prompt in prompts:
+            instruction = prompt["correction_required"]["instruction"]
+            self.assertIn("Preserve exactly the subject", instruction)
+            self.assertNotIn("at least three", instruction)
         self.assertNotEqual(prompts[0]["correction_required"]["instruction"],
                             prompts[1]["correction_required"]["instruction"])
         self.assertEqual(prompts[1]["correction_required"]["diversity_overlap"], diagnostic)

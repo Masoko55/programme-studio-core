@@ -206,7 +206,6 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
         (treatment and provenance.get("theme_reference_treatment", "USER_EXPLICIT") in explicit_sources)
         or (motif_structure and provenance.get("motif_structure_description", "USER_EXPLICIT") in explicit_sources)
         or (motifs and provenance.get("motif_descriptors", "USER_EXPLICIT") in explicit_sources)
-        or (anchors and provenance.get("visual_anchors", "USER_EXPLICIT") in explicit_sources)
     )
     compound_failure = (defining_treatment and scores.get("motif_score") is not None
                         and scores["motif_score"] < fidelity_threshold)

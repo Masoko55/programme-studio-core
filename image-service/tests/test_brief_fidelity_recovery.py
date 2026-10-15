@@ -78,6 +78,33 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
         self.assertEqual(result["decision"], "BRIEF_FIDELITY_DRIFT")
         self.assertFalse(result["compound_fidelity_failure"])
 
+    def test_explicit_anchor_does_not_promote_inferred_motif(self):
+        brief = {"background_inspiration": "city with connected forms",
+                 "primary_visual_subject": "city with connected forms",
+                 "visual_anchors": ["city skyline"],
+                 "visual_semantics": {"motif_descriptors": ["connected geometry"]},
+                 "semantic_provenance": {"primary_visual_subject": "USER_EXPLICIT",
+                     "visual_anchors": "USER_EXPLICIT", "motif_descriptors": "SEMANTIC_INFERENCE"}}
+        result, _ = self._assess(brief, {"subject_score": .9,
+            "atmosphere_score": .8, "motif_score": .2, "audience_fit_score": .8})
+        self.assertEqual(result["decision"], "BRIEF_FIDELITY_DRIFT")
+        self.assertEqual(result["failure_category"], "MOTIF_DRIFT")
+        self.assertFalse(result["compound_fidelity_failure"])
+
+    def test_explicit_treatment_promotes_missing_motif(self):
+        brief = {"background_inspiration": "city with connected forms",
+                 "primary_visual_subject": "city with connected forms",
+                 "visual_anchors": ["city skyline"],
+                 "theme_reference_treatment": "connected web geometry",
+                 "visual_semantics": {"motif_descriptors": ["connected geometry"]},
+                 "semantic_provenance": {"primary_visual_subject": "USER_EXPLICIT",
+                     "visual_anchors": "USER_EXPLICIT", "motif_descriptors": "SEMANTIC_INFERENCE",
+                     "theme_reference_treatment": "USER_EXPLICIT"}}
+        result, _ = self._assess(brief, {"subject_score": .9,
+            "atmosphere_score": .8, "motif_score": .2, "audience_fit_score": .8})
+        self.assertEqual(result["decision"], "SUBJECT_DRIFT")
+        self.assertTrue(result["compound_fidelity_failure"])
+
     def test_ocr_timeout_is_bounded_and_explicit(self):
         with patch("app.services.comfyui_client.pytesseract.image_to_data",
                    side_effect=RuntimeError("Tesseract process timeout")) as ocr:

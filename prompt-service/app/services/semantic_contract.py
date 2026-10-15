@@ -50,6 +50,8 @@ def build_semantic_contract(brief: dict) -> dict:
     for key, value in fields.items():
         if not value:
             sources[key] = "SAFE_FALLBACK"
+        elif key == "palette_relationship" and brief.get("palette_relationship_source") == "default":
+            sources[key] = "SAFE_FALLBACK"
         elif key in inferred_sources:
             sources[key] = inferred_sources[key]
         elif key in {"primary_visual_subject", "visual_anchors", "palette", "palette_mode", "palette_relationship", "theme_reference_treatment"}:

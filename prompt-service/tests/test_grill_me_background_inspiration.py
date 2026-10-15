@@ -9,9 +9,20 @@ from app.services.creative_direction import (
 )
 from app.services.grill_me_semantic import _safe_context
 from app.services.grill_me_service import evaluate_session, freeze_for_generation
+from app.services.semantic_contract import build_semantic_contract
 
 
 class GrillMeBackgroundInspirationTests(unittest.TestCase):
+    def test_default_palette_relationship_provenance(self):
+        brief = {"primary_colour": "navy", "secondary_colour": "white",
+                 "palette_relationship": "requested colours dominate with natural tonal variation",
+                 "palette_relationship_source": "default"}
+        contract = build_semantic_contract(brief)
+        self.assertEqual(contract["semantic_provenance"]["palette_relationship"], "SAFE_FALLBACK")
+        brief["palette_relationship_source"] = "user"
+        contract = build_semantic_contract(brief)
+        self.assertEqual(contract["semantic_provenance"]["palette_relationship"], "USER_EXPLICIT")
+
     def test_accessibility_stays_in_final_composition(self):
         session = GrillMeSession(session_id="test", status="ready", answers=GrillMeAnswers(
             event_type="garden gathering", theme="flowers", age_group="family",

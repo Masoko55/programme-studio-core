@@ -90,6 +90,39 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         field(brief, "theme") if not field(brief, "background_inspiration")
             and not visual_sentence and not field(brief, "theme_reference_treatment") else "",
     ) if value]
+    context = brief.get("grill_me_context")
+    semantics = brief.get("visual_semantics")
+    if not isinstance(semantics, dict) and isinstance(context, dict):
+        semantics = context.get("visual_semantics")
+    if not isinstance(semantics, dict):
+        semantics = {}
+    motif_words = values(brief, "symbolic_motifs") + values(brief, "environmental_motifs")
+    # A raw description can contain planning context or a named reference.
+    # Preserve descriptive prose unless it repeats the event label or contains
+    # a backstory sentence; the semantic stage owns interpretation of those.
+    raw_description = field(brief, "creative_description")
+    event_label = field(brief, "event_type")
+    fallback_description = raw_description if (
+        raw_description
+        and (not event_label or event_label.casefold() not in raw_description.casefold())
+        and not re.search(r"\b(?:loves?|guest of honour|favorite character|favourite character)\b", raw_description, re.I)
+    ) else ""
+    atmosphere = values(semantics, "atmosphere_descriptors") or [value for value in (
+        field(brief, "mood"), visual_sentence or fallback_description
+    ) if value]
+    audience = values(semantics, "audience_descriptors") or [value for value in (
+        field(brief, "audience_context"), field(brief, "age_group")
+    ) if value]
+    visual_semantics = {
+        "atmosphere_descriptors": atmosphere,
+        "audience_descriptors": audience,
+        "motif_descriptors": values(semantics, "motif_descriptors") or motif_words,
+        "motif_structure_description": field(semantics, "motif_structure_description") or ", ".join(motif_words),
+        "lighting_descriptors": values(semantics, "lighting_descriptors") or values(brief, "lighting_language"),
+        "incompatible_treatments": values(semantics, "incompatible_treatments") or values(brief, "negative_constraints"),
+        "scene_family": field(semantics, "scene_family") or "general",
+        "composition_affinities": values(semantics, "composition_affinities"),
+    }
     visual_design = {
         "primary_visual_subject": field(brief, "background_inspiration") or visual_sentence or field(brief, "theme_reference_treatment") or field(brief, "theme"),
         "event_context": field(brief, "event_context") or field(brief, "event_type"),
@@ -99,6 +132,7 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         "audience_context": field(brief, "audience_context"),
         "age_group": field(brief, "age_group"),
         "creative_description": field(brief, "creative_description"),
+        "visual_semantics": visual_semantics,
         "theme_reference_treatment": field(brief, "theme_reference_treatment"),
         "mood": field(brief, "mood"),
         "visual_style": field(brief, "visual_style"),

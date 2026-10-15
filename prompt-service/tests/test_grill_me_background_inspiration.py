@@ -11,6 +11,21 @@ from app.services.grill_me_service import evaluate_session
 
 
 class GrillMeBackgroundInspirationTests(unittest.TestCase):
+    def test_semantic_review_preserves_unfamiliar_descriptors(self):
+        context = _safe_context({"visual_semantics": {
+            "atmosphere_descriptors": ["quietly luminous", "meditative", "weightless"],
+            "motif_structure_description": "irregular nested mineral clusters",
+            "incompatible_treatments": ["harsh metallic glare"],
+            "scene_family": "abstract",
+        }}, {"event_type": "unfamiliar gathering", "theme": "mineral forms",
+             "creative_description": "quietly luminous, meditative and weightless"})
+        semantics = context["visual_semantics"]
+        self.assertEqual(semantics["atmosphere_descriptors"],
+                         ["quietly luminous", "meditative", "weightless"])
+        self.assertEqual(semantics["motif_structure_description"], "irregular nested mineral clusters")
+        self.assertEqual(semantics["incompatible_treatments"], ["harsh metallic glare"])
+        self.assertEqual(semantics["scene_family"], "abstract")
+
     def test_generic_brief_gets_one_plain_language_background_question(self):
         context = _safe_context(
             {},

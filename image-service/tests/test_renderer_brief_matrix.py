@@ -108,6 +108,12 @@ class RendererBriefMatrixTests(unittest.TestCase):
         city["brief"]["creative_description"] = "A joyful high-energy celebration with playful comic-book city atmosphere"
         city["brief"]["symbolic_motifs"] = ["web-inspired geometry"]
         city["brief"]["audience_context"] = "Children aged 7 to 10"
+        city["brief"]["visual_semantics"] = {
+            "atmosphere_descriptors": ["joyful", "high-energy"],
+            "audience_descriptors": ["child-friendly", "Children aged 7 to 10"],
+            "motif_structure_description": "connected radial strands and cross-link arcs",
+            "incompatible_treatments": ["dystopian"], "scene_family": "general",
+        }
         compiled = compile_candidate_prompt(build_candidate_spec(city, "sd-3-5-medium", "A"), 1)
         self.assertIn("joyful", compiled.clip_g)
         self.assertIn("child-friendly", compiled.t5)
@@ -131,6 +137,11 @@ class RendererBriefMatrixTests(unittest.TestCase):
                 document = fixture(index + 300, event, description, "navy", "white", "dominant", "none", "asymmetric")
                 document["brief"]["creative_description"] = description
                 document["brief"]["symbolic_motifs"] = [motif]
+                document["brief"]["visual_semantics"] = {
+                    "atmosphere_descriptors": [description],
+                    "motif_structure_description": topology or motif,
+                    "incompatible_treatments": [excluded], "scene_family": "general",
+                }
                 prompt = compile_candidate_prompt(build_candidate_spec(document, "sd-3-5-medium", "A"), 1)
                 self.assertIn(excluded, prompt.negative)
                 if topology:
@@ -159,3 +170,23 @@ class RendererBriefMatrixTests(unittest.TestCase):
                 self.check_document(document)
         self.assertEqual(len(generated), 12)
         self.assertEqual(len({item["brief"]["background_inspiration"] for item in generated}), 12)
+
+    def test_arbitrary_atmosphere_and_generic_motif_survive_without_keyword_rules(self):
+        document = fixture(900, "unfamiliar gathering", "floating mineral forms", "navy", "gold",
+                           "dominant", "none", "asymmetric")
+        document["brief"]["creative_description"] = "quietly luminous, meditative and weightless"
+        document["brief"]["visual_semantics"] = {
+            "motif_structure_description": "uneven clusters of translucent mineral forms",
+            "incompatible_treatments": ["harsh metallic glare"],
+            "scene_family": "abstract",
+        }
+        for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
+            with self.subTest(engine=engine):
+                spec = build_candidate_spec(document, engine, "A")
+                prompt = compile_candidate_prompt(spec, 1)
+                for word in ("luminous", "meditative", "weightless"):
+                    self.assertIn(word, prompt.positive)
+                    self.assertIn(word, prompt.clip_g)
+                self.assertIn("uneven clusters", prompt.positive)
+                self.assertEqual(prompt.negative_prompt_channel_active, engine != "flux-2")
+                self.assertIn("harsh metallic glare", spec.visual_design["visual_semantics"]["incompatible_treatments"])

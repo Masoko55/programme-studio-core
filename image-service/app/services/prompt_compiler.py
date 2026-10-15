@@ -20,6 +20,9 @@ class CompiledPrompt:
     failure_category: str
     retry_stage: str
     spec_sha256: str
+    negative_prompt_channel_active: bool = True
+    negative_semantics_preserved: bool = True
+    incompatible_treatments: tuple[str, ...] = ()
 
     def record(self) -> dict:
         return {
@@ -28,6 +31,9 @@ class CompiledPrompt:
             "clip_l": self.clip_l,
             "clip_g": self.clip_g,
             "t5": self.t5,
+            "negative_prompt_channel_active": self.negative_prompt_channel_active,
+            "negative_semantics_preserved": self.negative_semantics_preserved,
+            "incompatible_treatments": list(self.incompatible_treatments),
         }
 
 
@@ -170,107 +176,34 @@ def _chromatic_boundaries(spec: CandidateSpec) -> str:
 
 
 def _atmosphere(spec: CandidateSpec) -> str:
-    design = spec.visual_design
-    source = " ".join(str(part or "") for part in (design.get("mood"), spec.creative_description,
-                                                     design.get("event_context"), spec.event_type))
-    words = re.findall(r"\b(?:joyful|playful|energetic|high-energy|refined|formal|luxurious|prestigious|contemporary|restrained|dignified|calm|polished|professional|organic|warm|elegant|celebratory|festive)\b", source, re.I)
-    mood = ", ".join(dict.fromkeys(word.casefold() for word in words))
-    if not mood:
-        event = (spec.event_type + " " + spec.theme).casefold()
-        if any(word in event for word in ("child", "kid", "school")):
-            mood = "playful, joyful, energetic"
-        elif any(word in event for word in ("black tie", "black-tie", "gala")):
-            mood = "refined, formal, luxurious"
-        elif "award" in event:
-            mood = "prestigious, contemporary, polished"
-        elif "memorial" in event:
-            mood = "restrained, dignified, calm"
-        elif "corporate" in event or "conference" in event:
-            mood = "polished, professional"
-        elif "botanical" in event or "garden" in event:
-            mood = "organic, warm, elegant"
-    audience = str(design.get("audience_context") or "")
-    child_safe = any(word in (spec.event_type + " " + audience).casefold() for word in ("child", "kid", "age 7", "age 8", "age 9", "age 10"))
-    if child_safe:
-        mood = (mood + ", playful child-friendly" if mood else "playful child-friendly")
-    if not mood:
-        mood = "event-appropriate"
-    event_label = str(design.get("event_context") or spec.event_type).casefold()
-    if "birthday" in event_label:
-        purpose = "birthday celebration"
-    elif "conference" in event_label or "corporate" in event_label:
-        purpose = "professional gathering"
-    elif "memorial" in event_label:
-        purpose = "remembrance gathering"
-    elif any(word in event_label for word in ("wedding", "bridal", "shower", "gala", "awards")):
-        purpose = "celebration gathering"
-    else:
-        purpose = "event gathering" if event_label else ""
-    context = f"Visual purpose: {purpose}; " if purpose else ""
-    return f"{context}Event atmosphere: {mood}; no people or characters."
+    semantics = spec.visual_design["visual_semantics"]
+    mood = _first_words(", ".join(semantics["atmosphere_descriptors"]), 50) or "event-appropriate"
+    audience = _first_words(", ".join(semantics["audience_descriptors"]), 15)
+    return _join_sections(
+        f"Event atmosphere: {mood}.",
+        f"Audience fit: {audience}." if audience else "",
+        "no people or characters.",
+    )
 
 
 def _motif_structure(spec: CandidateSpec) -> str:
-    motifs = [*spec.visual_design["symbolic_motifs"], *spec.visual_design["environmental_motifs"]]
-    treatment = spec.theme_reference_treatment
-    source = " ".join([treatment, *motifs]).casefold()
-    clues = []
-    for key, detail in (("web", "interconnected strands, cross-link arcs, network cells and curved connecting segments visibly linking radial strands into web-like geometry"),
-                        ("botanic", "leaves, stems and organic branching"),
-                        ("floral", "petals and branching stems"),
-                        ("fabric", "folds, drape and flowing surfaces"),
-                        ("circuit", "panels, circuitry and luminous grids"),
-                        ("technolog", "panels, circuitry and luminous grids")):
-        if key in source:
-            clues.append(detail)
-    return f"Motif structure: {', '.join(clues)}." if clues else ""
+    semantics = spec.visual_design["visual_semantics"]
+    structure = semantics["motif_structure_description"] or ", ".join(semantics["motif_descriptors"])
+    return f"Motif structure: {structure}." if structure else ""
 
 
 def _scene_tone(spec: CandidateSpec) -> tuple[str, str]:
-    """Translate stated atmosphere into lighting and incompatible treatments."""
-    source = " ".join(str(value or "") for value in (
-        spec.visual_design.get("mood"), spec.creative_description, spec.event_type
-    )).casefold()
-    if any(word in source for word in ("joyful", "playful", "high-energy", "cheerful", "festive")):
-        return ("Uplifting clean graphic energy, vibrant daylight or bright illustrative lighting, friendly celebratory atmosphere.",
-                "ominous, grim, dystopian, horror, post-apocalyptic, burning city, dark noir")
-    if any(word in source for word in ("memorial", "dignified", "restrained")):
-        return ("Gentle, calm and dignified lighting with restrained visual energy.",
-                "neon party, playful, celebratory spectacle")
-    if any(word in source for word in ("formal", "luxurious", "black-tie", "black tie")):
-        return ("Refined controlled lighting and composed formal atmosphere.",
-                "childish, cartoonish, chaotic")
-    if "award" in source or "prestigious" in source:
-        return ("Polished contemporary lighting and prestigious celebratory atmosphere.",
-                "childish, shabby, chaotic")
-    if any(word in source for word in ("corporate", "professional", "conference")):
-        return ("Clear polished lighting and professional visual atmosphere.",
-                "whimsical, childish, fantasy-heavy")
-    return "", ""
+    """Consume upstream lighting and exclusion semantics without event labels."""
+    semantics = spec.visual_design["visual_semantics"]
+    lighting = ", ".join(semantics["lighting_descriptors"])
+    desired = f"Desired lighting: {lighting}." if lighting else ""
+    return desired, ", ".join(semantics["incompatible_treatments"])
 
 
-def _motif_avoidances(spec: CandidateSpec) -> str:
-    source = " ".join([spec.theme_reference_treatment,
-                       *spec.visual_design["symbolic_motifs"],
-                       *spec.visual_design["environmental_motifs"]]).casefold()
-    return "explosion, radial sparks, energy burst, disconnected rays, starburst" if "web" in source else ""
-
-
-def _soften_playful_tone(text: str, spec: CandidateSpec) -> str:
-    """Remove aggressive planning language only when the brief asks for play."""
-    if not _scene_tone(spec)[0].startswith("Uplifting"):
-        return text
-    replacements = {
-        "dramatic atmospheric perspective": "clear graphic depth",
-        "fractured perimeter": "clean shaped perimeter",
-        "spikes": "bold shapes",
-        "speed-line energy": "celebratory motion",
-        "dynamic focal points": "playful focal rhythm",
-        "violent burst": "celebratory motion",
-        "dark cinematic": "bright illustrative",
-    }
-    for original, friendly in replacements.items():
-        text = re.sub(re.escape(original), friendly, text, flags=re.I)
+def _exclude_incompatible(text: str, spec: CandidateSpec) -> str:
+    """Do not repeat explicitly excluded treatments in positive conditioning."""
+    for phrase in spec.visual_design["visual_semantics"]["incompatible_treatments"]:
+        text = re.sub(r"\b" + re.escape(phrase) + r"\b", "brief-compatible", text, flags=re.I)
     return text
 
 
@@ -502,6 +435,7 @@ def _positive_prompt(
         f"Background inspiration: {subject}.", shared[0],
         f"Theme reference treatment: {treatment}." if treatment else "",
         *shared[2:],
+        _atmosphere(spec), _scene_tone(spec)[0], _motif_structure(spec),
         f"Correction: {correction}" if correction else "",
         f"Visual design: {spec.original_positive_prompt}.",
         safety,
@@ -548,13 +482,13 @@ def _encoder_fields(
             f"Motifs: {_first_words(', '.join(motifs) or direction_detail, 12)}.")
         return (
             _join_sections("Background artwork.", subject_line, atmosphere_line,
-                           _first_words(tone_line, 12), _soften_playful_tone(direction, spec),
-                           _soften_playful_tone(structure_line, spec), colour,
+                           _first_words(tone_line, 12), _exclude_incompatible(direction, spec),
+                           _exclude_incompatible(structure_line, spec), colour,
                            f"Correction: {short_correction}" if short_correction else ""),
             _join_sections("Background artwork.", subject_line, atmosphere_line,
-                           _first_words(tone_line, 12), _soften_playful_tone(direction, spec),
-                           _soften_playful_tone(structure_line, spec),
-                           _soften_playful_tone(global_line, spec), _motif_structure(spec),
+                           _first_words(tone_line, 12), _exclude_incompatible(direction, spec),
+                           _exclude_incompatible(structure_line, spec),
+                           _exclude_incompatible(global_line, spec), _motif_structure(spec),
                            f"Quiet areas: {design['title_safe_region_strategy']}; {design['programme_safe_region_strategy']}.", colour,
                            f"Correction: {short_correction}" if short_correction else ""),
         )
@@ -575,6 +509,7 @@ def _encoder_fields(
         )
         return clip_l, clip_g
     common = (f"Visual subject: {subject}.", anchor_text, motif_text, direction,
+              _atmosphere(spec), _scene_tone(spec)[0], _motif_structure(spec),
               structure, material)
     return (
         _join_sections("Background artwork.", *common, colour),
@@ -629,7 +564,8 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
                     "title, logo, watermark, signage, glyphs, pseudo-text, poster mockup, "
                     "no blank title panel, no white card, no bordered text box, "
                     "no poster frame, no banner, no placard, no signboard, no empty paper rectangle")
-        negative += ", " + ", ".join(value for value in (_scene_tone(spec)[1], _motif_avoidances(spec)) if value)
+        if _scene_tone(spec)[1]:
+            negative += ", " + _scene_tone(spec)[1]
     else:
         negative = "people, faces, characters, text, glyphs, logos, title panels"
     extra_negative = {
@@ -638,7 +574,8 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     }
     negative += extra_negative.get(category, "")
     if spec.engine_id == "sd-3-5-medium":
-        negative += ", " + ", ".join(value for value in (_scene_tone(spec)[1], _motif_avoidances(spec)) if value)
+        if _scene_tone(spec)[1]:
+            negative += ", " + _scene_tone(spec)[1]
     clip_l, clip_g = _encoder_fields(
         spec, subject, motif, encoder_motif, treatment, correction,
     )
@@ -662,7 +599,7 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         f"Correction: {correction}" if correction else "",
     ) if section)
     return CompiledPrompt(
-        positive=_background_only(_soften_playful_tone(positive, spec), spec),
+        positive=_background_only(_exclude_incompatible(positive, spec), spec),
         negative=negative,
         clip_l=_background_only(clip_l, spec),
         clip_g=_background_only(clip_g, spec),
@@ -670,4 +607,6 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         failure_category=category,
         retry_stage=stage,
         spec_sha256=spec.spec_sha256,
+        negative_prompt_channel_active=spec.engine_id != "flux-2",
+        incompatible_treatments=tuple(spec.visual_design["visual_semantics"]["incompatible_treatments"]),
     )

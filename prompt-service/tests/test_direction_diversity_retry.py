@@ -65,6 +65,7 @@ class DirectionRetryBoundaryTests(unittest.TestCase):
         second.border_or_perimeter_strategy = "open perimeter"
         for brief, expected_kind in briefs:
             with self.subTest(kind=expected_kind):
+                brief["visual_semantics"] = {"scene_family": expected_kind}
                 first_plan = build_diversity_constraints("A", [], brief)
                 second_plan = build_diversity_constraints("B", [first], brief)
                 plan = build_diversity_constraints("C", [first, second], brief)
@@ -88,6 +89,12 @@ class DirectionRetryBoundaryTests(unittest.TestCase):
                 text = json.dumps(plan).casefold()
                 for irrelevant in ("city", "web", "child", "street-canyon", "aerial"):
                     self.assertNotIn(irrelevant, text)
+
+    def test_unknown_scene_family_uses_general_choices(self):
+        brief = {"event_type": "unfamiliar event", "visual_semantics": {"scene_family": "subterranean"}}
+        plan = build_diversity_constraints("A", [], brief)
+        self.assertEqual(plan["scene_kind"], "general")
+        self.assertTrue(plan["available_alternatives"]["composition_family"])
 
     def test_diversity_rejection_has_bounded_signature_diagnostic(self):
         first = direction("A")

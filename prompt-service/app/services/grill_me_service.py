@@ -1386,6 +1386,7 @@ def freeze_for_generation(
         "grill_me_context": (
             session.creative_context
         ),
+        "visual_semantics": (session.creative_context or {}).get("visual_semantics", {}),
         "title_preference": (
             answer[
                 "title_preference"

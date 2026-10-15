@@ -12,16 +12,9 @@ _FIELDS = (
 
 
 def _scene_kind(brief: dict) -> str:
-    context = " ".join(str(brief.get(key) or "") for key in (
-        "event_type", "theme", "background_inspiration", "creative_description"
-    )).casefold()
-    if any(word in context for word in ("garden", "botanic", "flower", "foliage")):
-        return "organic"
-    if any(word in context for word in ("ballroom", "black-tie", "black tie", "formal")):
-        return "architectural-interior"
-    if any(word in context for word in ("abstract", "sculptur", "geometric")):
-        return "abstract"
-    return "general"
+    semantics = brief.get("visual_semantics") or (brief.get("grill_me_context") or {}).get("visual_semantics") or {}
+    family = str(semantics.get("scene_family") or "general").strip().casefold()
+    return family if family in {"organic", "architectural-interior", "abstract"} else "general"
 
 
 def _compatible_choices(brief: dict) -> dict[str, tuple[str, ...]]:

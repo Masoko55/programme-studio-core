@@ -60,9 +60,13 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
     chosen_model = settings.subject_vision_model if model is None else model
     threshold = settings.subject_adherence_threshold
     fidelity_threshold = settings.brief_fidelity_threshold
-    motifs = [str(value) for value in visual_design.get("symbolic_motifs", []) if str(value).strip()]
-    atmosphere = str(visual_design.get("creative_description") or visual_design.get("mood") or "").strip()
-    audience = str(visual_design.get("audience_context") or visual_design.get("age_group") or "").strip()
+    semantics = visual_design.get("visual_semantics") or {}
+    motifs = [str(value) for value in semantics.get("motif_descriptors", []) if str(value).strip()]
+    motifs += [str(value) for value in visual_design.get("symbolic_motifs", []) if str(value).strip()]
+    atmosphere = ", ".join(semantics.get("atmosphere_descriptors", [])) or str(visual_design.get("creative_description") or visual_design.get("mood") or "").strip()
+    audience = ", ".join(semantics.get("audience_descriptors", [])) or str(visual_design.get("audience_context") or visual_design.get("age_group") or "").strip()
+    motif_structure = str(semantics.get("motif_structure_description") or "").strip()
+    incompatible = ", ".join(semantics.get("incompatible_treatments", []))
     event = str(visual_design.get("event_context") or "").strip()
     treatment = str(visual_design.get("theme_reference_treatment") or "").strip()
     required = {"subject_score": threshold}
@@ -91,13 +95,15 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
         "Judge visible subject, event mood, motif structure, and audience fit separately. "
         "Do not judge colours. Do not infer a subject or motif from decorative lines alone. "
         "Intentional abstract or sculptural subjects are valid when requested. "
-        "For a web motif, require connected radial strands, curved cross-links and repeated cells; "
-        "isolated rays, cracks or speed lines alone are insufficient. "
+        "Compare motif geometry with the requested motif structure; isolated decorative marks alone are insufficient. "
+        "Reject visible treatments incompatible with the requested mood. "
         "Return only JSON scores, observed_evidence as a list of visible forms, and a short reason. "
         "Requested subject: " + subject + ". Anchors: " + "; ".join(anchors[:5]) +
         ". Event: " + event + ". Atmosphere: " + atmosphere[:350] +
         ". Audience: " + audience + ". Theme treatment: " + treatment[:200] +
-        ". Symbolic motifs: " + "; ".join(motifs[:5]) + "."
+        ". Motifs: " + "; ".join(motifs[:5]) +
+        ". Motif structure: " + motif_structure[:350] +
+        ". Incompatible treatments: " + incompatible[:350] + "."
     )
     endpoint = select_vision_endpoint(chosen_model)
     debug = {"endpoint": endpoint, "model": chosen_model}

@@ -60,7 +60,9 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
     def test_missing_web_topology_fails_even_with_good_subject_and_mood(self):
         brief = {"primary_visual_subject": "comic city", "event_context": "children birthday",
                  "creative_description": "joyful playful celebration", "audience_context": "children",
-                 "symbolic_motifs": ["connected web geometry"]}
+                 "symbolic_motifs": ["connected web geometry"],
+                 "visual_semantics": {"motif_structure_description":
+                     "connected radial strands with curved cross-links; isolated rays are insufficient"}}
         result, prompt = self._assess(brief, {"subject_score": .9,
             "atmosphere_score": .9, "motif_score": .1, "audience_fit_score": .9})
         self.assertEqual(result["decision"], "BRIEF_FIDELITY_DRIFT")
@@ -111,6 +113,13 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                            "royal blue", "red", "dominant", "none", "asymmetric")
         document["brief"].update(creative_description="joyful playful celebration",
                                  audience_context="children", symbolic_motifs=["connected web network"])
+        document["brief"]["visual_semantics"] = {
+            "atmosphere_descriptors": ["joyful", "playful"],
+            "audience_descriptors": ["child-friendly", "children"],
+            "motif_structure_description": "connected radial strands with curved cross-links and cross-link arcs",
+            "incompatible_treatments": ["dystopian", "fractured perimeter"],
+            "scene_family": "general",
+        }
         direction = document["directions"][0]["direction"]
         direction["composition_strategy"] = "dramatic atmospheric perspective with fractured perimeter and spikes"
         prompt = compile_candidate_prompt(build_candidate_spec(document, "sdxl-1-0", "A"), 1)
@@ -130,6 +139,7 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
             with self.subTest(event=event):
                 document = fixture(403, event, scene, "purple", "silver", "dominant", "none", "asymmetric")
                 document["brief"]["creative_description"] = description
+                document["brief"]["visual_semantics"] = {"atmosphere_descriptors": [description]}
                 prompt = compile_candidate_prompt(build_candidate_spec(document, "sdxl-1-0", "A"), 1)
                 self.assertIn(expected, prompt.clip_g)
                 self.assertNotIn("child-friendly", prompt.clip_g)

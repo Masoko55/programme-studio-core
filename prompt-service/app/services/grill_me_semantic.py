@@ -59,6 +59,7 @@ DEFAULT_CONTEXT = {
     "reference_type": "none",
     "reference_needs_clarification": False,
     "background_generation_summary": None,
+    "visual_semantics": {},
     "generation_constraints": [
         "background only",
         "no people",
@@ -186,6 +187,12 @@ def _review_prompt(
                 "Produce a concise background_generation_summary for "
                 "the next creative-direction agent."
             ),
+            (
+                "Derive visual_semantics from the supplied meaning, not from an event-name "
+                "lookup. Preserve unusual atmosphere words. Describe motif topology in "
+                "motif_structure_description and name visually incompatible treatments "
+                "without judging palette or requesting people or text."
+            ),
         ],
         "output_format": {
             "event_type_status": (
@@ -222,6 +229,16 @@ def _review_prompt(
             "background_generation_summary": (
                 "concise clarified instructions for the next agent"
             ),
+            "visual_semantics": {
+                "atmosphere_descriptors": ["short supplied mood phrase"],
+                "audience_descriptors": ["short audience description"],
+                "motif_descriptors": ["visible motif"],
+                "motif_structure_description": "how the motif visibly connects or repeats",
+                "lighting_descriptors": ["brief-compatible lighting"],
+                "incompatible_treatments": ["visually incompatible treatment"],
+                "scene_family": "organic, architectural-interior, abstract, or general",
+                "composition_affinities": ["brief-compatible structural family"],
+            },
             "generation_constraints": [
                 "constraint"
             ],
@@ -331,6 +348,37 @@ def _safe_context(
 
     context = dict(DEFAULT_CONTEXT)
     context.update({key: item for key, item in value.items() if key in context})
+    raw_semantics = context.get("visual_semantics")
+    if not isinstance(raw_semantics, dict):
+        raw_semantics = {}
+    supplied_semantics = answers.get("visual_semantics")
+    if isinstance(supplied_semantics, dict):
+        raw_semantics = {**raw_semantics, **supplied_semantics}
+
+    def descriptors(key: str, fallback: str = "") -> list[str]:
+        raw = raw_semantics.get(key)
+        if isinstance(raw, str):
+            raw = [raw]
+        if not isinstance(raw, list):
+            raw = []
+        result = [str(item).strip()[:180] for item in raw if str(item).strip()]
+        return result[:8] or ([fallback[:180]] if fallback else [])
+
+    family = str(raw_semantics.get("scene_family") or "general").strip().casefold()
+    if family not in {"organic", "architectural-interior", "abstract", "general"}:
+        family = "general"
+    context["visual_semantics"] = {
+        "atmosphere_descriptors": descriptors(
+            "atmosphere_descriptors", str(answers.get("creative_description") or "")),
+        "audience_descriptors": descriptors(
+            "audience_descriptors", str(answers.get("age_group") or "")),
+        "motif_descriptors": descriptors("motif_descriptors"),
+        "motif_structure_description": str(raw_semantics.get("motif_structure_description") or "").strip()[:360],
+        "lighting_descriptors": descriptors("lighting_descriptors"),
+        "incompatible_treatments": descriptors("incompatible_treatments"),
+        "scene_family": family,
+        "composition_affinities": descriptors("composition_affinities"),
+    }
     questions = _valid_clarification_questions(context)
 
     event = str(answers.get("event_type") or "").strip()

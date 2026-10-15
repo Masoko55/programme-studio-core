@@ -1334,8 +1334,14 @@ def validate_background(
         ambiguous_human_signal = bool(human_signals.get("ambiguous_face_signal"))
         human_signals["classical_human_signal"] = classical_human_signal
         human_signals["vision_human_signal"] = vision_human_signal
-        human_signals["detected"] = classical_human_signal or (ambiguous_human_signal and vision_human_signal is True)
+        human_signals["detected"] = classical_human_signal or vision_human_signal is True
         human_signals["combined_human_decision"] = human_signals["detected"]
+        human_signals["decision_reason"] = (
+            "vision confirmed visible human" if vision_human_signal is True else
+            human_signals.get("human_detection_reason") if classical_human_signal else
+            "isolated ambiguous detector evidence" if ambiguous_human_signal else
+            "no human evidence"
+        )
 
         problems: list[tuple[str, str]] = []
         ocr_diagnostics = text_evidence.get("ocr_diagnostics", {})
@@ -1391,6 +1397,7 @@ def validate_background(
                     ),
                     palette=brief.get("palette"),
                     relationship=brief.get("palette_relationship"),
+                    relationship_source=brief.get("palette_relationship_source"),
                     mode=brief.get("palette_mode"),
                     quality_result={},
                 )
@@ -1433,6 +1440,7 @@ def validate_background(
         "classical_human_signal": classical_human_signal,
         "vision_human_signal": vision_human_signal,
         "combined_human_decision": human_signals["detected"],
+        "decision_reason": human_signals["decision_reason"],
         **quality_result,
         **palette_result,
     }
@@ -1469,7 +1477,7 @@ def validate_background(
             "detected": human_signals["detected"],
             "strong_signals": human_signals.get("strong_signals", []),
             "weak_signals": human_signals.get("weak_signals", []),
-            "decision_reason": human_signals.get("human_detection_reason"),
+            "decision_reason": human_signals["decision_reason"],
         },
         "quality": {
             key: metrics.get(key) for key in (
@@ -2124,9 +2132,11 @@ class ComfyUIClient:
         engine_id = record["engine_id"]
         direction_id = record["direction_id"]
         try:
-            visual_design = build_candidate_spec(
+            candidate_spec = build_candidate_spec(
                 load_prompts_document(reference_number), engine_id, direction_id
-            ).visual_design
+            )
+            visual_design = {**candidate_spec.visual_design,
+                             "semantic_provenance": candidate_spec.semantic_contract.get("semantic_provenance", {})}
         except FileNotFoundError:
             # Legacy fixture records can be validated without a prompts file.
             visual_design = None

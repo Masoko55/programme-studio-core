@@ -200,14 +200,26 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
                 "vision_debug": debug,
                 "dimension_availability": {field: "UNAVAILABLE" for field in required}}
     failed = [field for field, limit in required.items() if scores[field] < limit]
-    decision = ("SUBJECT_DRIFT" if "subject_score" in failed else
+    provenance = visual_design.get("semantic_provenance") or {}
+    explicit_sources = {"USER_EXPLICIT", "GRILL_ME_CLARIFIED"}
+    defining_treatment = bool(
+        (treatment and provenance.get("theme_reference_treatment", "USER_EXPLICIT") in explicit_sources)
+        or (motif_structure and provenance.get("motif_structure_description", "USER_EXPLICIT") in explicit_sources)
+        or (motifs and provenance.get("motif_descriptors", "USER_EXPLICIT") in explicit_sources)
+        or (anchors and provenance.get("visual_anchors", "USER_EXPLICIT") in explicit_sources)
+    )
+    compound_failure = (defining_treatment and scores.get("motif_score") is not None
+                        and scores["motif_score"] < fidelity_threshold)
+    decision = ("SUBJECT_DRIFT" if "subject_score" in failed or compound_failure else
                 "BRIEF_FIDELITY_DRIFT" if failed else "pass")
     category_by_field = {"subject_score": "SUBJECT_DRIFT", "atmosphere_score": "ATMOSPHERE_DRIFT",
                          "motif_score": "MOTIF_DRIFT", "audience_fit_score": "AUDIENCE_DRIFT"}
     worst = min(failed, key=lambda field: scores[field] / required[field]) if failed else None
     return {**base, "checked": True, "score": scores["subject_score"], **scores,
             "decision": decision,
-            "failure_category": category_by_field[worst] if worst else None,
+            "failure_category": ("SUBJECT_DRIFT" if compound_failure else
+                                 category_by_field[worst] if worst else None),
+            "compound_fidelity_failure": compound_failure,
             "failed_dimensions": failed,
             "background_usability_score": usability,
             "vision_human_signal": vision_human,

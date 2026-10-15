@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from app.schemas.grill_me import GrillMeAnswers, GrillMeSession, ProgrammeItem
 from app.services.creative_direction import (
@@ -7,10 +8,26 @@ from app.services.creative_direction import (
     reference_visual_language,
 )
 from app.services.grill_me_semantic import _safe_context
-from app.services.grill_me_service import evaluate_session
+from app.services.grill_me_service import evaluate_session, freeze_for_generation
 
 
 class GrillMeBackgroundInspirationTests(unittest.TestCase):
+    def test_accessibility_stays_in_final_composition(self):
+        session = GrillMeSession(session_id="test", status="ready", answers=GrillMeAnswers(
+            event_type="garden gathering", theme="flowers", age_group="family",
+            primary_colour="green", secondary_colour="cream", creative_description="soft garden",
+            title_preference="Welcome", event_date="2026-10-15", start_time="10:00",
+            accessibility_preferences=["clear readable programme text"],
+            programme=[ProgrammeItem(time="10:00", title="Arrival")],
+        ))
+        with patch("app.services.grill_me_service.load_session", return_value=session), \
+             patch("app.services.grill_me_service.evaluate_session", return_value=[]), \
+             patch("app.services.grill_me_service._save"):
+            _, background, final = freeze_for_generation("test", "ABCDEF-123456")
+        self.assertNotIn("accessibility_preferences", background)
+        self.assertNotIn("clear readable programme text", str(background))
+        self.assertIn("clear readable programme text", final["accessibility_preferences"])
+
     def test_semantic_review_preserves_unfamiliar_descriptors(self):
         context = _safe_context({"visual_semantics": {
             "atmosphere_descriptors": ["quietly luminous", "meditative", "weightless"],

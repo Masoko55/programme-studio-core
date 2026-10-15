@@ -1413,12 +1413,6 @@ def freeze_for_generation(
                 "output_language"
             ]
         ),
-        "accessibility_preferences": (
-            answer[
-                "accessibility_preferences"
-            ]
-        ),
-
         #
         # Asset layout is also given to the
         # creative-direction/background agents.
@@ -1441,6 +1435,7 @@ def freeze_for_generation(
         "only these colours" if background_brief["palette_mode"] == "strict"
         else "requested colours dominate with natural tonal variation"
     )
+    background_brief["palette_relationship_source"] = "default"
     contract = build_semantic_contract(background_brief)
     background_brief["semantic_contract"] = contract
     background_brief["semantic_contract_version"] = contract["semantic_contract_version"]

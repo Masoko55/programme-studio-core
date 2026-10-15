@@ -705,7 +705,8 @@ def runtime_retry_category(reason: str) -> str:
     raw = reason.strip().upper().split(":", 1)[0]
     category = raw if raw in {"TEXT", "TEXT_OR_LOGO", "HUMAN", "PALETTE", "PALETTE_OFF",
                               "SUBJECT", "SUBJECT_DRIFT", "GENERATION_FAILURE", "UNKNOWN",
-                              "RUNTIME", "DENSITY_DRIFT", "MOTIF_DRIFT"} else failure_category(reason)
+                              "RUNTIME", "DENSITY_DRIFT", "MOTIF_DRIFT",
+                              "PALETTE_ROLE_DRIFT", "PRIMARY_MISSING", "SECONDARY_MISSING"} else failure_category(reason)
     if category == "INITIAL":
         return "INITIAL"
     if category in {"HUMAN"}:

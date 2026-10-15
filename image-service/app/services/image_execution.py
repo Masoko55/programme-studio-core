@@ -176,6 +176,11 @@ def _is_palette_failure(
     )
 
     terms = (
+        "palette_role_drift",
+        "primary_missing",
+        "secondary_missing",
+        "requested primary colour is not meaningfully present",
+        "required secondary colour is absent or too small",
         "off-palette",
         "off palette",
         "palette ratio",

@@ -21,6 +21,32 @@ from tests.test_semantic_foundation import document
 
 
 class ProbeHardeningTests(unittest.TestCase):
+    def test_default_palette_relationship_is_diagnostic(self):
+        for primary, secondary, counts in (
+            ("green", "cream", {"green": 5000, "cream": 17000}),
+            ("navy", "white", {"navy": 5000, "white": 17000}),
+        ):
+            with self.subTest(primary=primary):
+                metrics = _palette_role_metrics(primary, secondary, counts, 22528,
+                    "requested colours dominate with natural tonal variation", "dominant", None, "default")
+                self.assertEqual(metrics["palette_role_warning"], "PALETTE_ROLE_WARNING")
+                with self.assertRaisesRegex(ValueError, "PALETTE_ROLE_DRIFT"):
+                    _palette_role_metrics(primary, secondary, counts, 22528,
+                        f"{primary} must dominate, {secondary} only as accents", "dominant", None, "user")
+
+    def test_palette_retry_diagnostics_recognize_role_and_presence(self):
+        from app.services.image_execution import _is_palette_failure
+        from app.services.prompt_compiler import runtime_retry_category
+        for reason in (
+            "PALETTE_ROLE_DRIFT: requested colour dominance relationship is reversed",
+            "PALETTE_ROLE_DRIFT: requested primary colour is not meaningfully present",
+            "PALETTE_ROLE_DRIFT: required secondary colour is absent or too small",
+            "PRIMARY_MISSING", "SECONDARY_MISSING",
+        ):
+            with self.subTest(reason=reason):
+                self.assertEqual(runtime_retry_category(reason), "PALETTE")
+                self.assertTrue(_is_palette_failure(reason))
+
     def test_structured_scores_and_bounded_diagnostics(self):
         cases = [(0.8, .8), ("0.8", .8), ({"score": .8}, .8),
                  ({"value": "0.8"}, .8), ({"rating": .8}, .8),
@@ -156,7 +182,12 @@ class ProbeHardeningTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "OCR text"):
                     validate_background(path, enforce_palette=False, vision_human_signal=False)
                 ocr["confirmed_tokens"] = []
+                weak["ambiguous_face_signal"] = False
+                with self.assertRaisesRegex(ValueError, "human"):
+                    validate_background(path, enforce_palette=False, vision_human_signal=True)
+                weak["ambiguous_face_signal"] = True
             strong = {**weak, "detected": True, "ambiguous_face_signal": False}
+            strong["people"] = [(80, 100, 90, 250), (300, 110, 85, 240)]
             with patch("app.services.comfyui_client._cached_text_evidence", return_value=ocr), \
                  patch("app.services.comfyui_client.detect_human_signals", return_value=strong), \
                  patch("app.services.comfyui_client.boilerplate_metrics", return_value={"boilerplate_score": 0}), \

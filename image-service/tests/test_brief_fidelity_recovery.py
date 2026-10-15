@@ -53,7 +53,7 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                      "symbolic_motifs": ["connected web geometry"]}
             with patch("app.services.subject_adherence.httpx.post", return_value=response):
                 result = assess_subject_adherence(image, brief, model="minicpm-v4.5:latest")
-        self.assertEqual(result["decision"], "BRIEF_FIDELITY_DRIFT")
+        self.assertEqual(result["decision"], "SUBJECT_DRIFT")
         self.assertEqual(result["subject_score"], .85)
         self.assertEqual(result["motif_score"], .1)
 
@@ -65,9 +65,18 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                      "connected radial strands with curved cross-links; isolated rays are insufficient"}}
         result, prompt = self._assess(brief, {"subject_score": .9,
             "atmosphere_score": .9, "motif_score": .1, "audience_fit_score": .9})
-        self.assertEqual(result["decision"], "BRIEF_FIDELITY_DRIFT")
+        self.assertEqual(result["decision"], "SUBJECT_DRIFT")
         self.assertIn("curved cross-links", prompt)
         self.assertIn("isolated rays", prompt)
+
+    def test_inferred_motif_is_diagnostic_for_simple_floral_subject(self):
+        brief = {"primary_visual_subject": "flowers", "visual_semantics": {
+            "motif_descriptors": ["soft petals"]}, "semantic_provenance": {
+            "motif_descriptors": "SEMANTIC_INFERENCE"}}
+        result, _ = self._assess(brief, {"subject_score": .9,
+            "atmosphere_score": .8, "motif_score": .2, "audience_fit_score": .8})
+        self.assertEqual(result["decision"], "BRIEF_FIDELITY_DRIFT")
+        self.assertFalse(result["compound_fidelity_failure"])
 
     def test_ocr_timeout_is_bounded_and_explicit(self):
         with patch("app.services.comfyui_client.pytesseract.image_to_data",

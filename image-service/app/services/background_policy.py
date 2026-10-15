@@ -2263,7 +2263,8 @@ def _validate_palette_balance(primary_name, primary_rgb, primary_descriptor, sec
 
 def _palette_role_metrics(primary_name: str | None, secondary_name: str | None,
                           counts: dict, total: int, relationship: str | None,
-                          mode: str | None, palette: list[dict] | None) -> dict:
+                          mode: str | None, palette: list[dict] | None,
+                          relationship_source: str | None = None) -> dict:
     """Check declared colour roles separately from family membership."""
     phrase = str(relationship or "").casefold()
     roles = [str(item.get("role") or "").casefold() for item in (palette or []) if isinstance(item, dict)]
@@ -2272,7 +2273,11 @@ def _palette_role_metrics(primary_name: str | None, secondary_name: str | None,
     monochromatic = mode in {"monochrome", "achromatic"} or bool(re.search(r"\bmonochrom", phrase)) or not secondary_name
     optional = "optional" in secondary_role or bool(re.search(r"\b(optional|if present|may appear)\b", phrase))
     balanced = bool(re.search(r"\b(balanced|equal|equally|even split)\b", phrase))
-    explicit_primary = bool(re.search(r"\b(dominant|dominate|majority|largest|leading|main)\b", phrase))
+    explicit_primary = bool(re.search(r"\b(dominant|dominate|majority|largest|leading|main|subtle|accent|supporting)\b", phrase))
+    explicit = (relationship_source == "user" or
+                (relationship_source is None and phrase not in {
+                    "requested colours dominate with natural tonal variation", "respect the requested colour roles"}
+                 and bool(re.search(r"\b(balanced|equal|equally|monochrom\w*|only|dominant|dominate|majority|largest|subtle|accent\w*|supporting)\b", phrase))))
     relation = ("MONOCHROMATIC" if monochromatic else "BALANCED" if balanced else
                 "PRIMARY_DOMINANT" if explicit_primary or
                 (primary_name not in NEUTRAL_NAMES and secondary_name not in NEUTRAL_NAMES) else "FLEXIBLE")
@@ -2291,12 +2296,14 @@ def _palette_role_metrics(primary_name: str | None, secondary_name: str | None,
                "primary_secondary_ratio": (primary_ratio / secondary_ratio if secondary_ratio else None),
                "secondary_presence": presence, "dominance_relationship": relation,
                "dominance_relationship_passed": dominance, "secondary_role": secondary_role,
-               "secondary_minimum": secondary_minimum}
+               "secondary_minimum": secondary_minimum,
+               "palette_relationship_source": "user" if explicit else "default",
+               "palette_role_warning": ("PALETTE_ROLE_WARNING" if not explicit and not dominance else None)}
     if primary_name and primary_name not in NEUTRAL_NAMES and primary_ratio is not None and primary_ratio < MIN_PRIMARY_COLOUR_RATIO:
         error = ValueError("PALETTE_ROLE_DRIFT: requested primary colour is not meaningfully present")
     elif not presence:
         error = ValueError("PALETTE_ROLE_DRIFT: required secondary colour is absent or too small")
-    elif not dominance:
+    elif explicit and not dominance:
         error = ValueError("PALETTE_ROLE_DRIFT: requested colour dominance relationship is reversed")
     else:
         return metrics
@@ -2311,6 +2318,7 @@ def validate_palette(
     *,
     palette: list[dict] | None = None,
     relationship: str | None = None,
+    relationship_source: str | None = None,
     mode: str | None = None,
     quality_result: dict | None = None,
 ) -> dict:
@@ -2495,7 +2503,7 @@ def validate_palette(
         try:
             role_metrics = _palette_role_metrics(primary_name, secondary_name,
                 {"black": round(black_ratio * total), "white": round(white_ratio * total)},
-                total, relationship, mode, palette)
+                total, relationship, mode, palette, relationship_source)
         except ValueError as error:
             error.palette_metrics = {**achromatic_metrics, **getattr(error, "palette_metrics", {})}
             raise
@@ -2762,7 +2770,7 @@ def validate_palette(
 
     try:
         role_metrics = _palette_role_metrics(primary_name, secondary_name, requested_counts,
-                                              total, relationship, mode, palette)
+                                              total, relationship, mode, palette, relationship_source)
     except ValueError as error:
         error.palette_metrics = {"off_palette_ratio": off_palette_ratio, **perceptual_metrics,
                                  **getattr(error, "palette_metrics", {}), "palette_mode": mode or "dominant"}
@@ -3148,15 +3156,21 @@ def detect_human_signals(
     )
 
     corroborators = faces + profiles + upper_bodies
+    multiple_distinct_people = any(
+        not _boxes_overlap(first, second)
+        for index, first in enumerate(people)
+        for second in people[index + 1:]
+    )
     credible_people = []
     credible_weights = []
     for box, weight in zip(people, people_weights):
-        corroborated = weight >= 1.5 or any(_boxes_overlap(box, other) for other in corroborators)
+        corroborated = (weight >= 1.5 or multiple_distinct_people
+                        or any(_boxes_overlap(box, other) for other in corroborators))
         for item in evidence:
             if item["source"] == "hog" and item["bbox"] == box:
                 item["confirmed"] = corroborated
                 item["confirmation"] = (
-                    "strong HOG weight or independent detector overlap"
+                    "strong HOG weight, distinct people, or independent detector overlap"
                     if corroborated else "moderate HOG pattern without independent corroboration"
                 )
         if corroborated:

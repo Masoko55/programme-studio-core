@@ -131,7 +131,7 @@ class CandidateSpecCompilerTests(unittest.TestCase):
             for prompt in (compiled.positive, compiled.clip_l, compiled.clip_g, compiled.t5 or ""):
                 self.assertNotIn("bridal shower", prompt.casefold())
                 self.assertNotIn("THE BRIDAL SHOWER", prompt)
-            self.assertIn("pseudo-typography", compiled.positive)
+            self.assertIn("uninterrupted visual surfaces", compiled.positive)
 
     def test_incomplete_direction_strategy_is_rejected(self):
         for name in (
@@ -201,7 +201,7 @@ class CandidateSpecCompilerTests(unittest.TestCase):
         expected = {
             "PALETTE_OFF": "requested colour relationship",
             "HUMAN": "Remove people",
-            "TEXT": "Remove readable text",
+            "TEXT": "Render uninterrupted visual surfaces",
             "GRADIENT": "tonal variation and visible depth",
             "WEAK_OUTER_STRUCTURE": "areas permitted by this direction",
             "RASTER": "clean, varied edge structure",
@@ -239,7 +239,7 @@ class CandidateSpecCompilerTests(unittest.TestCase):
             "DENSE_SAFE_REGION",
         )
         self.assertIn(
-            "Relocate detail away from the reserved typography regions",
+            "Relocate detail away from integrated calm regions",
             compiled.positive,
         )
         self.assertNotIn(
@@ -409,7 +409,7 @@ class CandidateSpecCompilerTests(unittest.TestCase):
         for engine in ("sdxl-1-0", "sd-3-5-medium"):
             compiled = compile_candidate_prompt(build_candidate_spec(document, engine, "A"), 1)
             self.assertNotIn("Captain Comet", compiled.positive)
-            self.assertIn("Angular skyline silhouettes", compiled.positive)
+            self.assertNotIn("Angular skyline silhouettes", compiled.positive)
 
     def test_retry_limit_and_failure_classification(self):
         self.assertEqual(failure_category(REASONS[1]), "PALETTE_OFF")

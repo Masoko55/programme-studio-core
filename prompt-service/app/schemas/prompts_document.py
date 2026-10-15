@@ -19,6 +19,9 @@ class DirectionRecord(BaseModel):
 
 class PromptsDocument(BaseModel):
     schema_version: str
+    prompt_schema_version: str = "1.0"
+    creative_direction_version: str = "2.0"
+    prompt_generation_sha256: str | None = None
 
     reference_number: str
 

@@ -79,7 +79,7 @@ class RendererBriefMatrixTests(unittest.TestCase):
                 self.assertIn(subject, compiled.clip_g)
                 self.assertIn(subject, compiled.t5)
                 self.assertIn("Event atmosphere:", compiled.clip_g)
-                self.assertIn("no people or characters", compiled.t5)
+                self.assertIn("environment-only composition", compiled.t5)
                 self.assertLess(compiled.t5.index("Visual subject"), compiled.t5.index("Event atmosphere"))
                 self.assertLess(compiled.t5.index("Event atmosphere"), compiled.t5.index("Composition"))
                 self.assertLess(compiled.t5.index("Composition"), compiled.t5.index("Palette:"))

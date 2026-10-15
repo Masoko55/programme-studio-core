@@ -1,4 +1,5 @@
 import json
+import hashlib
 import re
 import shutil
 
@@ -479,14 +480,17 @@ def persist_prompts_document(
         / PROMPTS_FILENAME
     )
 
+    payload = document.model_dump(mode="json")
+    payload.pop("prompt_generation_sha256", None)
+    payload["prompt_generation_sha256"] = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
     with prompts_path.open(
         "w",
         encoding="utf-8",
     ) as file:
         json.dump(
-            document.model_dump(
-                mode="json"
-            ),
+            payload,
             file,
             ensure_ascii=False,
             indent=2,

@@ -2261,6 +2261,49 @@ def _validate_palette_balance(primary_name, primary_rgb, primary_descriptor, sec
     return primary_ratio, secondary_ratio
 
 
+def _palette_role_metrics(primary_name: str | None, secondary_name: str | None,
+                          counts: dict, total: int, relationship: str | None,
+                          mode: str | None, palette: list[dict] | None) -> dict:
+    """Check declared colour roles separately from family membership."""
+    phrase = str(relationship or "").casefold()
+    roles = [str(item.get("role") or "").casefold() for item in (palette or []) if isinstance(item, dict)]
+    primary_role = roles[0] if roles else "primary"
+    secondary_role = roles[1] if len(roles) > 1 else "secondary"
+    monochromatic = mode in {"monochrome", "achromatic"} or bool(re.search(r"\bmonochrom", phrase)) or not secondary_name
+    optional = "optional" in secondary_role or bool(re.search(r"\b(optional|if present|may appear)\b", phrase))
+    balanced = bool(re.search(r"\b(balanced|equal|equally|even split)\b", phrase))
+    explicit_primary = bool(re.search(r"\b(dominant|dominate|majority|largest|leading|main)\b", phrase))
+    relation = ("MONOCHROMATIC" if monochromatic else "BALANCED" if balanced else
+                "PRIMARY_DOMINANT" if explicit_primary or
+                (primary_name not in NEUTRAL_NAMES and secondary_name not in NEUTRAL_NAMES) else "FLEXIBLE")
+    primary_ratio = counts.get(primary_name, 0) / total if primary_name else None
+    secondary_ratio = counts.get(secondary_name, 0) / total if secondary_name else None
+    strong_secondary = "strong" in secondary_role or bool(re.search(r"\b(strong|substantial|prominent)\s+(?:\w+\s+)?(?:secondary|accent)", phrase))
+    secondary_minimum = (0 if optional or monochromatic else .05 if strong_secondary else
+                         .02 if balanced or "support" in secondary_role else MIN_SECONDARY_COLOUR_RATIO)
+    presence = secondary_ratio is None or secondary_ratio >= secondary_minimum
+    dominance = (True if relation in {"FLEXIBLE", "MONOCHROMATIC"} or primary_ratio is None or secondary_ratio is None else
+                 abs(primary_ratio - secondary_ratio) <= .20 if relation == "BALANCED" else
+                 primary_ratio >= secondary_ratio + MIN_PRIMARY_DOMINANCE_MARGIN)
+    metrics = {"primary_ratio": primary_ratio, "secondary_ratio": secondary_ratio,
+               "primary_family": primary_name, "secondary_family": secondary_name,
+               "primary_role": primary_role,
+               "primary_secondary_ratio": (primary_ratio / secondary_ratio if secondary_ratio else None),
+               "secondary_presence": presence, "dominance_relationship": relation,
+               "dominance_relationship_passed": dominance, "secondary_role": secondary_role,
+               "secondary_minimum": secondary_minimum}
+    if primary_name and primary_name not in NEUTRAL_NAMES and primary_ratio is not None and primary_ratio < MIN_PRIMARY_COLOUR_RATIO:
+        error = ValueError("PALETTE_ROLE_DRIFT: requested primary colour is not meaningfully present")
+    elif not presence:
+        error = ValueError("PALETTE_ROLE_DRIFT: required secondary colour is absent or too small")
+    elif not dominance:
+        error = ValueError("PALETTE_ROLE_DRIFT: requested colour dominance relationship is reversed")
+    else:
+        return metrics
+    error.palette_metrics = metrics
+    raise error
+
+
 def validate_palette(
     image: Image.Image,
     primary_colour: str | None,
@@ -2449,6 +2492,14 @@ def validate_palette(
             error.palette_metrics = achromatic_metrics
             raise error
 
+        try:
+            role_metrics = _palette_role_metrics(primary_name, secondary_name,
+                {"black": round(black_ratio * total), "white": round(white_ratio * total)},
+                total, relationship, mode, palette)
+        except ValueError as error:
+            error.palette_metrics = {**achromatic_metrics, **getattr(error, "palette_metrics", {})}
+            raise
+
         return {
             **quality_result,
             "palette_checked": True,
@@ -2463,6 +2514,7 @@ def validate_palette(
                 - monochrome_ratio
             ),
             **achromatic_metrics,
+            **role_metrics,
             "palette_mode": "black-white",
             "primary_colour_ratio": black_ratio if primary_name == "black" else white_ratio,
             "secondary_colour_ratio": white_ratio if secondary_name == "white" else black_ratio,
@@ -2708,17 +2760,14 @@ def validate_palette(
         }
         raise error
 
-    primary_ratio, secondary_ratio = (None, None)
-    if primary_name and secondary_name:
-        try:
-            primary_ratio, secondary_ratio = _validate_palette_balance(
-                primary_name, primary_rgb, primary_descriptor, secondary_name,
-                secondary_rgb, requested_counts, total,
-            )
-        except ValueError as error:
-            error.palette_metrics = {"off_palette_ratio": off_palette_ratio,
-                                     **perceptual_metrics, "palette_mode": mode or "dominant"}
-            raise
+    try:
+        role_metrics = _palette_role_metrics(primary_name, secondary_name, requested_counts,
+                                              total, relationship, mode, palette)
+    except ValueError as error:
+        error.palette_metrics = {"off_palette_ratio": off_palette_ratio, **perceptual_metrics,
+                                 **getattr(error, "palette_metrics", {}), "palette_mode": mode or "dominant"}
+        raise
+    primary_ratio, secondary_ratio = role_metrics["primary_ratio"], role_metrics["secondary_ratio"]
 
     palette_match_ratio = (
         1.0
@@ -2744,6 +2793,7 @@ def validate_palette(
             off_palette_ratio
         ),
         **perceptual_metrics,
+        **role_metrics,
 
         "primary_colour_ratio": (
             primary_ratio
@@ -3124,15 +3174,18 @@ def detect_human_signals(
         for box in boxes:
             area_ratio = box[2] * box[3] / image_area
             body_overlap = any(_boxes_overlap(box, body) for body in upper_bodies + people)
-            corroborated = any(_boxes_overlap(box, body) for body in people) or (
-                box in confirmed and (body_overlap or area_ratio >= 0.004)
-            )
+            other_faces = profiles if source == "frontal_face" else faces
+            independent_face = any(_boxes_overlap(box, other) for other in other_faces)
+            # A repeat at another scale of the same cascade is one detector,
+            # not independent evidence. Size alone cannot confirm a face.
+            corroborated = box in confirmed and (body_overlap or independent_face)
             plausible = 0.55 <= box[2] / max(1, box[3]) <= 1.8 and area_ratio >= 0.0005
             accepted = corroborated and plausible
             evidence.append({"source": source, "bbox": box, "weight": None,
                              "area_ratio": area_ratio, "body_overlap": body_overlap,
+                             "independent_face_overlap": independent_face,
                              "confirmed": accepted,
-                             "confirmation": "rescale or body corroboration" if accepted else "isolated cascade pattern"})
+                             "confirmation": "independent detector overlap" if accepted else "isolated cascade pattern"})
 
     for box in upper_bodies:
         evidence.append({"source": "upper_body", "bbox": box, "weight": None,
@@ -3180,6 +3233,7 @@ def detect_human_signals(
         "strong_upper_body_signal": (
             strong_upper_body_signal
         ),
+        "ambiguous_face_signal": bool((faces or profiles) and not detected),
         "detected": (
             detected
         ),

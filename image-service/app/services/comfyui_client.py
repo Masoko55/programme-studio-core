@@ -59,6 +59,7 @@ from app.services.template_adherence import assess_template_adherence
 from app.services.composition_diversity import boilerplate_metrics, boilerplate_score, compare_directions_metrics
 from app.services.subject_adherence import assess_subject_adherence, brief_fidelity_record
 from app.services.scene_density import assess_scene_density
+from app.services.prompt_freshness import source_prompt_manifest
 
 
 logger = logging.getLogger(
@@ -234,10 +235,11 @@ def _palette_only_recovery(
     secondary_colour: str | None,
     visual_design: dict | None = None,
     recovery_diagnostics: dict | None = None,
+    vision_human_signal: bool | None = None,
 ) -> tuple[dict, dict]:
     """Recolour only a raw candidate that passes every non-palette gate."""
     structural = validate_background(source, reference_number=reference_number, enforce_palette=False,
-                                     visual_design=visual_design)
+                                     visual_design=visual_design, vision_human_signal=vision_human_signal)
     palette_mode = (visual_design or {}).get("palette_mode", "strict")
     with Image.open(source) as image:
         recoloured = constrain_to_requested_palette(image, primary_colour, secondary_colour,
@@ -245,7 +247,7 @@ def _palette_only_recovery(
         recoloured.save(target, format="PNG")
     try:
         final = validate_background(target, reference_number=reference_number,
-                                    visual_design=visual_design)
+                                    visual_design=visual_design, vision_human_signal=vision_human_signal)
         geometry = _edge_geometry_similarity(source, target)
         detail = _preserves_structural_detail(structural, final)
         if recovery_diagnostics is not None:
@@ -900,9 +902,19 @@ def detect_text_evidence(image: Image.Image) -> dict:
                          and (item["crop_confirmed"] or len(item["passes"]) >= 2))
     detected = bool(lines or strong_single)
     selected = confirmed if detected else []
-    diagnostics["decision"] = ("OCR_UNAVAILABLE" if not diagnostics["completed_variants"] else
-                               "OCR_PARTIAL" if diagnostics["timed_out_variants"] or diagnostics["failed_variants"]
-                               else "complete")
+    completed = set(diagnostics["completed_variants"])
+    sufficient = {"original", "contrast"}.issubset(completed)
+    partial = bool(diagnostics["timed_out_variants"] or diagnostics["failed_variants"])
+    diagnostics["completed_variant_count"] = len(completed)
+    diagnostics["required_variant_count"] = 2
+    diagnostics["enhancement_variant_failures"] = [
+        name for name in (*diagnostics["timed_out_variants"], *diagnostics["failed_variants"])
+        if name not in {"original", "contrast"}
+    ]
+    diagnostics["evidence_sufficiency"] = sufficient
+    diagnostics["decision"] = ("OCR_UNAVAILABLE" if not completed else
+                               "OCR_PARTIAL_SUFFICIENT" if partial and sufficient else
+                               "OCR_PARTIAL_INSUFFICIENT" if partial else "complete")
     diagnostics.pop("_deadline")
     return {
         "text_detected": detected,
@@ -1263,6 +1275,7 @@ def validate_background(
     expected_sha256: str | None = None,
     enforce_palette: bool = True,
     visual_design: dict | None = None,
+    vision_human_signal: bool | None = None,
 ) -> dict:
     data = (
         path.read_bytes()
@@ -1320,10 +1333,16 @@ def validate_background(
                 image
             )
         )
+        classical_human_signal = bool(human_signals["detected"])
+        ambiguous_human_signal = bool(human_signals.get("ambiguous_face_signal"))
+        human_signals["classical_human_signal"] = classical_human_signal
+        human_signals["vision_human_signal"] = vision_human_signal
+        human_signals["detected"] = classical_human_signal or (ambiguous_human_signal and vision_human_signal is True)
+        human_signals["combined_human_decision"] = human_signals["detected"]
 
         problems: list[tuple[str, str]] = []
         ocr_diagnostics = text_evidence.get("ocr_diagnostics", {})
-        if ocr_diagnostics.get("decision") in {"OCR_UNAVAILABLE", "OCR_PARTIAL"}:
+        if ocr_diagnostics.get("decision") in {"OCR_UNAVAILABLE", "OCR_PARTIAL", "OCR_PARTIAL_INSUFFICIENT"}:
             category = ("OCR_TIMEOUT" if ocr_diagnostics.get("timed_out_variants") else
                         ocr_diagnostics["decision"])
             problems.append((category, f"{category}: text validation did not complete"))
@@ -1407,6 +1426,9 @@ def validate_background(
         "human_detection": human_signals,
         "human_detection_confidence": human_signals.get("human_detection_confidence", "low"),
         "human_detection_evidence": human_signals.get("evidence", []),
+        "classical_human_signal": classical_human_signal,
+        "vision_human_signal": vision_human_signal,
+        "combined_human_decision": human_signals["detected"],
         **quality_result,
         **palette_result,
     }
@@ -1421,6 +1443,10 @@ def validate_background(
             "neutral_ratio": metrics.get("structural_neutral_ratio"),
             "unrequested_chromatic_ratio": metrics.get("unrequested_chromatic_ratio"),
             "largest_unrequested_region_ratio": metrics.get("largest_unrequested_region_ratio"),
+            "primary_secondary_ratio": metrics.get("primary_secondary_ratio"),
+            "secondary_presence": metrics.get("secondary_presence"),
+            "dominance_relationship": metrics.get("dominance_relationship"),
+            "dominance_relationship_passed": metrics.get("dominance_relationship_passed"),
         },
         "text": {
             "ocr_diagnostics": ocr_diagnostics,
@@ -1451,7 +1477,8 @@ def validate_background(
                     "OCR_PARTIAL": 1, "TITLE_PANEL": 2,
                     "BOILERPLATE_COMPOSITION": 2,
                     "DIRECTION_DUPLICATE": 3, "FLAT": 4, "DENSE_SAFE_REGION": 5,
-                    "DENSITY_DRIFT": 5, "WEAK_OUTER_STRUCTURE": 6, "PALETTE_OFF": 7}
+                    "DENSITY_DRIFT": 5, "WEAK_OUTER_STRUCTURE": 6,
+                    "PALETTE_OFF": 7, "PALETTE_ROLE_DRIFT": 7}
         category, message = min(problems, key=lambda item: priority.get(item[0], 8))
         validation_report["failure_category"] = category
         error = ValueError(message)
@@ -2133,6 +2160,23 @@ class ComfyUIClient:
             record["template_adherence"] = adherence
             write_json(record_path, record)
 
+        adherence_result = None
+        if visual_design:
+            try:
+                with Image.open(candidate_path) as decoded:
+                    decoded.verify()
+                adherence_result = assess_subject_adherence(candidate_path, visual_design)
+            except (OSError, ValueError):
+                pass  # Structural validation below owns corrupt-image rejection.
+            if adherence_result:
+                record["subject_adherence"] = adherence_result
+                record["brief_fidelity"] = brief_fidelity_record(adherence_result)
+                record["semantic_dimension_scores"] = {
+                    key: adherence_result.get(key) for key in
+                    ("subject_score", "atmosphere_score", "motif_score", "audience_fit_score")
+                }
+                record["semantic_failed_dimensions"] = adherence_result.get("failed_dimensions") or []
+
         try:
             try:
                 if adherence and not adherence["template_adherence_passed"]:
@@ -2143,12 +2187,10 @@ class ComfyUIClient:
                     candidate_path,
                     reference_number=reference_number,
                     visual_design=visual_design,
+                    vision_human_signal=adherence_result.get("vision_human_signal") if adherence_result else None,
                 )
                 validation = raw_validation
-                if visual_design:
-                    adherence_result = assess_subject_adherence(candidate_path, visual_design)
-                    record["subject_adherence"] = adherence_result
-                    record["brief_fidelity"] = brief_fidelity_record(adherence_result)
+                if adherence_result:
                     if adherence_result["decision"] != "pass":
                         category = ("VISION_UNAVAILABLE" if adherence_result["decision"] == "unavailable"
                                     else adherence_result.get("failure_category") or adherence_result["decision"])
@@ -2182,6 +2224,20 @@ class ComfyUIClient:
                 if diagnostics:
                     record.update(diagnostics)
                     recovery["source_off_palette_ratio"] = diagnostics.get("off_palette_ratio")
+                if adherence_result and adherence_result.get("decision") != "pass":
+                    semantic_categories = {
+                        "subject_score": "SUBJECT_DRIFT", "atmosphere_score": "ATMOSPHERE_DRIFT",
+                        "motif_score": "MOTIF_DRIFT", "audience_fit_score": "AUDIENCE_DRIFT",
+                    }
+                    combined = record.get("all_failure_categories") or [classify_failure(str(error))]
+                    record["all_failure_categories"] = list(dict.fromkeys([
+                        *combined, *(semantic_categories[field] for field in record["semantic_failed_dimensions"]),
+                        *(["VISION_UNAVAILABLE"] if adherence_result["decision"] == "unavailable" else []),
+                    ]))
+                    record["secondary_failure_categories"] = [
+                        item for item in record["all_failure_categories"]
+                        if item != record.get("primary_failure_category")
+                    ]
                 if similarity >= 0.88 and "DIRECTION_DUPLICATE" not in record.get("all_failure_categories", []):
                     record["all_failure_categories"] = [*record.get("all_failure_categories", []), "DIRECTION_DUPLICATE"]
                     if record.get("primary_failure_category") not in {"HUMAN", "TEXT", "BOILERPLATE_COMPOSITION", "SUBJECT_DRIFT"}:
@@ -2266,6 +2322,7 @@ class ComfyUIClient:
                                 secondary_colour,
                                 visual_design,
                                 recovery,
+                                adherence_result.get("vision_human_signal") if adherence_result else None,
                             )
                         )
 
@@ -2317,6 +2374,13 @@ class ComfyUIClient:
                             ),
                         )
 
+                if palette_normalized and adherence_result and adherence_result["decision"] != "pass":
+                    category = ("VISION_UNAVAILABLE" if adherence_result["decision"] == "unavailable"
+                                else adherence_result.get("failure_category") or "BRIEF_FIDELITY_DRIFT")
+                    palette_normalized = False
+                    recovery.update(result="rejected", failure_reason=category)
+                    error = ValueError(category + ": " + adherence_result.get("reason", ""))
+
                 if not (
                     palette_normalized
                 ):
@@ -2342,6 +2406,10 @@ class ComfyUIClient:
                         ),
                         rejected_image_path=str(rejected_path),
                     )
+                    record["secondary_failure_categories"] = [
+                        item for item in record["all_failure_categories"]
+                        if item != record["primary_failure_category"]
+                    ]
                     record["quality_evaluation"] = score_candidate(record)
                     record["reproducibility_manifest"] = build_reproducibility_manifest(record)
 
@@ -2901,9 +2969,12 @@ class ComfyUIClient:
 
         source_marker = get_job_directory(reference_number) / "probe-source.json"
         source_reference = reference_number
+        prompt_manifest = source_prompt_manifest(load_prompts_document(reference_number))
         if source_marker.is_file():
             try:
-                source_reference = json.loads(source_marker.read_text(encoding="utf-8")).get("source_reference") or reference_number
+                source_data = json.loads(source_marker.read_text(encoding="utf-8"))
+                source_reference = source_data.get("source_reference") or reference_number
+                prompt_manifest = source_data.get("source_prompt_manifest") or prompt_manifest
             except (OSError, ValueError):
                 source_reference = reference_number
 
@@ -2912,6 +2983,7 @@ class ComfyUIClient:
                 reference_number
             ),
             "source_reference": source_reference,
+            "source_prompt_manifest": prompt_manifest,
             "engine_id": (
                 engine_id
             ),
@@ -3073,6 +3145,8 @@ class ComfyUIClient:
                 descriptor
             ),
         )
+        record["all_failure_categories"] = []
+        record["secondary_failure_categories"] = []
         record["quality_evaluation"] = score_candidate(record)
         record["reproducibility_manifest"] = build_reproducibility_manifest(record)
 

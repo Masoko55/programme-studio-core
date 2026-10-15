@@ -8,6 +8,7 @@ from __future__ import annotations
 import base64
 import io
 import json
+import math
 import re
 from pathlib import Path
 
@@ -51,8 +52,39 @@ def brief_fidelity_record(result: dict) -> dict:
         "checked", "subject_score", "atmosphere_score", "motif_score",
         "audience_fit_score", "thresholds", "decision", "reason",
         "observed_evidence", "model", "failure_category", "dimension_availability",
-        "failed_dimensions", "background_usability_score",
+        "failed_dimensions", "background_usability_score", "vision_human_signal", "vision_debug",
     )}
+
+
+def _extract_numeric_score(value, dimension: str, diagnostics: list[dict]) -> float:
+    """Parse a bounded MiniCPM score envelope without guessing among fields."""
+    entry = {"dimension_name": dimension, "input_type": type(value).__name__,
+             "extracted_field": None, "parsed_value": None, "parse_failure_reason": None}
+    try:
+        if isinstance(value, dict):
+            keys = [key for key in (dimension, "score", "value", "rating") if key in value]
+            if len(keys) != 1:
+                raise ValueError("ambiguous or missing score field")
+            entry["extracted_field"] = keys[0]
+            value = value[keys[0]]
+            if isinstance(value, dict):
+                inner = [key for key in ("score", "value", "rating") if key in value]
+                if len(inner) != 1:
+                    raise ValueError("ambiguous nested score")
+                entry["extracted_field"] += "." + inner[0]
+                value = value[inner[0]]
+        if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+            raise ValueError("score is not a numeric scalar")
+        score = float(value)
+        if not math.isfinite(score) or not 0 <= score <= 1:
+            raise ValueError("score must be finite and between zero and one")
+        entry["parsed_value"] = score
+        return score
+    except (TypeError, ValueError) as error:
+        entry["parse_failure_reason"] = str(error)[:100]
+        raise ValueError(f"{dimension}: {entry['parse_failure_reason']}") from error
+    finally:
+        diagnostics.append(entry)
 
 
 def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | None = None) -> dict:
@@ -82,7 +114,8 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
             "subject": subject, "anchors": anchors, "model": chosen_model,
             "decision": "unavailable", "reason": "", "subject_score": None,
             "atmosphere_score": None, "motif_score": None, "audience_fit_score": None,
-        "thresholds": required, "observed_evidence": [], "background_usability_score": None}
+        "thresholds": required, "observed_evidence": [], "background_usability_score": None,
+        "vision_human_signal": None}
     if not chosen_model or not subject:
         return {**base, "reason": "Vision model or requested visual subject is not configured",
                 "dimension_availability": {field: "UNAVAILABLE" for field in required}}
@@ -96,7 +129,8 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
         "Assess this background against the requested brief using independent scores between 0 and 1: "
         "subject_score, atmosphere_score, motif_score, audience_fit_score. "
         "Judge visible subject, global atmosphere, motif topology, and audience fit separately. "
-        "Also give background_usability_score for hierarchy, controlled density, and usable calm space. "
+        "Also give background_usability_score for hierarchy, controlled density, and usable calm space, "
+        "and human_visible as a boolean based on visible human evidence. "
         "Do not judge colours. Do not infer a subject or motif from decorative lines alone. "
         "Intentional abstract or sculptural subjects are valid when requested. "
         "Compare visible connected/repeated motif geometry with the supplied motif topology; theme resemblance alone is insufficient. "
@@ -112,7 +146,7 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
         ". Incompatible treatments: " + incompatible[:350] + "."
     )
     endpoint = select_vision_endpoint(chosen_model)
-    debug = {"endpoint": endpoint, "model": chosen_model}
+    debug = {"endpoint": endpoint, "model": chosen_model, "score_parsing": []}
     try:
         encoded_image = base64.b64encode(buffer.getvalue()).decode("ascii")
         request = {"model": chosen_model, "stream": False, "format": "json",
@@ -150,18 +184,16 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
                     raise ValueError(f"Vision response lacks {field}")
                 scores[field] = None
                 continue
-            score_value = float(raw_score)
-            if not 0 <= score_value <= 1:
-                raise ValueError(f"{field} must be between zero and one")
-            scores[field] = score_value
+            scores[field] = _extract_numeric_score(raw_score, field, debug["score_parsing"])
         evidence = answer.get("observed_evidence", answer.get("matched_anchors", []))
         if not isinstance(evidence, list):
             raise ValueError("Vision response lacks observed evidence")
         usability = answer.get("background_usability_score")
         if usability is not None:
-            usability = float(usability)
-            if not 0 <= usability <= 1:
-                usability = None
+            usability = _extract_numeric_score(usability, "background_usability_score", debug["score_parsing"])
+        vision_human = answer.get("human_visible")
+        if not isinstance(vision_human, bool):
+            vision_human = None
     except (httpx.HTTPError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
         debug["parse_error"] = f"{type(error).__name__}: {str(error)[:160]}"
         return {**base, "reason": f"Vision check unavailable: {type(error).__name__}",
@@ -178,6 +210,7 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
             "failure_category": category_by_field[worst] if worst else None,
             "failed_dimensions": failed,
             "background_usability_score": usability,
+            "vision_human_signal": vision_human,
             "dimension_availability": {field: ("FAIL" if field in failed else "PASS")
                                        if scores.get(field) is not None else "UNAVAILABLE"
                                        for field in required},

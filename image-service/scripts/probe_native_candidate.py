@@ -85,6 +85,7 @@ from app.services.atomic import write_json
 from app.services.candidate_spec import (
     build_candidate_spec,
 )
+from app.services.prompt_freshness import source_prompt_manifest
 
 #
 # Import the module itself as well as its classes.
@@ -896,6 +897,8 @@ async def main() -> None:
             args.source_reference
         )
     )
+    source_manifest = source_prompt_manifest(document)
+    print("SOURCE_PROMPT_MANIFEST=" + json.dumps(source_manifest, sort_keys=True))
 
     reference = (
         _new_reference()
@@ -941,6 +944,7 @@ async def main() -> None:
             "source_reference": (
                 args.source_reference
             ),
+            "source_prompt_manifest": source_manifest,
             "engine": (
                 args.engine
             ),

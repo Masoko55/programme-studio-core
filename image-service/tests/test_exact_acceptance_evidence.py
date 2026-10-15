@@ -108,7 +108,8 @@ class ExactHumanCases(unittest.TestCase):
 
     def test_repeat_scale_face(self):
         result = self.evaluate(face=[(90, 90, 55, 55)], confirmed=("face",))
-        self.assertTrue(result["detected"])
+        self.assertFalse(result["detected"])
+        self.assertTrue(result["ambiguous_face_signal"])
 
     def test_face_and_upper_body(self):
         result = self.evaluate(face=[(110, 90, 52, 52)], upper=[(80, 85, 110, 160)], confirmed=("face",))

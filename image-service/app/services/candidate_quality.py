@@ -20,10 +20,10 @@ def validator_availability(record: dict) -> dict:
     validation = record.get("validation") or {}
     fidelity = record.get("brief_fidelity") or record.get("subject_adherence") or {}
     ocr = ((validation.get("text") or {}).get("ocr_diagnostics") or {}).get("decision")
-    result = {"ocr": ("PASS" if ocr == "complete" else "PARTIAL" if ocr == "OCR_PARTIAL"
+    result = {"ocr": ("PASS" if ocr == "complete" else "PARTIAL" if ocr in {"OCR_PARTIAL", "OCR_PARTIAL_SUFFICIENT"}
                       else "UNAVAILABLE" if ocr in {"OCR_UNAVAILABLE", None} else "FAIL"),
               "palette": "PASS" if validation.get("decision") == "accepted" and validation.get("palette") else
-                         "FAIL" if validation.get("failure_category") == "PALETTE_OFF" else "UNAVAILABLE",
+                         "FAIL" if validation.get("failure_category") in {"PALETTE_OFF", "PALETTE_ROLE_DRIFT"} else "UNAVAILABLE",
               "human": "FAIL" if (validation.get("human") or {}).get("detected") else
                        "PASS" if validation.get("human") else "UNAVAILABLE"}
     available = fidelity.get("dimension_availability") or {}
@@ -64,7 +64,7 @@ def hard_validity(record: dict, *, require_vision: bool = False, require_ocr: bo
     if require_vision and fidelity.get("decision") != "pass":
         failures.append("VISION_UNAVAILABLE" if fidelity.get("decision") == "unavailable" else "VISION_REQUIRED")
     ocr = (validation.get("text") or {}).get("ocr_diagnostics") or {}
-    if require_ocr and ocr.get("decision") != "complete":
+    if require_ocr and ocr.get("decision") not in {"complete", "OCR_PARTIAL_SUFFICIENT"}:
         failures.append("OCR_UNAVAILABLE" if not ocr else ocr.get("decision") or "OCR_UNAVAILABLE")
     if record.get("direction_similarity_score", 0) >= .88:
         failures.append("DIRECTION_DUPLICATE")

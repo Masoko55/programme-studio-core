@@ -19,17 +19,23 @@ def assess_scene_density(image: Image.Image, preference: str) -> dict:
     level = density_level(preference)
     occupied = float(np.mean(tiles >= .10))
     quiet = float(np.mean(tiles <= .04))
-    # A drift requires both broadly occupied tiles and almost no calm tiles.
+    safe_density = float(np.mean(tiles[[5, 6, 9, 10]]))
+    macro_balance = min(1.0, float(np.mean(coarse_edges)) / max(float(np.mean(edges)), 1e-6))
+    pressure = (.45 * occupied + .30 * (1 - quiet) +
+                .15 * min(1.0, safe_density / .12) + .10 * (1 - macro_balance))
+    threshold = {"sparse": .80, "moderate": .85}.get(level)
     # Rich/dense requests remain diagnostic-only until calibrated with labels.
-    drift = (level == "sparse" and occupied >= .875 and quiet <= .0625) or (
-        level == "moderate" and occupied == 1.0 and quiet == 0.0 and float(np.mean(edges)) >= .22)
+    drift = threshold is not None and pressure >= threshold and quiet <= .0625
     return {
         "requested_density": level, "overall_edge_density": round(float(np.mean(edges)), 4),
         "occupied_tile_fraction": round(occupied, 4),
         "quiet_tile_fraction": round(quiet, 4),
-        "safe_region_density": round(float(np.mean(tiles[[5, 6, 9, 10]])), 4),
+        "safe_region_density": round(safe_density, 4),
         "edge_distribution_balance": round(float(np.std(tiles)), 4),
-        "macro_form_balance": round(min(1.0, float(np.mean(coarse_edges)) /
-                                        max(float(np.mean(edges)), 1e-6)), 4),
+        "macro_form_balance": round(macro_balance, 4),
+        "normalized_measurements": {"density_pressure": round(pressure, 4)},
+        "thresholds_used": {"density_pressure": threshold, "max_quiet_tile_fraction": .0625,
+                            "occupied_tile_edge_fraction": .10, "quiet_tile_edge_fraction": .04},
+        "density_rule_triggered": "spatial_crowding" if drift else None,
         "decision": "DENSITY_DRIFT" if drift else "PASS",
     }

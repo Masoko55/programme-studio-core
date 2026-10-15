@@ -65,6 +65,8 @@ def failure_category(reason: str) -> str:
             return dimension
     if "BRIEF_FIDELITY_DRIFT" in reason.upper():
         return "BRIEF_FIDELITY_DRIFT"
+    if "PALETTE_ROLE_DRIFT" in reason.upper():
+        return "PALETTE_ROLE_DRIFT"
     if "DENSITY_DRIFT" in reason.upper():
         return "DENSITY_DRIFT"
     if "VISION_UNAVAILABLE" in reason.upper():
@@ -202,7 +204,7 @@ def _atmosphere(spec: CandidateSpec) -> str:
         f"Event atmosphere: {mood}.",
         f"Audience fit: {audience}." if audience else "",
         f"Scene family: {semantics['scene_family']}." if semantics["scene_family"] != "general" else "",
-        "no people or characters.",
+        "environment-only composition.",
     )
 
 
@@ -241,7 +243,7 @@ def _scene_tone(spec: CandidateSpec) -> tuple[str, str]:
 def _exclude_incompatible(text: str, spec: CandidateSpec) -> str:
     """Do not repeat explicitly excluded treatments in positive conditioning."""
     for phrase in spec.visual_design["visual_semantics"]["incompatible_treatments"]:
-        text = re.sub(r"\b" + re.escape(phrase) + r"\b", "brief-compatible", text, flags=re.I)
+        text = re.sub(r"\b" + re.escape(phrase) + r"\b", "", text, flags=re.I)
     return text
 
 
@@ -374,29 +376,26 @@ def _subject(spec: CandidateSpec) -> str:
 
 
 def _direction_motif(spec: CandidateSpec) -> str:
-    """Surface the direction's own visual design before long layout prose."""
-    opening = ", ".join(
-        part.strip() for part in spec.original_positive_prompt.split(",")[:3]
-        if part.strip()
-    )
-    opening = re.sub(
-        r"^(?:an? )?elegant abstract event background,?\s*",
-        "",
-        opening,
-        flags=re.I,
-    )
-    return " ".join(opening.split()[:35]).rstrip(".!? ")
+    """Use brief-grounded motifs; stored direction prose may be stale."""
+    design = spec.visual_design
+    semantics = design["visual_semantics"]
+    source = (semantics["motif_structure_description"] or
+              ", ".join(semantics["motif_descriptors"]) or
+              spec.theme_reference_treatment or
+              ", ".join(design["symbolic_motifs"] + design["environmental_motifs"]))
+    return " ".join(source.split()[:35]).rstrip(".!? ")
 
 
 _CORRECTIONS = {
     "HUMAN": "Remove people, faces, silhouettes and humanoid shapes from this same background scene.",
-    "TEXT": "Remove readable text and pseudo-text. This is background artwork, not a poster or invitation. Render no glyphs, characters, alphabetic marks, numeric marks, signage or pseudo-typography. Leave the intended typography areas visually empty.",
+    "TEXT": "Render uninterrupted visual surfaces and coherent image forms across the scene; keep calm areas integrated into the artwork.",
     "TITLE_PANEL": "Integrate the calm area into the scene itself. Remove separate panels, cards, banners, bordered boxes and blank sheets.",
     "SUBJECT_DRIFT": "Depict the requested visual environment with recognizable subject-specific forms and the supplied visual anchors. Retain this direction's composition and palette.",
     "ATMOSPHERE_DRIFT": "Strengthen the supplied atmosphere and lighting descriptors while preserving the same subject, motif, audience and palette.",
     "MOTIF_DRIFT": "Make the supplied motif structure visibly legible while preserving the same subject, atmosphere, audience and palette.",
     "AUDIENCE_DRIFT": "Strengthen the supplied audience-appropriate visual treatment while preserving the same subject, motif, atmosphere and palette.",
     "PALETTE_OFF": "Correct the requested colour relationship while preserving this design's texture, shading and details.",
+    "PALETTE_ROLE_DRIFT": "Restore the requested primary and secondary visual-mass relationship without changing subject, motif or structure.",
     "PRIMARY_MISSING": "Make the requested primary colour dominant across substantial surfaces of this same design.",
     "SECONDARY_MISSING": "Increase the requested secondary colour in several substantial visible regions of this same design.",
     "GRADIENT": "Give this scene distinct subject-specific forms, tonal variation and visible depth.",
@@ -404,7 +403,7 @@ _CORRECTIONS = {
     "RASTER": "Render this scene with coherent forms and clean, varied edge structure.",
     "NOISE": "Render this scene with coherent forms and clear material detail.",
     "WEAK_OUTER_STRUCTURE": "Strengthen coherent medium and large subject forms and depth in the areas permitted by this direction while keeping its quiet regions readable.",
-    "DENSE_SAFE_REGION": "Relocate detail away from the reserved typography regions while preserving this direction's own composition strategy.",
+    "DENSE_SAFE_REGION": "Relocate detail away from integrated calm regions while preserving this direction's own composition strategy.",
     "DENSITY_DRIFT": "Restore the requested spatial density and coherent large-to-small form hierarchy; reduce uniformly distributed detail while preserving subject, motif, atmosphere and palette.",
     "PROTECTED_REGION_INTRUSION": "Relocate motifs away from reserved typography regions according to this direction's safe-region strategy.",
     "TEMPLATE_DRIFT": "Restore the direction's requested composition and subject-specific visual structure.",
@@ -445,6 +444,13 @@ def _background_only(text: str, spec: CandidateSpec) -> str:
         r"|\brectangular negative space\b",
         "visually calm area integrated into the artwork", text, flags=re.I,
     )
+    text = re.sub(r"\b(?:title|programme|program|typography|text placement|logos?|schedules?|information|legibility|safe regions?|copy area)\b",
+                  "visual calm", text, flags=re.I)
+    text = re.sub(r"\b(?:poster|ui)\s+(?:layout|mockup|panel)\b", "continuous scene", text, flags=re.I)
+    text = re.sub(r"\bno\s+(?:people|persons|characters)(?:\s+or\s+(?:people|persons|characters))?\b",
+                  "environment-only composition", text, flags=re.I)
+    text = re.sub(r"\b(?:brief-compatible|no\s+glyph-like\s+marks)\b", "pure visual artwork", text, flags=re.I)
+    text = re.sub(r"\b(?:or|and)\s+(?=[.;])", "", text, flags=re.I)
     return re.sub(r"\s+", " ", text).strip()
 
 
@@ -462,9 +468,8 @@ def _positive_prompt(
         f"Palette: {palette}.",
         _hierarchy(spec),
     )
-    safety = ("Text-free background artwork with a clear visual subject and natural low-detail breathing room. "
-              "No typography or glyph-like marks. Quiet areas remain part of the scene; "
-              "no separate panels, cards, banners, placards or signboards.")
+    safety = ("Pure visual background artwork with a clear subject and natural low-detail breathing room. "
+              "Continuous scene surfaces and integrated calm areas.")
     if spec.engine_id == "sdxl-1-0":
         return _join_sections(
             f"Background inspiration: {subject}." if subject != motif else "",
@@ -479,7 +484,7 @@ def _positive_prompt(
         *shared[2:],
         _atmosphere(spec), _scene_tone(spec)[0], _motif_structure(spec),
         f"Correction: {correction}" if correction else "",
-        f"Visual design: {spec.original_positive_prompt}.",
+        "Use only brief-grounded subject and motif content with this direction's spatial strategies.",
         safety,
     )
 
@@ -647,6 +652,12 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         f"Correction: {correction}" if correction else "",
     ) if section)
     positive = _background_only(_exclude_incompatible(positive, spec), spec)
+    if not engine_capabilities(spec.engine_id)["negative_prompt_channel"]:
+        positive = _join_sections(
+            positive,
+            "Environment-only visual artwork with uninterrupted natural image surfaces; "
+            "continuous scene composition, calm tonal breathing room, and recognizable subject forms."
+        )
     clip_l = _background_only(clip_l, spec)
     clip_g = _background_only(clip_g, spec)
     t5 = _background_only(t5, spec) if spec.engine_id == "sd-3-5-medium" else None

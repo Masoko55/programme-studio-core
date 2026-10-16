@@ -13,6 +13,68 @@ from app.services.semantic_contract import build_semantic_contract, resolve_pale
 
 
 class GrillMeBackgroundInspirationTests(unittest.TestCase):
+    def test_vague_reference_keeps_only_safe_supported_inference(self):
+        answers = {"theme_reference_treatment": "Solar Sentinel inspired visual traits",
+                   "background_inspiration": "Solar Sentinel inspired background"}
+        review = {
+            "reference_detected": True, "reference_name": "Solar Sentinel",
+            "reference_type": "character", "reference_needs_clarification": True,
+            "visual_semantics": {
+                "motif_descriptors": ["interconnected radial patterns", "Solar Sentinel logo",
+                                      "Solar Sentinel emblem", "Solar Sentinel character",
+                                      "Solar Sentinel mask", "exact costume"],
+                "material_descriptors": ["cardboard and paper"],
+                "texture_descriptors": ["smooth glossy finish"],
+                "lighting_descriptors": ["dramatic rim light"],
+                "composition_affinities": ["symmetrical and balanced"],
+                "scene_family": "abstract",
+            },
+            "semantic_confidence": {"motif_descriptors": .8, "material_descriptors": .7},
+        }
+        context = _safe_context(review, answers)
+        self.assertTrue(context["reference_detected"])
+        self.assertEqual((context["reference_name"], context["reference_type"]),
+                         ("Solar Sentinel", "character"))
+        self.assertFalse(context["reference_needs_clarification"])
+        semantics = context["visual_semantics"]
+        self.assertEqual(semantics["motif_descriptors"], ["interconnected radial patterns"])
+        for key in ("material_descriptors", "texture_descriptors", "lighting_descriptors",
+                    "composition_affinities"):
+            self.assertEqual(semantics[key], [])
+            self.assertNotIn(key, context["semantic_confidence"])
+        self.assertEqual(semantics["scene_family"], "general")
+        self.assertEqual(context["semantic_provenance"]["motif_descriptors"], "SEMANTIC_INFERENCE")
+        self.assertEqual(context["semantic_confidence"]["motif_descriptors"], .8)
+
+    def test_explicit_reference_visual_detail_survives(self):
+        answers = {
+            "theme_reference_treatment": "Use frosted glass textures, sweeping arc geometry and cool rim lighting",
+            "visual_semantics": {"material_descriptors": ["frosted glass"],
+                                 "texture_descriptors": ["frosted glass textures"],
+                                 "motif_descriptors": ["sweeping arc geometry"],
+                                 "lighting_descriptors": ["cool rim lighting"]},
+        }
+        context = _safe_context({"reference_detected": True, "reference_name": "Clockwork Falcon",
+                                 "reference_type": "character",
+                                 "visual_semantics": {"composition_affinities": ["symmetrical composition"]}}, answers)
+        for key, expected in answers["visual_semantics"].items():
+            self.assertEqual(context["visual_semantics"][key], expected)
+            self.assertEqual(context["semantic_provenance"][key], "USER_EXPLICIT")
+        self.assertEqual(context["visual_semantics"]["composition_affinities"], [])
+
+    def test_background_constraints_remove_final_artwork_instructions(self):
+        constraints = ["Clear readable programme text", "include title text",
+                       "programme wording should be readable", "show the event title",
+                       "add a logo", "background only", "no readable text", "no people",
+                       "soft atmospheric depth", "gentle directional lighting"]
+        context = _safe_context({"generation_constraints": constraints}, {})
+        for item in constraints[:5]:
+            self.assertNotIn(item, context["generation_constraints"])
+        for item in ("background only", "no people", "no characters", "no logos",
+                     "no readable text", "leave quiet areas for later overlays",
+                     "soft atmospheric depth", "gentle directional lighting"):
+            self.assertIn(item, context["generation_constraints"])
+
     def test_user_colour_relationship_is_preserved_from_visual_description(self):
         for primary, secondary, relationship in (
             ("green", "cream", "green dominant with cream supporting"),

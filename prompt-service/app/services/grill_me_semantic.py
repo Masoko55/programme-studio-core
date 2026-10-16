@@ -161,6 +161,19 @@ def _review_prompt(
                 "the recognizable person or character."
             ),
             (
+                "For a vague recognizable-reference answer, infer only a few "
+                "high-confidence abstract visual traits. Empty semantic fields "
+                "are correct when the brief does not support them. Do not invent "
+                "materials, textures, lighting, composition or confidence values. "
+                "Never infer a logo, emblem, insignia, costume, mask, likeness, "
+                "character silhouette or branded typography as a render target."
+            ),
+            (
+                "generation_constraints apply to background generation only: "
+                "no readable programme/title text, logos, people or characters. "
+                "Leave final composition and accessibility text to a later stage."
+            ),
+            (
                 "If event_type is vague, contradictory or not actually "
                 "an event type, ask one focused event_type question."
             ),
@@ -344,6 +357,49 @@ def _valid_clarification_questions(context: dict) -> list[dict]:
     return questions
 
 
+_INFERRED_ASSET = re.compile(
+    r"\b(?:logos?|emblems?|insignia|trademarks?|brand(?:ed)? symbols?|"
+    r"costumes?|masks?|weapons?|signature props?|character(?: silhouettes?)?|likeness(?:es)?|"
+    r"branded typography|headshots?)\b", re.I,
+)
+_FINAL_COMPOSITION = re.compile(
+    r"\b(?:readable|legible|write|written|show|display|include|add|place|"
+    r"render|print|visible|clear)\b.{0,55}\b(?:text|words?|wording|"
+    r"typography|titles?|programmes?|schedules?|labels?|logos?|headshots?|"
+    r"people|persons?|characters?)\b|"
+    r"\b(?:programme|program|title|schedule|label|wording)\b.{0,55}"
+    r"\b(?:readable|legible|visible)\b|"
+    r"\b(?:final composition|accessibility text)\b", re.I,
+)
+
+
+def _vague_reference_treatment(treatment: str, reference_name: str) -> bool:
+    reference_pattern = r"[\s_-]+".join(re.escape(part) for part in re.split(r"[\s_-]+", reference_name) if part)
+    remainder = re.sub(reference_pattern, " ", treatment, flags=re.I) if reference_pattern else treatment
+    words = re.findall(r"[a-z]+", remainder.casefold())
+    return bool(words) and set(words) <= {
+        "a", "an", "the", "inspired", "by", "visual", "traits", "style",
+        "vibes", "look", "feel", "theme", "from", "of", "with",
+    }
+
+
+def _safe_inferred_reference_phrase(phrase: str, reference_name: str) -> bool:
+    if _INFERRED_ASSET.search(phrase):
+        return False
+    reference_pattern = r"[\s_-]+".join(re.escape(part) for part in re.split(r"[\s_-]+", reference_name) if part)
+    return not (reference_pattern and re.search(reference_pattern, phrase, re.I))
+
+
+def _safe_background_constraint(phrase: str) -> bool:
+    # Negative exclusions remain useful; affirmative final artwork requests do not.
+    if (re.match(r"\s*(?:no|without|avoid|exclude|do not)\b", phrase, re.I)
+            and not re.search(r"\b(?:include|add|show|display|place|render|print|write)\b", phrase, re.I)):
+        return True
+    if re.search(r"\b(?:logos?|emblems?|headshots?)\b", phrase, re.I):
+        return False
+    return not _FINAL_COMPOSITION.search(phrase)
+
+
 def _safe_context(
     value,
     answers: dict,
@@ -386,19 +442,6 @@ def _safe_context(
         "scene_family": family,
         "composition_affinities": descriptors("composition_affinities"),
     }
-    context["semantic_provenance"] = {
-        key: ("USER_EXPLICIT" if isinstance(supplied_semantics, dict) and key in supplied_semantics
-              else "SEMANTIC_INFERENCE" if key in raw_semantics
-              else "USER_EXPLICIT" if (key == "atmosphere_descriptors" and answers.get("creative_description"))
-              or (key == "audience_descriptors" and answers.get("age_group"))
-              else "SAFE_FALLBACK")
-        for key in context["visual_semantics"]
-    }
-    context["semantic_confidence"] = {
-        key: float(score) for key, score in (value.get("semantic_confidence") or {}).items()
-        if key in context["visual_semantics"] and context["semantic_provenance"][key] != "USER_EXPLICIT"
-        and isinstance(score, (float, int)) and not isinstance(score, bool) and 0 <= score <= 1
-    }
     questions = _valid_clarification_questions(context)
 
     event = str(answers.get("event_type") or "").strip()
@@ -436,6 +479,44 @@ def _safe_context(
             reference_name=reference.group(1).replace("-", " ").title(),
             reference_type="character",
         )
+    if context.get("reference_detected"):
+        reference_name = str(context.get("reference_name") or "").strip()
+        treatment = _theme_reference_treatment(answers)
+        vague = _vague_reference_treatment(treatment, reference_name)
+        support = " ".join(str(answers.get(key) or "") for key in (
+            "creative_description", "background_inspiration", "theme_reference_treatment",
+        )).casefold()
+        semantics = context["visual_semantics"]
+        for key, content in semantics.items():
+            if key == "scene_family":
+                if vague and not (isinstance(supplied_semantics, dict) and key in supplied_semantics):
+                    semantics[key] = "general"
+                continue
+            explicit = isinstance(supplied_semantics, dict) and key in supplied_semantics
+            if isinstance(content, list):
+                semantics[key] = [phrase for phrase in content
+                                  if _safe_inferred_reference_phrase(phrase, reference_name)
+                                  and (explicit or key not in {
+                                      "material_descriptors", "texture_descriptors",
+                                      "lighting_descriptors", "composition_affinities",
+                                  } or (not vague and phrase.casefold() in support))]
+            elif content and not _safe_inferred_reference_phrase(content, reference_name):
+                semantics[key] = ""
+        context["visual_semantics"] = semantics
+    context["semantic_provenance"] = {
+        key: ("SAFE_FALLBACK" if not content or (key == "scene_family" and content == "general"
+                                    and not (isinstance(supplied_semantics, dict) and key in supplied_semantics)) else
+              "USER_EXPLICIT" if isinstance(supplied_semantics, dict) and key in supplied_semantics else
+              "SEMANTIC_INFERENCE" if key in raw_semantics else
+              "USER_EXPLICIT" if (key == "atmosphere_descriptors" and answers.get("creative_description"))
+              or (key == "audience_descriptors" and answers.get("age_group")) else "SAFE_FALLBACK")
+        for key, content in context["visual_semantics"].items()
+    }
+    context["semantic_confidence"] = {
+        key: float(score) for key, score in (value.get("semantic_confidence") or {}).items()
+        if key in context["visual_semantics"] and context["semantic_provenance"][key] == "SEMANTIC_INFERENCE"
+        and isinstance(score, (float, int)) and not isinstance(score, bool) and 0 <= score <= 1
+    }
     if not context.get("background_generation_summary"):
         inspiration = str(answers.get("background_inspiration") or "").strip()
         treatment = str(answers.get("theme_reference_treatment") or "").strip()
@@ -585,11 +666,15 @@ def _safe_context(
         list,
     ):
         constraints = []
+    constraints = [str(item).strip()[:180] for item in constraints
+                   if isinstance(item, str) and item.strip()
+                   and _safe_background_constraint(item)]
 
     required_constraints = [
         "background only",
         "no people",
         "no characters",
+        "no logos",
         "no readable text",
         "leave quiet areas for later overlays",
     ]

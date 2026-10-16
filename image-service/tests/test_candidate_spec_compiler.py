@@ -1,7 +1,7 @@
 import unittest
 
 from app.services.candidate_spec import build_candidate_spec
-from app.services.prompt_compiler import compile_candidate_prompt, failure_category
+from app.services.prompt_compiler import compile_candidate_prompt, failure_category, runtime_retry_category
 
 
 CASES = (
@@ -81,6 +81,73 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_named_reference_uses_semantic_render_fields_and_preserves_raw_provenance(self):
+        document = document_for(CASES[0])
+        brief = document["brief"]
+        brief.update(
+            background_inspiration="A Solar Sentinel inspired celebration",
+            theme_reference_treatment=(
+                "Use Solar Sentinel-inspired traits through radial geometry. "
+                "Do not depict Solar Sentinel, masks, people or text."
+            ),
+            grill_me_context={"reference_detected": True, "reference_name": "Solar-Sentinel"},
+            visual_semantics={
+                "motif_descriptors": ["interconnected radial geometry", "layered urban forms"],
+                "motif_structure_description": "Radial strands connect through curved cross-links across layered urban forms",
+                "atmosphere_descriptors": ["energetic and playful"],
+                "audience_descriptors": ["children aged 7 to 10"],
+                "incompatible_treatments": ["masks", "costumes"],
+                "scene_family": "architectural-interior",
+            },
+        )
+        document["directions"][0]["direction"]["positive_prompt"] = (
+            "Solar Sentinel-inspired radial geometry in a layered urban scene"
+        )
+        for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
+            with self.subTest(engine=engine):
+                spec = build_candidate_spec(document, engine, "B")
+                self.assertIn("Solar Sentinel", spec.background_inspiration)
+                self.assertIn("Solar Sentinel", spec.theme_reference_treatment)
+                self.assertIn("Solar Sentinel", spec.semantic_contract["primary_visual_subject"])
+                self.assertNotIn("Solar Sentinel", spec.visual_design["primary_visual_subject"])
+                self.assertIn("interconnected radial geometry", spec.visual_design["primary_visual_subject"])
+                for attempt, reason in ((1, ""), (2, "MOTIF_DRIFT: missing topology"),
+                                        (3, "MOTIF_DRIFT: missing topology")):
+                    compiled = compile_candidate_prompt(spec, attempt, reason, concise=attempt > 1)
+                    for prompt in (compiled.positive, compiled.clip_l, compiled.clip_g, compiled.t5 or ""):
+                        self.assertNotIn("Solar Sentinel", prompt)
+                    self.assertIn("radial", compiled.positive.lower())
+                    self.assertIn("layered urban forms", compiled.positive)
+                    self.assertIn("royal blue", compiled.positive)
+                    self.assertIn("red", compiled.positive)
+                    self.assertIn("energetic and playful", compiled.positive)
+                    self.assertIn("children aged 7 to 10", compiled.positive)
+                    self.assertIn("asymmetric layered composition" if attempt == 1 else "layered depth",
+                                  compiled.positive)
+                    self.assertEqual(compiled.spec_sha256, spec.spec_sha256)
+                    self.assertIn("people", compiled.negative)
+                    self.assertIn("text", compiled.negative)
+                    self.assertIn("characters", compiled.negative)
+                    if engine != "flux-2":
+                        self.assertIn("masks", compiled.negative)
+                        self.assertIn("costumes", compiled.negative)
+                    if attempt > 1:
+                        self.assertEqual(compiled.failure_category, "MOTIF")
+                        self.assertEqual(compiled.positive.count("Make the supplied motif topology visible"),
+                                         1 if attempt == 2 else 0)
+
+    def test_motif_drift_routes_to_motif_correction(self):
+        self.assertEqual(runtime_retry_category("MOTIF_DRIFT: missing motif"), "MOTIF")
+
+    def test_named_reference_without_renderable_semantics_fails_closed(self):
+        document = document_for(CASES[0])
+        document["brief"]["background_inspiration"] = "A Solar Sentinel inspired celebration"
+        document["brief"]["grill_me_context"] = {
+            "reference_detected": True, "reference_name": "Solar Sentinel",
+        }
+        with self.assertRaisesRegex(ValueError, "renderable semantic motif"):
+            build_candidate_spec(document, "sdxl-1-0", "B")
+
     def test_six_retry_categories_compile_from_same_spec_without_correction_accumulation(self):
         from app.services.prompt_compiler import _CORRECTIONS
         reasons = {

@@ -401,7 +401,7 @@ def _direction_motif(spec: CandidateSpec) -> str:
     semantics = design["visual_semantics"]
     source = (semantics["motif_structure_description"] or
               ", ".join(semantics["motif_descriptors"]) or
-              spec.theme_reference_treatment or
+              design["theme_reference_treatment"] or
               ", ".join(design["symbolic_motifs"] + design["environmental_motifs"]))
     return " ".join(source.split()[:35]).rstrip(".!? ")
 
@@ -605,7 +605,7 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     # design clause in the short encoders so a repeated subject does not
     # overwhelm composition and medium instructions.
     encoder_motif = " ".join(motif.split(",", 1)[0].split()[:20])
-    treatment = spec.theme_reference_treatment
+    treatment = spec.visual_design["theme_reference_treatment"]
     palette = _palette(spec)
     composition = _composition(spec)
     correction = _CORRECTIONS.get(category, "")
@@ -685,7 +685,7 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     channels = {"positive": positive, "clip_l": clip_l, "clip_g": clip_g, "t5": t5 or ""}
     contract = spec.semantic_contract
     probes = {
-        "subject": contract["primary_visual_subject"],
+        "subject": subject,
         "atmosphere": ", ".join(contract["atmosphere_descriptors"]),
         "audience": ", ".join(contract["audience_descriptors"]),
         "motif": contract["motif_structure_description"] or ", ".join(contract["motif_descriptors"]),
@@ -724,7 +724,7 @@ def runtime_retry_category(reason: str) -> str:
     raw = reason.strip().upper().split(":", 1)[0]
     category = raw if raw in {"TEXT", "TEXT_OR_LOGO", "HUMAN", "PALETTE", "PALETTE_OFF",
                               "SUBJECT", "SUBJECT_DRIFT", "GENERATION_FAILURE", "UNKNOWN",
-                              "RUNTIME", "DENSITY_DRIFT", "MOTIF_DRIFT",
+                              "RUNTIME", "DENSITY_DRIFT", "MOTIF_DRIFT", "MOTIF",
                               "PALETTE_ROLE_DRIFT", "PRIMARY_MISSING", "SECONDARY_MISSING"} else failure_category(reason)
     if category == "INITIAL":
         return "INITIAL"
@@ -736,6 +736,8 @@ def runtime_retry_category(reason: str) -> str:
         return "PALETTE"
     if category in {"SUBJECT", "SUBJECT_DRIFT", "AUDIENCE_DRIFT", "ATMOSPHERE_DRIFT"}:
         return "SUBJECT"
+    if category in {"MOTIF_DRIFT", "MOTIF"}:
+        return "MOTIF"
     if category in {"GENERATION_FAILURE", "RUNTIME", "VISION_UNAVAILABLE"}:
         return "GENERATION_FAILURE"
     return "UNKNOWN"
@@ -793,6 +795,11 @@ _RETRY_CORRECTIONS = {
         "Strengthen original subject forms and supplied anchors in this composition.",
         "Make the original environment immediately recognizable in this exact direction.",
     ),
+    "MOTIF": (
+        "Make the supplied motif topology visible within the same subject and composition.",
+        "Strengthen the supplied motif structure while preserving subject, atmosphere, audience and palette.",
+        "Render the supplied motif topology clearly across the original spatial direction without adding new content.",
+    ),
     "GENERATION_FAILURE": (
         "Retry the same requested scene cleanly.",
         "Render the same requested scene with simpler technical execution.",
@@ -829,8 +836,9 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     mood_line = f"Mood: {_first_words(mood, 10)}." if mood else ""
     audience_line = f"Audience: {_first_words(audience, 7)}." if audience else ""
     motif_line = f"Motif: {_first_words(motif, 16)}." if motif else ""
-    treatment_line = (f"Reference treatment: {_first_words(spec.theme_reference_treatment, 12)}."
-                      if spec.theme_reference_treatment else "")
+    treatment = design["theme_reference_treatment"]
+    treatment_line = (f"Reference treatment: {_first_words(treatment, 12)}."
+                      if treatment else "")
     style_line = (f"Style: {_first_words(design.get('visual_style'), 8)}."
                   if design.get("visual_style") else "")
     palette_line = f"Palette: {palette}." if colours else ""

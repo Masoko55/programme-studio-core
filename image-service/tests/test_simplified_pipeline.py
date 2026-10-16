@@ -69,7 +69,7 @@ class SimplifiedPipelineTests(unittest.TestCase):
                    "RUNTIME", "DENSITY_DRIFT", "MOTIF_DRIFT"}
         self.assertEqual({runtime_retry_category(reason) for reason in reasons},
                          {"TEXT_OR_LOGO", "HUMAN", "PALETTE", "SUBJECT",
-                          "GENERATION_FAILURE", "UNKNOWN"})
+                          "MOTIF", "GENERATION_FAILURE", "UNKNOWN"})
 
     def test_progressive_retries_preserve_immutable_spec_without_history(self):
         source = document()
@@ -91,7 +91,7 @@ class SimplifiedPipelineTests(unittest.TestCase):
                                          design["visual_semantics"]["atmosphere_descriptors"][0],
                                          design["visual_semantics"]["audience_descriptors"][0],
                                          design["visual_semantics"]["motif_structure_description"],
-                                         spec.theme_reference_treatment):
+                                         design["theme_reference_treatment"]):
                             self.assertIn(expected, effective)
                         self.assertIn("Composition:", effective)
                         if index:

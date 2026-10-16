@@ -190,8 +190,44 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
     consistency = semantic_consistency(contract)
     # Semantic contradictions are useful diagnostics, not a second schema gate.
     completeness = semantic_completeness(contract)
+    reference_name = (field(context, "reference_name") if isinstance(context, dict)
+                      and context.get("reference_detected") else "")
+    reference_parts = [part for part in re.split(r"[\W_]+", reference_name) if part]
+    reference_pattern = (r"(?<!\w)" + r"[\W_]*".join(map(re.escape, reference_parts)) + r"(?!\w)"
+                         if reference_parts else "")
+
+    def has_reference(text: str) -> bool:
+        return bool(reference_pattern and re.search(reference_pattern, text, re.I))
+
+    semantic_motifs = [*contract["motif_descriptors"]]
+    structure = contract["motif_structure_description"]
+    if structure:
+        semantic_motifs.append(structure)
+    semantic_motifs = [item for item in dict.fromkeys(semantic_motifs) if not has_reference(item)]
+    if reference_name:
+        visual_semantics["motif_descriptors"] = [item for item in contract["motif_descriptors"]
+                                                 if not has_reference(item)]
+        visual_semantics["motif_structure_description"] = (
+            structure if not has_reference(structure) else ", ".join(semantic_motifs))
+    safe_scene = contract["scene_family"] if contract["scene_family"] != "general" else ""
+    render_subject = contract["primary_visual_subject"]
+    if has_reference(render_subject):
+        if not semantic_motifs:
+            raise ValueError("Detected reference lacks a renderable semantic motif")
+        render_subject = ", ".join(semantic_motifs)
+    render_anchors = [item for item in contract["visual_anchors"] if not has_reference(item)]
+    if reference_name and not render_anchors:
+        render_anchors = semantic_motifs or ([safe_scene] if safe_scene else [])
+    render_treatment = contract["theme_reference_treatment"]
+    if has_reference(render_treatment):
+        render_treatment = structure if structure and not has_reference(structure) else ", ".join(semantic_motifs)
+    else:
+        render_treatment = re.split(
+            r"\b(?:do not|don't|never|avoid|without|no people|no characters|no text)\b",
+            render_treatment, maxsplit=1, flags=re.I,
+        )[0].rstrip(" ,.;")
     visual_design = {
-        "primary_visual_subject": contract["primary_visual_subject"],
+        "primary_visual_subject": render_subject,
         "event_context": field(brief, "event_context") or field(brief, "event_type"),
         "render_exclusion_text": [field(brief, key) for key in (
             "title_preference", "event_date", "venue"
@@ -206,7 +242,7 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         "semantic_completeness": completeness,
         "semantic_provenance": contract["semantic_provenance"],
         "hard_dimensions": contract.get("hard_dimensions", []),
-        "theme_reference_treatment": contract["theme_reference_treatment"],
+        "theme_reference_treatment": render_treatment,
         "mood": field(brief, "mood"),
         "visual_style": field(brief, "visual_style"),
         "requested_palette": contract["palette"],
@@ -214,7 +250,7 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         "palette_relationship": contract["palette_relationship"],
         "palette_relationship_source": (field(brief, "palette_relationship_source")
                                         or contract.get("semantic_provenance", {}).get("palette_relationship")),
-        "visual_anchors": contract["visual_anchors"],
+        "visual_anchors": render_anchors,
         "symbolic_motifs": values(brief, "symbolic_motifs"),
         "environmental_motifs": values(brief, "environmental_motifs"),
         "material_language": ", ".join(contract["material_descriptors"]) or field(brief, "material_language"),

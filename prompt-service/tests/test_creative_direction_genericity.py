@@ -6,6 +6,10 @@ from app.services.creative_direction import (
     build_creative_direction_prompt,
     positive_palette_description,
     reference_visual_language,
+    sanitize_positive_prompt,
+)
+from app.services.validation import (
+    validate_positive_prompt_quality,
 )
 
 
@@ -41,6 +45,7 @@ class CreativeDirectionGenericityTests(unittest.TestCase):
         self.assertIn("#13a8b3", description.lower())
         self.assertIn("rebeccapurple", description.lower())
         self.assertIn("rgb(242,170,76)", description.lower())
+        self.assertNotIn("do not", description.lower())
 
     def test_background_requirements_do_not_force_stock_edge_frame(self):
         brief = {
@@ -48,7 +53,7 @@ class CreativeDirectionGenericityTests(unittest.TestCase):
             "background_inspiration": "suspended fabric waves crossing a deep atmospheric field",
         }
         text = background_positive_requirements(brief).lower()
-        self.assertIn("original composition", text)
+        self.assertIn("original", text)
         self.assertIn("negative space", text)
         self.assertNotIn("stock poster", text)
         self.assertNotIn("side slabs", text)
@@ -85,6 +90,137 @@ class CreativeDirectionGenericityTests(unittest.TestCase):
         self.assertIn("layered wind-carved sandstone ribbons", summary)
         self.assertIn("organic flowing geometry", summary)
         self.assertIn("rather than a boilerplate frame", summary)
+
+    def test_named_reference_is_translated_to_semantics_in_positive_prompt(self):
+        brief = {
+            "event_type": "children celebration",
+            "background_inspiration": "A Solar Sentinel inspired celebration",
+            "primary_colour": "blue",
+            "secondary_colour": "red",
+            "palette_relationship": (
+                "requested colours dominate with natural tonal variation"
+            ),
+            "theme_reference_treatment": (
+                "Use Solar Sentinel-inspired visual traits through "
+                "interconnected radial geometry and energetic movement. "
+                "Do not depict Solar Sentinel, masks, people or readable text."
+            ),
+            "grill_me_context": {
+                "reference_detected": True,
+                "reference_name": "Solar Sentinel",
+                "reference_type": "character",
+                "visual_semantics": {
+                    "motif_descriptors": [
+                        "interconnected radial geometry",
+                        "layered urban forms",
+                    ],
+                    "motif_structure_description": (
+                        "Radial strands connect through curved cross-links "
+                        "across layered urban forms."
+                    ),
+                    "atmosphere_descriptors": [
+                        "energetic and playful",
+                    ],
+                    "scene_family": "abstract",
+                },
+            },
+            "visual_semantics": {
+                "motif_descriptors": [
+                    "interconnected radial geometry",
+                    "layered urban forms",
+                ],
+                "motif_structure_description": (
+                    "Radial strands connect through curved cross-links "
+                    "across layered urban forms."
+                ),
+                "atmosphere_descriptors": [
+                    "energetic and playful",
+                ],
+                "scene_family": "abstract",
+            },
+        }
+
+        prompt = sanitize_positive_prompt(
+            (
+                "Solar Sentinel standing above a city. "
+                "Do not show lettering. "
+                "Blue and red radial geometry with layered urban depth."
+            ),
+            brief,
+            "Visual Designer",
+        )
+
+        lowered = prompt.lower()
+
+        self.assertNotIn("solar sentinel", lowered)
+        self.assertNotIn("do not", lowered)
+        self.assertNotIn("people", lowered)
+        self.assertNotIn("character", lowered)
+        self.assertNotIn("readable text", lowered)
+        self.assertIn("radial", lowered)
+        self.assertIn("urban", lowered)
+
+        class Direction:
+            direction_id = "A"
+            positive_prompt = prompt
+
+        validate_positive_prompt_quality(
+            Direction()
+        )
+
+    def test_negative_clarification_sentences_do_not_leak_into_visual_language(self):
+        brief = {
+            "grill_me_context": {
+                "reference_detected": True,
+                "reference_name": "Clockwork Falcon",
+                "visual_semantics": {
+                    "motif_descriptors": [
+                        "sweeping mechanical arcs",
+                    ],
+                    "atmosphere_descriptors": [
+                        "kinetic and luminous",
+                    ],
+                },
+            },
+            "visual_semantics": {
+                "motif_descriptors": [
+                    "sweeping mechanical arcs",
+                ],
+                "atmosphere_descriptors": [
+                    "kinetic and luminous",
+                ],
+            },
+            "theme_reference_treatment": (
+                "Use Clockwork Falcon-inspired sweeping mechanical arcs. "
+                "Never depict the reference itself. "
+                "Avoid faces, logos and writing."
+            ),
+        }
+
+        language = reference_visual_language(
+            brief
+        ).lower()
+
+        self.assertIn(
+            "sweeping mechanical arcs",
+            language,
+        )
+        self.assertIn(
+            "kinetic and luminous",
+            language,
+        )
+        self.assertNotIn(
+            "clockwork falcon",
+            language,
+        )
+        self.assertNotIn(
+            "never",
+            language,
+        )
+        self.assertNotIn(
+            "avoid",
+            language,
+        )
 
 
 if __name__ == "__main__":

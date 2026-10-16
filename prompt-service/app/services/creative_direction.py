@@ -202,7 +202,10 @@ def positive_palette_description(
         ) > 1
         else None
     )
-    mode = resolve_palette_mode(brief)
+
+    mode = resolve_palette_mode(
+        brief
+    )
 
     if (
         set(
@@ -215,24 +218,50 @@ def positive_palette_description(
     ):
         return (
             "A strictly achromatic palette of black and white, "
-            "with tonal variation only inside those requested "
-            "neutral colours."
+            "with tonal variation inside those requested neutral colours."
         )
 
     if secondary:
-        relationship = str(brief.get("palette_relationship") or "respect the requested colour roles")
+        relationship = str(
+            brief.get(
+                "palette_relationship"
+            )
+            or (
+                "the requested colour roles remain "
+                "visually clear"
+            )
+        )
+
         if mode == "strict":
-            return f"A strict {', '.join(colours)} palette; {relationship}. Only the requested colour families are allowed, apart from microscopic anti-aliasing tolerance."
-        return (f"A {', '.join(colours)} palette; {relationship}. Requested colours control the chromatic design. "
-                "Bounded black, charcoal, grey and white detail may support linework, shadows, reflections and highlights. "
-                "Do not add a meaningful third chromatic design colour.")
+            return (
+                f"A strict {', '.join(colours)} palette; "
+                f"{relationship}. Only the requested colour families "
+                "form the visible palette, apart from microscopic "
+                "anti-aliasing tolerance."
+            )
+
+        return (
+            f"A {', '.join(colours)} palette; "
+            f"{relationship}. Requested colours control the "
+            "chromatic design, supported by bounded black, "
+            "charcoal, grey and white linework, shadows, "
+            "reflections and highlights. third chromatic design "
+            "colour presence remains negligible."
+        )
 
     if mode == "strict":
-        return f"A strict {primary} palette. Only {primary} is allowed apart from microscopic anti-aliasing tolerance."
-    return (f"A controlled {primary} palette with {primary} clearly dominant. "
-            "Bounded achromatic linework, shadows and highlights are allowed. "
-            "Do not add a meaningful unrelated chromatic design colour.")
+        return (
+            f"A strict {primary} palette. Only the requested colour families "
+            f"are represented, with {primary} remaining visually exclusive "
+            "apart from microscopic anti-aliasing tolerance."
+        )
 
+    return (
+        f"A controlled {primary} palette with {primary} clearly "
+        "dominant, supported by bounded achromatic linework, "
+        "shadows and highlights. third chromatic design colour "
+        "presence remains negligible."
+    )
 
 def palette_negative(
     brief: dict,
@@ -572,8 +601,165 @@ def _list_values(brief: dict, key: str) -> list[str]:
     ]
 
 
+def _is_negative_instruction_clause(
+    value: str,
+) -> bool:
+    """Return True when prose is an exclusion/instruction rather than visual description."""
+    return bool(
+        re.search(
+            r"\b(?:do not|don't|never|avoid|without|must not|should not|no)\b",
+            str(value),
+            re.IGNORECASE,
+        )
+    )
+
+
+def _reference_name(
+    brief: dict,
+) -> str:
+    context = (
+        brief.get(
+            "grill_me_context"
+        )
+        or {}
+    )
+
+    if not context.get(
+        "reference_detected"
+    ):
+        return ""
+
+    return str(
+        context.get(
+            "reference_name"
+        )
+        or ""
+    ).strip()
+
+
+def _contains_reference_name(
+    value: str,
+    brief: dict,
+) -> bool:
+    name = _reference_name(
+        brief
+    )
+
+    if not name:
+        return False
+
+    return bool(
+        re.search(
+            rf"\b{re.escape(name)}\b",
+            str(value),
+            re.IGNORECASE,
+        )
+    )
+
+
+def _semantic_values(
+    brief: dict,
+    key: str,
+) -> list[str]:
+    semantics = (
+        brief.get(
+            "visual_semantics"
+        )
+        or (
+            brief.get(
+                "grill_me_context"
+            )
+            or {}
+        ).get(
+            "visual_semantics"
+        )
+        or {}
+    )
+
+    value = semantics.get(
+        key
+    )
+
+    if isinstance(
+        value,
+        list,
+    ):
+        return [
+            str(item).strip()
+            for item
+            in value
+            if str(item).strip()
+        ]
+
+    if value:
+        return [
+            str(value).strip()
+        ]
+
+    return []
+
+
+def _renderable_subject_description(
+    brief: dict,
+) -> str:
+    """Describe the renderable subject without leaking a named reference."""
+    if _reference_name(
+        brief
+    ):
+        parts = []
+
+        for key in (
+            "motif_structure_description",
+            "motif_descriptors",
+            "composition_affinities",
+            "atmosphere_descriptors",
+        ):
+            for value in _semantic_values(
+                brief,
+                key,
+            ):
+                phrase = _safe_visual_phrase(
+                    value
+                )
+
+                if (
+                    phrase
+                    and not _contains_reference_name(
+                        phrase,
+                        brief,
+                    )
+                ):
+                    parts.append(
+                        phrase
+                    )
+
+        if parts:
+            return ", ".join(
+                dict.fromkeys(
+                    parts
+                )
+            )
+
+    inspiration = (
+        _background_inspiration(
+            brief
+        )
+    )
+
+    if not _contains_reference_name(
+        inspiration,
+        brief,
+    ):
+        return inspiration
+
+    return (
+        "abstract brief-specific visual geometry, "
+        "materials, atmosphere and spatial structure"
+    )
+
+
 def _safe_visual_phrase(value: str | None) -> str:
-    """Keep generic visual-language prose while excluding renderable people/text."""
+    """Keep generic visual-language prose while excluding non-renderable instructions."""
     if not value:
         return ""
 
@@ -587,50 +773,198 @@ def _safe_visual_phrase(value: str | None) -> str:
             for term in POSITIVE_PROMPT_FORBIDDEN_TERMS
         ):
             continue
+        if _is_negative_instruction_clause(
+            clause
+        ):
+            continue
         clauses.append(clause)
 
     return ", ".join(clauses)
 
 
-def reference_visual_language(brief: dict) -> str:
-    """Build visual language only from clarified, generic brief fields.
-
-    This deliberately contains no franchise-, event-, colour-, or theme-specific
-    branches. A new user theme should work without a code change.
-    """
+def reference_visual_language(
+    brief: dict,
+) -> str:
+    """Build descriptive visual language without named-reference or exclusion leakage."""
     parts = []
 
-    for key, label in (
-        ("theme_reference_treatment", "reference treatment"),
-        ("visual_style", "visual style"),
-        ("material_language", "materials"),
-        ("texture_language", "texture"),
-        ("lighting_language", "lighting"),
-        ("mood", "mood"),
-    ):
-        phrase = _safe_visual_phrase(brief.get(key))
-        if phrase:
-            parts.append(f"{label}: {phrase}")
-
-    for key, label in (
-        ("visual_anchors", "visual anchors"),
-        ("symbolic_motifs", "symbolic motifs"),
-        ("environmental_motifs", "environmental motifs"),
-    ):
-        phrases = [
-            phrase
-            for phrase in (
-                _safe_visual_phrase(value)
-                for value in _list_values(brief, key)
+    semantics = (
+        brief.get(
+            "visual_semantics"
+        )
+        or (
+            brief.get(
+                "grill_me_context"
             )
-            if phrase
-        ]
+            or {}
+        ).get(
+            "visual_semantics"
+        )
+        or {}
+    )
+
+    semantic_fields = (
+        (
+            "motif_descriptors",
+            "motifs",
+        ),
+        (
+            "motif_structure_description",
+            "motif structure",
+        ),
+        (
+            "atmosphere_descriptors",
+            "atmosphere",
+        ),
+        (
+            "lighting_descriptors",
+            "lighting",
+        ),
+        (
+            "material_descriptors",
+            "materials",
+        ),
+        (
+            "texture_descriptors",
+            "texture",
+        ),
+        (
+            "composition_affinities",
+            "composition",
+        ),
+    )
+
+    for key, label in semantic_fields:
+        value = semantics.get(
+            key
+        )
+
+        values = (
+            value
+            if isinstance(
+                value,
+                list,
+            )
+            else [
+                value
+            ]
+        )
+
+        phrases = []
+
+        for item in values:
+            phrase = _safe_visual_phrase(
+                item
+            )
+
+            if (
+                phrase
+                and not _contains_reference_name(
+                    phrase,
+                    brief,
+                )
+            ):
+                phrases.append(
+                    phrase
+                )
+
         if phrases:
-            parts.append(f"{label}: {', '.join(phrases)}")
+            parts.append(
+                f"{label}: "
+                + ", ".join(
+                    phrases
+                )
+            )
+
+    #
+    # For briefs without a detected named reference, preserve the
+    # user's generic clarified visual fields as before.
+    #
+    if not _reference_name(
+        brief
+    ):
+        for key, label in (
+            (
+                "theme_reference_treatment",
+                "reference treatment",
+            ),
+            (
+                "visual_style",
+                "visual style",
+            ),
+            (
+                "material_language",
+                "materials",
+            ),
+            (
+                "texture_language",
+                "texture",
+            ),
+            (
+                "lighting_language",
+                "lighting",
+            ),
+            (
+                "mood",
+                "mood",
+            ),
+        ):
+            phrase = _safe_visual_phrase(
+                brief.get(
+                    key
+                )
+            )
+
+            if phrase:
+                parts.append(
+                    f"{label}: {phrase}"
+                )
+
+        for key, label in (
+            (
+                "visual_anchors",
+                "visual anchors",
+            ),
+            (
+                "symbolic_motifs",
+                "symbolic motifs",
+            ),
+            (
+                "environmental_motifs",
+                "environmental motifs",
+            ),
+        ):
+            phrases = [
+                phrase
+                for phrase
+                in (
+                    _safe_visual_phrase(
+                        value
+                    )
+                    for value
+                    in _list_values(
+                        brief,
+                        key,
+                    )
+                )
+                if phrase
+            ]
+
+            if phrases:
+                parts.append(
+                    f"{label}: "
+                    + ", ".join(
+                        phrases
+                    )
+                )
 
     return (
-        "Use these clarified visual-language cues where relevant: "
-        + "; ".join(parts)
+        "Clarified visual language: "
+        + "; ".join(
+            dict.fromkeys(
+                parts
+            )
+        )
         + ". "
         if parts
         else ""
@@ -658,14 +992,23 @@ def background_design_summary(
 def background_positive_requirements(
     brief: dict,
 ) -> str:
-    """Positive rendering requirements derived only from the clarified brief."""
+    """Return descriptive visual requirements only."""
+    subject = (
+        _renderable_subject_description(
+            brief
+        )
+    )
+
     return (
-        "Make the visual subject clearly recognizable as: "
-        + _background_inspiration(brief)
+        "Visual subject: "
+        + subject
         + ". "
-        + reference_visual_language(brief)
-        + "Use an original composition specific to the brief, with intentional negative space and breathing room "
-        + "for later title and programme typography."
+        + reference_visual_language(
+            brief
+        )
+        + "Original brief-specific composition, coherent visual "
+        + "hierarchy, intentional calm negative space, balanced "
+        + "depth, material detail, texture and lighting."
     )
 
 def background_negative_constraints() -> str:
@@ -676,16 +1019,27 @@ def fallback_prompt(
     brief: dict,
     role: str,
 ) -> str:
-    palette = positive_palette_description(brief)
-    return (
-        f"{role} A4 portrait event-background artwork, {palette} "
-        "with a brief-specific composition, coherent visual hierarchy, intentional "
-        "negative space for later typography, and subject-appropriate depth, materials, "
-        "texture and lighting. "
-        + _background_inspiration(brief)
-        + "."
+    palette = (
+        positive_palette_description(
+            brief
+        )
     )
 
+    subject = (
+        _renderable_subject_description(
+            brief
+        )
+    )
+
+    return (
+        f"{role} A4 portrait event-background artwork, "
+        f"{palette} "
+        "Brief-specific composition, coherent visual hierarchy, "
+        "intentional calm negative space, subject-appropriate "
+        "depth, materials, texture and lighting. "
+        + subject
+        + "."
+    )
 
 def sanitize_positive_prompt(
     value: str,
@@ -725,9 +1079,17 @@ def sanitize_positive_prompt(
             )
         )
 
+        named_reference = (
+            _contains_reference_name(
+                clause,
+                brief,
+            )
+        )
+
         if (
             not blocked
             and not negative_instruction
+            and not named_reference
         ):
             clean.append(
                 clause
@@ -806,6 +1168,19 @@ def sanitize_positive_prompt(
             in POSITIVE_PROMPT_FORBIDDEN_TERMS
         )
 
+        negative_instruction = (
+            _is_negative_instruction_clause(
+                clause
+            )
+        )
+
+        named_reference = (
+            _contains_reference_name(
+                clause,
+                brief,
+            )
+        )
+
         key = re.sub(
             r"\s+",
             " ",
@@ -814,6 +1189,8 @@ def sanitize_positive_prompt(
 
         if (
             not blocked
+            and not negative_instruction
+            and not named_reference
             and key not in seen_clauses
         ):
             clean_final.append(

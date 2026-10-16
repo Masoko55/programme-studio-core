@@ -68,35 +68,305 @@ logger = logging.getLogger(
 
 def _finalize_validation_record(record: dict) -> None:
     """Keep final decisions distinct from the reason that selected a retry."""
-    status = record.get("status")
-    if status not in {"complete", "rejected", "failed", "runtime_failed"}:
+
+    status = record.get(
+        "status"
+    )
+
+    if status not in {
+        "complete",
+        "rejected",
+        "failed",
+        "runtime_failed",
+    }:
         return
-    complete = status == "complete"
-    if complete and hard_fidelity_failure(record.get("subject_adherence") or record.get("brief_fidelity")):
-        raise ComfyUIError("Cannot complete a candidate with a hard brief-fidelity failure")
-    category = None if complete else (record.get("outcome_category") or record.get("primary_failure_category")
-                                      or classify_failure(record.get("rejection_reason") or record.get("error") or ""))
-    record.setdefault("retry_failure_category", record.get("failure_category"))
-    record.update(decision="accepted" if complete else "rejected", failure_category=category,
-                  primary_failure_category=category)
+
+    complete = (
+        status
+        == "complete"
+    )
+
+    if (
+        complete
+        and hard_fidelity_failure(
+            record.get(
+                "subject_adherence"
+            )
+            or record.get(
+                "brief_fidelity"
+            )
+        )
+    ):
+        raise ComfyUIError(
+            "Cannot complete a candidate with a hard brief-fidelity failure"
+        )
+
+    category = (
+        None
+        if complete
+        else (
+            record.get(
+                "outcome_category"
+            )
+            or record.get(
+                "primary_failure_category"
+            )
+            or classify_failure(
+                record.get(
+                    "rejection_reason"
+                )
+                or record.get(
+                    "error"
+                )
+                or ""
+            )
+        )
+    )
+
+    # ========================================================
+    # Latest retry provenance
+    # ========================================================
+    #
+    # retry_failure_category represents the most recent
+    # rejected/failed attempt which caused the current retry.
+    #
+    # Example:
+    #
+    # attempt 1 -> PALETTE
+    # attempt 2 -> HUMAN
+    # attempt 3 -> MOTIF_DRIFT
+    # attempt 4 -> PASS
+    #
+    # Final retry_failure_category must be MOTIF_DRIFT.
+    #
+
+    current_attempt = (
+        record.get(
+            "attempt_count"
+        )
+    )
+
+    prior_attempts = [
+        item
+        for item in [
+            *record.get(
+                "attempt_history",
+                [],
+            ),
+            *record.get(
+                "rejected_attempts",
+                [],
+            ),
+            *record.get(
+                "failed_attempts",
+                [],
+            ),
+        ]
+        if (
+            isinstance(
+                item,
+                dict,
+            )
+            and item.get(
+                "attempt_count"
+            )
+            is not None
+            and item.get(
+                "attempt_count"
+            )
+            != current_attempt
+        )
+    ]
+
+    latest_prior = (
+        max(
+            prior_attempts,
+            key=lambda item: item.get(
+                "attempt_count",
+                0,
+            ),
+        )
+        if prior_attempts
+        else None
+    )
+
+    if latest_prior:
+        retry_failure_category = (
+            latest_prior.get(
+                "primary_failure_category"
+            )
+            or latest_prior.get(
+                "failure_category"
+            )
+            or classify_failure(
+                latest_prior.get(
+                    "rejection_reason"
+                )
+                or latest_prior.get(
+                    "error"
+                )
+                or ""
+            )
+        )
+    else:
+        retry_failure_category = None
+
+    record[
+        "retry_failure_category"
+    ] = retry_failure_category
+
+    # ========================================================
+    # Final candidate state
+    # ========================================================
+
+    record.update(
+        decision=(
+            "accepted"
+            if complete
+            else "rejected"
+        ),
+        failure_category=category,
+        primary_failure_category=category,
+    )
+
     if complete:
-        record.update(outcome_category="PASS", all_failure_categories=[], secondary_failure_categories=[])
-    validation = record.get("validation") or {}
-    report = validation.get("validation", validation)
-    record["final_validation"] = {**report, "decision": record["decision"], "failure_category": category,
-                                  "brief_fidelity": record.get("brief_fidelity")}
-    record["validation"] = ({**validation, "validation": record["final_validation"]}
-                            if "validation" in validation else record["final_validation"])
+        record.update(
+            outcome_category="PASS",
+            all_failure_categories=[],
+            secondary_failure_categories=[],
+        )
+
+    validation = (
+        record.get(
+            "validation"
+        )
+        or {}
+    )
+
+    report = (
+        validation.get(
+            "validation",
+            validation,
+        )
+    )
+
+    record[
+        "final_validation"
+    ] = {
+        **report,
+        "decision": (
+            record[
+                "decision"
+            ]
+        ),
+        "failure_category": category,
+        "brief_fidelity": (
+            record.get(
+                "brief_fidelity"
+            )
+        ),
+    }
+
+    record[
+        "validation"
+    ] = (
+        {
+            **validation,
+            "validation": (
+                record[
+                    "final_validation"
+                ]
+            ),
+        }
+        if (
+            "validation"
+            in validation
+        )
+        else (
+            record[
+                "final_validation"
+            ]
+        )
+    )
+
+    # ========================================================
+    # Persist complete attempt history
+    # ========================================================
+
     attempts = {}
-    for item in [*record.get("attempt_history", []), *record.get("rejected_attempts", []),
-                 *record.get("failed_attempts", [])]:
-        attempts[item.get("attempt_count", 0)] = item
-    snapshot = {key: record.get(key) for key in (
-        "attempt_count", "status", "seed", "failure_category", "primary_failure_category",
-        "retry_failure_category", "rejection_reason", "error", "final_validation", "subject_adherence",
-        "brief_fidelity", "raw_palette_error", "raw_validation", "raw_subject_adherence", "palette_recovery")}
-    attempts[record.get("attempt_count", 0)] = snapshot
-    record["attempt_history"] = [attempts[number] for number in sorted(attempts)]
+
+    for item in [
+        *record.get(
+            "attempt_history",
+            [],
+        ),
+        *record.get(
+            "rejected_attempts",
+            [],
+        ),
+        *record.get(
+            "failed_attempts",
+            [],
+        ),
+    ]:
+        if not isinstance(
+            item,
+            dict,
+        ):
+            continue
+
+        attempt_number = (
+            item.get(
+                "attempt_count"
+            )
+        )
+
+        if attempt_number is None:
+            continue
+
+        attempts[
+            attempt_number
+        ] = item
+
+    snapshot = {
+        key: record.get(
+            key
+        )
+        for key in (
+            "attempt_count",
+            "status",
+            "seed",
+            "failure_category",
+            "primary_failure_category",
+            "retry_failure_category",
+            "rejection_reason",
+            "error",
+            "final_validation",
+            "subject_adherence",
+            "brief_fidelity",
+            "raw_palette_error",
+            "raw_validation",
+            "raw_subject_adherence",
+            "palette_recovery",
+        )
+    }
+
+    if current_attempt is not None:
+        attempts[
+            current_attempt
+        ] = snapshot
+
+    record[
+        "attempt_history"
+    ] = [
+        attempts[
+            number
+        ]
+        for number
+        in sorted(
+            attempts
+        )
+    ]
 
 
 def _record_brief_fidelity(record: dict, assessment: dict) -> None:

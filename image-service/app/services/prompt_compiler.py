@@ -855,5 +855,5 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                       "", value, flags=re.I).strip()
     return replace(compiled, positive=clean(positive), clip_l=clean(clip_l),
                    clip_g=clean(clip_g), t5=clean(t5) if spec.engine_id == "sd-3-5-medium" else None,
-                   failure_category=runtime_retry_category(reason), retry_stage="normal",
+                   failure_category=runtime_retry_category(reason), retry_stage=compiled.retry_stage,
                    retry_strength_level=strength)

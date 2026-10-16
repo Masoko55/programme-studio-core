@@ -21,61 +21,156 @@ class GrillMeBackgroundInspirationTests(unittest.TestCase):
             ("navy", "gold", "navy background with small gold details"),
         ):
             with self.subTest(relationship=relationship):
-                brief = {"primary_colour": primary, "secondary_colour": secondary,
-                         "creative_description": relationship, "palette_mode": "dominant"}
+                brief = {
+                    "primary_colour": primary,
+                    "secondary_colour": secondary,
+                    "creative_description": relationship,
+                    "palette_mode": "dominant",
+                }
                 phrase, source = resolve_palette_relationship(brief)
                 self.assertEqual((phrase, source), (relationship, "user_explicit"))
-                brief.update(palette_relationship=phrase, palette_relationship_source=source)
-                self.assertEqual(build_semantic_contract(brief)["semantic_provenance"]["palette_relationship"], "USER_EXPLICIT")
-        _, source = resolve_palette_relationship({"primary_colour": "navy", "secondary_colour": "white",
-                                                   "creative_description": "A luminous architectural hall"})
+                brief.update(
+                    palette_relationship=phrase,
+                    palette_relationship_source=source,
+                )
+                self.assertEqual(
+                    build_semantic_contract(brief)["semantic_provenance"][
+                        "palette_relationship"
+                    ],
+                    "USER_EXPLICIT",
+                )
+
+        _, source = resolve_palette_relationship(
+            {
+                "primary_colour": "navy",
+                "secondary_colour": "white",
+                "creative_description": "A luminous architectural hall",
+            }
+        )
         self.assertEqual(source, "default")
-        _, source = resolve_palette_relationship({"primary_colour": "navy", "secondary_colour": "white",
-                                                   "creative_description": "The main hall has navy and white walls"})
+
+        _, source = resolve_palette_relationship(
+            {
+                "primary_colour": "navy",
+                "secondary_colour": "white",
+                "creative_description": "The main hall has navy and white walls",
+            }
+        )
         self.assertEqual(source, "default")
 
     def test_default_palette_relationship_provenance(self):
-        brief = {"primary_colour": "navy", "secondary_colour": "white",
-                 "palette_relationship": "requested colours dominate with natural tonal variation",
-                 "palette_relationship_source": "default"}
+        brief = {
+            "primary_colour": "navy",
+            "secondary_colour": "white",
+            "palette_relationship": (
+                "requested colours dominate with natural tonal variation"
+            ),
+            "palette_relationship_source": "default",
+        }
         contract = build_semantic_contract(brief)
-        self.assertEqual(contract["semantic_provenance"]["palette_relationship"], "SAFE_FALLBACK")
+        self.assertEqual(
+            contract["semantic_provenance"]["palette_relationship"],
+            "SAFE_FALLBACK",
+        )
+
         brief["palette_relationship_source"] = "user"
         contract = build_semantic_contract(brief)
-        self.assertEqual(contract["semantic_provenance"]["palette_relationship"], "USER_EXPLICIT")
+        self.assertEqual(
+            contract["semantic_provenance"]["palette_relationship"],
+            "USER_EXPLICIT",
+        )
 
     def test_accessibility_stays_in_final_composition(self):
-        session = GrillMeSession(session_id="test", status="ready", answers=GrillMeAnswers(
-            event_type="garden gathering", theme="flowers", age_group="family",
-            primary_colour="green", secondary_colour="cream", creative_description="soft garden",
-            title_preference="Welcome", event_date="2026-10-15", start_time="10:00",
-            accessibility_preferences=["clear readable programme text"],
-            programme=[ProgrammeItem(time="10:00", title="Arrival")],
-        ))
-        with patch("app.services.grill_me_service.load_session", return_value=session), \
-             patch("app.services.grill_me_service.evaluate_session", return_value=[]), \
-             patch("app.services.grill_me_service._save"):
-            _, background, final = freeze_for_generation("test", "ABCDEF-123456")
+        session = GrillMeSession(
+            session_id="test",
+            status="ready",
+            answers=GrillMeAnswers(
+                event_type="garden gathering",
+                theme="flowers",
+                age_group="family",
+                primary_colour="green",
+                secondary_colour="cream",
+                creative_description="soft garden",
+                title_preference="Welcome",
+                event_date="2026-10-15",
+                start_time="10:00",
+                accessibility_preferences=["clear readable programme text"],
+                programme=[ProgrammeItem(time="10:00", title="Arrival")],
+            ),
+        )
+
+        with (
+            patch(
+                "app.services.grill_me_service.load_session",
+                return_value=session,
+            ),
+            patch(
+                "app.services.grill_me_service.evaluate_session",
+                return_value=[],
+            ),
+            patch("app.services.grill_me_service._save"),
+        ):
+            _, background, final = freeze_for_generation(
+                "test",
+                "ABCDEF-123456",
+            )
+
         self.assertNotIn("accessibility_preferences", background)
         self.assertNotIn("clear readable programme text", str(background))
-        self.assertIn("clear readable programme text", final["accessibility_preferences"])
+        self.assertIn(
+            "clear readable programme text",
+            final["accessibility_preferences"],
+        )
 
     def test_semantic_review_preserves_unfamiliar_descriptors(self):
-        context = _safe_context({"visual_semantics": {
-            "atmosphere_descriptors": ["quietly luminous", "meditative", "weightless"],
-            "motif_structure_description": "irregular nested mineral clusters",
-            "incompatible_treatments": ["harsh metallic glare"],
-            "scene_family": "abstract",
-        }}, {"event_type": "unfamiliar gathering", "theme": "mineral forms",
-             "creative_description": "quietly luminous, meditative and weightless"})
+        context = _safe_context(
+            {
+                "visual_semantics": {
+                    "atmosphere_descriptors": [
+                        "quietly luminous",
+                        "meditative",
+                        "weightless",
+                    ],
+                    "motif_structure_description": (
+                        "irregular nested mineral clusters"
+                    ),
+                    "incompatible_treatments": [
+                        "harsh metallic glare"
+                    ],
+                    "scene_family": "abstract",
+                }
+            },
+            {
+                "event_type": "unfamiliar gathering",
+                "theme": "mineral forms",
+                "creative_description": (
+                    "quietly luminous, meditative and weightless"
+                ),
+            },
+        )
+
         semantics = context["visual_semantics"]
-        self.assertEqual(semantics["atmosphere_descriptors"],
-                         ["quietly luminous", "meditative", "weightless"])
-        self.assertEqual(semantics["motif_structure_description"], "irregular nested mineral clusters")
-        self.assertEqual(semantics["incompatible_treatments"], ["harsh metallic glare"])
+        self.assertEqual(
+            semantics["atmosphere_descriptors"],
+            ["quietly luminous", "meditative", "weightless"],
+        )
+        self.assertEqual(
+            semantics["motif_structure_description"],
+            "irregular nested mineral clusters",
+        )
+        self.assertEqual(
+            semantics["incompatible_treatments"],
+            ["harsh metallic glare"],
+        )
         self.assertEqual(semantics["scene_family"], "abstract")
-        self.assertEqual(context["semantic_provenance"]["atmosphere_descriptors"], "SEMANTIC_INFERENCE")
-        self.assertNotIn("atmosphere_descriptors", context["semantic_confidence"])
+        self.assertEqual(
+            context["semantic_provenance"]["atmosphere_descriptors"],
+            "SEMANTIC_INFERENCE",
+        )
+        self.assertNotIn(
+            "atmosphere_descriptors",
+            context["semantic_confidence"],
+        )
 
     def test_generic_brief_gets_one_plain_language_background_question(self):
         context = _safe_context(
@@ -88,8 +183,14 @@ class GrillMeBackgroundInspirationTests(unittest.TestCase):
         )
 
         questions = context["clarification_questions"]
-        self.assertEqual(questions[-1]["field"], "background_inspiration")
-        self.assertIn("What would you like people to see", questions[-1]["question"])
+        self.assertEqual(
+            questions[-1]["field"],
+            "background_inspiration",
+        )
+        self.assertIn(
+            "What would you like people to see",
+            questions[-1]["question"],
+        )
 
     def test_background_question_replaces_redundant_theme_question(self):
         context = _safe_context(
@@ -109,8 +210,95 @@ class GrillMeBackgroundInspirationTests(unittest.TestCase):
         )
 
         self.assertEqual(
-            [item["field"] for item in context["clarification_questions"]],
+            [
+                item["field"]
+                for item in context["clarification_questions"]
+            ],
             ["background_inspiration"],
+        )
+
+    def test_original_superhero_brief_detects_reference_across_fields(self):
+        answers = {
+            "event_type": "Children birthday party",
+            "theme": "Superheroes",
+            "age_group": "Children aged 7 to 10",
+            "primary_colour": "blue",
+            "secondary_colour": "red",
+            "creative_description": (
+                "A kids party for a kid who is into superheroes, "
+                "most especially spiderman."
+            ),
+            "background_inspiration": (
+                "A spiderman inspired theme for a kid's birthday"
+            ),
+            "theme_reference_treatment": None,
+        }
+
+        context = _safe_context({}, answers)
+
+        self.assertTrue(context["reference_detected"])
+        self.assertEqual(context["reference_name"], "Spiderman")
+        self.assertEqual(context["reference_type"], "character")
+        self.assertTrue(context["reference_needs_clarification"])
+        self.assertEqual(
+            context["clarification_questions"][0]["field"],
+            "theme_reference_treatment",
+        )
+        self.assertIn(
+            "Spiderman",
+            context["clarification_questions"][0]["question"],
+        )
+
+    def test_generic_inspired_language_does_not_become_character_reference(self):
+        context = _safe_context(
+            {},
+            {
+                "event_type": "garden gathering",
+                "theme": "botanical",
+                "creative_description": (
+                    "A calm nature inspired garden celebration"
+                ),
+                "background_inspiration": (
+                    "A nature inspired botanical pattern"
+                ),
+            },
+        )
+
+        self.assertFalse(context["reference_detected"])
+        self.assertEqual(context["reference_type"], "none")
+
+    def test_existing_reference_detection_is_not_overwritten(self):
+        context = _safe_context(
+            {
+                "reference_detected": True,
+                "reference_name": "Existing Reference",
+                "reference_type": "franchise",
+            },
+            {
+                "event_type": "birthday party",
+                "theme": "Superheroes",
+                "creative_description": (
+                    "A superhero celebration"
+                ),
+                "background_inspiration": (
+                    "A spiderman inspired theme"
+                ),
+                "theme_reference_treatment": (
+                    "web geometry and energetic city movement"
+                ),
+            },
+        )
+
+        self.assertEqual(
+            context["reference_name"],
+            "Existing Reference",
+        )
+        self.assertEqual(
+            context["reference_type"],
+            "franchise",
+        )
+        self.assertFalse(
+            context["reference_needs_clarification"],
         )
 
     def test_inspiration_is_used_by_direction_prompt_helpers(self):
@@ -121,14 +309,24 @@ class GrillMeBackgroundInspirationTests(unittest.TestCase):
             "asset_type": "none",
         }
 
-        self.assertIn("moonlit botanical garden", background_design_summary(brief))
-        self.assertIn("moonlit botanical garden", background_positive_requirements(brief))
+        self.assertIn(
+            "moonlit botanical garden",
+            background_design_summary(brief),
+        )
+        self.assertIn(
+            "moonlit botanical garden",
+            background_positive_requirements(brief),
+        )
 
     def test_spider_man_theme_uses_safe_web_visual_language(self):
-        traits = reference_visual_language({
-            "theme": "Spider-Man birthday",
-            "theme_reference_treatment": "web geometry and city energy",
-        })
+        traits = reference_visual_language(
+            {
+                "theme": "Spider-Man birthday",
+                "theme_reference_treatment": (
+                    "web geometry and city energy"
+                ),
+            }
+        )
 
         self.assertIn("web geometry", traits)
         self.assertNotIn("Spider-Man", traits)
@@ -146,21 +344,34 @@ class GrillMeBackgroundInspirationTests(unittest.TestCase):
             start_time="14:00",
             title_preference="Mia's party",
             venue="The garden hall",
-            programme=[ProgrammeItem(time="14:00", title="Welcome")],
+            programme=[
+                ProgrammeItem(
+                    time="14:00",
+                    title="Welcome",
+                )
+            ],
             asset_type="headshot",
         )
+
         session = GrillMeSession(
             session_id="test",
             status="reviewing",
             answers=answers,
         )
 
-        fields = [question.field for question in evaluate_session(session)]
-        self.assertEqual(fields[:3], [
-            "asset_placement",
-            "headshot_shape",
-            "rights_and_consent_confirmed",
-        ])
+        fields = [
+            question.field
+            for question in evaluate_session(session)
+        ]
+
+        self.assertEqual(
+            fields[:3],
+            [
+                "asset_placement",
+                "headshot_shape",
+                "rights_and_consent_confirmed",
+            ],
+        )
 
 
 if __name__ == "__main__":

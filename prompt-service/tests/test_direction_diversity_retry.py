@@ -7,11 +7,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
-from app.graph.workflow import (_log_validation_failure, generate_direction_c,
-                                route_after_validation_a, route_after_validation_b,
-                                route_after_validation_c, validate_direction_c,
-                                fallback_direction_a, fallback_direction_b,
-                                fallback_direction_c)
+from app.graph.workflow import (
+    _log_validation_failure,
+    generate_direction_c,
+    route_after_validation_a,
+    route_after_validation_b,
+    route_after_validation_c,
+    validate_direction_c,
+)
 from app.services.creative_direction import build_creative_direction_prompt
 from app.services.direction_diversity import build_diversity_constraints
 from app.services.validation import direction_signature, validate_direction_diversity
@@ -20,31 +23,68 @@ from tests.test_direction_structure_contract import direction
 
 
 class DirectionRetryBoundaryTests(unittest.TestCase):
-    def test_all_directions_have_bounded_fallback(self):
-        brief = {"background_inspiration": "layered dunes", "primary_colour": "sand",
-                 "secondary_colour": "navy", "mood": "calm"}
-        a_state = {"brief": brief, "direction_a": None, "retry_count_a": 3,
-                   "validation_error_a": "invalid model output"}
-        self.assertEqual(route_after_validation_a(a_state), "fallback_direction_a")
-        a = fallback_direction_a(a_state)["direction_a"]
-        b_state = {"direction_a": a, "direction_b": None, "retry_count_b": 3,
-                   "validation_error_b": "same spatial plan"}
-        self.assertEqual(route_after_validation_b(b_state), "fallback_direction_b")
-        b = fallback_direction_b(b_state)["direction_b"]
-        c = fallback_direction_c({"direction_a": a})["direction_c"]
-        self.assertEqual([item.direction_id for item in (a, b, c)], list("ABC"))
-        self.assertEqual({item.positive_prompt for item in (a, b, c)}, {a.positive_prompt})
-        validate_direction_diversity(b, [a])
-        validate_direction_diversity(c, [a, b])
+    def test_all_directions_fail_closed_after_retry_exhaustion(self):
+        cases = (
+            (
+                "A",
+                route_after_validation_a,
+                {
+                    "direction_a": None,
+                    "retry_count_a": 3,
+                    "validation_error_a": "invalid model output",
+                },
+            ),
+            (
+                "B",
+                route_after_validation_b,
+                {
+                    "direction_b": None,
+                    "retry_count_b": 3,
+                    "validation_error_b": "same spatial plan",
+                },
+            ),
+            (
+                "C",
+                route_after_validation_c,
+                {
+                    "direction_c": None,
+                    "retry_count_c": 3,
+                    "validation_error_c": "invalid model output",
+                },
+            ),
+        )
 
-    def test_direction_c_allows_two_retries_then_stops(self):
-        state = {"direction_c": None, "retry_count_c": 2,
-                 "validation_error_c": "Direction C repeats A's spatial plan"}
-        self.assertEqual(route_after_validation_c(state), "direction_c")
+        for direction_id, router, state in cases:
+            with self.subTest(direction_id=direction_id):
+                with self.assertRaises(ValueError) as caught:
+                    router(state)
+
+                self.assertIn(
+                    f"PROMPT_DIRECTION_FAILED:{direction_id}:",
+                    str(caught.exception),
+                )
+
+    def test_direction_c_allows_two_retries_then_fails_closed(self):
+        state = {
+            "direction_c": None,
+            "retry_count_c": 2,
+            "validation_error_c": "Direction C repeats A's spatial plan",
+        }
+
+        self.assertEqual(
+            route_after_validation_c(state),
+            "direction_c",
+        )
+
         state["retry_count_c"] = 3
-        state["direction_a"] = direction("A")
-        self.assertEqual(route_after_validation_c(state), "fallback_direction_c")
-        self.assertEqual(fallback_direction_c(state)["direction_c"].direction_id, "C")
+
+        with self.assertRaises(ValueError) as caught:
+            route_after_validation_c(state)
+
+        self.assertIn(
+            "PROMPT_DIRECTION_FAILED:C:",
+            str(caught.exception),
+        )
 
     def test_final_failure_log_does_not_claim_retry_three_of_two(self):
         with patch("app.graph.workflow.logger.warning") as warning:
@@ -175,4 +215,3 @@ class DirectionRetryBoundaryTests(unittest.TestCase):
                  patch("scripts.generate_prompts_for_reference.run_prompt_workflow", workflow):
                 asyncio.run(prompt_only_main(["ABCDEF-123456", "--resume"]))
             self.assertTrue(workflow.call_args.kwargs["resume"])
-

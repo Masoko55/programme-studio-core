@@ -408,14 +408,34 @@ def _safe_context(
                        well_known_event_type=True)
     if theme and context.get("theme_status") != "known":
         context.update(theme_status="known", theme_interpretation=theme)
-    description = str(answers.get("creative_description") or "")
-    reference = re.search(r"\b([\w-]{4,})[- ]inspired\b", description, re.I)
-    if (reference and re.search(r"\b(superhero|character|franchise|fictional)\b",
-                                description + " " + theme, re.I)
-            and not context.get("reference_detected")):
-        context.update(reference_detected=True,
-                       reference_name=reference.group(1).replace("-", " ").title(),
-                       reference_type="well-known fictional-character inspiration")
+    reference_text = " ".join(
+        str(answers.get(field) or "")
+        for field in (
+            "theme",
+            "creative_description",
+            "background_inspiration",
+            "theme_reference_treatment",
+        )
+    )
+    reference = re.search(
+        r"\b(?:a|an|the)?\s*([\w-]{4,})[- ]inspired\b",
+        reference_text,
+        re.I,
+    )
+    if (
+        reference
+        and re.search(
+            r"\b(superheroes?|characters?|franchises?|fictional)\b",
+            reference_text,
+            re.I,
+        )
+        and not context.get("reference_detected")
+    ):
+        context.update(
+            reference_detected=True,
+            reference_name=reference.group(1).replace("-", " ").title(),
+            reference_type="character",
+        )
     if not context.get("background_generation_summary"):
         inspiration = str(answers.get("background_inspiration") or "").strip()
         treatment = str(answers.get("theme_reference_treatment") or "").strip()

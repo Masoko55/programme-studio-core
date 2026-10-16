@@ -25,7 +25,6 @@ from app.schemas.prompts_document import (
     ModelProvenance,
     PromptsDocument,
 )
-from app.schemas.creative_direction import CreativeDirectionOutput, LayoutGuidance, LayoutZone
 
 from app.services.creative_direction import (
     direction_structural_summary,
@@ -50,48 +49,6 @@ logger = logging.getLogger(
 
 
 MAX_RETRIES = 2
-
-
-def _spatial_fallback(direction_id: str, source):
-    """Retain the brief and visual content while changing only layout."""
-    layouts = {
-        "B": {"composition_strategy": "Asymmetric diagonal arrangement with left-heavy visual mass",
-              "focal_strategy": "Off-centre focal subject on the left with diagonal flow",
-              "depth_strategy": "Receding perspective from foreground into distant space",
-              "border_or_perimeter_strategy": "Open irregular perimeter around the same subject",
-              "title_safe_region_strategy": "Quiet upper right visual area",
-              "programme_safe_region_strategy": "Quiet lower right visual area"},
-        "C": {"composition_strategy": "Panoramic horizontal arrangement with distributed visual mass",
-              "focal_strategy": "Right-side focal subject within a broad horizontal flow",
-              "depth_strategy": "Shallow layered depth with broad foreground forms",
-              "border_or_perimeter_strategy": "Open horizontal perimeter around the same subject",
-              "title_safe_region_strategy": "Quiet upper left visual area",
-              "programme_safe_region_strategy": "Quiet lower left visual area"},
-    }
-    return source.model_copy(update={"direction_id": direction_id, **layouts[direction_id]})
-
-
-def _brief_fallback(brief: dict) -> CreativeDirectionOutput:
-    """Produce a usable first direction if the model exhausts bounded retries."""
-    subject = str(brief.get("background_inspiration") or brief.get("theme") or
-                  brief.get("creative_description") or "event environment").strip()
-    palette = ", ".join(str(brief.get(key) or "") for key in
-                        ("primary_colour", "secondary_colour")).strip(", ")
-    prompt = f"{subject}. {brief.get('mood') or ''}. {palette}. Balanced layered visual background."
-    return CreativeDirectionOutput(
-        direction_id="A", role="Visual Designer",
-        positive_prompt=prompt, negative_prompt="people, lettering, logos",
-        composition_strategy="Balanced central arrangement of requested subject",
-        focal_strategy="Central focal subject with surrounding visual depth",
-        depth_strategy="Layered foreground, middle ground and distance",
-        border_or_perimeter_strategy="Open perimeter with integrated visual detail",
-        title_safe_region_strategy="Quiet upper visual area integrated with scene",
-        programme_safe_region_strategy="Quiet lower visual area integrated with scene",
-        title_suggestions=[], short_design_rationale="Balanced view of the clarified brief",
-        layout_guidance=LayoutGuidance(
-            title_zone=LayoutZone(x=.15, y=.08, width=.7, height=.14),
-            programme_zone=LayoutZone(x=.15, y=.7, width=.7, height=.22)),
-    )
 
 
 def _retry_count(
@@ -379,12 +336,9 @@ def route_after_validation_a(
         error,
     )
 
-    return "fallback_direction_a"
-
-
-def fallback_direction_a(state: PromptWorkflowState) -> dict:
-    return {"direction_a": _brief_fallback(state["brief"]),
-            "validation_error_a": None}
+    raise ValueError(
+        f"PROMPT_DIRECTION_FAILED:A:{error or 'unknown validation error'}"
+    )
 
 
 async def generate_direction_b(
@@ -603,14 +557,9 @@ def route_after_validation_b(
         error,
     )
 
-    if state.get("direction_a") is not None:
-        return "fallback_direction_b"
-    raise ValueError(f"Direction B has no source for spatial fallback: {error}")
-
-
-def fallback_direction_b(state: PromptWorkflowState) -> dict:
-    return {"direction_b": _spatial_fallback("B", state["direction_a"]),
-            "validation_error_b": None}
+    raise ValueError(
+        f"PROMPT_DIRECTION_FAILED:B:{error or 'unknown validation error'}"
+    )
 
 
 async def generate_direction_c(
@@ -834,14 +783,9 @@ def route_after_validation_c(
         error,
     )
 
-    if state.get("direction_a") is not None:
-        return "fallback_direction_c"
-    raise ValueError(f"Direction C has no source for spatial fallback: {error}")
-
-
-def fallback_direction_c(state: PromptWorkflowState) -> dict:
-    return {"direction_c": _spatial_fallback("C", state["direction_a"]),
-            "validation_error_c": None}
+    raise ValueError(
+        f"PROMPT_DIRECTION_FAILED:C:{error or 'unknown validation error'}"
+    )
 
 
 def build_prompts_document(
@@ -951,8 +895,6 @@ builder.add_node(
     checkpoint_direction_a,
 )
 
-builder.add_node("fallback_direction_a", fallback_direction_a)
-
 builder.add_node(
     "direction_b",
     generate_direction_b,
@@ -968,8 +910,6 @@ builder.add_node(
     checkpoint_direction_b,
 )
 
-builder.add_node("fallback_direction_b", fallback_direction_b)
-
 builder.add_node(
     "direction_c",
     generate_direction_c,
@@ -984,8 +924,6 @@ builder.add_node(
     "checkpoint_direction_c",
     checkpoint_direction_c,
 )
-
-builder.add_node("fallback_direction_c", fallback_direction_c)
 
 builder.add_node(
     "build_prompts_document",
@@ -1013,7 +951,6 @@ builder.add_conditional_edges(
         "checkpoint_direction_a": (
             "checkpoint_direction_a"
         ),
-        "fallback_direction_a": "fallback_direction_a",
     },
 )
 
@@ -1022,8 +959,6 @@ builder.add_edge(
     "checkpoint_direction_a",
     "direction_b",
 )
-
-builder.add_edge("fallback_direction_a", "checkpoint_direction_a")
 
 builder.add_edge(
     "direction_b",
@@ -1040,7 +975,6 @@ builder.add_conditional_edges(
         "checkpoint_direction_b": (
             "checkpoint_direction_b"
         ),
-        "fallback_direction_b": "fallback_direction_b",
     },
 )
 
@@ -1049,8 +983,6 @@ builder.add_edge(
     "checkpoint_direction_b",
     "direction_c",
 )
-
-builder.add_edge("fallback_direction_b", "checkpoint_direction_b")
 
 builder.add_edge(
     "direction_c",
@@ -1067,7 +999,6 @@ builder.add_conditional_edges(
         "checkpoint_direction_c": (
             "checkpoint_direction_c"
         ),
-        "fallback_direction_c": "fallback_direction_c",
     },
 )
 
@@ -1076,8 +1007,6 @@ builder.add_edge(
     "checkpoint_direction_c",
     "build_prompts_document",
 )
-
-builder.add_edge("fallback_direction_c", "checkpoint_direction_c")
 
 builder.add_edge(
     "build_prompts_document",

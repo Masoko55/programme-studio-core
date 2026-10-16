@@ -416,6 +416,7 @@ MAX_SDXL_RECOVERABLE_OFF_PALETTE_RATIO = 0.35
 MAX_SD35_RECOVERABLE_OFF_PALETTE_RATIO = 0.15
 _OCR_CACHE: OrderedDict[tuple[str, int], dict] = OrderedDict()
 _OCR_CACHE_LIMIT = 32
+MAX_OCR_VALIDATION_ATTEMPTS = 2
 
 
 def _palette_recovery_limit(
@@ -484,6 +485,9 @@ def _recoverable_palette_error(
         ratio = float(
             off_palette_match.group(1)
         )
+        region_match = re.search(r"largest unrelated region ([0-9.]+)", reason)
+        if region_match and float(region_match.group(1).rstrip(".")) > 0.035:
+            return False
 
         return (
             ratio
@@ -1248,12 +1252,20 @@ def _cached_text_evidence(image: Image.Image, digest: str) -> dict:
     """Reuse OCR only for identical pixels and the same OCR implementation."""
     key = (digest, id(pytesseract.image_to_data))
     if key in _OCR_CACHE:
-        _OCR_CACHE.move_to_end(key)
-        return _OCR_CACHE[key]
+        cached = _OCR_CACHE[key]
+        if cached.get("ocr_diagnostics", {}).get("decision") not in {
+            "OCR_UNAVAILABLE", "OCR_PARTIAL", "OCR_PARTIAL_INSUFFICIENT",
+        }:
+            _OCR_CACHE.move_to_end(key)
+            return cached
+        del _OCR_CACHE[key]
     evidence = detect_text_evidence(image)
-    _OCR_CACHE[key] = evidence
-    if len(_OCR_CACHE) > _OCR_CACHE_LIMIT:
-        _OCR_CACHE.popitem(last=False)
+    if evidence.get("ocr_diagnostics", {}).get("decision") not in {
+        "OCR_UNAVAILABLE", "OCR_PARTIAL", "OCR_PARTIAL_INSUFFICIENT",
+    }:
+        _OCR_CACHE[key] = evidence
+        if len(_OCR_CACHE) > _OCR_CACHE_LIMIT:
+            _OCR_CACHE.popitem(last=False)
     return evidence
 
 
@@ -1640,7 +1652,12 @@ def validate_background(
             image.size
         )
 
-        text_evidence = _cached_text_evidence(image, digest)
+        for ocr_validation_attempt in range(1, MAX_OCR_VALIDATION_ATTEMPTS + 1):
+            text_evidence = _cached_text_evidence(image, digest)
+            if text_evidence.get("ocr_diagnostics", {}).get("decision") not in {
+                "OCR_UNAVAILABLE", "OCR_PARTIAL", "OCR_PARTIAL_INSUFFICIENT",
+            }:
+                break
         tokens = text_evidence["confirmed_tokens"]
 
         human_signals = (
@@ -1722,13 +1739,7 @@ def validate_background(
             except ValueError as error:
                 palette_metrics = getattr(error, "palette_metrics", {})
                 palette_result.update(palette_metrics)
-                off_ratio = palette_metrics.get("off_palette_ratio", 1.0)
-                large_region = palette_metrics.get("largest_unrequested_region_ratio", 0.0)
-                if (classify_failure(str(error)) == "PALETTE_OFF"
-                        and off_ratio <= .20 and large_region <= .12):
-                    problems.append(("MINOR_PALETTE_VARIATION", str(error)))
-                else:
-                    problems.append((classify_failure(str(error)), str(error)))
+                problems.append((classify_failure(str(error)), str(error)))
 
     if (width, height) not in _valid_background_dimensions():
         problems.append(("DIMENSIONS", f"Unexpected background dimensions: {width}x{height}."))
@@ -1750,6 +1761,8 @@ def validate_background(
         "ocr_tokens": tokens,
         "text_detection": text_evidence,
         "ocr_diagnostics": ocr_diagnostics,
+        "ocr_validation_attempts": ocr_validation_attempt,
+        "ocr_validation_sha256": digest,
         "ocr_detected": bool(tokens),
         "ocr_region_count": len(tokens),
         "human_detection": human_signals,
@@ -1772,6 +1785,8 @@ def validate_background(
         "diagnostic_findings": [item[0] for item in problems if item[0] not in hard_categories],
         "palette": {
             "mode": metrics.get("requested_palette_mode", metrics.get("palette_mode")),
+            "palette_match_ratio": metrics.get("palette_match_ratio"),
+            "off_palette_ratio": metrics.get("off_palette_ratio"),
             "primary_ratio": metrics.get("primary_ratio", metrics.get("primary_presence_ratio")),
             "secondary_ratio": metrics.get("secondary_ratio", metrics.get("secondary_presence_ratio")),
             "requested_chromatic_ratio": metrics.get("requested_chromatic_ratio"),
@@ -1808,7 +1823,7 @@ def validate_background(
     }
     validation_report["quality"]["raster_score"] = metrics.get("fine_line_pair_ratio")
     if hard_problems:
-        priority = {"HUMAN": 0, "TEXT": 1, "OCR_TIMEOUT": 1, "OCR_UNAVAILABLE": 1,
+        priority = {"HUMAN": 0, "TEXT": 0, "OCR_TIMEOUT": 1, "OCR_UNAVAILABLE": 1,
                     "OCR_PARTIAL": 1, "TITLE_PANEL": 2,
                     "BOILERPLATE_COMPOSITION": 2,
                     "DIRECTION_DUPLICATE": 3, "FLAT": 4, "DENSE_SAFE_REGION": 5,
@@ -1868,6 +1883,8 @@ def validate_background(
         **palette_result,
         "ocr_tokens": tokens,
         "ocr_diagnostics": ocr_diagnostics,
+        "ocr_validation_attempts": ocr_validation_attempt,
+        "ocr_validation_sha256": digest,
         "human_detection": human_signals,
         "all_failure_categories": [],
     }
@@ -3218,6 +3235,10 @@ class ComfyUIClient:
         )
         if reused is not None:
             return reused
+        if previous and previous.get("status") == "rejected" and str(
+            previous.get("primary_failure_category") or ""
+        ) in {"OCR_TIMEOUT", "OCR_UNAVAILABLE", "OCR_PARTIAL_INSUFFICIENT"}:
+            raise ComfyUIError("OCR validation remained unavailable for the existing candidate")
 
         retrying_rejected_candidate, retrying_failed_execution = self._retry_states(previous)
 
@@ -3506,7 +3527,9 @@ class ComfyUIClient:
             "direction=%s "
             "sha256=%s "
             "palette_mode=%s "
-            "palette_ratio=%s",
+            "palette_checked=%s palette_ratio=%s off_palette_ratio=%s "
+            "primary_ratio=%s secondary_ratio=%s unrequested_chromatic_ratio=%s "
+            "largest_unrequested_region_ratio=%s structural_neutral_ratio=%s",
             reference_number,
             engine_id,
             direction_id,
@@ -3516,9 +3539,16 @@ class ComfyUIClient:
             record.get(
                 "palette_mode"
             ),
+            record.get("palette_checked"),
             record.get(
                 "palette_match_ratio"
             ),
+            record.get("off_palette_ratio"),
+            record.get("primary_ratio"),
+            record.get("secondary_ratio"),
+            record.get("unrequested_chromatic_ratio"),
+            record.get("largest_unrequested_region_ratio"),
+            record.get("structural_neutral_ratio"),
         )
 
         return {

@@ -1983,6 +1983,12 @@ def _resume_retry_context(existing: dict) -> tuple[int, str]:
     return start_retry, reason
 
 
+def _ocr_infrastructure_failure(reason: str) -> bool:
+    return reason.strip().upper().startswith((
+        "OCR_TIMEOUT", "OCR_UNAVAILABLE", "OCR_PARTIAL_INSUFFICIENT",
+    ))
+
+
 async def _retry_candidate_after_error(state, output, reference_number: str, spec, retry_count: int, error: ComfyUIError) -> tuple[str, bool]:
     reason = (
         _rejection_reason(
@@ -1994,6 +2000,11 @@ async def _retry_candidate_after_error(state, output, reference_number: str, spe
             error
         )
     )
+
+    if _ocr_infrastructure_failure(reason):
+        update_output(state, output.engine_id, output.direction_id,
+                      "failed", error=reason)
+        return reason, True
 
     retryable = (
         _candidate_was_rejected(
@@ -2217,6 +2228,10 @@ async def _attempt_output_wave(
     spec = build_candidate_spec(document, output.engine_id, output.direction_id)
     existing = _candidate_record(reference_number, output.engine_id, output.direction_id)
     start_retry, previous_reason = _resume_retry_context(existing)
+    if _ocr_infrastructure_failure(previous_reason):
+        update_output(state, output.engine_id, output.direction_id,
+                      "failed", error=previous_reason)
+        return False, 0
     if start_retry >= min(settings.max_candidate_retries, 8) + 1:
         update_output(state, output.engine_id, output.direction_id, "failed",
                       error="Candidate attempt budget exhausted")

@@ -2131,7 +2131,7 @@ def _classify_palette_pixel(
     return (best_target["name"] if best_target is not None else None), nearest
 
 
-def _perceptual_palette_family(pixel_lab, targets: list[dict]) -> str | None:
+def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int) -> str | None:
     """Match a pigment across shading while keeping unrelated hue separate."""
     light, a, b = (float(value) for value in pixel_lab)
     chroma = float(np.hypot(a, b))
@@ -2149,6 +2149,11 @@ def _perceptual_palette_family(pixel_lab, targets: list[dict]) -> str | None:
         limit = 43 if chroma < 26 else 29
         if angle <= limit:
             distance = float(np.linalg.norm(pixel_lab - target_lab))
+            # LAB hue angle alone groups saturated neighbouring pigments.
+            # Pale shading has uncertain hue; strongly chromatic pixels do not.
+            if (chroma >= 26 and distance > 12
+                    and _hue_distance(pixel_hue, target["hue"]) > 6):
+                continue
             matches.append((angle + distance * 0.2, target["name"]))
     return min(matches)[1] if matches else None
 
@@ -2642,7 +2647,7 @@ def validate_palette(
             elif "grey" in requested_neutrals or "gray" in requested_neutrals:
                 family = "grey" if "grey" in requested_neutrals else "gray"
         if family is None:
-            family = _perceptual_palette_family(lab, requested_targets)
+            family = _perceptual_palette_family(lab, requested_targets, int(hue))
         tonal_name = family or _nearest_named_colour(rgb_pixels[index])
         if family in requested_neutrals and tonal_name == "white" and lab[0] < 90:
             tonal_derivative_count += 1

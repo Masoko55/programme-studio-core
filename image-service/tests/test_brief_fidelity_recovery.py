@@ -1,6 +1,7 @@
 """Offline regressions for event fit and bounded OCR."""
 
 import json
+import hashlib
 import tempfile
 import unittest
 from pathlib import Path
@@ -1046,8 +1047,39 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
 
             self.assertEqual(
                 ocr.call_count,
-                1,
+                4,
             )
+
+    def test_transient_ocr_timeout_revalidates_identical_png(self):
+        _OCR_CACHE.clear()
+        unavailable = {"confirmed_tokens": [], "text_detected": False,
+                       "tokens": [], "text_lines": [], "text_area_ratio": 0,
+                       "ocr_diagnostics": {"decision": "OCR_UNAVAILABLE",
+                                           "timed_out_variants": ["original"]}}
+        sufficient = {**unavailable, "ocr_diagnostics": {
+            "decision": "OCR_PARTIAL_SUFFICIENT", "timed_out_variants": ["inverted"]}}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "candidate.png"
+            Image.new("RGB", (64, 64), "white").save(path)
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            with patch("app.services.comfyui_client.detect_text_evidence",
+                       side_effect=[unavailable, sufficient]) as ocr, \
+                 patch("app.services.comfyui_client.detect_human_signals",
+                       return_value={"detected": False, "people": [], "faces": [],
+                                     "profiles": [], "upper_bodies": []}), \
+                 patch("app.services.comfyui_client.boilerplate_metrics",
+                       return_value={"boilerplate_score": 0}), \
+                 patch("app.services.comfyui_client.validate_visual_quality", return_value={}), \
+                 patch("app.services.comfyui_client._valid_background_dimensions",
+                       return_value={(64, 64)}):
+                result = validate_background(path)
+                self.assertEqual(result["sha256"], digest)
+                self.assertEqual(result["ocr_validation_sha256"], digest)
+                self.assertEqual(result["ocr_validation_attempts"], 2)
+                self.assertEqual(result["ocr_diagnostics"]["decision"], "OCR_PARTIAL_SUFFICIENT")
+                self.assertEqual(ocr.call_count, 2)
+                self.assertEqual(validate_background(path)["sha256"], digest)
+                self.assertEqual(ocr.call_count, 2)
 
     def test_sd35_effective_workflow_wiring_and_profile(
         self,

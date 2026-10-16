@@ -1,10 +1,12 @@
 import asyncio
+import tempfile
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 from app.config.settings import settings
-from app.services.comfyui_client import ComfyUIError
+from app.services.comfyui_client import ComfyUIClient, ComfyUIError
 from app.services.image_execution import _attempt_output_wave, _retry_candidate_after_error
 from app.services.execution_plan import build_execution_plan
 
@@ -111,6 +113,48 @@ class CandidateRetryIntegrationTests(unittest.TestCase):
                 self.assertIn(anchor, positive.lower())
             self.assertNotIn("expressive", positive.lower())
             self.assertEqual(kwargs["compiled_prompt"].positive, positive)
+
+    def test_ocr_infrastructure_failure_does_not_submit_another_image(self):
+        engine = FailingEngine()
+        output = SimpleNamespace(engine_id=settings.engine_2_id, direction_id="B")
+        reason = "OCR_TIMEOUT: text validation did not complete"
+        async def fail_once(*args, **kwargs):
+            engine.calls.append((args, kwargs))
+            raise ComfyUIError(reason)
+        engine.generate = fail_once
+        with patch("app.services.image_execution._candidate_record", return_value={}), \
+             patch("app.services.image_execution._rejection_reason", return_value=reason), \
+             patch("app.services.image_execution.update_output") as update, \
+             patch("app.services.image_execution.get_engine", return_value=engine):
+            self.assertEqual(asyncio.run(_attempt_output_wave(
+                state=SimpleNamespace(), document=document(), output=output,
+                reference_number="ABCDEF-123456", primary_colour="royal blue",
+                secondary_colour="red")), (False, 0))
+        self.assertEqual(len(engine.calls), 1)
+        self.assertEqual(update.call_args.args[3], "failed")
+        with patch("app.services.image_execution._candidate_record", return_value={
+                 "status": "rejected", "attempt_count": 1, "rejection_reason": reason}), \
+             patch("app.services.image_execution.get_engine", return_value=engine), \
+             patch("app.services.image_execution.update_output"):
+            self.assertEqual(asyncio.run(_attempt_output_wave(
+                state=SimpleNamespace(), document=document(), output=output,
+                reference_number="ABCDEF-123456", primary_colour="royal blue",
+                secondary_colour="red")), (False, 0))
+        self.assertEqual(len(engine.calls), 1)
+
+    def test_persisted_ocr_rejection_cannot_resubmit_to_comfyui(self):
+        previous = {"status": "rejected", "primary_failure_category": "OCR_TIMEOUT",
+                    "rejection_reason": "OCR_TIMEOUT: text validation did not complete"}
+        async def check():
+            with tempfile.TemporaryDirectory() as directory, \
+                 patch("app.services.comfyui_client.get_job_directory", return_value=Path(directory)), \
+                 patch.object(ComfyUIClient, "_load_existing_candidate", return_value=(previous, None)), \
+                 patch.object(ComfyUIClient, "_submit_candidate", new_callable=AsyncMock) as submit:
+                async with ComfyUIClient() as client:
+                    with self.assertRaisesRegex(ComfyUIError, "OCR validation remained unavailable"):
+                        await client.generate_image("ABCDEF-123456", settings.engine_2_id, "B", "scene", "")
+                submit.assert_not_awaited()
+        asyncio.run(check())
 
     def test_resume_after_eight_attempts_has_one_remaining(self):
         calls, result = self.run_wave({

@@ -181,6 +181,11 @@ class ProbeHardeningTests(unittest.TestCase):
                 ocr["confirmed_tokens"] = ["Surofatal"]
                 with self.assertRaisesRegex(ValueError, "OCR text"):
                     validate_background(path, enforce_palette=False, vision_human_signal=False)
+                ocr["ocr_diagnostics"]["decision"] = "OCR_UNAVAILABLE"
+                with self.assertRaises(ValueError) as caught:
+                    validate_background(path, enforce_palette=False, vision_human_signal=False)
+                self.assertEqual(caught.exception.diagnostics["primary_failure_category"], "TEXT")
+                ocr["ocr_diagnostics"]["decision"] = "complete"
                 ocr["confirmed_tokens"] = []
                 weak["ambiguous_face_signal"] = False
                 with self.assertRaisesRegex(ValueError, "human"):

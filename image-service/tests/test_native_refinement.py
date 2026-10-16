@@ -1,13 +1,15 @@
 """Focused regression checks for generic native-background refinement."""
 
 import unittest
+import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
 from PIL import Image, ImageDraw
 
 from app.services.background_policy import detect_human_signals, validate_palette
 from app.services.composition_diversity import boilerplate_metrics, direction_similarity
-from app.services.comfyui_client import _workflow_encoder_prompts
+from app.services.comfyui_client import _recoverable_palette_error, _workflow_encoder_prompts, validate_background
 
 
 class NativeRefinementTests(unittest.TestCase):
@@ -58,6 +60,64 @@ class NativeRefinementTests(unittest.TestCase):
             with self.subTest(colour=colour):
                 with self.assertRaisesRegex(ValueError, "not requested"):
                     validate_palette(Image.new("RGB", (80, 80), colour), *palette, quality_result={})
+
+    def test_dominant_palette_rejects_saturated_third_colour_regions(self):
+        cases = (
+            (("royal blue", "red"), ((55, 80, 210), (220, 45, 45), (230, 130, 45))),
+            (("purple", "gold"), ((125, 75, 185), (195, 150, 50), (230, 130, 45))),
+            (("green", "cream"), ((45, 150, 80), (240, 225, 190), (210, 55, 175))),
+        )
+        for palette, colours in cases:
+            with self.subTest(palette=palette):
+                image = Image.new("RGB", (500, 100))
+                draw = ImageDraw.Draw(image)
+                for left, right, colour in ((0, 199, colours[0]),
+                                            (200, 399, colours[1]),
+                                            (400, 499, colours[2])):
+                    draw.rectangle((left, 0, right, 99), fill=colour)
+                with self.assertRaisesRegex(ValueError, "not requested") as caught:
+                    validate_palette(image, *palette, quality_result={})
+                self.assertGreater(caught.exception.palette_metrics["largest_unrequested_region_ratio"], .15)
+
+    def test_large_third_colour_cannot_pass_validation_or_palette_recovery(self):
+        image = Image.new("RGB", (500, 100), (55, 80, 210))
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((200, 0, 399, 99), fill=(220, 45, 45))
+        draw.rectangle((400, 0, 499, 99), fill=(230, 130, 45))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "candidate.png"
+            image.save(path)
+            document = {"brief": {"primary_colour": "royal blue", "secondary_colour": "red",
+                                  "palette_mode": "dominant"}}
+            ocr = {"confirmed_tokens": [], "text_detected": False, "tokens": [],
+                   "text_lines": [], "text_area_ratio": 0,
+                   "ocr_diagnostics": {"decision": "complete"}}
+            with patch("app.services.comfyui_client.load_prompts_document", return_value=document), \
+                 patch("app.services.comfyui_client._cached_text_evidence", return_value=ocr), \
+                 patch("app.services.comfyui_client.detect_human_signals",
+                       return_value={"detected": False, "people": [], "faces": [],
+                                     "profiles": [], "upper_bodies": []}), \
+                 patch("app.services.comfyui_client.boilerplate_metrics",
+                       return_value={"boilerplate_score": 0}), \
+                 patch("app.services.comfyui_client.validate_visual_quality", return_value={}), \
+                 patch("app.services.comfyui_client._valid_background_dimensions",
+                       return_value={(500, 100)}):
+                with self.assertRaises(ValueError) as caught:
+                    validate_background(path, reference_number="TEST")
+                accepted = Image.new("RGB", (500, 100), (55, 80, 210))
+                ImageDraw.Draw(accepted).rectangle((250, 0, 499, 99), fill=(220, 45, 45))
+                accepted.save(path)
+                result = validate_background(path, reference_number="TEST")
+                self.assertTrue(result["palette_checked"])
+                for key in ("palette_match_ratio", "off_palette_ratio", "primary_ratio",
+                            "secondary_ratio", "unrequested_chromatic_ratio",
+                            "largest_unrequested_region_ratio", "structural_neutral_ratio",
+                            "requested_palette_mode"):
+                    self.assertIsNotNone(result[key], key)
+            self.assertEqual(caught.exception.diagnostics["primary_failure_category"], "PALETTE_OFF")
+            metrics = caught.exception.diagnostics
+            self.assertGreater(metrics["largest_unrequested_region_ratio"], .15)
+            self.assertFalse(_recoverable_palette_error(str(caught.exception), "sdxl-1-0"))
 
     def test_dominant_palette_allows_small_neutral_rendering_but_exclusive_does_not(self):
         image = Image.new("RGB", (100, 100), "pink")

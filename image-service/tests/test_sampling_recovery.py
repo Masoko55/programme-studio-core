@@ -16,6 +16,7 @@ from app.services.comfyui_client import (
     _edge_geometry_similarity,
     _preserves_structural_detail,
     _recoverable_palette_error,
+    _palette_recovery_source_is_eligible,
     build_workflow,
 )
 from app.services.background_policy import constrain_to_requested_palette
@@ -92,6 +93,24 @@ def failure_record(
 class SamplingRecoveryTests(
     unittest.TestCase
 ):
+    def test_palette_recovery_requires_sound_source_and_existing_colour_roles(self):
+        sound = {"primary_ratio": .35, "secondary_ratio": .22,
+                 "requested_chromatic_ratio": .57, "structural_neutral_ratio": .18,
+                 "largest_unrequested_region_ratio": .01,
+                 "validation": {"diagnostic_findings": []}}
+        self.assertTrue(_palette_recovery_source_is_eligible(sound, {"decision": "pass"}))
+        for changes in (
+            {"primary_ratio": .01}, {"secondary_ratio": 0},
+            {"requested_chromatic_ratio": .04, "structural_neutral_ratio": .9},
+            {"largest_unrequested_region_ratio": .18},
+            {"validation": {"diagnostic_findings": ["RASTER"]}},
+            {"validation": {"diagnostic_findings": ["FLAT"]}},
+        ):
+            with self.subTest(changes=changes):
+                self.assertFalse(_palette_recovery_source_is_eligible({**sound, **changes},
+                                                                       {"decision": "pass"}))
+        self.assertFalse(_palette_recovery_source_is_eligible(sound, {"decision": "BRIEF_FIDELITY_DRIFT"}))
+
     def test_mild_cyan_drift_correction_preserves_architectural_detail(self):
         image = Image.new("RGB", (480, 640), (42, 72, 180))
         draw = ImageDraw.Draw(image)

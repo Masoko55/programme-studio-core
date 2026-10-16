@@ -7,12 +7,55 @@ from unittest.mock import patch
 
 from PIL import Image, ImageDraw
 
-from app.services.background_policy import detect_human_signals, validate_palette
+from app.services.background_policy import NAMED_COLOURS, detect_human_signals, validate_palette
 from app.services.composition_diversity import boilerplate_metrics, direction_similarity
 from app.services.comfyui_client import _recoverable_palette_error, _workflow_encoder_prompts, validate_background
 
 
 class NativeRefinementTests(unittest.TestCase):
+    def test_reduced_chroma_highlights_remain_tonal_across_pigments(self):
+        cases = (
+            ("blue", "red", (90, 175, 235)),
+            ("red", "blue", (190, 85, 100)),
+            ("green", "cream", (95, 185, 125)),
+            ("#7044b8", "gold", (170, 145, 215)),
+        )
+        for primary, secondary, highlight in cases:
+            with self.subTest(primary=primary):
+                image = Image.new("RGB", (128, 176),
+                                  NAMED_COLOURS.get(primary, (112, 68, 184)))
+                draw = ImageDraw.Draw(image)
+                draw.rectangle((42, 0, 84, 175), fill=highlight)
+                draw.rectangle((85, 0, 127, 175), fill=NAMED_COLOURS[secondary])
+                metrics = validate_palette(image, primary, secondary, quality_result={})
+                self.assertLess(metrics["off_palette_ratio"], .05)
+                self.assertGreater(metrics["tonal_derivative_ratio"], .2)
+
+    def test_adjacent_highlight_is_bounded_but_connected_third_hue_fails(self):
+        image = Image.new("RGB", (128, 176), (45, 95, 220))
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((85, 0, 127, 175), fill=(220, 45, 45))
+        for x in range(10, 80, 14):
+            draw.rectangle((x, 20, x + 1, 23), fill=(55, 170, 190))
+        self.assertLess(validate_palette(image, "blue", "red", quality_result={})["off_palette_ratio"], .05)
+        draw.rectangle((10, 20, 75, 100), fill=(55, 170, 190))
+        with self.assertRaisesRegex(ValueError, "not requested") as caught:
+            validate_palette(image, "blue", "red", quality_result={})
+        self.assertGreater(caught.exception.palette_metrics["largest_unrequested_region_ratio"], .1)
+
+    def test_distributed_muted_adjacent_tone_does_not_allow_a_large_panel(self):
+        image = Image.new("RGB", (128, 176), NAMED_COLOURS["blue"])
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((85, 0, 127, 175), fill=NAMED_COLOURS["red"])
+        for x in range(0, 80, 12):
+            for y in range(0, 176, 12):
+                draw.rectangle((x, y, x + 3, y + 3), fill=NAMED_COLOURS["lavender"])
+        result = validate_palette(image, "blue", "red", quality_result={})
+        self.assertGreater(result["tonal_derivative_ratio"], .05)
+        draw.rectangle((0, 0, 70, 100), fill=NAMED_COLOURS["lavender"])
+        with self.assertRaisesRegex(ValueError, "not requested"):
+            validate_palette(image, "blue", "red", quality_result={})
+
     def test_pink_white_shading_is_not_a_third_colour(self):
         tones = ((244, 175, 201), (227, 154, 178), (251, 224, 231),
                  (235, 229, 226), (190, 186, 188))
@@ -64,8 +107,11 @@ class NativeRefinementTests(unittest.TestCase):
     def test_dominant_palette_rejects_saturated_third_colour_regions(self):
         cases = (
             (("royal blue", "red"), ((55, 80, 210), (220, 45, 45), (230, 130, 45))),
+            (("blue", "red"), ((45, 95, 220), (220, 45, 45), (35, 135, 135))),
             (("purple", "gold"), ((125, 75, 185), (195, 150, 50), (230, 130, 45))),
+            (("purple", "gold"), ((125, 75, 185), (195, 150, 50), (210, 55, 175))),
             (("green", "cream"), ((45, 150, 80), (240, 225, 190), (210, 55, 175))),
+            (("green", "cream"), ((45, 150, 80), (240, 225, 190), (230, 195, 45))),
         )
         for palette, colours in cases:
             with self.subTest(palette=palette):

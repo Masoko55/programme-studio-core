@@ -1162,7 +1162,7 @@ class LiveValidationRetestTests(unittest.TestCase):
                     64,
                     64,
                 ),
-                "white",
+                "navy",
             ).save(
                 candidate
             )
@@ -1530,13 +1530,11 @@ class LiveValidationRetestTests(unittest.TestCase):
 
             raw_semantics = {
                 "decision": (
-                    "BRIEF_FIDELITY_DRIFT"
+                    "pass"
                 ),
-                "failed_dimensions": [
-                    "motif_score"
-                ],
+                "failed_dimensions": [],
                 "hard_failed_dimensions": [],
-                "motif_score": .2,
+                "motif_score": .75,
             }
 
             final_semantics = {
@@ -1550,6 +1548,13 @@ class LiveValidationRetestTests(unittest.TestCase):
                 "Generated background contains colours that were not requested "
                 "(off-palette ratio 0.10)"
             )
+            error.diagnostics = {
+                "primary_ratio": .45, "secondary_ratio": .20,
+                "requested_chromatic_ratio": .65,
+                "structural_neutral_ratio": .10,
+                "largest_unrequested_region_ratio": .01,
+                "validation": {"diagnostic_findings": []},
+            }
 
             def recovered(
                 source,

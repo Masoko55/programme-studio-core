@@ -2146,15 +2146,46 @@ def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int) -
         angle = float(np.degrees(np.arccos(cosine)))
         # A low-chroma petal shadow has less reliable hue than a saturated
         # third colour. It still needs a perceptual connection to the pigment.
-        limit = 43 if chroma < 26 else 29
+        # LAB angle captures pigment identity better than RGB-nearest names:
+        # a lit blue can move toward sky blue without becoming cyan/teal.
+        # Keep saturated, distant hues outside the requested family.
+        limit = (60 if chroma < target_chroma * 0.65 else
+                 43 if chroma < 26 else 42)
         if angle <= limit:
             distance = float(np.linalg.norm(pixel_lab - target_lab))
-            # LAB hue angle alone groups saturated neighbouring pigments.
-            # Pale shading has uncertain hue; strongly chromatic pixels do not.
-            if (chroma >= 26 and distance > 12
-                    and _hue_distance(pixel_hue, target["hue"]) > 6):
+            if (distance > 12 and
+                    (chroma > target_chroma * 1.5 or
+                     (chroma > target_chroma * 1.1 and angle > 18))):
+                continue
+            # Low-chroma highlights have unstable HSV hue. A strongly
+            # chromatic neighbour must remain close in both colour spaces.
+            hue_limit = (17 if chroma < 26 or chroma < target_chroma * 0.7
+                         else 11)
+            if (distance > 12 and
+                    _hue_distance(pixel_hue, target["hue"]) > hue_limit):
                 continue
             matches.append((angle + distance * 0.2, target["name"]))
+    return min(matches)[1] if matches else None
+
+
+def _borderline_tonal_family(pixel_lab, targets: list[dict], pixel_hue: int) -> str | None:
+    """Find muted adjacent tones; image-level extent decides their role."""
+    chroma = float(np.linalg.norm(pixel_lab[1:]))
+    if chroma < 8:
+        return None
+    matches = []
+    for target in targets:
+        target_lab = target["lab"]
+        target_chroma = float(np.linalg.norm(target_lab[1:]))
+        if chroma >= target_chroma * 0.65 or target_chroma < 8:
+            continue
+        hue_distance = _hue_distance(pixel_hue, target["hue"])
+        if hue_distance > 24:
+            continue
+        cosine = float(np.clip(np.dot(pixel_lab[1:], target_lab[1:]) /
+                               (chroma * target_chroma), -1, 1))
+        if float(np.degrees(np.arccos(cosine))) <= 60:
+            matches.append((hue_distance, target["name"]))
     return min(matches)[1] if matches else None
 
 
@@ -2623,6 +2654,8 @@ def validate_palette(
     incidental_neutral_count = 0
     incidental_neutral_mask = np.zeros(total, dtype=np.uint8)
     unrelated_chromatic_mask = np.zeros(total, dtype=np.uint8)
+    borderline_tonal_mask = np.zeros(total, dtype=np.uint8)
+    borderline_tonal_pixels = []
 
     off_palette_named_counts: dict[
         str,
@@ -2656,17 +2689,43 @@ def validate_palette(
             if np.linalg.norm(lab - target["lab"]) > 12:
                 tonal_derivative_count += 1
         if family is None:
-            if chroma <= 18:
+            # Bright, weakly saturated reflections can retain a small LAB
+            # cast from the surrounding pigment without being a third hue.
+            if chroma <= 18 or (chroma <= 30 and saturation <= 100):
                 incidental_neutral_count += 1
                 incidental_neutral_mask[index] = 1
             else:
                 unrelated_hue_count += 1
                 unrelated_chromatic_mask[index] = 1
+                borderline = _borderline_tonal_family(lab, requested_targets, int(hue))
+                if borderline is not None:
+                    borderline_tonal_mask[index] = 1
+                    borderline_tonal_pixels.append((index, borderline, tonal_name))
             off_palette_count += 1
             off_palette_named_counts[tonal_name] = off_palette_named_counts.get(tonal_name, 0) + 1
             continue
         requested_counts[family] = requested_counts.get(family, 0) + 1
         accepted_tonal_counts[tonal_name] = accepted_tonal_counts.get(tonal_name, 0) + 1
+
+    # Dispersed muted highlights can be tonal; a connected panel of the same
+    # pixels is a third design region and must retain its off-palette status.
+    _, _, borderline_regions, _ = cv2.connectedComponentsWithStats(
+        borderline_tonal_mask.reshape(176, 128), 8,
+    )
+    largest_borderline_region = (
+        int(np.max(borderline_regions[1:, cv2.CC_STAT_AREA])) / total
+        if len(borderline_regions) > 1 else 0.0
+    )
+    if (borderline_tonal_pixels and len(borderline_tonal_pixels) / total <= 0.12
+            and largest_borderline_region <= 0.035):
+        for index, family, tonal_name in borderline_tonal_pixels:
+            unrelated_hue_count -= 1
+            off_palette_count -= 1
+            unrelated_chromatic_mask[index] = 0
+            requested_counts[family] = requested_counts.get(family, 0) + 1
+            accepted_tonal_counts[tonal_name] = accepted_tonal_counts.get(tonal_name, 0) + 1
+            off_palette_named_counts[tonal_name] -= 1
+            tonal_derivative_count += 1
 
     # A bounded amount of near-neutral shadow or reflection is rendering,
     # not a newly chosen design colour. Explicit exclusive palettes do not

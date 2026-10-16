@@ -508,6 +508,33 @@ def _recoverable_palette_error(
         for marker in palette_only_markers
     )
 
+
+def _palette_recovery_source_is_eligible(diagnostics: dict | None,
+                                         adherence: dict | None) -> bool:
+    """Only recolour a sound source with both requested pigments already visible."""
+    if not isinstance(diagnostics, dict):
+        return False
+    report = diagnostics.get("validation") or {}
+    if report.get("diagnostic_findings"):
+        return False
+    if adherence is not None and adherence.get("decision") != "pass":
+        return False
+    if float(diagnostics.get("largest_unrequested_region_ratio") or 0) > 0.035:
+        return False
+    if "requested_chromatic_ratio" in diagnostics:
+        if (float(diagnostics.get("primary_ratio") or 0) < 0.05 or
+                float(diagnostics.get("secondary_ratio") or 0) < 0.008 or
+                float(diagnostics.get("requested_chromatic_ratio") or 0) < 0.35 or
+                float(diagnostics.get("structural_neutral_ratio") or 0) > 0.55):
+            return False
+    elif "achromatic_ratio" in diagnostics:
+        if (float(diagnostics.get("dark_tone_ratio") or 0) < 0.02 or
+                float(diagnostics.get("light_tone_ratio") or 0) < 0.02):
+            return False
+    else:
+        return False
+    return True
+
 def _edge_geometry_similarity(source: Path, target: Path) -> float:
     """Compare edge locations after local contrast adjustment, not brightness."""
     edge_maps = []
@@ -2639,6 +2666,7 @@ class ComfyUIClient:
                         raw_palette_error,
                         engine_id,
                     )
+                    and _palette_recovery_source_is_eligible(diagnostics, adherence_result)
                     and primary_colour
                     and not hard_fidelity_failure(adherence_result)
                     and len((load_prompts_document(reference_number).get("brief") or {}).get("palette") or []) <= 2

@@ -155,12 +155,11 @@ class CandidateSpecCompilerTests(unittest.TestCase):
                         self.assertIn("masks", compiled.negative)
                         self.assertIn("costumes", compiled.negative)
                     if attempt > 1:
-                        self.assertEqual(compiled.failure_category, "MOTIF")
-                        self.assertEqual(compiled.positive.count("Make the supplied motif topology visible"),
-                                         1 if attempt == 2 else 0)
+                        self.assertEqual(compiled.failure_category, "MOTIF_DRIFT")
+                        self.assertEqual(compiled.positive.count("Make the supplied motif topology visible"), 1)
 
     def test_motif_drift_routes_to_motif_correction(self):
-        self.assertEqual(runtime_retry_category("MOTIF_DRIFT: missing motif"), "MOTIF")
+        self.assertEqual(runtime_retry_category("MOTIF_DRIFT: missing motif"), "MOTIF_DRIFT")
 
     def test_named_reference_without_renderable_semantics_fails_closed(self):
         document = document_for(CASES[0])

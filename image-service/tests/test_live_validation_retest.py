@@ -833,7 +833,7 @@ class LiveValidationRetestTests(unittest.TestCase):
                 runtime_retry_category(
                     reason
                 ),
-                "PALETTE",
+                reason,
             )
 
             self.assertTrue(

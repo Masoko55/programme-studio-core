@@ -44,7 +44,7 @@ class ProbeHardeningTests(unittest.TestCase):
             "PRIMARY_MISSING", "SECONDARY_MISSING",
         ):
             with self.subTest(reason=reason):
-                self.assertEqual(runtime_retry_category(reason), "PALETTE")
+                self.assertEqual(runtime_retry_category(reason), reason.split(":", 1)[0])
                 self.assertTrue(_is_palette_failure(reason))
 
     def test_structured_scores_and_bounded_diagnostics(self):

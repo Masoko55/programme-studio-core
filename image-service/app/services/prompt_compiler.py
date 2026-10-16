@@ -720,27 +720,22 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
 
 
 def runtime_retry_category(reason: str) -> str:
-    """The six correction paths used by production retries."""
+    """Keep the classifier's failed dimension for production retry prompts."""
     raw = reason.strip().upper().split(":", 1)[0]
-    category = raw if raw in {"TEXT", "TEXT_OR_LOGO", "HUMAN", "PALETTE", "PALETTE_OFF",
-                              "SUBJECT", "SUBJECT_DRIFT", "GENERATION_FAILURE", "UNKNOWN",
-                              "RUNTIME", "DENSITY_DRIFT", "MOTIF_DRIFT", "MOTIF",
-                              "PALETTE_ROLE_DRIFT", "PRIMARY_MISSING", "SECONDARY_MISSING"} else failure_category(reason)
+    category = raw if raw in _RETRY_CORRECTIONS or raw in {"TEXT", "PALETTE", "SUBJECT", "MOTIF", "VISION_UNAVAILABLE"} else failure_category(reason)
     if category == "INITIAL":
         return "INITIAL"
-    if category in {"HUMAN"}:
-        return "HUMAN"
     if category in {"TEXT", "TEXT_OR_LOGO", "OCR_TIMEOUT", "OCR_UNAVAILABLE", "TITLE_PANEL"}:
         return "TEXT_OR_LOGO"
-    if category in {"PALETTE", "PALETTE_OFF", "PALETTE_ROLE_DRIFT", "PRIMARY_MISSING", "SECONDARY_MISSING"}:
-        return "PALETTE"
-    if category in {"SUBJECT", "SUBJECT_DRIFT", "AUDIENCE_DRIFT", "ATMOSPHERE_DRIFT"}:
-        return "SUBJECT"
-    if category in {"MOTIF_DRIFT", "MOTIF"}:
-        return "MOTIF"
+    if category == "PALETTE":
+        return "PALETTE_OFF"
+    if category == "SUBJECT":
+        return "SUBJECT_DRIFT"
+    if category == "MOTIF":
+        return "MOTIF_DRIFT"
     if category in {"GENERATION_FAILURE", "RUNTIME", "VISION_UNAVAILABLE"}:
         return "GENERATION_FAILURE"
-    return "UNKNOWN"
+    return category if category in _RETRY_CORRECTIONS else "UNKNOWN"
 
 
 def _spatial_instruction(design: dict) -> str:
@@ -767,50 +762,54 @@ def _spatial_instruction(design: dict) -> str:
 def retry_strength_level(attempt: int) -> str:
     if attempt <= 1:
         return "BASE"
-    if attempt == 2:
+    if attempt <= 3:
         return "CORRECTION"
-    if attempt == 3:
-        return "STRONG_CORRECTION"
-    return "STRICT_CORRECTION"
+    if attempt <= 6:
+        return "TARGETED_RECOVERY"
+    if attempt <= 8:
+        return "STRICT_RECOVERY"
+    return "RESCUE"
 
 
 _RETRY_CORRECTIONS = {
-    "TEXT_OR_LOGO": (
-        "Continuous visual artwork with uninterrupted image surfaces.",
-        "Strongly preserve uninterrupted imagery and natural scene forms across every region.",
-        "Strictly continuous scene surfaces with natural forms in place of glyphs, signage and artificial marks.",
-    ),
-    "HUMAN": (
-        "Environment-only composition across the canvas.",
-        "Strongly preserve a purely environmental scene with natural, non-human forms.",
-        "Strict environment-only artwork across focal and incidental scene elements.",
-    ),
-    "PALETTE": (
-        "Keep the requested primary and secondary colour relationship clear.",
-        "Strengthen requested colour presence and the explicit relationship while retaining the same scene and shading.",
-        "Prioritize requested colour families across major masses in the same scene.",
-    ),
-    "SUBJECT": (
-        "Make the requested subject and anchors recognizable.",
-        "Strengthen original subject forms and supplied anchors in this composition.",
-        "Make the original environment immediately recognizable in this exact direction.",
-    ),
-    "MOTIF": (
-        "Make the supplied motif topology visible within the same subject and composition.",
-        "Strengthen the supplied motif structure while preserving subject, atmosphere, audience and palette.",
-        "Render the supplied motif topology clearly across the original spatial direction without adding new content.",
-    ),
-    "GENERATION_FAILURE": (
-        "Retry the same requested scene cleanly.",
-        "Render the same requested scene with simpler technical execution.",
-        "Use cleaner broad forms while retaining subject, composition and palette.",
-    ),
-    "UNKNOWN": (
-        "Retry the same direction faithfully.",
-        "Strengthen clarity of the original subject and composition without new content.",
-        "Render the original direction literally with the same scene content.",
-    ),
+    "TEXT_OR_LOGO": "Use continuous visual surfaces without glyph- or signage-like marks.",
+    "HUMAN": "Render only the requested non-human environment and motifs, without figures.",
+    "PALETTE_OFF": "Strengthen the requested colour families and relationship while retaining shading character.",
+    "PALETTE_ROLE_DRIFT": "Restore the requested primary-to-secondary visual-mass relationship.",
+    "PRIMARY_MISSING": "Increase the requested primary colour across substantial surfaces without weakening the secondary.",
+    "SECONDARY_MISSING": "Increase the requested secondary colour in several substantial regions without weakening the primary.",
+    "SUBJECT_DRIFT": "Make the supplied subject forms and visual anchors recognizable.",
+    "ATMOSPHERE_DRIFT": "Strengthen the explicitly supplied atmosphere without changing the scene.",
+    "AUDIENCE_DRIFT": "Strengthen the supplied audience-appropriate visual treatment without changing the scene.",
+    "MOTIF_DRIFT": "Make the supplied motif topology visible without adding related objects or creatures.",
+    "DENSITY_DRIFT": "Restore the requested density and visual hierarchy; reduce uniformly scattered micro-detail.",
+    "FLAT": "Strengthen coherent medium and large subject forms and depth.",
+    "GRADIENT": "Restore discrete subject-specific forms, depth and tonal structure.",
+    "RASTER": "Use coherent broad forms and varied edges instead of repetitive scanline or grid structure.",
+    "NOISE": "Use coherent forms and controlled detail rather than scattered noise.",
+    "WEAK_OUTER_STRUCTURE": "Add meaningful subject structure where this direction permits, retaining calm regions.",
+    "DENSE_SAFE_REGION": "Move detail away from integrated calm regions while retaining this direction.",
+    "DIRECTION_DUPLICATE": "Vary focal placement, viewpoint, visual mass and motif placement within this direction.",
+    "PROTECTED_REGION_INTRUSION": "Move motifs away from reserved quiet regions within this direction.",
+    "WEAK_TEMPLATE_STRUCTURE": "Strengthen this direction's requested composition with subject-specific forms.",
+    "WEAK_DECORATIVE_DESIGN": "Strengthen subject-specific decorative structure outside quiet regions.",
+    "TEMPLATE_DRIFT": "Restore this direction's requested composition and subject-specific structure.",
+    "BOILERPLATE_COMPOSITION": "Vary scale, depth, focal placement and visual mass within this direction.",
+    "RUNTIME": "Retry the same semantic design with simpler technical execution.",
+    "GENERATION_FAILURE": "Retry the same semantic design with simpler technical execution.",
+    "UNKNOWN": "Retry this same direction faithfully without introducing new content.",
 }
+
+
+def _runtime_correction(category: str, stage: str) -> str:
+    requirement = _RETRY_CORRECTIONS[category]
+    emphasis = {
+        "normal": "Correct the failed dimension conservatively:",
+        "targeted_recovery": "Make the failed requirement substantially more visible:",
+        "strict_recovery": "Simplify competing incidental detail and make the failed requirement unmistakable:",
+        "rescue": "Use the simplest semantically faithful rendering of this same direction; make the failed requirement unmistakable:",
+    }[stage]
+    return f"{emphasis} {requirement} Preserve all original requested semantics and every unaffected visual dimension."
 
 
 def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
@@ -826,11 +825,8 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     palette = f"{colours}; {_palette_relationship(spec)}; no major unrelated chromatic family"
     composition = _spatial_instruction(design)
     strength = retry_strength_level(attempt)
-    correction = (_RETRY_CORRECTIONS[runtime_retry_category(reason)][min(attempt - 2, 2)]
+    correction = (_runtime_correction(runtime_retry_category(reason), compiled.retry_stage)
                   if attempt > 1 else "")
-    if correction:
-        correction += (" Preserve original subject, anchors, reference treatment, palette, "
-                       "mood, audience, motifs and spatial direction.")
     subject_line = f"Visual subject: {subject}."
     anchor_line = f"Anchors: {_first_words(anchors, 14)}." if anchors else ""
     mood_line = f"Mood: {_first_words(mood, 10)}." if mood else ""

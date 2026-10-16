@@ -64,16 +64,63 @@ class SimplifiedPipelineTests(unittest.TestCase):
         self.assertNotIn("portal", compiled.positive.casefold())
         self.assertIn("focal placement", compiled.positive)
 
-    def test_retry_taxonomy_is_small(self):
+    def test_retry_taxonomy_preserves_failed_dimension(self):
         reasons = {"TEXT", "HUMAN", "PALETTE_OFF", "SUBJECT_DRIFT",
                    "RUNTIME", "DENSITY_DRIFT", "MOTIF_DRIFT"}
         self.assertEqual({runtime_retry_category(reason) for reason in reasons},
-                         {"TEXT_OR_LOGO", "HUMAN", "PALETTE", "SUBJECT",
-                          "MOTIF", "GENERATION_FAILURE", "UNKNOWN"})
+                         {"TEXT_OR_LOGO", "HUMAN", "PALETTE_OFF", "SUBJECT_DRIFT",
+                          "MOTIF_DRIFT", "GENERATION_FAILURE", "DENSITY_DRIFT"})
+
+    def test_production_concise_corrections_are_specific_and_stage_aware(self):
+        source = document()
+        expected = {
+            "AUDIENCE_DRIFT": "audience-appropriate",
+            "ATMOSPHERE_DRIFT": "supplied atmosphere",
+            "PRIMARY_MISSING": "primary colour across substantial surfaces",
+            "SECONDARY_MISSING": "secondary colour in several substantial regions",
+            "MOTIF_DRIFT": "motif topology",
+            "DENSITY_DRIFT": "density and visual hierarchy",
+            "RASTER": "scanline or grid",
+            "FLAT": "medium and large subject forms",
+            "GRADIENT": "discrete subject-specific forms",
+            "NOISE": "controlled detail",
+            "PALETTE_OFF": "requested colour families",
+            "PALETTE_ROLE_DRIFT": "primary-to-secondary visual-mass",
+            "SUBJECT_DRIFT": "subject forms and visual anchors",
+            "HUMAN": "non-human environment",
+            "TEXT": "without glyph- or signage-like marks",
+            "WEAK_OUTER_STRUCTURE": "structure where this direction permits",
+            "DENSE_SAFE_REGION": "away from integrated calm regions",
+            "DIRECTION_DUPLICATE": "focal placement, viewpoint",
+            "RUNTIME": "simpler technical execution",
+        }
+        for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
+            spec = build_candidate_spec(source, engine, "A")
+            for failure, phrase in expected.items():
+                with self.subTest(engine=engine, failure=failure):
+                    prompts = [compile_candidate_prompt(spec, attempt, failure, concise=True)
+                               for attempt in (2, 4, 7, 9)]
+                    self.assertEqual([item.retry_stage for item in prompts],
+                                     ["normal", "targeted_recovery", "strict_recovery", "rescue"])
+                    self.assertEqual(len({item.positive for item in prompts}), 4)
+                    for compiled in prompts:
+                        positive = compiled.positive
+                        self.assertIn(phrase, positive)
+                        self.assertIn("Preserve all original requested semantics", positive)
+                        for semantic in (spec.visual_design["primary_visual_subject"],
+                                         spec.primary_colour,
+                                         spec.visual_design["visual_semantics"]["motif_structure_description"],
+                                         spec.visual_design["visual_semantics"]["atmosphere_descriptors"][0],
+                                         spec.visual_design["visual_semantics"]["audience_descriptors"][0]):
+                            self.assertIn(semantic, positive)
+                        self.assertEqual(compiled.spec_sha256, spec.spec_sha256)
+                        self.assertNotIn("spider", positive.casefold())
+                        self.assertNotIn("parchment", positive.casefold())
+
 
     def test_progressive_retries_preserve_immutable_spec_without_history(self):
         source = document()
-        levels = ("BASE", "CORRECTION", "STRONG_CORRECTION", "STRICT_CORRECTION")
+        levels = ("BASE", "CORRECTION", "CORRECTION", "TARGETED_RECOVERY")
         for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
             spec = build_candidate_spec(source, engine, "A")
             design = spec.visual_design
@@ -95,17 +142,15 @@ class SimplifiedPipelineTests(unittest.TestCase):
                             self.assertIn(expected, effective)
                         self.assertIn("Composition:", effective)
                         if index:
-                            self.assertIn(phrases[index - 1], effective)
-                        for other in phrases:
-                            if other != (phrases[index - 1] if index else None):
-                                self.assertNotIn(other, effective)
+                            self.assertIn(phrases, effective)
+                            self.assertIn("Preserve all original requested semantics", effective)
                     if engine == "sdxl-1-0":
-                        self.assertIn(phrases[2], attempts[3].clip_g)
+                        self.assertIn(phrases, attempts[3].clip_g)
                     elif engine == "sd-3-5-medium":
-                        self.assertIn(phrases[2], attempts[3].t5)
+                        self.assertIn(phrases, attempts[3].t5)
                     else:
                         self.assertFalse(attempts[3].negative_prompt_channel_active)
-                        self.assertIn(phrases[2], attempts[3].positive)
+                        self.assertIn(phrases, attempts[3].positive)
 
     def test_one_failed_slot_does_not_hide_valid_backgrounds(self):
         outputs = [ImageOutputRecord(engine_id=f"engine-{i}", engine_label=str(i),

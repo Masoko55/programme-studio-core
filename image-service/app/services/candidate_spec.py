@@ -155,6 +155,7 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
                        if key in contract)):
             supplied_contract = None
     if supplied_contract is None:
+        provenance = (context.get("semantic_provenance") or {}) if isinstance(context, dict) else {}
         contract = normalize_contract({
             "semantic_contract_version": VERSION,
             "primary_visual_subject": subject, "visual_anchors": anchors,
@@ -167,12 +168,23 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
             "symmetry_preference": field(brief, "symmetry_preference"),
             "density_preference": field(brief, "density_preference"),
             "theme_reference_treatment": field(brief, "theme_reference_treatment"),
+            "hard_dimensions": brief.get("hard_dimensions", []),
             "semantic_provenance": {
                 "primary_visual_subject": "USER_EXPLICIT" if field(brief, "background_inspiration") else "SAFE_FALLBACK",
                 "atmosphere_descriptors": ("SEMANTIC_INFERENCE" if values(semantics, "atmosphere_descriptors")
                                            else "USER_EXPLICIT" if field(brief, "mood") or fallback_description
                                            else "SAFE_FALLBACK"),
                 "palette": "USER_EXPLICIT" if palette else "SAFE_FALLBACK",
+                "palette_relationship": ("SAFE_FALLBACK" if field(brief, "palette_relationship_source") == "default"
+                                         else "USER_EXPLICIT" if field(brief, "palette_relationship") else "SAFE_FALLBACK"),
+                "visual_anchors": "USER_EXPLICIT" if values(brief, "visual_anchors") or field(brief, "background_inspiration") else "SAFE_FALLBACK",
+                "theme_reference_treatment": "USER_EXPLICIT" if field(brief, "theme_reference_treatment") else "SAFE_FALLBACK",
+                "motif_descriptors": provenance.get("motif_descriptors") or (
+                    "USER_EXPLICIT" if motif_words else "SEMANTIC_INFERENCE" if values(semantics, "motif_descriptors") else "SAFE_FALLBACK"),
+                "motif_structure_description": provenance.get("motif_structure_description") or (
+                    "SEMANTIC_INFERENCE" if field(semantics, "motif_structure_description") else "USER_EXPLICIT" if motif_words else "SAFE_FALLBACK"),
+                "audience_descriptors": provenance.get("audience_descriptors") or (
+                    "USER_EXPLICIT" if field(brief, "audience_context") or field(brief, "age_group") else "SEMANTIC_INFERENCE" if audience else "SAFE_FALLBACK"),
             },
         })
     consistency = semantic_consistency(contract)
@@ -192,12 +204,16 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         "semantic_contract_sha256": contract_hash(contract),
         "semantic_consistency": consistency,
         "semantic_completeness": completeness,
+        "semantic_provenance": contract["semantic_provenance"],
+        "hard_dimensions": contract.get("hard_dimensions", []),
         "theme_reference_treatment": contract["theme_reference_treatment"],
         "mood": field(brief, "mood"),
         "visual_style": field(brief, "visual_style"),
         "requested_palette": contract["palette"],
         "palette_mode": contract["palette_mode"],
         "palette_relationship": contract["palette_relationship"],
+        "palette_relationship_source": (field(brief, "palette_relationship_source")
+                                        or contract.get("semantic_provenance", {}).get("palette_relationship")),
         "visual_anchors": contract["visual_anchors"],
         "symbolic_motifs": values(brief, "symbolic_motifs"),
         "environmental_motifs": values(brief, "environmental_motifs"),

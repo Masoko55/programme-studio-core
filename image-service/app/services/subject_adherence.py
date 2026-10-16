@@ -53,7 +53,13 @@ def brief_fidelity_record(result: dict) -> dict:
         "audience_fit_score", "thresholds", "decision", "reason",
         "observed_evidence", "model", "failure_category", "dimension_availability",
         "failed_dimensions", "background_usability_score", "vision_human_signal", "vision_debug",
+        "hard_dimensions", "hard_failed_dimensions", "compound_fidelity_failure", "human_description",
     )}
+
+
+def hard_fidelity_failure(result: dict | None) -> bool:
+    """The single semantic acceptance rule for raw and recovered images."""
+    return bool(result and (result.get("hard_failed_dimensions") or result.get("decision") == "SUBJECT_DRIFT"))
 
 
 def _extract_numeric_score(value, dimension: str, diagnostics: list[dict]) -> float:
@@ -106,7 +112,7 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
     required = {"subject_score": threshold}
     if atmosphere or event:
         required["atmosphere_score"] = fidelity_threshold
-    if motifs:
+    if motifs or motif_structure or treatment:
         required["motif_score"] = fidelity_threshold
     if audience:
         required["audience_fit_score"] = fidelity_threshold
@@ -130,7 +136,8 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
         "subject_score, atmosphere_score, motif_score, audience_fit_score. "
         "Judge visible subject, global atmosphere, motif topology, and audience fit separately. "
         "Also give background_usability_score for hierarchy, controlled density, and usable calm space, "
-        "and human_visible as a boolean based on visible human evidence. "
+        "and human_visible as a boolean based on visible human evidence, including small or distant people. "
+        "Give human_description with concrete visible body, face, posture and location evidence when a person is present. "
         "Do not judge colours. Do not infer a subject or motif from decorative lines alone. "
         "Intentional abstract or sculptural subjects are valid when requested. "
         "Compare visible connected/repeated motif geometry with the supplied motif topology; theme resemblance alone is insufficient. "
@@ -141,12 +148,15 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
         "Requested subject: " + subject + ". Anchors: " + "; ".join(anchors[:5]) +
         ". Event: " + event + ". Atmosphere: " + atmosphere[:350] +
         ". Audience: " + audience + ". Theme treatment: " + treatment[:200] +
+        ". Explicit audience requirement: " + str(visual_design.get("audience_context") or visual_design.get("age_group") or "") +
         ". Motifs: " + "; ".join(motifs[:5]) +
         ". Motif structure: " + motif_structure[:350] + ". Motif prominence: " + prominence +
         ". Incompatible treatments: " + incompatible[:350] + "."
     )
     endpoint = select_vision_endpoint(chosen_model)
     debug = {"endpoint": endpoint, "model": chosen_model, "score_parsing": []}
+    vision_human = None
+    human_description = ""
     try:
         encoded_image = base64.b64encode(buffer.getvalue()).decode("ascii")
         request = {"model": chosen_model, "stream": False, "format": "json",
@@ -176,6 +186,10 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
         if isinstance(raw_text, str):
             debug["raw_text_preview"] = "<omitted>"
         answer = _model_answer(payload, endpoint)
+        vision_human = answer.get("human_visible")
+        if not isinstance(vision_human, bool):
+            vision_human = None
+        human_description = str(answer.get("human_description") or "")[:240]
         scores = {}
         for field in ("subject_score", "atmosphere_score", "motif_score", "audience_fit_score"):
             raw_score = answer.get(field, answer.get("score") if field == "subject_score" else None)
@@ -191,12 +205,10 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
         usability = answer.get("background_usability_score")
         if usability is not None:
             usability = _extract_numeric_score(usability, "background_usability_score", debug["score_parsing"])
-        vision_human = answer.get("human_visible")
-        if not isinstance(vision_human, bool):
-            vision_human = None
     except (httpx.HTTPError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
         debug["parse_error"] = f"{type(error).__name__}: {str(error)[:160]}"
         return {**base, "reason": f"Vision check unavailable: {type(error).__name__}",
+                "vision_human_signal": vision_human, "human_description": human_description,
                 "vision_debug": debug,
                 "dimension_availability": {field: "UNAVAILABLE" for field in required}}
     failed = [field for field, limit in required.items() if scores[field] < limit]
@@ -209,19 +221,30 @@ def assess_subject_adherence(path: Path, visual_design: dict, *, model: str | No
     )
     compound_failure = (defining_treatment and scores.get("motif_score") is not None
                         and scores["motif_score"] < fidelity_threshold)
+    hard_dimensions = ["subject_score"]
+    if defining_treatment:
+        hard_dimensions.append("motif_score")
+    if audience and (provenance.get("audience_descriptors") in explicit_sources
+                     or visual_design.get("audience_context") or visual_design.get("age_group")):
+        hard_dimensions.append("audience_fit_score")
+    if atmosphere and "atmosphere_score" in visual_design.get("hard_dimensions", []):
+        hard_dimensions.append("atmosphere_score")
+    hard_failed = [field for field in hard_dimensions if field in failed]
     decision = ("SUBJECT_DRIFT" if "subject_score" in failed or compound_failure else
                 "BRIEF_FIDELITY_DRIFT" if failed else "pass")
     category_by_field = {"subject_score": "SUBJECT_DRIFT", "atmosphere_score": "ATMOSPHERE_DRIFT",
                          "motif_score": "MOTIF_DRIFT", "audience_fit_score": "AUDIENCE_DRIFT"}
-    worst = min(failed, key=lambda field: scores[field] / required[field]) if failed else None
+    worst = hard_failed[0] if hard_failed else min(failed, key=lambda field: scores[field] / required[field]) if failed else None
     return {**base, "checked": True, "score": scores["subject_score"], **scores,
             "decision": decision,
             "failure_category": ("SUBJECT_DRIFT" if compound_failure else
                                  category_by_field[worst] if worst else None),
             "compound_fidelity_failure": compound_failure,
+            "hard_dimensions": hard_dimensions, "hard_failed_dimensions": hard_failed,
             "failed_dimensions": failed,
             "background_usability_score": usability,
             "vision_human_signal": vision_human,
+            "human_description": human_description,
             "dimension_availability": {field: ("FAIL" if field in failed else "PASS")
                                        if scores.get(field) is not None else "UNAVAILABLE"
                                        for field in required},

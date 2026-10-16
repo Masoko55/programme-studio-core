@@ -52,6 +52,8 @@ def normalize_contract(raw: dict) -> dict:
         if key in SEMANTIC_FIELDS and contract["semantic_provenance"].get(key) != "USER_EXPLICIT"
         and isinstance(score, (float, int)) and not isinstance(score, bool) and 0 <= score <= 1
     }
+    contract["hard_dimensions"] = [field for field in raw.get("hard_dimensions", [])
+                                   if field in {"subject_score", "motif_score", "audience_fit_score", "atmosphere_score"}]
     return contract
 
 

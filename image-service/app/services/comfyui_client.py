@@ -56,7 +56,7 @@ from app.services.template_conditioning import (
 )
 from app.services.template_adherence import assess_template_adherence
 from app.services.composition_diversity import boilerplate_metrics, boilerplate_score, compare_directions_metrics
-from app.services.subject_adherence import assess_subject_adherence, brief_fidelity_record
+from app.services.subject_adherence import assess_subject_adherence, brief_fidelity_record, hard_fidelity_failure
 from app.services.scene_density import assess_scene_density
 from app.services.prompt_freshness import source_prompt_manifest
 
@@ -66,6 +66,48 @@ logger = logging.getLogger(
 )
 
 
+def _finalize_validation_record(record: dict) -> None:
+    """Keep final decisions distinct from the reason that selected a retry."""
+    status = record.get("status")
+    if status not in {"complete", "rejected", "failed", "runtime_failed"}:
+        return
+    complete = status == "complete"
+    if complete and hard_fidelity_failure(record.get("subject_adherence") or record.get("brief_fidelity")):
+        raise ComfyUIError("Cannot complete a candidate with a hard brief-fidelity failure")
+    category = None if complete else (record.get("outcome_category") or record.get("primary_failure_category")
+                                      or classify_failure(record.get("rejection_reason") or record.get("error") or ""))
+    record.setdefault("retry_failure_category", record.get("failure_category"))
+    record.update(decision="accepted" if complete else "rejected", failure_category=category,
+                  primary_failure_category=category)
+    if complete:
+        record.update(outcome_category="PASS", all_failure_categories=[], secondary_failure_categories=[])
+    validation = record.get("validation") or {}
+    report = validation.get("validation", validation)
+    record["final_validation"] = {**report, "decision": record["decision"], "failure_category": category,
+                                  "brief_fidelity": record.get("brief_fidelity")}
+    record["validation"] = ({**validation, "validation": record["final_validation"]}
+                            if "validation" in validation else record["final_validation"])
+    attempts = {}
+    for item in [*record.get("attempt_history", []), *record.get("rejected_attempts", []),
+                 *record.get("failed_attempts", [])]:
+        attempts[item.get("attempt_count", 0)] = item
+    snapshot = {key: record.get(key) for key in (
+        "attempt_count", "status", "seed", "failure_category", "primary_failure_category",
+        "retry_failure_category", "rejection_reason", "error", "final_validation", "subject_adherence",
+        "brief_fidelity", "raw_palette_error", "raw_validation", "raw_subject_adherence", "palette_recovery")}
+    attempts[record.get("attempt_count", 0)] = snapshot
+    record["attempt_history"] = [attempts[number] for number in sorted(attempts)]
+
+
+def _record_brief_fidelity(record: dict, assessment: dict) -> None:
+    record["subject_adherence"] = assessment
+    record["brief_fidelity"] = brief_fidelity_record(assessment)
+    record["semantic_dimension_scores"] = {
+        key: assessment.get(key) for key in
+        ("subject_score", "atmosphere_score", "motif_score", "audience_fit_score")}
+    record["semantic_failed_dimensions"] = assessment.get("failed_dimensions") or []
+
+
 def write_json(path: Path, record: dict) -> None:
     """Persist one candidate with the same diagnostics at every outcome."""
     if record.get("status") in {"rejected", "failed", "runtime_failed"} and not record.get("validation"):
@@ -73,6 +115,7 @@ def write_json(path: Path, record: dict) -> None:
             "decision": "rejected",
             "failure_category": record.get("primary_failure_category") or record.get("outcome_category"),
         }
+    _finalize_validation_record(record)
     record["reproducibility_manifest"] = build_reproducibility_manifest(record)
     atomic_write_json(path, record)
 QUEUE_ENDPOINT = "/queue"
@@ -270,8 +313,13 @@ def _palette_only_recovery(
             if recovery_diagnostics is not None:
                 recovery_diagnostics["normalized_subject_adherence"] = subject
                 recovery_diagnostics["normalized_brief_fidelity"] = brief_fidelity_record(subject)
-            if subject["decision"] != "pass":
-                raise ValueError(f"Palette normalization failed brief fidelity: {subject['decision']}.")
+            if subject.get("vision_human_signal") is True:
+                raise ValueError("HUMAN: vision confirmed a person in the normalized image")
+            if subject["decision"] == "unavailable" or hard_fidelity_failure(subject):
+                category = subject.get("failure_category") or "VISION_UNAVAILABLE"
+                raise ValueError(f"{category}: palette normalization failed brief fidelity: {subject['decision']}.")
+            final["subject_adherence"] = subject
+            final["brief_fidelity"] = brief_fidelity_record(subject)
         return structural, final
     except Exception as error:
         if recovery_diagnostics is not None:
@@ -2188,13 +2236,7 @@ class ComfyUIClient:
             except (OSError, ValueError):
                 pass  # Structural validation below owns corrupt-image rejection.
             if adherence_result:
-                record["subject_adherence"] = adherence_result
-                record["brief_fidelity"] = brief_fidelity_record(adherence_result)
-                record["semantic_dimension_scores"] = {
-                    key: adherence_result.get(key) for key in
-                    ("subject_score", "atmosphere_score", "motif_score", "audience_fit_score")
-                }
-                record["semantic_failed_dimensions"] = adherence_result.get("failed_dimensions") or []
+                _record_brief_fidelity(record, adherence_result)
 
         try:
             try:
@@ -2208,7 +2250,7 @@ class ComfyUIClient:
                 )
                 validation = raw_validation
                 if adherence_result:
-                    if adherence_result.get("decision") == "SUBJECT_DRIFT":
+                    if hard_fidelity_failure(adherence_result):
                         category = ("VISION_UNAVAILABLE" if adherence_result["decision"] == "unavailable"
                                     else adherence_result.get("failure_category") or adherence_result["decision"])
                         record["primary_failure_category"] = category
@@ -2311,6 +2353,7 @@ class ComfyUIClient:
                         engine_id,
                     )
                     and primary_colour
+                    and not hard_fidelity_failure(adherence_result)
                     and len((load_prompts_document(reference_number).get("brief") or {}).get("palette") or []) <= 2
                 )
                 recovery["eligible"] = palette_recovery_ready
@@ -2343,6 +2386,10 @@ class ComfyUIClient:
                         palette_normalized = (
                             True
                         )
+                        if validation.get("subject_adherence"):
+                            record["raw_subject_adherence"] = adherence_result
+                            adherence_result = validation["subject_adherence"]
+                            _record_brief_fidelity(record, adherence_result)
                         recovery.update(
                             result="accepted",
                             normalized_off_palette_ratio=validation.get("off_palette_ratio"),
@@ -2388,7 +2435,7 @@ class ComfyUIClient:
                             ),
                         )
 
-                if palette_normalized and adherence_result and adherence_result.get("decision") == "SUBJECT_DRIFT":
+                if palette_normalized and hard_fidelity_failure(adherence_result):
                     category = ("VISION_UNAVAILABLE" if adherence_result["decision"] == "unavailable"
                                 else adherence_result.get("failure_category") or "BRIEF_FIDELITY_DRIFT")
                     palette_normalized = False
@@ -2618,6 +2665,12 @@ class ComfyUIClient:
             == "complete"
         ):
             try:
+                spec = build_candidate_spec(load_prompts_document(reference_number), engine_id, direction_id)
+                design = {**spec.visual_design, "semantic_provenance": spec.semantic_contract.get("semantic_provenance", {})}
+                subject = assess_subject_adherence(image_path, design)
+                previous_hard_failure = hard_fidelity_failure(previous.get("subject_adherence"))
+                if subject.get("decision") != "unavailable":
+                    _record_brief_fidelity(previous, subject)
                 verified = (
                     validate_background(
                         image_path,
@@ -2629,19 +2682,28 @@ class ComfyUIClient:
                                 "sha256"
                             ]
                         ),
+                        visual_design=design,
+                        vision_human_signal=subject.get("vision_human_signal"),
                     )
                 )
-
-                return previous, {
-                    **previous,
-                    **verified,
-                    "reused": True,
-                }
+                if hard_fidelity_failure(subject):
+                    raise ValueError((subject.get("failure_category") or "SUBJECT_DRIFT") + ": " + subject.get("reason", ""))
+                if subject.get("decision") == "unavailable" and previous_hard_failure:
+                    raise ValueError("VISION_UNAVAILABLE: earlier hard semantic failure has no fresh successful assessment")
+                previous.update(verified, validation=verified, reused=True)
+                write_json(record_path, previous)
+                return previous, previous
 
             except (
                 OSError,
                 ValueError,
-            ):
+            ) as error:
+                previous.update(getattr(error, "diagnostics", {}))
+                previous.update(status="rejected", rejection_reason=str(error),
+                                outcome_category=classify_failure(str(error)))
+                write_json(record_path, previous)
+                if _attempt_budget_exhausted(previous):
+                    raise ComfyUIError("Candidate attempt budget is exhausted; no additional ComfyUI submission will be made.") from error
                 logger.warning(
                     "event=background_invalid "
                     "reference=%s "

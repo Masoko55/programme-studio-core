@@ -45,7 +45,9 @@ class VisualHierarchyTests(unittest.TestCase):
                     self.assertIn(hierarchy["detail_density"], compiled.positive)
                     self.assertIn("breathing room", compiled.positive)
                     self.assertIn("motif topology", compiled.positive)
-                    self.assertIn("largest visual masses", compiled.positive)
+                    self.assertIn("green clearly visible in substantial design elements", compiled.positive)
+                    self.assertIn("cream clearly visible in substantial design elements", compiled.positive)
+                    self.assertNotIn("largest visual masses", compiled.positive)
                     self.assertIn("connected arcs", compiled.positive)
                     self.assertEqual(hierarchy["semantic_emphasis"]["subject"], "PRIMARY")
                     self.assertEqual(hierarchy["detail_density"],

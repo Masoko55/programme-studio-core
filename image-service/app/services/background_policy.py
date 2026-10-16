@@ -2261,6 +2261,33 @@ def _validate_palette_balance(primary_name, primary_rgb, primary_descriptor, sec
     return primary_ratio, secondary_ratio
 
 
+def palette_relationship_policy(relationship: str | None, source: str | None,
+                                secondary_name: str | None = None) -> dict:
+    """Interpret relationship semantics once for validation and conditioning."""
+    phrase = str(relationship or "").strip()
+    text = phrase.casefold()
+    source = str(source or "").casefold()
+    generic = text in {"", "requested colours dominate with natural tonal variation",
+                       "respect the requested colour roles"}
+    semantic = bool(re.search(
+        r"\b(balanced|equal|equally|even split|monochrom\w*|only|dominant|dominate|"
+        r"majority|largest|leading|main|mostly|subtle|accent\w*|support\w*|small\s+\w+\s+details)\b", text))
+    explicit = (not generic and semantic and source in {
+        "", "user", "user_explicit", "grill_me_clarified"})
+    relation = "FLEXIBLE"
+    if explicit and re.search(r"\b(balanced|equal|equally|even split)\b", text):
+        relation = "BALANCED"
+    elif explicit and re.search(r"\b(dominant|dominate|majority|largest|leading|main|mostly|subtle|accent\w*|support\w*|small)\b", text):
+        relation = "PRIMARY_DOMINANT"
+        if secondary_name and re.search(
+            rf"(?:\bmostly\s+{re.escape(secondary_name)}\b|\b{re.escape(secondary_name)}\s+"
+            r"(?:(?:should|must|is|be|the)\s+)*(?:dominant|dominate|main|leading)\b)", text):
+            relation = "SECONDARY_DOMINANT"
+    return {"explicit": explicit, "relationship": phrase if explicit else "",
+            "dominance_relationship": relation,
+            "source": "user_explicit" if explicit else "default"}
+
+
 def _palette_role_metrics(primary_name: str | None, secondary_name: str | None,
                           counts: dict, total: int, relationship: str | None,
                           mode: str | None, palette: list[dict] | None,
@@ -2273,14 +2300,9 @@ def _palette_role_metrics(primary_name: str | None, secondary_name: str | None,
     monochromatic = mode in {"monochrome", "achromatic"} or bool(re.search(r"\bmonochrom", phrase)) or not secondary_name
     optional = "optional" in secondary_role or bool(re.search(r"\b(optional|if present|may appear)\b", phrase))
     balanced = bool(re.search(r"\b(balanced|equal|equally|even split)\b", phrase))
-    explicit_primary = bool(re.search(r"\b(dominant|dominate|majority|largest|leading|main|subtle|accent|supporting)\b", phrase))
-    explicit = (relationship_source == "user" or
-                (relationship_source is None and phrase not in {
-                    "requested colours dominate with natural tonal variation", "respect the requested colour roles"}
-                 and bool(re.search(r"\b(balanced|equal|equally|monochrom\w*|only|dominant|dominate|majority|largest|subtle|accent\w*|supporting)\b", phrase))))
-    relation = ("MONOCHROMATIC" if monochromatic else "BALANCED" if balanced else
-                "PRIMARY_DOMINANT" if explicit_primary or
-                (primary_name not in NEUTRAL_NAMES and secondary_name not in NEUTRAL_NAMES) else "FLEXIBLE")
+    policy = palette_relationship_policy(relationship, relationship_source, secondary_name)
+    explicit = policy["explicit"]
+    relation = "MONOCHROMATIC" if monochromatic else policy["dominance_relationship"]
     primary_ratio = counts.get(primary_name, 0) / total if primary_name else None
     secondary_ratio = counts.get(secondary_name, 0) / total if secondary_name else None
     strong_secondary = "strong" in secondary_role or bool(re.search(r"\b(strong|substantial|prominent)\s+(?:\w+\s+)?(?:secondary|accent)", phrase))
@@ -2289,7 +2311,8 @@ def _palette_role_metrics(primary_name: str | None, secondary_name: str | None,
     presence = secondary_ratio is None or secondary_ratio >= secondary_minimum
     dominance = (True if relation in {"FLEXIBLE", "MONOCHROMATIC"} or primary_ratio is None or secondary_ratio is None else
                  abs(primary_ratio - secondary_ratio) <= .20 if relation == "BALANCED" else
-                 primary_ratio >= secondary_ratio + MIN_PRIMARY_DOMINANCE_MARGIN)
+                 secondary_ratio + MIN_PRIMARY_DOMINANCE_MARGIN >= primary_ratio if relation == "SECONDARY_DOMINANT" else
+                 primary_ratio + MIN_PRIMARY_DOMINANCE_MARGIN >= secondary_ratio)
     metrics = {"primary_ratio": primary_ratio, "secondary_ratio": secondary_ratio,
                "primary_family": primary_name, "secondary_family": secondary_name,
                "primary_role": primary_role,
@@ -2297,8 +2320,9 @@ def _palette_role_metrics(primary_name: str | None, secondary_name: str | None,
                "secondary_presence": presence, "dominance_relationship": relation,
                "dominance_relationship_passed": dominance, "secondary_role": secondary_role,
                "secondary_minimum": secondary_minimum,
-               "palette_relationship_source": "user" if explicit else "default",
-               "palette_role_warning": ("PALETTE_ROLE_WARNING" if not explicit and not dominance else None)}
+               "palette_relationship_source": policy["source"],
+               "palette_role_warning": ("PALETTE_ROLE_WARNING" if not explicit and primary_ratio is not None
+                                        and secondary_ratio is not None and primary_ratio < secondary_ratio else None)}
     if primary_name and primary_name not in NEUTRAL_NAMES and primary_ratio is not None and primary_ratio < MIN_PRIMARY_COLOUR_RATIO:
         error = ValueError("PALETTE_ROLE_DRIFT: requested primary colour is not meaningfully present")
     elif not presence:
@@ -2989,6 +3013,35 @@ def _confirm_cascade_boxes(
     return [box for box in boxes if any(_boxes_overlap(box, other) for other in scaled)]
 
 
+def _coherent_upper_signal(body: tuple, signal: tuple) -> bool:
+    """Require containment and head/upper-body placement, not a box touching."""
+    x, y, width, height = body
+    sx, sy, sw, sh = signal
+    intersection = max(0, min(x + width, sx + sw) - max(x, sx)) * max(0, min(y + height, sy + sh) - max(y, sy))
+    return (sw > 0 and sh > 0 and width > 0 and height > 0
+            and intersection >= .8 * sw * sh
+            and x <= sx + sw / 2 <= x + width
+            and y <= sy + sh / 2 <= y + .65 * height
+            and sw <= 1.2 * width and sw * sh < .8 * width * height)
+
+
+def _small_face_body_evidence(gray, face_detector, body_detector) -> list[dict]:
+    """A separate small-person scan requires repeat face and body agreement."""
+    faces = _cascade_detect(face_detector, gray, (MIN_FACE_SIZE // 2, MIN_FACE_SIZE // 2), 6)
+    faces = [box for box in faces if box[2] < MIN_FACE_SIZE and box[3] < MIN_FACE_SIZE]
+    if not faces:
+        return []
+    bodies = _cascade_detect(body_detector, gray, (MIN_UPPER_BODY_SIZE // 2, MIN_UPPER_BODY_SIZE // 2), 7)
+    repeated = _confirm_cascade_boxes(face_detector, gray, faces, MIN_FACE_SIZE // 2)
+    area = float(gray.shape[0] * gray.shape[1])
+    return [{"source": "small_face_body", "bbox": body, "face_bbox": face,
+             "confirmed": True, "area_ratio": body[2] * body[3] / area,
+             "confirmation": "small repeat-scale face coherently contained in independent upper-body detection"}
+            for face in repeated for body in bodies
+            if body[3] >= 1.5 * face[3] and body[2] >= 1.3 * face[2]
+            and _coherent_upper_signal(body, face)]
+
+
 def detect_human_signals(
     image: Image.Image,
 ) -> dict:
@@ -3066,6 +3119,7 @@ def detect_human_signals(
     people = []
 
     people_weights = []
+    small_people = []
     evidence = []
     image_area = float(bgr.shape[0] * bgr.shape[1])
 
@@ -3092,6 +3146,10 @@ def detect_human_signals(
                          "area_ratio": box_width * box_height / image_area,
                          "confirmed": plausible,
                          "confirmation": "weight, human aspect and meaningful area" if plausible else "insufficient shape or confidence"})
+        if (not plausible and numeric_weight >= MIN_HOG_PERSON_WEIGHT and box_height > 0
+                and 0.22 <= box_width / box_height <= 0.90
+                and 0.0005 <= box_width * box_height / image_area < 0.003):
+            small_people.append((box, numeric_weight))
         if plausible:
             people.append(
                 box
@@ -3156,6 +3214,14 @@ def detect_human_signals(
     )
 
     corroborators = faces + profiles + upper_bodies
+    for box, weight in small_people:
+        if any(_coherent_upper_signal(box, signal) for signal in corroborators):
+            people.append(box)
+            people_weights.append(weight)
+            for item in evidence:
+                if item["source"] == "hog" and item["bbox"] == box:
+                    item.update(confirmed=True, small_person_corroborated=True,
+                                confirmation="small upright HOG and coherent independent face/profile/upper-body evidence")
     multiple_distinct_people = any(
         not _boxes_overlap(first, second)
         for index, first in enumerate(people)
@@ -3169,7 +3235,7 @@ def detect_human_signals(
         for item in evidence:
             if item["source"] == "hog" and item["bbox"] == box:
                 item["confirmed"] = corroborated
-                item["confirmation"] = (
+                item["confirmation"] = item["confirmation"] if item.get("small_person_corroborated") else (
                     "strong HOG weight, distinct people, or independent detector overlap"
                     if corroborated else "moderate HOG pattern without independent corroboration"
                 )
@@ -3221,6 +3287,10 @@ def detect_human_signals(
         or any(item["confirmed"] and item["source"] == "profile_face" for item in evidence)
         or strong_upper_body_signal
     )
+    if not detected:
+        small_evidence = _small_face_body_evidence(gray, frontal_detector, upper_body_detector)
+        evidence.extend(small_evidence)
+        detected = bool(small_evidence)
     strong_signals = [item for item in evidence if item["confirmed"]]
     weak_signals = [item for item in evidence if not item["confirmed"]]
 
@@ -3253,7 +3323,7 @@ def detect_human_signals(
         ),
         "human_detection_confidence": "high" if detected else "low",
         "human_detection_reason": (
-            "confirmed person or repeat-scale face/profile" if detected
+            "; ".join(dict.fromkeys(item["confirmation"] for item in strong_signals)) if detected
             else "isolated detector patterns without independent confirmation"
         ),
         "largest_detection_area_ratio": max(

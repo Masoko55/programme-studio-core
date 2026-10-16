@@ -7,7 +7,7 @@ import colorsys
 import re
 
 from app.services.candidate_spec import CandidateSpec
-from app.services.background_policy import COLOUR_ALIASES, COLOUR_FAMILIES, NAMED_COLOURS
+from app.services.background_policy import COLOUR_ALIASES, COLOUR_FAMILIES, NAMED_COLOURS, palette_relationship_policy
 from app.services.engine_capabilities import engine_capabilities
 
 
@@ -140,20 +140,29 @@ def retry_stage(attempt: int) -> str:
     return "rescue"
 
 
+def _palette_relationship(spec: CandidateSpec) -> str:
+    design = spec.visual_design
+    policy = palette_relationship_policy(design["palette_relationship"],
+                                         design.get("palette_relationship_source"), spec.secondary_colour)
+    if policy["explicit"]:
+        return policy["relationship"]
+    colours = [str(item["colour"]) for item in design["requested_palette"]]
+    return "; ".join(f"{colour} clearly visible in substantial design elements" for colour in colours)
+
+
 def _palette(spec: CandidateSpec) -> str:
     design = spec.visual_design
     colours = [str(item["colour"]) for item in design["requested_palette"]]
     if not colours:
         return "the palette described by the brief"
-    relationship = design["palette_relationship"] or "respect the requested colour roles"
+    relationship = _palette_relationship(spec)
     mode = design["palette_mode"]
     if mode in {"monochrome", "achromatic"} or set(colours) == {"black", "white"}:
         policy = "strictly achromatic black, white and grey tonal variation; no chromatic colour"
     elif mode == "strict":
         policy = "only requested colour families, apart from microscopic anti-aliasing tolerance"
     else:
-        policy = ("primary family occupies the largest visual masses; secondary family forms visible supporting masses; "
-                  "neutral shadows and highlights remain subordinate; no large unrequested chromatic region")
+        policy = "natural tonal variation within requested families; no large unrequested chromatic region"
     return f"{', '.join(colours)}; {mode} palette; {relationship}; {policy}"
 
 
@@ -166,8 +175,17 @@ def _encoder_palette(spec: CandidateSpec) -> str:
     elif mode == "strict":
         policy = "only requested colours"
     else:
-        policy = "primary colour in largest masses, secondary in supporting masses; no major third colour"
-    return f"Requested palette: {colours}; {policy}. {_chromatic_boundaries(spec)}".strip()
+        policy = "no major unrelated chromatic family"
+    return f"Requested palette: {colours}; {_palette_relationship(spec)}; {policy}. {_chromatic_boundaries(spec)}".strip()
+
+
+def _affirmative_palette(spec: CandidateSpec) -> str:
+    colours = ", ".join(str(item["colour"]) for item in spec.visual_design["requested_palette"])
+    if not colours:
+        return ""
+    return (f"The visible chromatic design is restricted to the requested families: {colours}. "
+            "Tonal variations within those families are allowed. Lighting changes brightness while "
+            "preserving those families. " + _chromatic_boundaries(spec))
 
 
 def _chromatic_boundaries(spec: CandidateSpec) -> str:
@@ -398,7 +416,7 @@ _CORRECTIONS = {
     "AUDIENCE_DRIFT": "Strengthen the supplied audience-appropriate visual treatment while preserving the same subject, motif, atmosphere and palette.",
     "PALETTE_OFF": "Correct the requested colour relationship while preserving this design's texture, shading and details.",
     "PALETTE_ROLE_DRIFT": "Restore the requested primary and secondary visual-mass relationship without changing subject, motif or structure.",
-    "PRIMARY_MISSING": "Make the requested primary colour dominant across substantial surfaces of this same design.",
+    "PRIMARY_MISSING": "Make the requested primary colour clearly visible across substantial surfaces of this same design.",
     "SECONDARY_MISSING": "Increase the requested secondary colour in several substantial visible regions of this same design.",
     "GRADIENT": "Give this scene distinct subject-specific forms, tonal variation and visible depth.",
     "FLAT": "Strengthen the requested subject silhouette with coherent medium and large forms, clear depth and a visible focal structure.",
@@ -657,6 +675,7 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     if not engine_capabilities(spec.engine_id)["negative_prompt_channel"]:
         positive = _join_sections(
             positive,
+            _affirmative_palette(spec),
             "Environment-only visual artwork with uninterrupted natural image surfaces; "
             "continuous scene composition, calm tonal breathing room, and recognizable subject forms."
         )
@@ -715,7 +734,7 @@ def runtime_retry_category(reason: str) -> str:
         return "TEXT_OR_LOGO"
     if category in {"PALETTE", "PALETTE_OFF", "PALETTE_ROLE_DRIFT", "PRIMARY_MISSING", "SECONDARY_MISSING"}:
         return "PALETTE"
-    if category in {"SUBJECT", "SUBJECT_DRIFT"}:
+    if category in {"SUBJECT", "SUBJECT_DRIFT", "AUDIENCE_DRIFT", "ATMOSPHERE_DRIFT"}:
         return "SUBJECT"
     if category in {"GENERATION_FAILURE", "RUNTIME", "VISION_UNAVAILABLE"}:
         return "GENERATION_FAILURE"
@@ -766,7 +785,7 @@ _RETRY_CORRECTIONS = {
     ),
     "PALETTE": (
         "Keep the requested primary and secondary colour relationship clear.",
-        "Strengthen requested colour dominance while retaining the same scene and shading.",
+        "Strengthen requested colour presence and the explicit relationship while retaining the same scene and shading.",
         "Prioritize requested colour families across major masses in the same scene.",
     ),
     "SUBJECT": (
@@ -797,7 +816,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     audience = ", ".join(semantics["audience_descriptors"])
     motif = _direction_motif(spec)
     colours = ", ".join(str(item["colour"]) for item in design["requested_palette"])
-    palette = f"{colours}; {_first_words(design['palette_relationship'] or 'primary leading, secondary supporting', 12)}"
+    palette = f"{colours}; {_palette_relationship(spec)}; no major unrelated chromatic family"
     composition = _spatial_instruction(design)
     strength = retry_strength_level(attempt)
     correction = (_RETRY_CORRECTIONS[runtime_retry_category(reason)][min(attempt - 2, 2)]
@@ -824,7 +843,8 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     positive = _join_sections(clip_g, correction if spec.engine_id == "flux-2" else "",
                              "Continuous background artwork with integrated calm visual space.")
     if spec.engine_id == "flux-2":
-        positive = _join_sections(positive, "Environment-only composition; uninterrupted visual surfaces.")
+        positive = _join_sections(positive, _affirmative_palette(spec),
+                                 "Environment-only composition; uninterrupted visual surfaces.")
     t5 = _join_sections(subject_line, anchor_line, mood_line, audience_line, motif_line,
                        treatment_line, palette_line, spatial_line, style_line, light_line, correction,
                        "Recognizable scene with foreground, middle distance and background.")

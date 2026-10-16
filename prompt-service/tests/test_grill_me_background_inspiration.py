@@ -9,10 +9,31 @@ from app.services.creative_direction import (
 )
 from app.services.grill_me_semantic import _safe_context
 from app.services.grill_me_service import evaluate_session, freeze_for_generation
-from app.services.semantic_contract import build_semantic_contract
+from app.services.semantic_contract import build_semantic_contract, resolve_palette_relationship
 
 
 class GrillMeBackgroundInspirationTests(unittest.TestCase):
+    def test_user_colour_relationship_is_preserved_from_visual_description(self):
+        for primary, secondary, relationship in (
+            ("green", "cream", "green dominant with cream supporting"),
+            ("black", "white", "mostly black with white accents"),
+            ("red", "blue", "red should be the main colour"),
+            ("navy", "gold", "navy background with small gold details"),
+        ):
+            with self.subTest(relationship=relationship):
+                brief = {"primary_colour": primary, "secondary_colour": secondary,
+                         "creative_description": relationship, "palette_mode": "dominant"}
+                phrase, source = resolve_palette_relationship(brief)
+                self.assertEqual((phrase, source), (relationship, "user_explicit"))
+                brief.update(palette_relationship=phrase, palette_relationship_source=source)
+                self.assertEqual(build_semantic_contract(brief)["semantic_provenance"]["palette_relationship"], "USER_EXPLICIT")
+        _, source = resolve_palette_relationship({"primary_colour": "navy", "secondary_colour": "white",
+                                                   "creative_description": "A luminous architectural hall"})
+        self.assertEqual(source, "default")
+        _, source = resolve_palette_relationship({"primary_colour": "navy", "secondary_colour": "white",
+                                                   "creative_description": "The main hall has navy and white walls"})
+        self.assertEqual(source, "default")
+
     def test_default_palette_relationship_provenance(self):
         brief = {"primary_colour": "navy", "secondary_colour": "white",
                  "palette_relationship": "requested colours dominate with natural tonal variation",

@@ -81,6 +81,29 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_abstract_web_motif_does_not_expand_to_a_creature(self):
+        document = document_for(CASES[0])
+        document["brief"].update(
+            theme="interconnected geometry",
+            background_inspiration="Interconnected strands around a geometric skyline",
+            theme_reference_treatment="Web-like lattice integrated into the perimeter",
+            visual_semantics={
+                "motif_descriptors": ["web-like lattice"],
+                "motif_structure_description": "Interconnected strands with cross-links",
+            },
+        )
+        document["directions"][0]["direction"]["positive_prompt"] = "Geometric skyline with interlinked strands"
+        for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
+            spec = build_candidate_spec(document, engine, "B")
+            for attempt, reason in ((1, ""), (2, "MOTIF_DRIFT: missing lattice")):
+                with self.subTest(engine=engine, attempt=attempt):
+                    compiled = compile_candidate_prompt(spec, attempt, reason)
+                    conditioning = " ".join(value or "" for value in (
+                        compiled.positive, compiled.clip_l, compiled.clip_g, compiled.t5))
+                    self.assertIn("strands", conditioning.lower())
+                    for creature in ("spider", "insect", "arachnid", "animal", "creature"):
+                        self.assertNotIn(creature, conditioning.lower())
+
     def test_named_reference_uses_semantic_render_fields_and_preserves_raw_provenance(self):
         document = document_for(CASES[0])
         brief = document["brief"]

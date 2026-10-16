@@ -3319,6 +3319,7 @@ class ComfyUIClient:
             int(previous.get("attempt_count", 0)) + 1 if retrying_candidate else 1,
             failure_history,
         )
+        profile_diagnostics = profile_selection_diagnostics(selected_profile, failure_history)
 
         resume_frozen = bool(previous and previous.get("status") in {"prepared", "submitted"}
                              and not retrying_candidate and previous.get("workflow"))
@@ -3435,7 +3436,10 @@ class ComfyUIClient:
                 "programme": candidate_spec.visual_design["programme_safe_region_strategy"],
             },
             "sampling_profile": selected_profile.record() if selected_profile else None,
-            **profile_selection_diagnostics(selected_profile, failure_history),
+            "sampling_profile_name": selected_profile.name if selected_profile else None,
+            "sampling_profile_stage": retry_stage or (compiled_prompt.retry_stage if compiled_prompt else None),
+            "sampling_profile_failure_history": profile_diagnostics["failure_history"],
+            **profile_diagnostics,
             "generation_mode": "native_text_to_image",
             "GENERATION_MODE": "native_text_to_image",
             "TEMPLATE_CONDITIONING_ENABLED": False,

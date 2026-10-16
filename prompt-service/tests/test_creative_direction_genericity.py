@@ -1,9 +1,13 @@
+import asyncio
+import json
 import unittest
+from unittest.mock import AsyncMock, patch
 
 from app.services.creative_direction import (
     background_design_summary,
     background_positive_requirements,
     build_creative_direction_prompt,
+    generate_creative_direction,
     positive_palette_description,
     reference_visual_language,
     sanitize_positive_prompt,
@@ -221,6 +225,59 @@ class CreativeDirectionGenericityTests(unittest.TestCase):
             "avoid",
             language,
         )
+
+    def test_empty_treatments_do_not_authorize_invented_materials(self):
+        brief = {"event_type": "invented gathering", "background_inspiration": "interlocking arc lattice",
+                 "primary_colour": "blue", "secondary_colour": "red",
+                 "visual_semantics": {"motif_descriptors": ["interlocking arc lattice"],
+                                      "material_descriptors": [], "texture_descriptors": [],
+                                      "lighting_descriptors": []}}
+        prompt = sanitize_positive_prompt(
+            "Interlocking arc lattice with open depth. Aged parchment texture and metallic highlights. "
+            "Coherent foreground and background separation.", brief, "visual designer")
+        self.assertIn("interlocking arc lattice", prompt.lower())
+        self.assertNotIn("parchment", prompt.lower())
+        self.assertNotIn("metallic", prompt.lower())
+
+    def test_explicit_material_texture_lighting_remain_available(self):
+        brief = {"event_type": "invented gathering", "background_inspiration": "frosted glass arcs",
+                 "primary_colour": "blue", "secondary_colour": "red",
+                 "visual_semantics": {"material_descriptors": ["frosted glass"],
+                                      "texture_descriptors": ["etched texture"],
+                                      "lighting_descriptors": ["cool rim lighting"]},
+                 "grill_me_context": {"semantic_provenance": {
+                     "material_descriptors": "USER_EXPLICIT", "texture_descriptors": "USER_EXPLICIT",
+                     "lighting_descriptors": "USER_EXPLICIT"}}}
+        prompt = sanitize_positive_prompt(
+            "Frosted glass arcs with etched texture and cool rim lighting. "
+            "Open depth and quiet upper space.", brief, "visual designer")
+        for phrase in ("frosted glass", "etched texture", "cool rim lighting"):
+            self.assertIn(phrase, prompt.lower())
+
+    def test_model_invention_is_removed_before_direction_is_returned(self):
+        brief = {"event_type": "invented gathering", "background_inspiration": "interlocking arc lattice",
+                 "primary_colour": "blue", "secondary_colour": "red",
+                 "visual_semantics": {"material_descriptors": [], "texture_descriptors": [],
+                                      "lighting_descriptors": []}}
+        output = {
+            "direction_id": "A", "role": "visual designer",
+            "positive_prompt": "Interlocking arc lattice with open depth. Aged parchment texture and metallic highlights.",
+            "negative_prompt": "people, text, logos", "title_suggestions": [],
+            "short_design_rationale": "Open arc composition",
+            "composition_strategy": "Asymmetric arcs around an open central field",
+            "focal_strategy": "Arc intersection at the lower left",
+            "depth_strategy": "Layered near and distant arcs",
+            "border_or_perimeter_strategy": "Open perimeter with separated arcs",
+            "title_safe_region_strategy": "Quiet upper central area",
+            "programme_safe_region_strategy": "Quiet lower right area",
+            "layout_guidance": {"title_zone": {"x": .1, "y": .08, "width": .8, "height": .12},
+                                "programme_zone": {"x": .1, "y": .6, "width": .8, "height": .25}},
+        }
+        with patch("app.services.creative_direction.generate_text", new_callable=AsyncMock,
+                   return_value={"response": json.dumps(output)}):
+            direction = asyncio.run(generate_creative_direction("A", brief))
+        self.assertNotIn("parchment", direction.positive_prompt.lower())
+        self.assertNotIn("metallic", direction.positive_prompt.lower())
 
 
 if __name__ == "__main__":

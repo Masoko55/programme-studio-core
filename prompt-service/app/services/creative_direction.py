@@ -1008,7 +1008,7 @@ def background_positive_requirements(
         )
         + "Original brief-specific composition, coherent visual "
         + "hierarchy, intentional calm negative space, balanced "
-        + "depth, material detail, texture and lighting."
+        + "depth and gentle tonal modelling."
     )
 
 def background_negative_constraints() -> str:
@@ -1035,11 +1035,40 @@ def fallback_prompt(
         f"{role} A4 portrait event-background artwork, "
         f"{palette} "
         "Brief-specific composition, coherent visual hierarchy, "
-        "intentional calm negative space, subject-appropriate "
-        "depth, materials, texture and lighting. "
+        "intentional calm negative space and subject-appropriate depth. "
         + subject
         + "."
     )
+
+_MATERIAL_WORDS = re.compile(
+    r"\b(?:concrete|parchment|paper|metal(?:lic)?|wood(?:en)?|velvet|"
+    r"marble|plastic|glass|fabric|stone|leather|silk|clay|ceramic)\b", re.I,
+)
+_TEXTURE_WORDS = re.compile(
+    r"\b(?:texture[ds]?|glossy|matte|etched|grainy|embossed)\b", re.I,
+)
+_LIGHTING_WORDS = re.compile(
+    r"\b(?:rim lighting|spotlight|backlit|neon lighting|studio lighting)\b", re.I,
+)
+
+
+def _unsupported_treatment(clause: str, brief: dict) -> bool:
+    """Keep concrete treatments only when the user's brief supports them."""
+    semantics = brief.get("visual_semantics") or {}
+    explicit_text = " ".join(str(brief.get(key) or "") for key in (
+        "theme", "background_inspiration", "creative_description", "theme_reference_treatment",
+        "material_language", "texture_language", "lighting_language", "visual_style",
+    )).casefold()
+    provenance = ((brief.get("semantic_contract") or {}).get("semantic_provenance") or
+                  (brief.get("grill_me_context") or {}).get("semantic_provenance") or {})
+    for key in ("material_descriptors", "texture_descriptors", "lighting_descriptors"):
+        if provenance.get(key) in {"USER_EXPLICIT", "GRILL_ME_CLARIFIED"}:
+            explicit_text += " " + " ".join(str(value) for value in (semantics.get(key) or [])).casefold()
+    for pattern in (_MATERIAL_WORDS, _TEXTURE_WORDS, _LIGHTING_WORDS):
+        if any(match.group().casefold() not in explicit_text for match in pattern.finditer(clause)):
+            return True
+    return False
+
 
 def sanitize_positive_prompt(
     value: str,
@@ -1086,10 +1115,13 @@ def sanitize_positive_prompt(
             )
         )
 
+        unsupported_treatment = _unsupported_treatment(clause, brief)
+
         if (
             not blocked
             and not negative_instruction
             and not named_reference
+            and not unsupported_treatment
         ):
             clean.append(
                 clause
@@ -1131,7 +1163,7 @@ def sanitize_positive_prompt(
             brief
         )
         + " Theme references are represented through abstract "
-        + "geometry, patterns, materials, architecture, atmosphere "
+        + "geometry, patterns, architecture, atmosphere "
         + "and colour relationships."
     )
 
@@ -1286,8 +1318,9 @@ def build_creative_direction_prompt(
         (
             "If the event brief uses a recognizable person, fictional "
             "character, superhero, mascot, celebrity or franchise, "
-            "translate the reference into abstract geometry, materials, "
-            "patterns, architecture, atmosphere and colour relationships."
+                "translate the reference into abstract geometry, patterns, "
+                "architecture, atmosphere and colour relationships. Use material, "
+                "texture or lighting treatments only when the brief supports them."
         ),
         (
             "Never place the referenced person or character itself "
@@ -1322,7 +1355,8 @@ def build_creative_direction_prompt(
         ),
         ("Name the viewpoint and distribution of major visual masses in the strategy fields; "
          "use the user's requested subject in every direction, but invent a distinct camera and layout plan."),
-        ("Invent viewpoint, mass placement, depth, lighting treatment and spatial flow only. "
+        ("Invent viewpoint, mass placement, depth and spatial flow only. "
+         "Do not invent material, texture or specific lighting treatments when the semantic contract leaves them empty. "
          "Do not introduce unsupported scene-defining objects. Keep each supplied motif at its stated "
          "importance: a subtle accent must not expand to cover the scene. Prefer a few coherent large "
          "forms over uniformly distributed micro-detail unless the brief explicitly requests density."),

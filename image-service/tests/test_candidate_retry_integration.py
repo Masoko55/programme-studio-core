@@ -9,6 +9,7 @@ from app.config.settings import settings
 from app.services.comfyui_client import ComfyUIClient, ComfyUIError
 from app.services.image_execution import _attempt_output_wave, _retry_candidate_after_error
 from app.services.execution_plan import build_execution_plan
+from app.services.sampling_profiles import select_sampling_profile
 
 
 REASON = "Generated background failed visual quality validation: smooth gradient colour wash"
@@ -80,7 +81,7 @@ class CandidateRetryIntegrationTests(unittest.TestCase):
              for direction in "ABC"},
         )
 
-    def run_wave(self, existing):
+    def run_wave(self, existing, reason=REASON):
         engine = FailingEngine()
         output = SimpleNamespace(engine_id=settings.engine_2_id, direction_id="B")
 
@@ -96,7 +97,7 @@ class CandidateRetryIntegrationTests(unittest.TestCase):
 
         with patch("app.services.image_execution._candidate_record", return_value=existing), \
              patch("app.services.image_execution._candidate_was_rejected", return_value=True), \
-             patch("app.services.image_execution._rejection_reason", return_value=REASON), \
+             patch("app.services.image_execution._rejection_reason", return_value=reason), \
              patch("app.services.image_execution.get_engine", return_value=engine), \
              patch("app.services.image_execution.update_output"), \
              patch("app.services.image_execution.asyncio.sleep", new=no_sleep):
@@ -114,6 +115,79 @@ class CandidateRetryIntegrationTests(unittest.TestCase):
             self.assertNotIn("expressive", positive.lower())
             self.assertEqual(kwargs["compiled_prompt"].positive, positive)
 
+    def test_other_quality_rejections_consume_the_same_nine_attempt_budget(self):
+        for reason in ("HUMAN: human silhouette", "MOTIF_DRIFT: missing lattice",
+                       "AUDIENCE_DRIFT: unsuitable atmosphere"):
+            with self.subTest(reason=reason):
+                calls, result = self.run_wave({}, reason)
+                self.assertEqual(result, (False, 0))
+                self.assertEqual(len(calls), 9)
+
+    def test_each_attempt_selects_profile_from_persisted_prior_failures(self):
+        engine = FailingEngine()
+        output = SimpleNamespace(engine_id=settings.engine_2_id, direction_id="B")
+        palette_reason = "Generated background contains colours that were not requested (off-palette ratio 0.20)"
+
+        def record(*_):
+            completed = len(engine.calls)
+            if not completed:
+                return {}
+            attempts = [{"attempt_count": number, "rejection_reason": palette_reason}
+                        for number in range(1, completed + 1)]
+            return {**attempts[-1], "status": "rejected", "rejected_attempts": attempts[:-1]}
+
+        async def no_sleep(_):
+            return None
+
+        with patch("app.services.image_execution._candidate_record", side_effect=record), \
+             patch("app.services.image_execution._candidate_was_rejected", return_value=True), \
+             patch("app.services.image_execution._rejection_reason", return_value=palette_reason), \
+             patch("app.services.image_execution.get_engine", return_value=engine), \
+             patch("app.services.image_execution.update_output"), \
+             patch("app.services.image_execution.asyncio.sleep", new=no_sleep), \
+             patch("app.services.image_execution.select_sampling_profile", wraps=select_sampling_profile) as selector:
+            asyncio.run(_attempt_output_wave(
+                state=SimpleNamespace(), document=document(), output=output,
+                reference_number="ABCDEF-123456", primary_colour="royal blue",
+                secondary_colour="red"))
+        self.assertEqual([call.args[1] for call in selector.call_args_list], list(range(1, 10)))
+        self.assertEqual([call.args[2].count("PALETTE_OFF") for call in selector.call_args_list],
+                         list(range(9)))
+        self.assertEqual(engine.calls[3][2]["sampling_profile"].name, "palette_alternate")
+        self.assertEqual(engine.calls[2][2]["sampling_profile"].name, "palette_guidance")
+        self.assertEqual(engine.calls[6][2]["sampling_profile"].name, "palette_strict")
+
+    def test_sd35_resume_uses_attempt_six_and_prior_history(self):
+        engine = FailingEngine()
+        output = SimpleNamespace(engine_id=settings.engine_3_id, direction_id="B")
+        reason = "Generated background contains colours that were not requested (off-palette ratio 0.20)"
+
+        def record(*_):
+            completed = 5 + len(engine.calls)
+            attempts = [{"attempt_count": number, "rejection_reason": reason}
+                        for number in range(1, completed + 1)]
+            return {**attempts[-1], "status": "rejected", "rejected_attempts": attempts[:-1]}
+
+        async def no_sleep(_):
+            return None
+
+        with patch("app.services.image_execution._candidate_record", side_effect=record), \
+             patch("app.services.image_execution._candidate_was_rejected", return_value=True), \
+             patch("app.services.image_execution._rejection_reason", return_value=reason), \
+             patch("app.services.image_execution.get_engine", return_value=engine), \
+             patch("app.services.image_execution.update_output"), \
+             patch("app.services.image_execution.asyncio.sleep", new=no_sleep), \
+             patch("app.services.image_execution.select_sampling_profile", wraps=select_sampling_profile) as selector:
+            asyncio.run(_attempt_output_wave(
+                state=SimpleNamespace(), document=document(), output=output,
+                reference_number="ABCDEF-123456", primary_colour="royal blue",
+                secondary_colour="red"))
+        self.assertEqual([call.args[1] for call in selector.call_args_list], [6, 7, 8, 9])
+        self.assertEqual([call.args[2].count("PALETTE_OFF") for call in selector.call_args_list],
+                         [5, 6, 7, 8])
+        self.assertEqual([call[2]["sampling_profile"].name for call in engine.calls],
+                         ["alternate_sampler", "raster_rescue_trial", "raster_rescue_trial", "raster_rescue_trial"])
+
     def test_ocr_infrastructure_failure_does_not_submit_another_image(self):
         engine = FailingEngine()
         output = SimpleNamespace(engine_id=settings.engine_2_id, direction_id="B")
@@ -125,13 +199,17 @@ class CandidateRetryIntegrationTests(unittest.TestCase):
         with patch("app.services.image_execution._candidate_record", return_value={}), \
              patch("app.services.image_execution._rejection_reason", return_value=reason), \
              patch("app.services.image_execution.update_output") as update, \
-             patch("app.services.image_execution.get_engine", return_value=engine):
+             patch("app.services.image_execution.get_engine", return_value=engine), \
+             patch("app.services.image_execution.logger.error") as log_error:
             self.assertEqual(asyncio.run(_attempt_output_wave(
                 state=SimpleNamespace(), document=document(), output=output,
                 reference_number="ABCDEF-123456", primary_colour="royal blue",
                 secondary_colour="red")), (False, 0))
         self.assertEqual(len(engine.calls), 1)
         self.assertEqual(update.call_args.args[3], "failed")
+        self.assertTrue(any("candidate_stopped_early" in call.args[0]
+                            and "ocr_infrastructure_fail_closed" in call.args[0]
+                            for call in log_error.call_args_list))
         with patch("app.services.image_execution._candidate_record", return_value={
                  "status": "rejected", "attempt_count": 1, "rejection_reason": reason}), \
              patch("app.services.image_execution.get_engine", return_value=engine), \

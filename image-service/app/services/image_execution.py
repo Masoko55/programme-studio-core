@@ -2002,6 +2002,13 @@ async def _retry_candidate_after_error(state, output, reference_number: str, spe
     )
 
     if _ocr_infrastructure_failure(reason):
+        record = _candidate_record(reference_number, output.engine_id, output.direction_id)
+        logger.error(
+            "event=candidate_stopped_early reference=%s engine=%s direction=%s "
+            "attempt=%s category=%s reason=%s stop_policy=ocr_infrastructure_fail_closed",
+            reference_number, output.engine_id, output.direction_id,
+            record.get("attempt_count", retry_count + 1), failure_category(reason), reason,
+        )
         update_output(state, output.engine_id, output.direction_id,
                       "failed", error=reason)
         return reason, True
@@ -2229,6 +2236,12 @@ async def _attempt_output_wave(
     existing = _candidate_record(reference_number, output.engine_id, output.direction_id)
     start_retry, previous_reason = _resume_retry_context(existing)
     if _ocr_infrastructure_failure(previous_reason):
+        logger.error(
+            "event=candidate_stopped_early reference=%s engine=%s direction=%s "
+            "attempt=%s category=%s reason=%s stop_policy=ocr_infrastructure_fail_closed",
+            reference_number, output.engine_id, output.direction_id,
+            existing.get("attempt_count", 0), failure_category(previous_reason), previous_reason,
+        )
         update_output(state, output.engine_id, output.direction_id,
                       "failed", error=previous_reason)
         return False, 0
@@ -2269,10 +2282,17 @@ async def _attempt_output_wave(
         )
         category = compiled.failure_category if compiled else failure_category(previous_reason)
         stage = compiled.retry_stage if compiled else retry_stage(attempt)
-        profile = select_sampling_profile(
-            output.engine_id,
-            1,
-            summarize_failures(None),
+        # Re-read the slot before every attempt: the previous rejection was
+        # persisted by ComfyUIClient, including across process restarts.
+        history = summarize_failures(_candidate_record(
+            reference_number, output.engine_id, output.direction_id,
+        ))
+        profile = select_sampling_profile(output.engine_id, attempt, history)
+        logger.info(
+            "event=sampling_profile_selected reference=%s engine=%s direction=%s "
+            "attempt=%s stage=%s profile=%s failure_history=%s",
+            reference_number, output.engine_id, output.direction_id,
+            attempt, stage, profile.name if profile else "engine_default", history.counts,
         )
         logger.info(
             "event=spec_lock_verified reference=%s engine=%s direction=%s "
@@ -2642,6 +2662,14 @@ async def execute_image_job(
                             )
                         except Exception as error:
                             logger.exception("Candidate slot failed: %s/%s", output.direction_id, output.engine_id)
+                            record = _candidate_record(reference_number, output.engine_id, output.direction_id)
+                            if int(record.get("attempt_count") or 0) < 9:
+                                logger.error(
+                                    "event=candidate_stopped_early reference=%s engine=%s direction=%s "
+                                    "attempt=%s category=%s reason=%s stop_policy=infrastructure_or_invariant",
+                                    reference_number, output.engine_id, output.direction_id,
+                                    record.get("attempt_count", 0), failure_category(str(error)), str(error)[:300],
+                                )
                             update_output(state, output.engine_id, output.direction_id,
                                           "failed", error=str(error)[:300])
                             current_engine = None

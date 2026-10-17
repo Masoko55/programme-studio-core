@@ -737,6 +737,14 @@ def assess_subject_adherence(
             )
         )
 
+        if (
+            visual_design.get("motif_literalization_policy") == "motif_only"
+            and not isinstance(answer.get("unrequested_literal_object_visible"), bool)
+        ):
+            raise ValueError(
+                "Vision response lacks boolean unrequested_literal_object_visible"
+            )
+
         vision_human = (
             answer.get(
                 "human_visible"

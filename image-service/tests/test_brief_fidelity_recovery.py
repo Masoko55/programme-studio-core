@@ -31,6 +31,38 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_motif_only_requires_explicit_boolean_literal_object_signal(self):
+        brief = {
+            "primary_visual_subject": "abstract layered marks",
+            "visual_semantics": {"motif_descriptors": ["feather-like strokes"]},
+            "motif_literalization_policy": "motif_only",
+            "authorized_literal_subject": "",
+        }
+        scores = {"subject_score": .95, "motif_score": .95}
+
+        result, _ = self._assess(
+            brief, {**scores, "unrequested_literal_object_visible": False}
+        )
+        self.assertTrue(result["checked"])
+        self.assertNotEqual(result["decision"], "SUBJECT_DRIFT")
+
+        for response in (
+            scores,
+            {**scores, "unrequested_literal_object_visible": None},
+            {**scores, "unrequested_literal_object_visible": "false"},
+            {**scores, "unrequested_literal_object_visible": 0},
+        ):
+            result, _ = self._assess(brief, response)
+            self.assertFalse(result["checked"])
+            self.assertEqual(result["decision"], "unavailable")
+            self.assertEqual(result["dimension_availability"]["subject_score"], "UNAVAILABLE")
+
+        result, _ = self._assess(
+            {**brief, "motif_literalization_policy": "literal_allowed"}, scores
+        )
+        self.assertTrue(result["checked"])
+        self.assertNotEqual(result["decision"], "unavailable")
+
     def test_unrequested_literal_objects_fail_subject_fit_for_inferred_patterns(self):
         scores = {"subject_score": .95, "motif_score": .95,
                   "unrequested_literal_object_visible": True}

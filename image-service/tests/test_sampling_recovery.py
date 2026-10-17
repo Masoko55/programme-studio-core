@@ -93,6 +93,16 @@ def failure_record(
 class SamplingRecoveryTests(
     unittest.TestCase
 ):
+    def test_sdxl_role_drift_joins_palette_profile_history(self):
+        for count, attempt, expected in ((1, 2, "baseline"), (2, 3, "palette_guidance"),
+                                         (3, 4, "palette_alternate"), (6, 7, "palette_strict"),
+                                         (8, 9, "palette_strict")):
+            record = {"rejected_attempts": [
+                {"attempt_count": index, "rejection_reason": "PALETTE_ROLE_DRIFT: neutrals dominate"}
+                for index in range(1, count + 1)]}
+            profile = select_sampling_profile("sdxl-1-0", attempt, summarize_failures(record))
+            self.assertIn(expected, profile.name)
+
     def test_palette_recovery_requires_sound_source_and_existing_colour_roles(self):
         sound = {"primary_ratio": .35, "secondary_ratio": .22,
                  "requested_chromatic_ratio": .57, "structural_neutral_ratio": .18,

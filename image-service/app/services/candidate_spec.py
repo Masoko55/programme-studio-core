@@ -57,6 +57,28 @@ class CandidateSpec:
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def _safe_spatial_treatment(raw: str, affinities: list[str]) -> str:
+    """Translate explicitly stated camera/motion cues without depicting a reference."""
+    text = raw.casefold()
+    parts = []
+    if re.search(r"\bfirst[- ]person\b", text):
+        parts.append("immersive first-person viewpoint")
+    if re.search(r"\b(?:view from above|aerial view|overhead view)\b", text):
+        parts.append("aerial viewpoint")
+    if re.search(r"\b(?:swing\w*|fly\w*|mov\w*|travel\w*|travers\w*|glid\w*|rush\w*)\b", text):
+        parts.append("forward traversal with strong receding perspective")
+    if re.search(r"\b(?:swing\w*|arc\w*|sweep\w*)\b", text):
+        parts.append("arcing spatial motion")
+    environment = re.search(r"\b(?:through|between)\s+(?:the\s+)?([a-z]+(?:\s+[a-z]+){0,2})", text)
+    if environment:
+        words = re.split(r"\b(?:in|from|with|while|as|first|person|view)\b", environment.group(1), maxsplit=1)[0].strip()
+        if words:
+            parts.append(f"movement through {words}")
+    parts.extend(phrase for phrase in affinities if re.search(
+        r"\b(?:viewpoint|perspective|traversal|movement|motion|depth)\b", phrase, re.I))
+    return "; ".join(dict.fromkeys(parts))
+
+
 def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> CandidateSpec:
     brief = document.get("brief")
     if not isinstance(brief, dict):
@@ -220,7 +242,10 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         render_anchors = semantic_motifs or ([safe_scene] if safe_scene else [])
     render_treatment = contract["theme_reference_treatment"]
     if has_reference(render_treatment):
-        render_treatment = structure if structure and not has_reference(structure) else ", ".join(semantic_motifs)
+        render_treatment = _safe_spatial_treatment(
+            render_treatment, [item for item in contract["composition_affinities"] if not has_reference(item)])
+        if not render_treatment:
+            render_treatment = structure if structure and not has_reference(structure) else ", ".join(semantic_motifs)
     else:
         render_treatment = re.split(
             r"\b(?:do not|don't|never|avoid|without|no people|no characters|no text)\b",

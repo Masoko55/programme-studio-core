@@ -31,6 +31,23 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_explicit_viewpoint_is_scored_independently_of_subject_and_motif(self):
+        brief = {
+            "primary_visual_subject": "layered city geometry",
+            "theme_reference_treatment": "Solar Sentinel is moving through the city in first person view",
+            "visual_design": {"theme_reference_treatment": "first-person viewpoint; movement through the city"},
+            "semantic_provenance": {"theme_reference_treatment": "USER_EXPLICIT"},
+        }
+        scores = {"subject_score": .9, "atmosphere_score": .9, "motif_score": .9,
+                  "audience_fit_score": .9, "treatment_score": .1}
+        result, prompt = self._assess(brief, scores)
+        self.assertEqual(result["decision"], "TREATMENT_DRIFT")
+        self.assertTrue(hard_fidelity_failure(result))
+        self.assertIn("treatment_score", prompt)
+        scores["treatment_score"] = .9
+        result, _ = self._assess(brief, scores)
+        self.assertFalse(hard_fidelity_failure(result))
+
     def _assess(
         self,
         brief,

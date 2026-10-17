@@ -69,6 +69,8 @@ def failure_category(reason: str) -> str:
         return "BRIEF_FIDELITY_DRIFT"
     if "PALETTE_ROLE_DRIFT" in reason.upper():
         return "PALETTE_ROLE_DRIFT"
+    if "TREATMENT_DRIFT" in reason.upper():
+        return "TREATMENT_DRIFT"
     if "DENSITY_DRIFT" in reason.upper():
         return "DENSITY_DRIFT"
     if "VISION_UNAVAILABLE" in reason.upper():
@@ -147,6 +149,11 @@ def _palette_relationship(spec: CandidateSpec) -> str:
     if policy["explicit"]:
         return policy["relationship"]
     colours = [str(item["colour"]) for item in design["requested_palette"]]
+    if (design["palette_mode"] == "dominant" and colours
+            and any(colour not in {"black", "white", "grey", "gray"} for colour in colours)):
+        return ("; ".join(f"{colour} clearly visible in substantial design elements" for colour in colours)
+                + "; requested colour families own principal surfaces and visual mass; "
+                "primary leads, secondary is substantial; neutrals support only fine linework, shading and highlights")
     return "; ".join(f"{colour} clearly visible in substantial design elements" for colour in colours)
 
 
@@ -413,6 +420,7 @@ _CORRECTIONS = {
     "SUBJECT_DRIFT": "Depict the requested visual environment with recognizable subject-specific forms and the supplied visual anchors. Retain this direction's composition and palette.",
     "ATMOSPHERE_DRIFT": "Strengthen the supplied atmosphere and lighting descriptors while preserving the same subject, motif, audience and palette.",
     "MOTIF_DRIFT": "Make the supplied motif structure visibly legible while preserving the same subject, atmosphere, audience and palette.",
+    "TREATMENT_DRIFT": "Restore the supplied viewpoint, movement and spatial treatment while preserving subject, motif, audience and palette.",
     "AUDIENCE_DRIFT": "Strengthen the supplied audience-appropriate visual treatment while preserving the same subject, motif, atmosphere and palette.",
     "PALETTE_OFF": "Correct the requested colour relationship while preserving this design's texture, shading and details.",
     "PALETTE_ROLE_DRIFT": "Restore the requested primary and secondary visual-mass relationship without changing subject, motif or structure.",
@@ -557,7 +565,8 @@ def _encoder_fields(
                            compact_motif, _exclude_incompatible(spatial_line, spec), colour,
                            f"Correction: {short_correction}" if short_correction else ""),
             _join_sections("Background artwork.", subject_line, atmosphere_line,
-                           compact_motif, _exclude_incompatible(spatial_line, spec),
+                           compact_motif, f"Treatment: {_first_words(treatment, 22)}." if treatment else "",
+                           _exclude_incompatible(spatial_line, spec),
                            f"Quiet areas: {_first_words(design['title_safe_region_strategy'], 9)}; "
                            f"{_first_words(design['programme_safe_region_strategy'], 9)}.",
                            colour, hierarchy_line,
@@ -573,6 +582,7 @@ def _encoder_fields(
             f"Style: {_first_words(style, 8)}." if style else "",
             _atmosphere(spec),
             _scene_tone(spec)[0],
+            f"Treatment: {_first_words(treatment, 22)}." if treatment else "",
             f"Composition: {_first_words(design['composition_strategy'], 10)}.",
             f"Focal: {_first_words(design['focal_strategy'], 8)}.",
             f"Depth: {_first_words(design['depth_strategy'], 8)}.",
@@ -689,6 +699,7 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         "atmosphere": ", ".join(contract["atmosphere_descriptors"]),
         "audience": ", ".join(contract["audience_descriptors"]),
         "motif": contract["motif_structure_description"] or ", ".join(contract["motif_descriptors"]),
+        "treatment": spec.visual_design["theme_reference_treatment"],
         "palette": ", ".join(str(item["colour"]) for item in contract["palette"]),
         "scene_family": contract["scene_family"],
     }
@@ -699,7 +710,7 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     effective = ("positive",) if spec.engine_id == "flux-2" else (
         ("clip_g", "t5") if spec.engine_id == "sd-3-5-medium" else ("clip_g",))
     truncated = any(probes[key] and not any(channel in coverage[key] for channel in effective)
-                    for key in ("subject", "atmosphere", "audience", "motif", "palette"))
+                    for key in ("subject", "atmosphere", "audience", "motif", "palette", "treatment"))
     result = CompiledPrompt(
         positive=positive,
         negative=negative,
@@ -782,6 +793,7 @@ _RETRY_CORRECTIONS = {
     "ATMOSPHERE_DRIFT": "Strengthen the explicitly supplied atmosphere without changing the scene.",
     "AUDIENCE_DRIFT": "Strengthen the supplied audience-appropriate visual treatment without changing the scene.",
     "MOTIF_DRIFT": "Make the supplied motif topology visible without adding related objects or creatures.",
+    "TREATMENT_DRIFT": "Restore the supplied viewpoint and movement through the same scene without adding a character or unrelated object.",
     "DENSITY_DRIFT": "Restore the requested density and visual hierarchy; reduce uniformly scattered micro-detail.",
     "FLAT": "Strengthen coherent medium and large subject forms and depth.",
     "GRADIENT": "Restore discrete subject-specific forms, depth and tonal structure.",
@@ -833,7 +845,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     audience_line = f"Audience: {_first_words(audience, 7)}." if audience else ""
     motif_line = f"Motif: {_first_words(motif, 16)}." if motif else ""
     treatment = design["theme_reference_treatment"]
-    treatment_line = (f"Reference treatment: {_first_words(treatment, 12)}."
+    treatment_line = (f"Reference treatment: {_first_words(treatment, 22)}."
                       if treatment else "")
     style_line = (f"Style: {_first_words(design.get('visual_style'), 8)}."
                   if design.get("visual_style") else "")
@@ -857,8 +869,12 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
         return re.sub(r"\b(?:8k|4k|masterpiece|ultra[- ]detailed|trending on artstation|"
                       r"award[- ]winning|unreal engine|octane render|cinematic masterpiece)\b",
                       "", value, flags=re.I).strip()
+    coverage = {**compiled.conditioning_coverage,
+                "treatment": [channel for channel, value in
+                              (("positive", positive), ("clip_g", clip_g), ("t5", t5))
+                              if treatment_line and treatment_line in value]}
     updated: CompiledPrompt = replace(compiled, positive=clean(positive), clip_l=clean(clip_l),
                                       clip_g=clean(clip_g), t5=clean(t5) if spec.engine_id == "sd-3-5-medium" else None,
                                       failure_category=runtime_retry_category(reason), retry_stage=compiled.retry_stage,
-                                      retry_strength_level=strength)
+                                      retry_strength_level=strength, conditioning_coverage=coverage)
     return updated

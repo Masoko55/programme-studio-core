@@ -28,6 +28,16 @@ def assess(image, mode="dominant"):
 
 
 class PaletteTonalFamilyTests(unittest.TestCase):
+    def test_default_chromatic_palette_rejects_neutral_visual_majority(self):
+        image = blocks(*(["blue"] * 39 + ["red"] * 6 + ["white"] * 55))
+        with self.assertRaisesRegex(ValueError, "PALETTE_ROLE_DRIFT"):
+            assess(image)
+
+    def test_requested_colour_majority_still_passes(self):
+        image = blocks(*(["blue"] * 60 + ["red"] * 15 + ["white"] * 25))
+        result = assess(image)
+        self.assertGreater(result["requested_chromatic_ratio"], result["structural_neutral_ratio"])
+
     def test_large_blue_and_red_shadows_count_as_requested_families(self):
         for image in (blocks("blue", "red", "navy", "burgundy"),
                       blocks("blue", "red", BLUE_SHADE, RED_SHADE),

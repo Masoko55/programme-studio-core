@@ -523,6 +523,7 @@ def _select_sdxl_profile(
         history.count(
             "PALETTE_OFF"
         )
+        + history.count("PALETTE_ROLE_DRIFT")
         + history.count(
             "PRIMARY_MISSING"
         )
@@ -535,6 +536,7 @@ def _select_sdxl_profile(
         history.consecutive_category
         in {
             "PALETTE_OFF",
+            "PALETTE_ROLE_DRIFT",
             "PRIMARY_MISSING",
             "SECONDARY_MISSING",
         }

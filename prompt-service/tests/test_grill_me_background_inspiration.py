@@ -13,6 +13,16 @@ from app.services.semantic_contract import build_semantic_contract, resolve_pale
 
 
 class GrillMeBackgroundInspirationTests(unittest.TestCase):
+    def test_named_reference_keeps_explicit_viewpoint_and_movement_without_assets(self):
+        answers = {"theme_reference_treatment": "Solar Sentinel is moving through the city in first person view"}
+        review = {"reference_detected": True, "reference_name": "Solar Sentinel",
+                  "visual_semantics": {"composition_affinities": ["Solar Sentinel character", "metallic armour"]}}
+        context = _safe_context(review, answers)
+        affinities = context["visual_semantics"]["composition_affinities"]
+        self.assertTrue(any("first-person" in item for item in affinities))
+        self.assertTrue(any("traversal" in item for item in affinities))
+        self.assertFalse(any("Solar Sentinel" in item or "armour" in item for item in affinities))
+
     def test_vague_reference_keeps_only_safe_supported_inference(self):
         answers = {"theme_reference_treatment": "Solar Sentinel inspired visual traits",
                    "background_inspiration": "Solar Sentinel inspired background"}

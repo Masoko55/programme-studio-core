@@ -2347,8 +2347,8 @@ def _palette_role_metrics(primary_name: str | None, secondary_name: str | None,
     presence = secondary_ratio is None or secondary_ratio >= secondary_minimum
     dominance = (True if relation in {"FLEXIBLE", "MONOCHROMATIC"} or primary_ratio is None or secondary_ratio is None else
                  abs(primary_ratio - secondary_ratio) <= .20 if relation == "BALANCED" else
-                 secondary_ratio + MIN_PRIMARY_DOMINANCE_MARGIN >= primary_ratio if relation == "SECONDARY_DOMINANT" else
-                 primary_ratio + MIN_PRIMARY_DOMINANCE_MARGIN >= secondary_ratio)
+                 secondary_ratio >= primary_ratio + MIN_PRIMARY_DOMINANCE_MARGIN if relation == "SECONDARY_DOMINANT" else
+                 primary_ratio >= secondary_ratio + MIN_PRIMARY_DOMINANCE_MARGIN)
     metrics = {"primary_ratio": primary_ratio, "secondary_ratio": secondary_ratio,
                "primary_family": primary_name, "secondary_family": secondary_name,
                "primary_role": primary_role,
@@ -2814,13 +2814,8 @@ def validate_palette(
         )
     }
 
-    neutral_takeover = (
-        not exclusive_palette and bool(requested_targets)
-        and structural_neutral_ratio > 0.55 and requested_chromatic_ratio < 0.35
-    )
     palette_limit = 0.01 if exclusive_palette else MAX_OFF_PALETTE_RATIO
-    if (off_palette_ratio > palette_limit or largest_unrequested_region > 0.035
-            or neutral_takeover):
+    if off_palette_ratio > palette_limit or largest_unrequested_region > 0.035:
         top_unrequested = [
             (
                 f"{name}="
@@ -2859,6 +2854,16 @@ def validate_palette(
             "accepted_tonal_breakdown": tonal_breakdown,
             "unrequested_colour_breakdown": breakdown,
         }
+        raise error
+
+    policy = palette_relationship_policy(relationship, relationship_source, secondary_name)
+    if (mode not in {"strict", "monochrome", "achromatic"} and not exclusive_palette
+            and requested_targets and not policy["explicit"]
+            and requested_chromatic_ratio <= structural_neutral_ratio):
+        error = ValueError("PALETTE_ROLE_DRIFT: requested colour families do not dominate the visual mass")
+        error.palette_metrics = {"off_palette_ratio": off_palette_ratio, **perceptual_metrics,
+                                 "requested_colour_family_counts": requested_counts,
+                                 "palette_mode": mode or "dominant"}
         raise error
 
     try:

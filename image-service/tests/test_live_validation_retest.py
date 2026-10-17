@@ -154,25 +154,12 @@ class LiveValidationRetestTests(unittest.TestCase):
             ]
         )
 
-        close = _palette_role_metrics(
-            "green",
-            "cream",
-            {
-                "green": 450,
-                "cream": 470,
-            },
-            1000,
-            "green dominant with cream supporting",
-            "dominant",
-            None,
-            "user_explicit",
-        )
-
-        self.assertTrue(
-            close[
-                "dominance_relationship_passed"
-            ]
-        )
+        with self.assertRaisesRegex(ValueError, "PALETTE_ROLE_DRIFT"):
+            _palette_role_metrics(
+                "green", "cream", {"green": 450, "cream": 470}, 1000,
+                "green dominant with cream supporting", "dominant", None,
+                "user_explicit",
+            )
 
     def test_large_unrelated_chromatic_regions_still_fail(self):
         image = Image.new(

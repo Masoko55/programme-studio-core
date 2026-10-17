@@ -9,6 +9,7 @@ import base64
 import io
 import json
 import math
+import re
 from pathlib import Path
 
 import httpx
@@ -77,6 +78,7 @@ def brief_fidelity_record(result: dict) -> dict:
             "subject_score",
             "atmosphere_score",
             "motif_score",
+            "treatment_score",
             "audience_fit_score",
             "thresholds",
             "decision",
@@ -404,6 +406,14 @@ def assess_subject_adherence(
             "audience_fit_score"
         ] = fidelity_threshold
 
+    provenance = visual_design.get("semantic_provenance") or {}
+    explicit_treatment = (provenance.get("theme_reference_treatment") in
+                          {"USER_EXPLICIT", "GRILL_ME_CLARIFIED"})
+    if (treatment and explicit_treatment and re.search(
+            r"\b(?:viewpoint|perspective|traversal|movement|motion|aerial|first[- ]person)\b",
+            treatment, re.I)):
+        required["treatment_score"] = fidelity_threshold
+
     base = {
         "checked": False,
         "score": None,
@@ -416,6 +426,7 @@ def assess_subject_adherence(
         "subject_score": None,
         "atmosphere_score": None,
         "motif_score": None,
+        "treatment_score": None,
         "audience_fit_score": None,
         "thresholds": required,
         "observed_evidence": [],
@@ -464,14 +475,17 @@ def assess_subject_adherence(
 
     prompt = (
         "Assess this background against the requested brief using independent scores between 0 and 1: "
-        "subject_score, atmosphere_score, motif_score, audience_fit_score. "
+        "subject_score, atmosphere_score, motif_score, audience_fit_score, and treatment_score when requested. "
         "Judge visible subject, global atmosphere, motif topology, and audience fit separately. "
         "Also give background_usability_score for hierarchy, controlled density, and usable calm space, "
         "and human_visible as a boolean based on visible human evidence, including small or distant people. "
         "Give human_description with concrete visible body, face, posture and location evidence when a person is present. "
         "Do not judge colours. Do not infer a subject or motif from decorative lines alone. "
+        "A motif pattern does not authorize an unrequested literal source object; count such an object against subject fit. "
         "Intentional abstract or sculptural subjects are valid when requested. "
         "Compare visible connected/repeated motif geometry with the supplied motif topology; "
+        "Score treatment_score independently for visible viewpoint, motion and spatial relationship; "
+        "do not score likeness to a named reference or require its character. "
         "theme resemblance alone is insufficient. "
         "A subtle motif need not dominate, while a primary motif should be clearly visible. "
         "Assess whether subject presence has become full-frame subject saturation or concept-art clutter. "
@@ -742,6 +756,7 @@ def assess_subject_adherence(
             "subject_score",
             "atmosphere_score",
             "motif_score",
+            "treatment_score",
             "audience_fit_score",
         ):
             raw_score = answer.get(
@@ -906,6 +921,8 @@ def assess_subject_adherence(
         hard_dimensions.append(
             "motif_score"
         )
+    if "treatment_score" in required:
+        hard_dimensions.append("treatment_score")
 
     if (
         audience
@@ -950,6 +967,7 @@ def assess_subject_adherence(
         "subject_score": "SUBJECT_DRIFT",
         "atmosphere_score": "ATMOSPHERE_DRIFT",
         "motif_score": "MOTIF_DRIFT",
+        "treatment_score": "TREATMENT_DRIFT",
         "audience_fit_score": "AUDIENCE_DRIFT",
     }
 
@@ -965,6 +983,9 @@ def assess_subject_adherence(
         decision = (
             "SUBJECT_DRIFT"
         )
+
+    elif "treatment_score" in hard_failed:
+        decision = "TREATMENT_DRIFT"
 
     elif failed:
         decision = (

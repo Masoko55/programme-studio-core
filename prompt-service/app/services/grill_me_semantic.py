@@ -390,6 +390,21 @@ def _safe_inferred_reference_phrase(phrase: str, reference_name: str) -> bool:
     return not (reference_pattern and re.search(reference_pattern, phrase, re.I))
 
 
+def _explicit_spatial_treatment(treatment: str) -> list[str]:
+    """Normalize only viewpoint and movement actually stated by the user."""
+    text = treatment.casefold()
+    result = []
+    if re.search(r"\bfirst[- ]person\b|\b(?:viewer|camera)\s+(?:is\s+)?(?:moving|travelling|traveling)", text):
+        result.append("immersive first-person viewpoint")
+    if re.search(r"\b(?:view from above|aerial view|overhead view)\b", text):
+        result.append("aerial viewpoint")
+    if re.search(r"\b(?:swing\w*|fly\w*|mov\w*|travel\w*|travers\w*|glid\w*|rush\w*)\b", text):
+        result.append("forward traversal and receding spatial depth")
+    if re.search(r"\b(?:swing\w*|arcing|sweeping)\s+(?:through|across|past|between|over)\b", text):
+        result.append("arcing spatial motion")
+    return result
+
+
 def _safe_background_constraint(phrase: str) -> bool:
     # Negative exclusions remain useful; affirmative final artwork requests do not.
     if (re.match(r"\s*(?:no|without|avoid|exclude|do not)\b", phrase, re.I)
@@ -483,6 +498,7 @@ def _safe_context(
         reference_name = str(context.get("reference_name") or "").strip()
         treatment = _theme_reference_treatment(answers)
         vague = _vague_reference_treatment(treatment, reference_name)
+        explicit_spatial = _explicit_spatial_treatment(treatment) if not vague else []
         support = " ".join(str(answers.get(key) or "") for key in (
             "creative_description", "background_inspiration", "theme_reference_treatment",
         )).casefold()
@@ -503,6 +519,9 @@ def _safe_context(
             elif content and not _safe_inferred_reference_phrase(content, reference_name):
                 semantics[key] = ""
         context["visual_semantics"] = semantics
+        if explicit_spatial:
+            semantics["composition_affinities"] = list(dict.fromkeys(
+                [*semantics["composition_affinities"], *explicit_spatial]))[:8]
     context["semantic_provenance"] = {
         key: ("SAFE_FALLBACK" if not content or (key == "scene_family" and content == "general"
                                     and not (isinstance(supplied_semantics, dict) and key in supplied_semantics)) else
@@ -512,6 +531,8 @@ def _safe_context(
               or (key == "audience_descriptors" and answers.get("age_group")) else "SAFE_FALLBACK")
         for key, content in context["visual_semantics"].items()
     }
+    if context.get("reference_detected") and _explicit_spatial_treatment(_theme_reference_treatment(answers)):
+        context["semantic_provenance"]["composition_affinities"] = "USER_EXPLICIT"
     context["semantic_confidence"] = {
         key: float(score) for key, score in (value.get("semantic_confidence") or {}).items()
         if key in context["visual_semantics"] and context["semantic_provenance"][key] == "SEMANTIC_INFERENCE"

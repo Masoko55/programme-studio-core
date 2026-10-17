@@ -81,6 +81,45 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_explicit_spatial_treatment_survives_reference_sanitization_and_retries(self):
+        document = document_for(CASES[0])
+        raw = "Solar Sentinel is moving through the city in first person view"
+        document["brief"].update(
+            background_inspiration="A city seen through Solar Sentinel's viewpoint",
+            theme_reference_treatment=raw,
+            grill_me_context={"reference_detected": True, "reference_name": "Solar Sentinel",
+                              "semantic_provenance": {"theme_reference_treatment": "USER_EXPLICIT"}},
+            visual_semantics={"motif_descriptors": ["radial urban geometry"],
+                              "motif_structure_description": "radial urban geometry",
+                              "composition_affinities": ["first-person viewpoint", "movement through the city"]},
+        )
+        for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
+            spec = build_candidate_spec(document, engine, "B")
+            self.assertEqual(spec.theme_reference_treatment, raw)
+            self.assertNotIn("Solar Sentinel", spec.visual_design["theme_reference_treatment"])
+            for attempt in (1, 2, 4, 7, 9):
+                compiled = compile_candidate_prompt(spec, attempt, "TREATMENT_DRIFT: viewpoint missing" if attempt > 1 else "", concise=attempt > 1)
+                conditioning = " ".join(str(value or "") for value in (compiled.positive, compiled.clip_g, compiled.t5))
+                self.assertIn("first-person", conditioning.lower())
+                self.assertIn("movement", conditioning.lower())
+                self.assertNotIn("Solar Sentinel", conditioning)
+
+    def test_treatment_drift_is_a_distinct_retry_category(self):
+        self.assertEqual(runtime_retry_category("TREATMENT_DRIFT: missing viewpoint"), "TREATMENT_DRIFT")
+
+    def test_sdxl_concise_palette_roles_survive_all_retry_categories(self):
+        spec = build_candidate_spec(document_for(CASES[0]), "sdxl-1-0", "B")
+        for attempt, reason in ((1, ""), (2, "PALETTE_ROLE_DRIFT: neutrals dominate"),
+                                (4, "HUMAN: figure"), (7, "TEXT: glyphs"),
+                                (9, "TREATMENT_DRIFT: viewpoint")):
+            compiled = compile_candidate_prompt(spec, attempt, reason, concise=True)
+            effective = compiled.clip_g.lower()
+            self.assertIn("royal blue", effective)
+            self.assertIn("red", effective)
+            self.assertIn("visual mass", effective)
+            self.assertIn("neutrals support", effective)
+
+
     def test_abstract_web_motif_does_not_expand_to_a_creature(self):
         document = document_for(CASES[0])
         document["brief"].update(

@@ -1374,13 +1374,14 @@ def build_creative_direction_prompt(
         ),
         (
             "The new direction must differ structurally from prior directions in at "
-            "least three independent spatial decisions: composition family, viewpoint, "
+            "least two unlocked spatial decisions: composition family, viewpoint, "
             "focal band, mass distribution, major flow, depth, perimeter, motif placement "
-            "or quiet-region geometry. Rewording the same arrangement does not count."
+            "or quiet-region geometry. Preserve every user-locked spatial requirement. "
+            "Rewording the same arrangement does not count."
         ),
         ("Name the viewpoint and distribution of major visual masses in the strategy fields; "
-         "use the user's requested subject in every direction, but invent a distinct camera and layout plan."),
-        ("Invent viewpoint, mass placement, depth and spatial flow only. "
+         "use the user's requested subject in every direction; vary only unlocked camera and layout choices."),
+        ("Vary only unlocked viewpoint, mass placement, depth and spatial flow. "
          "Do not invent material, texture or specific lighting treatments when the semantic contract leaves them empty. "
          "Do not introduce unsupported scene-defining objects. Keep each supplied motif at its stated "
          "importance: a subtle accent must not expand to cover the scene. Prefer a few coherent large "
@@ -1512,6 +1513,10 @@ def build_creative_direction_prompt(
 
     if diversity_constraints:
         payload["structural_diversity_plan"] = diversity_constraints
+        requirements.append(
+            "Keep locked structural fields exactly as supplied; choose at least two material "
+            "changes from the listed unlocked fields relative to each accepted direction."
+        )
 
     if correction_error:
         payload[
@@ -1530,15 +1535,15 @@ def build_creative_direction_prompt(
             retry_count = int(diversity_constraints.get("retry_count") or 0)
             payload["correction_required"]["diversity_overlap"] = diversity_constraints["failed_diagnostic"]
             payload["correction_required"]["instruction"] = (
-                "Second retry: choose clearly unused viewpoint, focal placement, flow, depth, "
-                "mass distribution or quiet-space placement from the available alternatives. "
-                "Change at least two major spatial choices relative to EACH accepted direction. "
+                "Second retry: choose clearly unused values from the available unlocked alternatives. "
+                "Change at least two unlocked major spatial choices relative to EACH accepted direction. "
+                "Keep every locked structural field fixed. "
                 "Preserve exactly the subject, event, theme, audience, palette, mood, important "
                 "motifs and reference treatment. Do not invent scene-defining objects."
                 if retry_count >= 2 else
-                "First retry: change at least two major spatial choices relative to EACH accepted "
-                "direction: viewpoint, focal placement, flow, depth, mass distribution or quiet-space "
-                "placement. Preserve exactly the subject, event, theme, audience, palette, mood, "
+                "First retry: change at least two unlocked major spatial choices relative to EACH accepted "
+                "direction using the available alternatives. Keep every locked structural field fixed. "
+                "Preserve exactly the subject, event, theme, audience, palette, mood, "
                 "important motifs and reference treatment. Do not invent scene-defining objects."
             )
 

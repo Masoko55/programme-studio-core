@@ -16,13 +16,72 @@ from app.graph.workflow import (
     validate_direction_c,
 )
 from app.services.creative_direction import build_creative_direction_prompt
-from app.services.direction_diversity import build_diversity_constraints
+from app.services.direction_diversity import build_diversity_constraints, locked_structural_fields
 from app.services.validation import direction_signature, validate_direction_diversity
 from scripts.generate_prompts_for_reference import main as prompt_only_main, parse_args
 from tests.test_direction_structure_contract import direction
 
 
 class DirectionRetryBoundaryTests(unittest.TestCase):
+    def _spatial_brief(self, *affinities, source="USER_EXPLICIT"):
+        return {"visual_semantics": {"scene_family": "architectural-interior",
+                                     "composition_affinities": list(affinities)},
+                "semantic_provenance": {"composition_affinities": source}}
+
+    def _spatial_direction(self, letter, mass="left-heavy", quiet="upper/lower"):
+        result = direction(letter, f"first-person curved traversal with {mass} mass")
+        result.focal_strategy = "first-person focal building at left"
+        result.depth_strategy = "strong receding perspective through layers"
+        result.title_safe_region_strategy = f"quiet {quiet.split('/')[0]} region"
+        result.programme_safe_region_strategy = f"quiet {quiet.split('/')[1]} region"
+        return result
+
+    def test_explicit_spatial_locks_allow_two_other_changes(self):
+        brief = self._spatial_brief("immersive first-person viewpoint",
+                                   "forward traversal and receding spatial depth",
+                                   "arcing spatial motion")
+        locked = locked_structural_fields(brief)
+        self.assertEqual(locked, {"viewpoint": "first-person", "depth_plan": "receding",
+                                  "major_flow": "curved"})
+        first = self._spatial_direction("A")
+        plan = build_diversity_constraints("B", [first], brief)
+        self.assertEqual(plan["suggested_combination"]["viewpoint"], "first-person")
+        self.assertEqual(plan["suggested_combination"]["depth_plan"], "receding")
+        self.assertNotIn("viewpoint", plan["available_alternatives"])
+        second = self._spatial_direction("B", "right-heavy", "left/right")
+        validate_direction_diversity(second, [first], locked)
+        third = self._spatial_direction("C", "distributed", "right/lower")
+        third.focal_strategy = "first-person focal building at right"
+        validate_direction_diversity(third, [first, second], locked)
+        with self.assertRaisesRegex(ValueError, "repeats") as caught:
+            validate_direction_diversity(self._spatial_direction("C"), [first], locked)
+        diagnostic = caught.exception.diversity_diagnostics
+        self.assertIn("viewpoint", diagnostic["locked_fields"])
+        self.assertEqual(diagnostic["changed_fields"], [])
+        retry = build_diversity_constraints("B", [first], brief, retry_count=1,
+                                            failed_diagnostic=diagnostic)
+        self.assertNotEqual(plan["suggested_combination"], retry["suggested_combination"])
+
+    def test_locked_prompt_keeps_viewpoint_and_varies_unlocked_fields(self):
+        brief = self._spatial_brief("immersive first-person viewpoint", "receding spatial depth")
+        first = self._spatial_direction("A")
+        plan = build_diversity_constraints("B", [first], brief)
+        prompt = json.loads(build_creative_direction_prompt(
+            brief, "B", "visual designer", diversity_constraints=plan))
+        requirements = " ".join(prompt["requirements"])
+        self.assertIn("locked structural", requirements)
+        self.assertNotIn("least three independent", requirements)
+        self.assertEqual(prompt["structural_diversity_plan"]["locked_fields"]["viewpoint"], "first-person")
+
+    def test_aerial_lock_and_inferred_viewpoint_policy(self):
+        brief = self._spatial_brief("aerial overhead viewpoint")
+        self.assertEqual(locked_structural_fields(brief)["viewpoint"], "aerial")
+        for letter in "ABC":
+            self.assertEqual(build_diversity_constraints(letter, [], brief)["suggested_combination"]["viewpoint"], "aerial")
+        brief["semantic_provenance"]["composition_affinities"] = "SEMANTIC_INFERENCE"
+        self.assertEqual(locked_structural_fields(brief), {})
+        self.assertGreater(len(build_diversity_constraints("B", [], brief)["available_alternatives"]["viewpoint"]), 1)
+
     def test_all_directions_fail_closed_after_retry_exhaustion(self):
         cases = (
             (

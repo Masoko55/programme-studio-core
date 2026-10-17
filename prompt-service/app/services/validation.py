@@ -599,19 +599,23 @@ def direction_signature(direction: CreativeDirectionOutput) -> dict[str, str]:
         "focal_vertical_band": choose(focal, ((r"upper|top|high\b", "upper"),
                                                (r"lower|bottom|low\b", "lower"),
                                                (r"middle|mid|centr", "middle"))),
-        "viewpoint": choose(full, ((r"aerial|bird.?s.eye", "aerial"),
+        "viewpoint": choose(full, ((r"first[- ]person|viewer.?s viewpoint", "first-person"),
+                                    (r"aerial|overhead|bird.?s.eye", "aerial"),
                                     (r"low.angle|looking up", "low-angle"),
                                     (r"street.canyon", "street-canyon"),
                                     (r"panoramic|wide.angle", "panoramic"),
-                                    (r"close.crop|close.up", "close-crop"))),
-        "composition_family": choose(composition, ((r"radial|radiat|circular", "radial"),
+                                    (r"close.crop|close.up", "close-crop"),
+                                    (r"frontal|front.on", "frontal"), (r"oblique", "oblique"))),
+        "composition_family": choose(composition, ((r"\bsymmetr(?:ic|ical|y)\b", "symmetric"),
+                                                  (r"radial|radiat|circular", "radial"),
                                                   (r"diagonal", "diagonal-depth"),
                                                   (r"panoramic|horizontal", "panoramic-layered"),
                                                   (r"central|centre|center|monument", "central-monument"),
                                                   (r"asymmetr", "asymmetric-cluster"))),
-        "depth_plan": choose(depth, ((r"foreground|mid.?ground|distant|layer", "layered"),
+        "depth_plan": choose(depth, ((r"reced", "receding"),
+                                      (r"foreground|mid.?ground|distant|layer", "layered"),
                                       (r"flat|shallow", "shallow"),
-                                      (r"reced|perspective", "receding"))),
+                                      (r"perspective", "receding"))),
         "perimeter_plan": choose(perimeter, ((r"radial|web", "radial-web"),
                                             (r"frame|border", "framed"),
                                             (r"open|minimal|quiet", "open"))),
@@ -622,11 +626,11 @@ def direction_signature(direction: CreativeDirectionOutput) -> dict[str, str]:
         "dominant_motif_placement": choose(focal, ((r"skyscraper|tower", "tower"),
                                                      (r"flower|floral", "floral"),
                                                      (r"arch", "arch"))),
-        "major_flow": choose(full, ((r"radial|radiat|web", "radial"),
+        "major_flow": choose(full, ((r"\barc(?:ing)?\b|curv|wave", "curved"),
+                                     (r"radial|radiat|web", "radial"),
                                      (r"diagonal", "diagonal"),
                                      (r"horizontal", "horizontal"),
-                                     (r"vertical", "vertical"),
-                                     (r"curv|wave", "curved"))),
+                                     (r"vertical", "vertical"))),
         "mass_distribution": choose(composition + " " + focal,
                                     ((r"dense left|left mass|left-heavy", "left-heavy"),
                                      (r"dense right|right mass|right-heavy", "right-heavy"),
@@ -647,15 +651,20 @@ def direction_signature(direction: CreativeDirectionOutput) -> dict[str, str]:
 def validate_direction_diversity(
     direction: CreativeDirectionOutput,
     previous: list[CreativeDirectionOutput],
+    locked_fields: dict[str, str] | None = None,
 ) -> None:
     """Require two observable spatial changes, without comparing prose signatures."""
     fields = ("viewpoint", "focal_horizontal_band", "focal_vertical_band",
               "composition_family", "major_flow", "depth_plan", "mass_distribution",
               "quiet_region_pair")
     current = direction_signature(direction)
+    locked = locked_fields or {}
+    for field, value in locked.items():
+        if current.get(field) != value:
+            raise ValueError(f"Direction {direction.direction_id} must preserve explicit {field}: {value}")
     for earlier in previous:
         prior = direction_signature(earlier)
-        changed = [field for field in fields if current[field] != "unspecified"
+        changed = [field for field in fields if field not in locked and current[field] != "unspecified"
                    and prior[field] != "unspecified" and current[field] != prior[field]]
         if len(changed) < 2:
             error = ValueError(
@@ -663,6 +672,8 @@ def validate_direction_diversity(
                 "change at least two of viewpoint, focal placement, flow, depth, mass or quiet space."
             )
             error.diversity_diagnostics = {"compared_to": earlier.direction_id,
+                                           "locked_fields": list(locked),
                                            "changed_fields": changed,
+                                           "rejected_signature": current,
                                            "required_material_changes": 2}
             raise error

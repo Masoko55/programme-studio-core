@@ -30,7 +30,7 @@ from app.services.creative_direction import (
     direction_structural_summary,
     generate_creative_direction,
 )
-from app.services.direction_diversity import build_diversity_constraints
+from app.services.direction_diversity import build_diversity_constraints, locked_structural_fields
 
 from app.services.persistence import (
     persist_direction_checkpoint,
@@ -221,6 +221,8 @@ def validate_direction_a(
                 "brief"
             ],
         )
+        validate_direction_diversity(state["direction_a"], [],
+                                     locked_structural_fields(state["brief"]))
 
         logger.info(
             "Direction A validation passed"
@@ -438,7 +440,8 @@ def validate_direction_b(
             ],
         )
         if state.get("direction_a"):
-            validate_direction_diversity(state["direction_b"], [state["direction_a"]])
+            validate_direction_diversity(state["direction_b"], [state["direction_a"]],
+                                         locked_structural_fields(state["brief"]))
 
         logger.info(
             "Direction B validation passed"
@@ -664,6 +667,7 @@ def validate_direction_c(
         validate_direction_diversity(
             state["direction_c"],
             [item for item in (state.get("direction_a"), state.get("direction_b")) if item],
+            locked_structural_fields(state["brief"]),
         )
 
         logger.info(

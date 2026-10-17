@@ -3,6 +3,7 @@
 import re
 
 from app.schemas.creative_direction import CreativeDirectionOutput
+from app.services.grill_me_semantic import grounded_scene_family
 from app.services.validation import direction_signature
 
 
@@ -40,8 +41,7 @@ def locked_structural_fields(brief: dict) -> dict[str, str]:
 
 
 def _scene_kind(brief: dict) -> str:
-    semantics = brief.get("visual_semantics") or (brief.get("grill_me_context") or {}).get("visual_semantics") or {}
-    family = str(semantics.get("scene_family") or "general").strip().casefold()
+    family = grounded_scene_family(brief)
     return family if family in {"organic", "architectural-interior", "abstract"} else "general"
 
 

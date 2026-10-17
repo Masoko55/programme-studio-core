@@ -7,7 +7,7 @@ import colorsys
 import re
 
 from app.services.candidate_spec import CandidateSpec
-from app.services.background_policy import COLOUR_ALIASES, COLOUR_FAMILIES, NAMED_COLOURS, palette_relationship_policy
+from app.services.background_policy import COLOUR_ALIASES, COLOUR_FAMILIES, NAMED_COLOURS, NEUTRAL_NAMES, palette_relationship_policy
 from app.services.engine_capabilities import engine_capabilities
 
 
@@ -150,10 +150,11 @@ def _palette_relationship(spec: CandidateSpec) -> str:
         return policy["relationship"]
     colours = [str(item["colour"]) for item in design["requested_palette"]]
     if (design["palette_mode"] == "dominant" and colours
-            and any(colour not in {"black", "white", "grey", "gray"} for colour in colours)):
+            and all(COLOUR_ALIASES.get(colour.casefold(), colour.casefold()) not in NEUTRAL_NAMES
+                    for colour in colours)):
         return ("; ".join(f"{colour} clearly visible in substantial design elements" for colour in colours)
                 + "; requested colour families own principal surfaces and visual mass; "
-                "primary leads, secondary is substantial; neutrals support only fine linework, shading and highlights")
+                "both requested families remain substantial; neutrals support only fine linework, shading and highlights")
     return "; ".join(f"{colour} clearly visible in substantial design elements" for colour in colours)
 
 
@@ -413,6 +414,11 @@ def _direction_motif(spec: CandidateSpec) -> str:
     return " ".join(source.split()[:35]).rstrip(".!? ")
 
 
+def _motif_policy_instruction(spec: CandidateSpec) -> str:
+    return ("Motif as abstract pattern structure; no unrequested literal objects."
+            if spec.visual_design.get("motif_literalization_policy") == "motif_only" else "")
+
+
 _CORRECTIONS = {
     "HUMAN": "Remove people, faces, silhouettes and humanoid shapes from this same background scene.",
     "TEXT": "Render uninterrupted visual surfaces and coherent image forms across the scene; keep calm areas integrated into the artwork.",
@@ -489,6 +495,7 @@ def _positive_prompt(
 ) -> str:
     shared = (
         f"Visual motif: {motif}." if motif else "",
+        _motif_policy_instruction(spec),
         f"Theme treatment: {treatment}." if treatment else "",
         f"Brief anchors: {', '.join(spec.visual_design['visual_anchors'])}.",
         f"Composition: {composition}",
@@ -507,9 +514,9 @@ def _positive_prompt(
             safety,
         )
     return _join_sections(
-        f"Background inspiration: {subject}.", shared[0],
+        f"Background inspiration: {subject}.", shared[0], shared[1],
         f"Theme reference treatment: {treatment}." if treatment else "",
-        *shared[2:],
+        *shared[3:],
         _atmosphere(spec), _scene_tone(spec)[0], _motif_structure(spec),
         f"Correction: {correction}" if correction else "",
         "Use only brief-grounded subject and motif content with this direction's spatial strategies.",
@@ -603,7 +610,8 @@ def _encoder_fields(
     )
 
 
-def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = "", *, concise: bool = False) -> CompiledPrompt:
+def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = "", *,
+                             concise: bool = False, failure_history=None) -> CompiledPrompt:
     stage = retry_stage(attempt)
     category = failure_category(reason) if attempt > 1 else "INITIAL"
     if attempt > 1 and category == "INITIAL":
@@ -727,7 +735,7 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         engine_capabilities=engine_capabilities(spec.engine_id),
         truncated=truncated,
     )
-    return _concise_runtime_prompt(result, spec, attempt, reason) if concise else result
+    return _concise_runtime_prompt(result, spec, attempt, reason, failure_history) if concise else result
 
 
 def runtime_retry_category(reason: str) -> str:
@@ -824,8 +832,21 @@ def _runtime_correction(category: str, stage: str) -> str:
     return f"{emphasis} {requirement} Preserve all original requested semantics and every unaffected visual dimension."
 
 
+_PALETTE_FAILURES = ("PALETTE_OFF", "PALETTE_ROLE_DRIFT", "PRIMARY_MISSING", "SECONDARY_MISSING")
+
+
+def _persistent_palette_correction(history, latest: str) -> str:
+    """Keep unresolved palette drift alongside a newer, different failure."""
+    if history is None or latest in _PALETTE_FAILURES:
+        return ""
+    counts = getattr(history, "counts", history if isinstance(history, dict) else {})
+    if not any(int(counts.get(category, 0)) for category in _PALETTE_FAILURES):
+        return ""
+    return "Persistent palette recovery: restore the requested colour-family relationship and visual-mass roles."
+
+
 def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
-                            attempt: int, reason: str) -> CompiledPrompt:
+                            attempt: int, reason: str, failure_history=None) -> CompiledPrompt:
     design = spec.visual_design
     semantics = design["visual_semantics"]
     subject = _subject(spec)
@@ -839,29 +860,44 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     strength = retry_strength_level(attempt)
     correction = (_runtime_correction(runtime_retry_category(reason), compiled.retry_stage)
                   if attempt > 1 else "")
+    persistent_palette = (_persistent_palette_correction(failure_history, runtime_retry_category(reason))
+                          if spec.engine_id == "sdxl-1-0" and attempt > 1 else "")
     subject_line = f"Visual subject: {subject}."
     anchor_line = f"Anchors: {_first_words(anchors, 14)}." if anchors else ""
     mood_line = f"Mood: {_first_words(mood, 10)}." if mood else ""
     audience_line = f"Audience: {_first_words(audience, 7)}." if audience else ""
     motif_line = f"Motif: {_first_words(motif, 16)}." if motif else ""
+    motif_policy_line = _motif_policy_instruction(spec)
+    motif_palette_line = ("Motif structure uses requested colour families as part of the design."
+                          if motif and colours and design["palette_mode"] not in {"achromatic", "monochrome"} else "")
     treatment = design["theme_reference_treatment"]
     treatment_line = (f"Reference treatment: {_first_words(treatment, 22)}."
                       if treatment else "")
     style_line = (f"Style: {_first_words(design.get('visual_style'), 8)}."
                   if design.get("visual_style") else "")
     palette_line = f"Palette: {palette}." if colours else ""
+    palette_l_line = (f"Primary {design['requested_palette'][0]['colour']}; "
+                      + (f"secondary {design['requested_palette'][1]['colour']}; "
+                         if len(design['requested_palette']) > 1 else "")
+                      + f"relationship: {_first_words(_palette_relationship(spec), 12)}."
+                      if colours else "")
     spatial_line = f"Composition: {composition}." if composition else ""
     light_line = f"Lighting: {_first_words(design.get('lighting_language'), 8)}." if design.get("lighting_language") else ""
-    clip_l = _join_sections(subject_line, anchor_line)
-    clip_g = _join_sections(subject_line, mood_line, audience_line, motif_line,
-                           treatment_line, palette_line, spatial_line, style_line, light_line,
-                           correction if spec.engine_id != "flux-2" else "")
+    clip_l = (_join_sections(subject_line, palette_l_line, motif_line) if spec.engine_id == "sdxl-1-0"
+              else _join_sections(subject_line, anchor_line))
+    clip_g = (_join_sections(palette_line, subject_line, spatial_line, motif_line, motif_policy_line,
+                            motif_palette_line, treatment_line, mood_line, audience_line,
+                            persistent_palette, correction, style_line, light_line)
+              if spec.engine_id == "sdxl-1-0" else
+              _join_sections(subject_line, mood_line, audience_line, motif_line, motif_policy_line,
+                             treatment_line, palette_line, spatial_line, style_line, light_line,
+                             correction if spec.engine_id != "flux-2" else ""))
     positive = _join_sections(clip_g, correction if spec.engine_id == "flux-2" else "",
                              "Continuous background artwork with integrated calm visual space.")
     if spec.engine_id == "flux-2":
         positive = _join_sections(positive, _affirmative_palette(spec),
                                  "Environment-only composition; uninterrupted visual surfaces.")
-    t5 = _join_sections(subject_line, anchor_line, mood_line, audience_line, motif_line,
+    t5 = _join_sections(subject_line, anchor_line, mood_line, audience_line, motif_line, motif_policy_line,
                        treatment_line, palette_line, spatial_line, style_line, light_line, correction,
                        "Recognizable scene with foreground, middle distance and background.")
     def clean(value: str) -> str:

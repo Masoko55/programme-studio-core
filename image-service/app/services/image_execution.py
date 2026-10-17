@@ -2208,8 +2208,10 @@ def _attempt_prompts(
     base_prompts: tuple[str, str],
     current_prompts: tuple[str, str],
     palette: tuple[str | None, str | None],
+    failure_history=None,
 ):
-    compiled = compile_candidate_prompt(spec, attempt, previous_reason, concise=True)
+    compiled = compile_candidate_prompt(spec, attempt, previous_reason, concise=True,
+                                        failure_history=failure_history)
     return compiled.positive, compiled.negative, compiled
 
 
@@ -2274,19 +2276,22 @@ async def _attempt_output_wave(
 
     for retry_count in range(start_retry, min(settings.max_candidate_retries, 8) + 1):
         attempt = retry_count + 1
+        # Persisted rejection history is the source of unresolved dimensions,
+        # including when a process resumes between attempts.
+        history = summarize_failures(_candidate_record(
+            reference_number, output.engine_id, output.direction_id,
+        ))
         positive_prompt, negative_prompt, compiled = _attempt_prompts(
             spec, output, attempt, previous_reason,
             (base_positive_prompt, base_negative_prompt),
             (positive_prompt, negative_prompt),
             (primary_colour, secondary_colour),
+            history,
         )
         category = compiled.failure_category if compiled else failure_category(previous_reason)
         stage = compiled.retry_stage if compiled else retry_stage(attempt)
         # Re-read the slot before every attempt: the previous rejection was
         # persisted by ComfyUIClient, including across process restarts.
-        history = summarize_failures(_candidate_record(
-            reference_number, output.engine_id, output.direction_id,
-        ))
         profile = select_sampling_profile(output.engine_id, attempt, history)
         logger.info(
             "event=sampling_profile_selected reference=%s engine=%s direction=%s "

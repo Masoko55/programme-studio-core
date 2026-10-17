@@ -13,6 +13,39 @@ from app.services.semantic_contract import build_semantic_contract, resolve_pale
 
 
 class GrillMeBackgroundInspirationTests(unittest.TestCase):
+    def test_scene_family_needs_environment_evidence(self):
+        cases = (
+            ("abstract interlocking marks", "architectural-interior", .96, "general"),
+            ("an interior of layered mineral forms", "architectural-interior", .91, "architectural-interior"),
+            ("abstract marks across an organic landscape", "organic", .91, "organic"),
+            ("quiet orbital motifs", "architectural-interior", .42, "general"),
+        )
+        for inspiration, inferred, confidence, expected in cases:
+            with self.subTest(inspiration=inspiration):
+                context = _safe_context({"visual_semantics": {"scene_family": inferred},
+                                         "semantic_confidence": {"scene_family": confidence},
+                                         "background_generation_summary": "Render a grand architectural interior"},
+                                        {"background_inspiration": inspiration})
+                self.assertEqual(context["visual_semantics"]["scene_family"], expected)
+                if expected == "general":
+                    self.assertNotIn("grand architectural interior",
+                                     context["background_generation_summary"])
+        explicit = _safe_context({}, {"background_inspiration": "inside a vaulted hall",
+                                      "visual_semantics": {"scene_family": "architectural-interior"}})
+        self.assertEqual(explicit["visual_semantics"]["scene_family"], "architectural-interior")
+        grounded_outdoor = _safe_context(
+            {"visual_semantics": {"scene_family": "organic"},
+             "scene_family_evidence": "mountain meadow",
+             "semantic_confidence": {"scene_family": .94}},
+            {"background_inspiration": "an outdoor mountain meadow under drifting clouds"})
+        self.assertEqual(grounded_outdoor["visual_semantics"]["scene_family"], "organic")
+        motif_reference = _safe_context(
+            {"visual_semantics": {"scene_family": "architectural-interior"},
+             "semantic_confidence": {"scene_family": .99}},
+            {"background_inspiration": "abstract linked marks",
+             "theme_reference_treatment": "interior-inspired line pattern only"})
+        self.assertEqual(motif_reference["visual_semantics"]["scene_family"], "general")
+
     def test_named_reference_keeps_explicit_viewpoint_and_movement_without_assets(self):
         answers = {"theme_reference_treatment": "Solar Sentinel is moving through the city in first person view"}
         review = {"reference_detected": True, "reference_name": "Solar Sentinel",
@@ -234,7 +267,7 @@ class GrillMeBackgroundInspirationTests(unittest.TestCase):
             semantics["incompatible_treatments"],
             ["harsh metallic glare"],
         )
-        self.assertEqual(semantics["scene_family"], "abstract")
+        self.assertEqual(semantics["scene_family"], "general")
         self.assertEqual(
             context["semantic_provenance"]["atmosphere_descriptors"],
             "SEMANTIC_INFERENCE",

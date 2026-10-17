@@ -2,6 +2,8 @@ import unittest
 
 from app.services.candidate_spec import build_candidate_spec
 from app.services.prompt_compiler import compile_candidate_prompt, failure_category, runtime_retry_category
+from app.services.comfyui_client import build_workflow
+from app.services.sampling_profiles import FailureHistorySummary
 
 
 CASES = (
@@ -81,6 +83,103 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_unseen_abstract_brief_keeps_subject_motif_and_palette(self):
+        document = document_for(CASES[0])
+        document["brief"].update(event_type="community kite exhibition",
+                                  theme="interlaced ribbon contours",
+                                  background_inspiration="abstract interlaced ribbon contours",
+                                  primary_colour="purple", secondary_colour="sand",
+                                  visual_semantics={"scene_family": "general",
+                                                    "motif_descriptors": ["repeating ribbon contours"]})
+        for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
+            spec = build_candidate_spec(document, engine, "B")
+            prompt = compile_candidate_prompt(spec, 1, concise=True)
+            self.assertIn("interlaced ribbon contours", prompt.positive)
+            self.assertIn("purple", prompt.positive)
+            self.assertIn("sand", prompt.positive)
+            self.assertEqual(spec.visual_design["visual_semantics"]["scene_family"], "general")
+
+    def test_sdxl_active_encoders_keep_generic_palette_through_retry_stages(self):
+        cases = (("green", "cream", "dominant", ""),
+                 ("pink", "gold", "dominant", ""),
+                 ("black", "white", "achromatic", ""),
+                 ("white", "navy", "dominant", "white is the main field with navy accents"),
+                 ("orange", "teal", "dominant", "orange dominant with teal supporting"))
+        for primary, secondary, mode, relationship in cases:
+            document = document_for(CASES[0])
+            document["brief"].update(primary_colour=primary, secondary_colour=secondary,
+                                      palette_mode=mode, palette_relationship=relationship,
+                                      palette_relationship_source="user_explicit" if relationship else "default")
+            spec = build_candidate_spec(document, "sdxl-1-0", "B")
+            for attempt in (1, 3, 4, 5, 7, 9):
+                reason = "PALETTE_ROLE_DRIFT: roles missing" if attempt > 1 else ""
+                compiled = compile_candidate_prompt(spec, attempt, reason, concise=True)
+                workflow = build_workflow("sdxl-1-0", compiled.positive, compiled.negative,
+                                          12345, "offline-test", compiled_prompt=compiled)
+                active = workflow["16"]["inputs"]
+                self.assertEqual(workflow["3"]["inputs"]["positive"], ["16", 0])
+                self.assertEqual(active["text_l"], compiled.clip_l)
+                self.assertEqual(active["text_g"], compiled.clip_g)
+                for channel in (active["text_l"], active["text_g"]):
+                    self.assertIn(primary, channel)
+                    self.assertIn(secondary, channel)
+                if relationship:
+                    self.assertIn(relationship, active["text_g"])
+                if attempt > 1:
+                    self.assertIn("palette", active["text_g"].lower())
+                self.assertLess(len(active["text_g"]), 1800)
+
+    def test_palette_history_and_latest_failure_both_reach_active_sdxl_encoder(self):
+        document = document_for(CASES[0])
+        document["brief"].update(primary_colour="orange", secondary_colour="teal",
+                                  palette_relationship_source="default")
+        spec = build_candidate_spec(document, "sdxl-1-0", "B")
+        history = FailureHistorySummary(counts={"PALETTE_ROLE_DRIFT": 4},
+                                        consecutive_category="PALETTE_ROLE_DRIFT", consecutive_count=4)
+        for reason, cue in (("SUBJECT_DRIFT: wrong subject", "visual anchors"),
+                            ("HUMAN: figure", "without figures"),
+                            ("AUDIENCE_DRIFT: mood", "audience-appropriate"),
+                            ("MOTIF_DRIFT: topology", "motif topology"),
+                            ("TREATMENT_DRIFT: viewpoint", "viewpoint and movement")):
+            compiled = compile_candidate_prompt(spec, 5, reason, concise=True,
+                                                 failure_history=history)
+            active = build_workflow("sdxl-1-0", compiled.positive, compiled.negative,
+                                    12345, "offline-test", compiled_prompt=compiled)["16"]["inputs"]["text_g"]
+            self.assertIn("Persistent palette recovery", active)
+            self.assertIn("orange", active)
+            self.assertIn("teal", active)
+            self.assertIn(cue, active)
+
+    def test_inferred_motifs_remain_patterns_across_unrelated_families(self):
+        for motif in ("layered feather-like strokes", "repeating scale texture",
+                      "interconnected geometric network"):
+            document = document_for(CASES[0])
+            document["brief"].update(
+                background_inspiration="abstract layered marks",
+                visual_semantics={"motif_descriptors": [motif],
+                                  "motif_structure_description": motif},
+                grill_me_context={"semantic_provenance": {"motif_descriptors": "SEMANTIC_INFERENCE",
+                                                          "motif_structure_description": "SEMANTIC_INFERENCE"}},
+            )
+            spec = build_candidate_spec(document, "sdxl-1-0", "B")
+            self.assertEqual(spec.visual_design["motif_literalization_policy"], "motif_only")
+            self.assertEqual(spec.visual_design["authorized_literal_subject"], "")
+            compiled = compile_candidate_prompt(spec, 1, concise=True)
+            self.assertIn("abstract pattern structure", compiled.clip_g)
+            for unrelated in ("bird", "snake", "bee", "dog"):
+                self.assertNotIn(unrelated, compiled.clip_g.casefold())
+
+    def test_explicit_literal_subject_is_kept_separate_from_inferred_motif(self):
+        document = document_for(CASES[0])
+        document["brief"].update(
+            background_inspiration="A bird perched on a branch",
+            visual_semantics={"motif_descriptors": ["layered feather pattern"]},
+            grill_me_context={"semantic_provenance": {"motif_descriptors": "SEMANTIC_INFERENCE"}},
+        )
+        spec = build_candidate_spec(document, "sdxl-1-0", "B")
+        self.assertEqual(spec.visual_design["motif_literalization_policy"], "motif_only")
+        self.assertIn("bird", spec.visual_design["authorized_literal_subject"])
+
     def test_explicit_spatial_treatment_survives_reference_sanitization_and_retries(self):
         document = document_for(CASES[0])
         raw = "Solar Sentinel is moving through the city in first person view"

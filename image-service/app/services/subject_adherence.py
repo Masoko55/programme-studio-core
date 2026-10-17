@@ -521,6 +521,12 @@ def assess_subject_adherence(
         )
         + ". Motif structure: "
         + motif_structure[:350]
+        + ". Motif literalization policy: "
+        + str(visual_design.get("motif_literalization_policy") or "literal_allowed")
+        + ". Explicitly authorized literal subject: "
+        + str(visual_design.get("authorized_literal_subject") or "none")[:200]
+        + ". Report unrequested_literal_object_visible as a boolean only for a clearly visible literal object "
+        "introduced solely from a motif and absent from the explicitly authorized subject"
         + ". Motif prominence: "
         + prominence
         + ". Incompatible treatments: "
@@ -851,6 +857,12 @@ def assess_subject_adherence(
                 in required
             },
         }
+
+    unauthorized_literal = (visual_design.get("motif_literalization_policy") == "motif_only"
+                            and answer.get("unrequested_literal_object_visible") is True)
+    if unauthorized_literal:
+        scores["subject_score"] = 0.0
+        debug["unrequested_literal_object_visible"] = True
 
     failed = [
         field

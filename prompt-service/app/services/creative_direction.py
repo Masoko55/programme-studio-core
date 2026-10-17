@@ -13,6 +13,7 @@ from app.schemas.creative_direction import (
 from app.services.ollama import (
     generate_text,
 )
+from app.services.grill_me_semantic import grounded_scene_family
 
 
 SKY_BLUE = "sky blue"
@@ -1417,6 +1418,21 @@ def build_creative_direction_prompt(
             ]
         )
 
+    event_brief = dict(brief)
+    grounded_family = grounded_scene_family(brief)
+    if isinstance(event_brief.get("visual_semantics"), dict):
+        event_brief["visual_semantics"] = {**event_brief["visual_semantics"],
+                                          "scene_family": grounded_family}
+    if isinstance(event_brief.get("grill_me_context"), dict):
+        event_brief["grill_me_context"] = dict(event_brief["grill_me_context"])
+        context_semantics = event_brief["grill_me_context"].get("visual_semantics")
+        if isinstance(context_semantics, dict):
+            event_brief["grill_me_context"]["visual_semantics"] = {
+                **context_semantics, "scene_family": grounded_family}
+    if isinstance(event_brief.get("semantic_contract"), dict):
+        event_brief["semantic_contract"] = {**event_brief["semantic_contract"],
+                                            "scene_family": grounded_family}
+
     payload = {
         "task": (
             "Create one creative direction for an "
@@ -1473,9 +1489,7 @@ def build_creative_direction_prompt(
         },
         "creative_role": "Choose a brief-specific visual role and composition; no slot has a preset style.",
         "previous_direction_concepts": previous_directions or [],
-        "event_brief": (
-            brief
-        ),
+        "event_brief": event_brief,
         "positive_palette_description": (
             positive_palette_description(
                 brief

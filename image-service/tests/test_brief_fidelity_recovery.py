@@ -31,6 +31,26 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_unrequested_literal_objects_fail_subject_fit_for_inferred_patterns(self):
+        scores = {"subject_score": .95, "motif_score": .95,
+                  "unrequested_literal_object_visible": True}
+        for motif in ("feather-like strokes", "repeating scale texture"):
+            brief = {"primary_visual_subject": "abstract layered marks",
+                     "visual_semantics": {"motif_descriptors": [motif]},
+                     "motif_literalization_policy": "motif_only",
+                     "authorized_literal_subject": ""}
+            result, prompt = self._assess(brief, scores)
+            self.assertEqual(result["decision"], "SUBJECT_DRIFT")
+            self.assertIn("unrequested_literal_object_visible", prompt)
+        scores["unrequested_literal_object_visible"] = False
+        explicit = {"primary_visual_subject": "a bird perched on a branch",
+                    "visual_semantics": {"motif_descriptors": ["feather pattern"]},
+                    "motif_literalization_policy": "motif_only",
+                    "authorized_literal_subject": "a bird perched on a branch"}
+        result, prompt = self._assess(explicit, scores)
+        self.assertFalse(hard_fidelity_failure(result))
+        self.assertIn("a bird perched on a branch", prompt)
+
     def test_explicit_viewpoint_is_scored_independently_of_subject_and_motif(self):
         brief = {
             "primary_visual_subject": "layered city geometry",

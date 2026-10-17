@@ -79,6 +79,23 @@ def _safe_spatial_treatment(raw: str, affinities: list[str]) -> str:
     return "; ".join(dict.fromkeys(parts))
 
 
+def _motif_literalization(contract: dict, subject: str, has_reference) -> tuple[str, str]:
+    """Separate a motif's visual pattern from an explicitly requested subject."""
+    motifs = " ".join((*contract["motif_descriptors"], contract["motif_structure_description"]))
+    if not motifs.strip():
+        return "literal_allowed", ""
+    source = contract["semantic_provenance"].get("motif_descriptors", "SAFE_FALLBACK")
+    pattern = bool(re.search(r"\b(?:motif|pattern|texture|geometry|geometric|abstract|"
+                             r"topology|lattice|print|shapes?|inspired|like)\b", motifs, re.I))
+    policy = "motif_only" if source not in {"USER_EXPLICIT", "GRILL_ME_CLARIFIED"} or pattern else "literal_allowed"
+    explicit_subject = contract["semantic_provenance"].get("primary_visual_subject") in {
+        "USER_EXPLICIT", "GRILL_ME_CLARIFIED"}
+    subject_is_pattern = bool(re.search(r"\b(?:motif|pattern|texture|geometry|abstract|"
+                                        r"lattice|print|shapes?|inspired|like)\b", subject, re.I))
+    authorized = subject if explicit_subject and not subject_is_pattern and not has_reference(subject) else ""
+    return policy, authorized
+
+
 def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> CandidateSpec:
     brief = document.get("brief")
     if not isinstance(brief, dict):
@@ -251,6 +268,7 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
             r"\b(?:do not|don't|never|avoid|without|no people|no characters|no text)\b",
             render_treatment, maxsplit=1, flags=re.I,
         )[0].rstrip(" ,.;")
+    motif_policy, authorized_literal_subject = _motif_literalization(contract, subject, has_reference)
     visual_design = {
         "primary_visual_subject": render_subject,
         "event_context": field(brief, "event_context") or field(brief, "event_type"),
@@ -268,6 +286,8 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         "semantic_provenance": contract["semantic_provenance"],
         "hard_dimensions": contract.get("hard_dimensions", []),
         "theme_reference_treatment": render_treatment,
+        "motif_literalization_policy": motif_policy,
+        "authorized_literal_subject": authorized_literal_subject,
         "mood": field(brief, "mood"),
         "visual_style": field(brief, "visual_style"),
         "requested_palette": contract["palette"],

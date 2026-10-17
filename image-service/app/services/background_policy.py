@@ -2858,7 +2858,7 @@ def validate_palette(
 
     policy = palette_relationship_policy(relationship, relationship_source, secondary_name)
     if (mode not in {"strict", "monochrome", "achromatic"} and not exclusive_palette
-            and requested_targets and not policy["explicit"]
+            and requested_targets and not requested_neutrals and not policy["explicit"]
             and requested_chromatic_ratio <= structural_neutral_ratio):
         error = ValueError("PALETTE_ROLE_DRIFT: requested colour families do not dominate the visual mass")
         error.palette_metrics = {"off_palette_ratio": off_palette_ratio, **perceptual_metrics,

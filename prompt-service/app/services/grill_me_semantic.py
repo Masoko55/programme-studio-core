@@ -59,6 +59,7 @@ DEFAULT_CONTEXT = {
     "reference_type": "none",
     "reference_needs_clarification": False,
     "background_generation_summary": None,
+    "scene_family_evidence": None,
     "visual_semantics": {},
     "semantic_provenance": {},
     "semantic_confidence": {},
@@ -257,6 +258,7 @@ def _review_prompt(
                 "composition_affinities": ["brief-compatible structural family"],
             },
             "semantic_confidence": {"inferred field name": "optional number from 0 to 1; omit if unknown"},
+            "scene_family_evidence": "optional exact excerpt from the user's scene wording; never infer an excerpt",
             "generation_constraints": [
                 "constraint"
             ],
@@ -405,6 +407,41 @@ def _explicit_spatial_treatment(treatment: str) -> list[str]:
     return result
 
 
+def _ground_scene_family(family: str, source: str, confidence: float | None,
+                         support: str, evidence: str = "") -> str:
+    """Do not turn an inferred motif association into an environment."""
+    if family == "general" or source in {"USER_EXPLICIT", "GRILL_ME_CLARIFIED"}:
+        return family
+    if source != "SEMANTIC_INFERENCE":
+        return "general"
+    # Explicit wording of the environment is sufficient; for inferred
+    # wording, a high score alone never substitutes for textual grounding.
+    family_terms = [part for part in re.split(r"[^a-z]+", family) if len(part) > 3]
+    words = set(re.findall(r"[a-z]+", support.casefold()))
+    direct = any(term in words for term in family_terms)
+    quoted = bool(confidence is not None and confidence >= .85 and len(evidence.strip()) >= 4
+                  and evidence.casefold() in support.casefold())
+    return family if direct or quoted else "general"
+
+
+def grounded_scene_family(brief: dict) -> str:
+    """Apply the same scene evidence rule to a persisted or direct brief."""
+    context = brief.get("grill_me_context") or {}
+    semantics = brief.get("visual_semantics") or context.get("visual_semantics") or {}
+    family = str(semantics.get("scene_family") or "general").strip().casefold()
+    if family not in {"organic", "architectural-interior", "abstract", "general"}:
+        return "general"
+    provenance = (brief.get("semantic_contract") or {}).get("semantic_provenance") or (
+        context.get("semantic_provenance") or brief.get("semantic_provenance") or {})
+    confidence = (brief.get("semantic_contract") or {}).get("semantic_confidence") or (
+        context.get("semantic_confidence") or {})
+    support = " ".join(str(brief.get(key) or "") for key in
+                       ("background_inspiration", "creative_description"))
+    return _ground_scene_family(family, provenance.get("scene_family", "USER_EXPLICIT"),
+                                confidence.get("scene_family"), support,
+                                str(context.get("scene_family_evidence") or ""))
+
+
 def _safe_background_constraint(phrase: str) -> bool:
     # Negative exclusions remain useful; affirmative final artwork requests do not.
     if (re.match(r"\s*(?:no|without|avoid|exclude|do not)\b", phrase, re.I)
@@ -443,6 +480,19 @@ def _safe_context(
     family = str(raw_semantics.get("scene_family") or "general").strip().casefold()
     if family not in {"organic", "architectural-interior", "abstract", "general"}:
         family = "general"
+    proposed_family = family
+    supplied_family = isinstance(supplied_semantics, dict) and "scene_family" in supplied_semantics
+    raw_confidence = (value.get("semantic_confidence") or {}).get("scene_family")
+    confidence = float(raw_confidence) if isinstance(raw_confidence, (float, int)) and not isinstance(raw_confidence, bool) else None
+    scene_support = " ".join(str(answers.get(key) or "") for key in
+                             ("background_inspiration", "creative_description"))
+    family = _ground_scene_family(family, "USER_EXPLICIT" if supplied_family else
+                                  "SEMANTIC_INFERENCE" if "scene_family" in raw_semantics else "SAFE_FALLBACK",
+                                  confidence, scene_support,
+                                  str(context.get("scene_family_evidence") or ""))
+    if proposed_family != "general" and family == "general":
+        context["background_generation_summary"] = (None if answers.get("background_inspiration") else
+            "Use only the supplied visual motifs and treatment; do not invent an environment.")
     context["visual_semantics"] = {
         "atmosphere_descriptors": descriptors(
             "atmosphere_descriptors", str(answers.get("creative_description") or "")),

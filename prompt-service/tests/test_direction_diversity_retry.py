@@ -217,6 +217,19 @@ class DirectionRetryBoundaryTests(unittest.TestCase):
         self.assertEqual(plan["scene_kind"], "general")
         self.assertTrue(plan["available_alternatives"]["composition_family"])
 
+    def test_ungrounded_scene_inference_is_not_sent_to_direction_model(self):
+        brief = {"background_inspiration": "abstract nested mineral loops",
+                 "visual_semantics": {"scene_family": "architectural-interior",
+                                      "motif_descriptors": ["nested loops"]},
+                 "semantic_provenance": {"scene_family": "SEMANTIC_INFERENCE"},
+                 "semantic_confidence": {"scene_family": .97}}
+        plan = build_diversity_constraints("A", [], brief)
+        payload = json.loads(build_creative_direction_prompt(
+            brief, "A", "visual designer", diversity_constraints=plan))
+        self.assertEqual(plan["scene_kind"], "general")
+        self.assertEqual(payload["event_brief"]["visual_semantics"]["scene_family"], "general")
+        self.assertEqual(brief["visual_semantics"]["scene_family"], "architectural-interior")
+
     def test_diversity_rejection_has_bounded_signature_diagnostic(self):
         first = direction("A")
         repeated = direction("C", "layered asymmetric arrangement")

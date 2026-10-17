@@ -1175,7 +1175,8 @@ def _ocr_data(image: Image.Image, config: str, variant: str, diagnostics: dict |
     try:
         result = pytesseract.image_to_data(
             image, config=config, output_type=pytesseract.Output.DICT,
-            timeout=min(settings.ocr_timeout_seconds, remaining),
+            timeout=min(diagnostics.get("_pass_timeout", settings.ocr_timeout_seconds)
+                        if diagnostics is not None else settings.ocr_timeout_seconds, remaining),
         )
     except (RuntimeError, pytesseract.TesseractError, OSError) as error:
         if diagnostics is not None:
@@ -1189,11 +1190,13 @@ def _ocr_data(image: Image.Image, config: str, variant: str, diagnostics: dict |
     return result
 
 
-def detect_text_evidence(image: Image.Image) -> dict:
+def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = None) -> dict:
     """Confirm typography with crop and preprocessing evidence, then group lines."""
+    pass_timeout = timeout_seconds or settings.ocr_timeout_seconds
     diagnostics = {"attempted": [], "completed_variants": [], "timed_out_variants": [],
                    "failed_variants": [], "failure_reasons": {},
-                   "_deadline": time.monotonic() + max(30.0, settings.ocr_timeout_seconds * 5)}
+                   "_pass_timeout": pass_timeout,
+                   "_deadline": time.monotonic() + max(30.0, pass_timeout * 5)}
     grey = image.convert("L")
     raw = _ocr_data(grey, "--psm 11", "original", diagnostics)
     items = _ocr_items(raw or {}, image.size)
@@ -1262,6 +1265,7 @@ def detect_text_evidence(image: Image.Image) -> dict:
                                "OCR_PARTIAL_SUFFICIENT" if partial and sufficient else
                                "OCR_PARTIAL_INSUFFICIENT" if partial else "complete")
     diagnostics.pop("_deadline")
+    diagnostics.pop("_pass_timeout")
     return {
         "text_detected": detected,
         "tokens": [item["token"] for item in items],
@@ -1275,7 +1279,8 @@ def detect_text_evidence(image: Image.Image) -> dict:
     }
 
 
-def _cached_text_evidence(image: Image.Image, digest: str) -> dict:
+def _cached_text_evidence(image: Image.Image, digest: str, *,
+                          timeout_seconds: float | None = None) -> dict:
     """Reuse OCR only for identical pixels and the same OCR implementation."""
     key = (digest, id(pytesseract.image_to_data))
     if key in _OCR_CACHE:
@@ -1286,7 +1291,8 @@ def _cached_text_evidence(image: Image.Image, digest: str) -> dict:
             _OCR_CACHE.move_to_end(key)
             return cached
         del _OCR_CACHE[key]
-    evidence = detect_text_evidence(image)
+    evidence = (detect_text_evidence(image, timeout_seconds=timeout_seconds)
+                if timeout_seconds is not None else detect_text_evidence(image))
     if evidence.get("ocr_diagnostics", {}).get("decision") not in {
         "OCR_UNAVAILABLE", "OCR_PARTIAL", "OCR_PARTIAL_INSUFFICIENT",
     }:
@@ -1680,11 +1686,20 @@ def validate_background(
         )
 
         for ocr_validation_attempt in range(1, MAX_OCR_VALIDATION_ATTEMPTS + 1):
-            text_evidence = _cached_text_evidence(image, digest)
+            pass_timeout = min(settings.ocr_timeout_seconds * ocr_validation_attempt, 60.0)
+            text_evidence = _cached_text_evidence(image, digest, timeout_seconds=pass_timeout)
             if text_evidence.get("ocr_diagnostics", {}).get("decision") not in {
                 "OCR_UNAVAILABLE", "OCR_PARTIAL", "OCR_PARTIAL_INSUFFICIENT",
             }:
                 break
+            if ocr_validation_attempt < MAX_OCR_VALIDATION_ATTEMPTS:
+                logger.warning(
+                    "event=ocr_infrastructure_retry sha256=%s validation_attempt=%s/%s "
+                    "next_pass_timeout_seconds=%s decision=%s",
+                    digest, ocr_validation_attempt, MAX_OCR_VALIDATION_ATTEMPTS,
+                    min(settings.ocr_timeout_seconds * (ocr_validation_attempt + 1), 60.0),
+                    text_evidence.get("ocr_diagnostics", {}).get("decision"),
+                )
         tokens = text_evidence["confirmed_tokens"]
 
         human_signals = (

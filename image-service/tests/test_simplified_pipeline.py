@@ -9,7 +9,8 @@ from PIL import Image
 from app.services.candidate_spec import build_candidate_spec
 from app.services.execution_plan import build_execution_plan
 from app.services.image_execution import _finalize_generation_status
-from app.services.prompt_compiler import (_RETRY_CORRECTIONS, compile_candidate_prompt,
+from app.services.prompt_compiler import (CompiledPrompt, _RETRY_CORRECTIONS,
+                                          _concise_runtime_prompt, compile_candidate_prompt,
                                           runtime_retry_category)
 from app.services.comfyui_client import validate_background
 from app.schemas.image_job_state import ImageJobState, ImageOutputRecord
@@ -17,6 +18,22 @@ from tests.test_semantic_foundation import document
 
 
 class SimplifiedPipelineTests(unittest.TestCase):
+    def test_concise_runtime_prompt_keeps_compiled_prompt_contract(self):
+        for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
+            with self.subTest(engine=engine):
+                spec = build_candidate_spec(document(), engine, "A")
+                original = compile_candidate_prompt(spec, 4, "AUDIENCE_DRIFT", concise=False)
+                result = _concise_runtime_prompt(original, spec, 4, "AUDIENCE_DRIFT")
+                self.assertIsInstance(result, CompiledPrompt)
+                self.assertTrue(result.positive)
+                self.assertTrue(result.clip_l)
+                self.assertTrue(result.clip_g)
+                self.assertEqual(bool(result.t5), engine == "sd-3-5-medium")
+                self.assertEqual(result.failure_category, "AUDIENCE_DRIFT")
+                self.assertEqual(result.retry_stage, "targeted_recovery")
+                self.assertEqual(result.retry_strength_level, "TARGETED_RECOVERY")
+                self.assertEqual(result.spec_sha256, original.spec_sha256)
+
     def test_bad_semantic_metadata_does_not_block_valid_brief(self):
         source = document()
         source["brief"]["semantic_contract"] = "stale metadata"

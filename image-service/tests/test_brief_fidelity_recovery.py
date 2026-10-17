@@ -1049,6 +1049,9 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                 ocr.call_count,
                 4,
             )
+            self.assertEqual([call.kwargs["timeout_seconds"] for call in ocr.call_args_list],
+                             [settings.ocr_timeout_seconds,
+                              min(settings.ocr_timeout_seconds * 2, 60.0)] * 2)
 
     def test_transient_ocr_timeout_revalidates_identical_png(self):
         _OCR_CACHE.clear()
@@ -1071,15 +1074,48 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                        return_value={"boilerplate_score": 0}), \
                  patch("app.services.comfyui_client.validate_visual_quality", return_value={}), \
                  patch("app.services.comfyui_client._valid_background_dimensions",
-                       return_value={(64, 64)}):
+                       return_value={(64, 64)}), \
+                 patch("app.services.comfyui_client.logger.warning") as warning:
                 result = validate_background(path)
                 self.assertEqual(result["sha256"], digest)
                 self.assertEqual(result["ocr_validation_sha256"], digest)
                 self.assertEqual(result["ocr_validation_attempts"], 2)
                 self.assertEqual(result["ocr_diagnostics"]["decision"], "OCR_PARTIAL_SUFFICIENT")
                 self.assertEqual(ocr.call_count, 2)
+                self.assertEqual([call.kwargs["timeout_seconds"] for call in ocr.call_args_list],
+                                 [settings.ocr_timeout_seconds,
+                                  min(settings.ocr_timeout_seconds * 2, 60.0)])
+                self.assertTrue(any("event=ocr_infrastructure_retry" in call.args[0]
+                                    for call in warning.call_args_list))
                 self.assertEqual(validate_background(path)["sha256"], digest)
                 self.assertEqual(ocr.call_count, 2)
+
+    def test_readable_text_found_on_same_png_recheck_remains_hard_failure(self):
+        unavailable = {"confirmed_tokens": [], "text_detected": False, "tokens": [],
+                       "text_lines": [], "text_area_ratio": 0,
+                       "ocr_diagnostics": {"decision": "OCR_UNAVAILABLE",
+                                           "timed_out_variants": ["original"]}}
+        readable = {**unavailable, "confirmed_tokens": ["WELCOME"],
+                    "text_detected": True, "tokens": ["WELCOME"],
+                    "ocr_diagnostics": {"decision": "complete", "timed_out_variants": []}}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "candidate.png"
+            Image.new("RGB", (64, 64), "white").save(path)
+            with patch("app.services.comfyui_client._cached_text_evidence",
+                       side_effect=[unavailable, readable]) as ocr, \
+                 patch("app.services.comfyui_client.detect_human_signals",
+                       return_value={"detected": False, "people": [], "faces": [],
+                                     "profiles": [], "upper_bodies": []}), \
+                 patch("app.services.comfyui_client.boilerplate_metrics",
+                       return_value={"boilerplate_score": 0}), \
+                 patch("app.services.comfyui_client.validate_visual_quality", return_value={}), \
+                 patch("app.services.comfyui_client._valid_background_dimensions",
+                       return_value={(64, 64)}):
+                with self.assertRaises(ValueError) as caught:
+                    validate_background(path)
+            self.assertEqual(caught.exception.diagnostics["primary_failure_category"], "TEXT")
+            self.assertEqual(ocr.call_count, 2)
+            self.assertEqual(ocr.call_args_list[0].args[1], ocr.call_args_list[1].args[1])
 
     def test_sd35_effective_workflow_wiring_and_profile(
         self,

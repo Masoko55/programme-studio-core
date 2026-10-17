@@ -2169,7 +2169,7 @@ def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int) -
 
 
 def _borderline_tonal_family(pixel_lab, targets: list[dict], pixel_hue: int) -> str | None:
-    """Find muted adjacent tones; image-level extent decides their role."""
+    """Find muted tones related to a requested pigment, independent of area."""
     chroma = float(np.linalg.norm(pixel_lab[1:]))
     if chroma < 8:
         return None
@@ -2571,9 +2571,6 @@ def validate_palette(
         return {
             **quality_result,
             "palette_checked": True,
-            "palette_mode": (
-                "black-white"
-            ),
             "palette_match_ratio": (
                 monochrome_ratio
             ),
@@ -2654,8 +2651,8 @@ def validate_palette(
     incidental_neutral_count = 0
     incidental_neutral_mask = np.zeros(total, dtype=np.uint8)
     unrelated_chromatic_mask = np.zeros(total, dtype=np.uint8)
-    borderline_tonal_mask = np.zeros(total, dtype=np.uint8)
-    borderline_tonal_pixels = []
+    ambiguous_tonal_mask = np.zeros(total, dtype=np.uint8)
+    ambiguous_tonal_pixels = []
 
     off_palette_named_counts: dict[
         str,
@@ -2681,7 +2678,14 @@ def validate_palette(
                 family = "grey" if "grey" in requested_neutrals else "gray"
         if family is None:
             family = _perceptual_palette_family(lab, requested_targets, int(hue))
-        tonal_name = family or _nearest_named_colour(rgb_pixels[index])
+        nearest_name = _nearest_named_colour(rgb_pixels[index]) if family is None else family
+        if family is None and not exclusive_palette:
+            tonal_family = _borderline_tonal_family(lab, requested_targets, int(hue))
+            if tonal_family is not None and nearest_name in next(
+                target["family_members"] for target in requested_targets if target["name"] == tonal_family
+            ):
+                family = tonal_family
+        tonal_name = family or nearest_name
         if family in requested_neutrals and tonal_name == "white" and lab[0] < 90:
             tonal_derivative_count += 1
         elif family in {target["name"] for target in requested_targets}:
@@ -2697,28 +2701,29 @@ def validate_palette(
             else:
                 unrelated_hue_count += 1
                 unrelated_chromatic_mask[index] = 1
-                borderline = _borderline_tonal_family(lab, requested_targets, int(hue))
-                if borderline is not None:
-                    borderline_tonal_mask[index] = 1
-                    borderline_tonal_pixels.append((index, borderline, tonal_name))
+                ambiguous_family = _borderline_tonal_family(lab, requested_targets, int(hue))
+                if ambiguous_family is not None:
+                    ambiguous_tonal_mask[index] = 1
+                    ambiguous_tonal_pixels.append((index, ambiguous_family, tonal_name))
             off_palette_count += 1
             off_palette_named_counts[tonal_name] = off_palette_named_counts.get(tonal_name, 0) + 1
             continue
         requested_counts[family] = requested_counts.get(family, 0) + 1
         accepted_tonal_counts[tonal_name] = accepted_tonal_counts.get(tonal_name, 0) + 1
 
-    # Dispersed muted highlights can be tonal; a connected panel of the same
-    # pixels is a third design region and must retain its off-palette status.
-    _, _, borderline_regions, _ = cv2.connectedComponentsWithStats(
-        borderline_tonal_mask.reshape(176, 128), 8,
+    # Ambiguous adjacent hues may be incidental when dispersed. A coherent
+    # region remains a separate design colour; established family members do
+    # not depend on region size.
+    _, _, ambiguous_regions, _ = cv2.connectedComponentsWithStats(
+        ambiguous_tonal_mask.reshape(176, 128), 8,
     )
-    largest_borderline_region = (
-        int(np.max(borderline_regions[1:, cv2.CC_STAT_AREA])) / total
-        if len(borderline_regions) > 1 else 0.0
+    largest_ambiguous_region = (
+        int(np.max(ambiguous_regions[1:, cv2.CC_STAT_AREA])) / total
+        if len(ambiguous_regions) > 1 else 0.0
     )
-    if (borderline_tonal_pixels and len(borderline_tonal_pixels) / total <= 0.12
-            and largest_borderline_region <= 0.035):
-        for index, family, tonal_name in borderline_tonal_pixels:
+    if (ambiguous_tonal_pixels and len(ambiguous_tonal_pixels) / total <= 0.12
+            and largest_ambiguous_region <= 0.035):
+        for index, family, tonal_name in ambiguous_tonal_pixels:
             unrelated_hue_count -= 1
             off_palette_count -= 1
             unrelated_chromatic_mask[index] = 0

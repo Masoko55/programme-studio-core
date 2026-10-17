@@ -254,6 +254,37 @@ class CreativeDirectionGenericityTests(unittest.TestCase):
         for phrase in ("frosted glass", "etched texture", "cool rim lighting"):
             self.assertIn(phrase, prompt.lower())
 
+    def test_unsupported_colour_fields_and_styles_are_removed_but_layout_survives(self):
+        brief = {"background_inspiration": "interlocking arc lattice",
+                 "primary_colour": "blue", "secondary_colour": "red",
+                 "visual_semantics": {"material_descriptors": [], "texture_descriptors": [],
+                                      "lighting_descriptors": []}}
+        prompt = sanitize_positive_prompt(
+            "Interlocking arcs with an off-centre focal point. Dark atmospheric background. "
+            "Soft atmospheric perspective. Forest green and brown colour field. "
+            "Layered depth and diagonal rhythm.", brief, "visual designer")
+        self.assertIn("off-centre focal point", prompt)
+        self.assertIn("layered depth and diagonal rhythm", prompt.lower())
+        for term in ("dark atmospheric", "atmospheric perspective", "forest green", "brown"):
+            self.assertNotIn(term, prompt.lower())
+
+    def test_explicit_dark_background_is_preserved(self):
+        brief = {"background_inspiration": "interlocking arcs on a dark background",
+                 "primary_colour": "blue", "secondary_colour": "red"}
+        prompt = sanitize_positive_prompt("Dark atmospheric background with interlocking arcs.",
+                                          brief, "visual designer")
+        self.assertIn("dark atmospheric background", prompt.lower())
+
+    def test_inferred_material_is_not_turned_into_new_treatment(self):
+        brief = {"background_inspiration": "interlocking arcs", "primary_colour": "blue",
+                 "visual_semantics": {"material_descriptors": ["metallic finish"]},
+                 "grill_me_context": {"semantic_provenance": {
+                     "material_descriptors": "SEMANTIC_INFERENCE"}}}
+        prompt = sanitize_positive_prompt("Metallic finish around interlocking arcs. Open focal placement with layered arcs and a quiet upper region.",
+                                          brief, "visual designer")
+        self.assertNotIn("metallic", prompt.lower())
+        self.assertIn("open focal placement", prompt.lower())
+
     def test_model_invention_is_removed_before_direction_is_returned(self):
         brief = {"event_type": "invented gathering", "background_inspiration": "interlocking arc lattice",
                  "primary_colour": "blue", "secondary_colour": "red",

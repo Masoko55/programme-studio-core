@@ -243,10 +243,11 @@ def positive_palette_description(
         return (
             f"A {', '.join(colours)} palette; "
             f"{relationship}. Requested colours control the "
-            "chromatic design, supported by bounded black, "
-            "charcoal, grey and white linework, shadows, "
-            "reflections and highlights. third chromatic design "
-            "colour presence remains negligible."
+            "main surfaces and visual mass. Small bounded achromatic shadows, "
+            "highlights and fine structural linework may support the design, "
+            "but must not become a background colour field or displace the "
+            "requested colours. Third chromatic design colour presence "
+            "remains negligible."
         )
 
     if mode == "strict":
@@ -834,7 +835,14 @@ def reference_visual_language(
         ),
     )
 
+    provenance = ((brief.get("semantic_contract") or {}).get("semantic_provenance") or
+                  (brief.get("grill_me_context") or {}).get("semantic_provenance") or {})
+
     for key, label in semantic_fields:
+        if key in {"lighting_descriptors", "material_descriptors", "texture_descriptors"} and (
+            provenance.get(key) not in {"USER_EXPLICIT", "GRILL_ME_CLARIFIED"}
+        ):
+            continue
         value = semantics.get(
             key
         )
@@ -1050,6 +1058,16 @@ _TEXTURE_WORDS = re.compile(
 _LIGHTING_WORDS = re.compile(
     r"\b(?:rim lighting|spotlight|backlit|neon lighting|studio lighting)\b", re.I,
 )
+_APPEARANCE_WORDS = re.compile(
+    r"\b(?:atmospheric perspective|watercolou?r|photorealistic|grunge|"
+    r"dark (?:atmospheric )?(?:background|field|wash)|"
+    r"light (?:background|field|wash)|(?:muted|desaturated|monochrome) (?:background|palette|field))\b", re.I,
+)
+_NAMED_COLOURS = re.compile(
+    r"\b(?:black|white|grey|gray|charcoal|brown|green|forest green|orange|"
+    r"purple|violet|yellow|pink|magenta|cyan|teal|turquoise|beige|cream|"
+    r"navy|burgundy|maroon|blue|red|gold|silver)\b", re.I,
+)
 
 
 def _unsupported_treatment(clause: str, brief: dict) -> bool:
@@ -1064,8 +1082,15 @@ def _unsupported_treatment(clause: str, brief: dict) -> bool:
     for key in ("material_descriptors", "texture_descriptors", "lighting_descriptors"):
         if provenance.get(key) in {"USER_EXPLICIT", "GRILL_ME_CLARIFIED"}:
             explicit_text += " " + " ".join(str(value) for value in (semantics.get(key) or [])).casefold()
-    for pattern in (_MATERIAL_WORDS, _TEXTURE_WORDS, _LIGHTING_WORDS):
-        if any(match.group().casefold() not in explicit_text for match in pattern.finditer(clause)):
+    for pattern in (_MATERIAL_WORDS, _TEXTURE_WORDS, _LIGHTING_WORDS, _APPEARANCE_WORDS):
+        if any(match.group().casefold() not in explicit_text and not (
+            match.group().casefold() == "dark atmospheric background" and "dark background" in explicit_text
+        ) for match in pattern.finditer(clause)):
+            return True
+    requested = {normalize_colour(colour) for colour in requested_palette(brief)}
+    for match in _NAMED_COLOURS.finditer(clause):
+        colour = normalize_colour(match.group())
+        if colour not in requested and match.group().casefold() not in explicit_text:
             return True
     return False
 

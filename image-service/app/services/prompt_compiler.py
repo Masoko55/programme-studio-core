@@ -857,7 +857,8 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
         return re.sub(r"\b(?:8k|4k|masterpiece|ultra[- ]detailed|trending on artstation|"
                       r"award[- ]winning|unreal engine|octane render|cinematic masterpiece)\b",
                       "", value, flags=re.I).strip()
-    return replace(compiled, positive=clean(positive), clip_l=clean(clip_l),
-                   clip_g=clean(clip_g), t5=clean(t5) if spec.engine_id == "sd-3-5-medium" else None,
-                   failure_category=runtime_retry_category(reason), retry_stage=compiled.retry_stage,
-                   retry_strength_level=strength)
+    updated: CompiledPrompt = replace(compiled, positive=clean(positive), clip_l=clean(clip_l),
+                                      clip_g=clean(clip_g), t5=clean(t5) if spec.engine_id == "sd-3-5-medium" else None,
+                                      failure_category=runtime_retry_category(reason), retry_stage=compiled.retry_stage,
+                                      retry_strength_level=strength)
+    return updated

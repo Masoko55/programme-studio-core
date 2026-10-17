@@ -150,6 +150,15 @@ class SubjectAdherenceTests(unittest.TestCase):
             with self.subTest(endpoint=endpoint, payload=payload):
                 self.assertEqual(_model_answer(payload, endpoint)["score"], .82)
 
+    def test_code_fence_parser_preserves_json_and_handles_long_unfenced_input(self):
+        answer = '{"score":0.82,"observed_evidence":["skyline"]}'
+        for content in (f"```json\n{answer}\n```", f"```JSON\n{answer}\n```",
+                        f"```\n{answer}\n```", answer):
+            with self.subTest(content=content[:12]):
+                self.assertEqual(_model_answer({"response": content}, "/api/generate")["score"], .82)
+        with self.assertRaises(ValueError):
+            _model_answer({"response": "x" + " " * 12000 + "y"}, "/api/generate")
+
     def test_invalid_and_empty_envelopes_fail(self):
         for content in ("", "not JSON", "{broken}"):
             with self.subTest(content=content), self.assertRaises((ValueError, json.JSONDecodeError)):

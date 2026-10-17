@@ -9,7 +9,6 @@ import base64
 import io
 import json
 import math
-import re
 from pathlib import Path
 
 import httpx
@@ -39,12 +38,14 @@ def _model_answer(payload: dict, endpoint: str) -> dict:
     if not isinstance(content, str) or not content.strip():
         raise ValueError("Empty or missing model response")
 
-    content = re.sub(
-        r"^\s*```(?:json)?\s*|\s*```\s*$",
-        "",
-        content.strip(),
-        flags=re.I,
-    )
+    content = content.strip()
+    if content.startswith("```"):
+        content = content[3:]
+        if content[:4].casefold() == "json":
+            content = content[4:]
+        content = content.lstrip()
+    if content.endswith("```"):
+        content = content[:-3].rstrip()
 
     try:
         answer = json.loads(content)
@@ -812,7 +813,6 @@ def assess_subject_adherence(
         KeyError,
         TypeError,
         ValueError,
-        json.JSONDecodeError,
     ) as error:
         debug[
             "parse_error"

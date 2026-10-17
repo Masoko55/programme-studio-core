@@ -180,7 +180,13 @@ class NativeRefinementTests(unittest.TestCase):
         image = Image.new("RGB", (100, 100), "white")
         ImageDraw.Draw(image).rectangle((0, 50, 99, 99), fill="black")
         ImageDraw.Draw(image).rectangle((0, 0, 99, 7), fill="red")
-        self.assertEqual(validate_palette(image, "black", "white", quality_result={})["palette_mode"], "black-white")
+        metrics = validate_palette(image, "black", "white", quality_result={})
+        self.assertEqual(metrics["palette_mode"], "black-white")
+        self.assertTrue(metrics["palette_checked"])
+        self.assertIn("palette_match_ratio", metrics)
+        self.assertIn("off_palette_ratio", metrics)
+        self.assertIn("primary_colour_ratio", metrics)
+        self.assertIn("secondary_colour_ratio", metrics)
         with self.assertRaisesRegex(ValueError, "black-and-white"):
             validate_palette(image, "black", "white", mode="strict", quality_result={})
 

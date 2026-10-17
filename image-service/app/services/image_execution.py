@@ -2697,7 +2697,7 @@ async def execute_image_job(
                         if not queue.get("queue_running") and not queue.get("queue_pending"):
                             await client.release_models()
                     except Exception:
-                        logger.warning("Unable to release idle renderer models", exc_info=True)
+                        logger.exception("Unable to release idle renderer models")
 
             _finalize_generation_status(state, generated, stopped_for_max_outputs)
 

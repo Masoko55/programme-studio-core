@@ -14,6 +14,10 @@ from app.services.ollama import (
     generate_text,
 )
 from app.services.grill_me_semantic import grounded_scene_family
+from app.services.direction_diversity import (
+    locked_structural_fields,
+    materialize_locked_structural_fields,
+)
 
 
 SKY_BLUE = "sky blue"
@@ -1631,6 +1635,10 @@ async def generate_creative_direction(
     )
 
     direction.role = direction.role or "brief-led"
+
+    direction = materialize_locked_structural_fields(
+        direction, locked_structural_fields(brief)
+    )
 
     direction.positive_prompt = (
         sanitize_positive_prompt(

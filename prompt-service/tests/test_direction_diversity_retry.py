@@ -15,14 +15,66 @@ from app.graph.workflow import (
     route_after_validation_c,
     validate_direction_c,
 )
-from app.services.creative_direction import build_creative_direction_prompt
-from app.services.direction_diversity import build_diversity_constraints, locked_structural_fields
+from app.services.creative_direction import build_creative_direction_prompt, generate_creative_direction
+from app.services.direction_diversity import (
+    build_diversity_constraints, locked_structural_fields, materialize_locked_structural_fields,
+)
 from app.services.validation import direction_signature, validate_direction_diversity
 from scripts.generate_prompts_for_reference import main as prompt_only_main, parse_args
 from tests.test_direction_structure_contract import direction
 
 
 class DirectionRetryBoundaryTests(unittest.TestCase):
+    def test_explicit_locks_replace_conflicting_model_structure(self):
+        candidate = direction("A", "oblique aerial view with horizontal visual flow and right-heavy mass")
+        candidate.focal_strategy = "lower right focal point"
+        candidate.depth_strategy = "shallow depth with foreground layers"
+        candidate.title_safe_region_strategy = "quiet left region"
+        candidate.programme_safe_region_strategy = "quiet right region"
+        locked = {"viewpoint": "first-person", "depth_plan": "receding", "major_flow": "curved"}
+        result = materialize_locked_structural_fields(candidate, locked)
+        signature = direction_signature(result)
+        for field, value in locked.items():
+            self.assertEqual(signature[field], value)
+        self.assertNotIn("oblique", result.composition_strategy.lower())
+        self.assertNotIn("aerial", result.composition_strategy.lower())
+        self.assertNotIn("horizontal", result.composition_strategy.lower())
+        self.assertNotIn("shallow", result.depth_strategy.lower())
+        self.assertEqual(signature["mass_distribution"], "right-heavy")
+        self.assertEqual(signature["focal_vertical_band"], "lower")
+        self.assertEqual(signature["quiet_region_pair"], "left/right")
+        self.assertEqual(result.border_or_perimeter_strategy, candidate.border_or_perimeter_strategy)
+
+    def test_no_explicit_lock_leaves_direction_unchanged(self):
+        candidate = direction("A", "oblique arrangement with horizontal visual flow")
+        self.assertIs(materialize_locked_structural_fields(candidate, {}), candidate)
+        inferred = self._spatial_brief("immersive first-person viewpoint", source="SEMANTIC_INFERENCE")
+        self.assertEqual(locked_structural_fields(inferred), {})
+        self.assertIs(materialize_locked_structural_fields(candidate, locked_structural_fields(inferred)), candidate)
+
+    def test_materialized_locks_preserve_diversity_rejection(self):
+        locked = {"viewpoint": "first-person", "depth_plan": "receding", "major_flow": "curved"}
+        first = materialize_locked_structural_fields(direction("A"), locked)
+        distinct = direction("B", "right-heavy asymmetric arrangement")
+        distinct.focal_strategy = "lower right focal point"
+        distinct.title_safe_region_strategy = "quiet left region"
+        distinct.programme_safe_region_strategy = "quiet right region"
+        second = materialize_locked_structural_fields(distinct, locked)
+        validate_direction_diversity(second, [first], locked)
+        duplicate = materialize_locked_structural_fields(direction("B"), locked)
+        with self.assertRaisesRegex(ValueError, "repeats"):
+            validate_direction_diversity(duplicate, [first], locked)
+
+    def test_generation_materializes_explicit_locks_before_validation(self):
+        brief = self._spatial_brief("immersive first-person viewpoint",
+                                    "forward traversal and receding spatial depth",
+                                    "arcing spatial motion")
+        response = direction("B", "oblique aerial view with horizontal visual flow").model_dump_json()
+        with patch("app.services.creative_direction.generate_text", new_callable=AsyncMock,
+                   return_value={"response": response}):
+            result = asyncio.run(generate_creative_direction("B", brief))
+        validate_direction_diversity(result, [], locked_structural_fields(brief))
+
     def test_general_composition_choices_are_structural_and_keep_alternatives(self):
         brief = {"visual_semantics": {"scene_family": "general"}}
         for letter in "ABC":

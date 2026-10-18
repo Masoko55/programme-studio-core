@@ -580,6 +580,31 @@ def _strategy_tokens(value: str) -> set[str]:
     }
 
 
+STRUCTURAL_SIGNATURE_CHOICES = {
+    "viewpoint": ((r"first[- ]person|viewer.?s viewpoint", "first-person"),
+                  (r"aerial|overhead|bird.?s.eye", "aerial"),
+                  (r"low.angle|looking up", "low-angle"),
+                  (r"street.canyon", "street-canyon"),
+                  (r"panoramic|wide.angle", "panoramic"),
+                  (r"close.crop|close.up", "close-crop"),
+                  (r"frontal|front.on", "frontal"), (r"oblique", "oblique")),
+    "depth_plan": ((r"reced", "receding"),
+                   (r"foreground|mid.?ground|distant|layer", "layered"),
+                   (r"flat|shallow", "shallow"), (r"perspective", "receding")),
+    "major_flow": ((r"\barc(?:ing)?\b|curv|wave", "curved"),
+                   (r"radial|radiat|web", "radial"),
+                   (r"diagonal", "diagonal"),
+                   (r"horizontal", "horizontal"),
+                   (r"vertical", "vertical")),
+    "composition_family": ((r"\bsymmetr(?:ic|ical|y)\b", "symmetric"),
+                           (r"radial|radiat|circular", "radial"),
+                           (r"diagonal", "diagonal-depth"),
+                           (r"panoramic|horizontal", "panoramic-layered"),
+                           (r"central|centre|center|monument", "central-focal"),
+                           (r"asymmetr", "asymmetric-cluster")),
+}
+
+
 def direction_signature(direction: CreativeDirectionOutput) -> dict[str, str]:
     """Normalize spatial decisions so paraphrases cannot masquerade as variety."""
     focal = direction.focal_strategy.casefold()
@@ -593,29 +618,23 @@ def direction_signature(direction: CreativeDirectionOutput) -> dict[str, str]:
     def choose(text: str, choices: tuple[tuple[str, str], ...]) -> str:
         return next((label for pattern, label in choices if re.search(pattern, text)), "unspecified")
 
+    def structural_choice(field: str, text: str) -> str:
+        marker = field.replace("_", " ")
+        explicit = re.search(rf"\b{marker}:\s*([a-z-]+)", text)
+        values = {label for _, label in STRUCTURAL_SIGNATURE_CHOICES[field]}
+        if explicit and explicit.group(1) in values:
+            return explicit.group(1)
+        return choose(text, STRUCTURAL_SIGNATURE_CHOICES[field])
+
     return {
         "focal_horizontal_band": choose(focal, ((r"\bleft\b", "left"), (r"\bright\b", "right"),
                                                  (r"cent(?:er|re)|axis", "centre"))),
         "focal_vertical_band": choose(focal, ((r"upper|top|high\b", "upper"),
                                                (r"lower|bottom|low\b", "lower"),
                                                (r"middle|mid|centr", "middle"))),
-        "viewpoint": choose(full, ((r"first[- ]person|viewer.?s viewpoint", "first-person"),
-                                    (r"aerial|overhead|bird.?s.eye", "aerial"),
-                                    (r"low.angle|looking up", "low-angle"),
-                                    (r"street.canyon", "street-canyon"),
-                                    (r"panoramic|wide.angle", "panoramic"),
-                                    (r"close.crop|close.up", "close-crop"),
-                                    (r"frontal|front.on", "frontal"), (r"oblique", "oblique"))),
-        "composition_family": choose(composition, ((r"\bsymmetr(?:ic|ical|y)\b", "symmetric"),
-                                                  (r"radial|radiat|circular", "radial"),
-                                                  (r"diagonal", "diagonal-depth"),
-                                                  (r"panoramic|horizontal", "panoramic-layered"),
-                                                  (r"central|centre|center|monument", "central-focal"),
-                                                  (r"asymmetr", "asymmetric-cluster"))),
-        "depth_plan": choose(depth, ((r"reced", "receding"),
-                                      (r"foreground|mid.?ground|distant|layer", "layered"),
-                                      (r"flat|shallow", "shallow"),
-                                      (r"perspective", "receding"))),
+        "viewpoint": structural_choice("viewpoint", full),
+        "composition_family": structural_choice("composition_family", composition),
+        "depth_plan": structural_choice("depth_plan", depth),
         "perimeter_plan": choose(perimeter, ((r"radial|web", "radial-web"),
                                             (r"frame|border", "framed"),
                                             (r"open|minimal|quiet", "open"))),
@@ -626,11 +645,7 @@ def direction_signature(direction: CreativeDirectionOutput) -> dict[str, str]:
         "dominant_motif_placement": choose(focal, ((r"skyscraper|tower", "tower"),
                                                      (r"flower|floral", "floral"),
                                                      (r"arch", "arch"))),
-        "major_flow": choose(full, ((r"\barc(?:ing)?\b|curv|wave", "curved"),
-                                     (r"radial|radiat|web", "radial"),
-                                     (r"diagonal", "diagonal"),
-                                     (r"horizontal", "horizontal"),
-                                     (r"vertical", "vertical"))),
+        "major_flow": structural_choice("major_flow", full),
         "mass_distribution": choose(composition + " " + focal,
                                     ((r"dense left|left mass|left-heavy", "left-heavy"),
                                      (r"dense right|right mass|right-heavy", "right-heavy"),

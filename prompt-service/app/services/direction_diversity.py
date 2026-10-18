@@ -4,7 +4,7 @@ import re
 
 from app.schemas.creative_direction import CreativeDirectionOutput
 from app.services.grill_me_semantic import grounded_scene_family
-from app.services.validation import direction_signature
+from app.services.validation import STRUCTURAL_SIGNATURE_CHOICES, direction_signature
 
 
 _FIELDS = (
@@ -12,6 +12,67 @@ _FIELDS = (
     "composition_family", "major_flow", "mass_distribution",
     "depth_plan", "perimeter_plan", "quiet_region_pair",
 )
+
+
+_LOCK_TARGET = {
+    "viewpoint": "composition_strategy",
+    "depth_plan": "depth_strategy",
+    "major_flow": "composition_strategy",
+    "composition_family": "composition_strategy",
+}
+_LOCK_PHRASE = {
+    "viewpoint": lambda value: f"viewpoint: {value}",
+    "depth_plan": lambda value: f"depth plan: {value}",
+    "major_flow": lambda value: f"major flow: {value}",
+    "composition_family": lambda value: f"composition family: {value}",
+}
+
+
+def materialize_locked_structural_fields(
+    direction: CreativeDirectionOutput, locked_fields: dict[str, str]
+) -> CreativeDirectionOutput:
+    """Write only explicit structural locks into the model's existing strategies."""
+    if not locked_fields:
+        return direction
+    changes = {}
+    for field in ("viewpoint", "depth_plan", "major_flow", "composition_family"):
+        value = locked_fields.get(field)
+        if value is None:
+            continue
+        if value not in {label for _, label in STRUCTURAL_SIGNATURE_CHOICES[field]}:
+            raise ValueError(f"Unsupported structural lock: {field}={value}")
+        target = _LOCK_TARGET[field]
+        strategy_fields = (
+            ("depth_strategy",) if field == "depth_plan" else
+            ("composition_strategy",) if field == "composition_family" else
+            ("composition_strategy", "focal_strategy", "depth_strategy", "border_or_perimeter_strategy")
+        )
+        for strategy_field in strategy_fields:
+            prose = changes.get(strategy_field, getattr(direction, strategy_field))
+            for pattern, label in STRUCTURAL_SIGNATURE_CHOICES[field]:
+                if label != value:
+                    if field == "depth_plan" and label == "layered":
+                        continue  # Layering can coexist with receding or shallow depth.
+                    suffix = {
+                        "viewpoint": r"(?:\s+(?:viewpoint|view|angle|perspective))?",
+                        "depth_plan": r"(?:\s+(?:depth|perspective))?",
+                        "major_flow": r"(?:\s+(?:visual|spatial))?\s+(?:flow|motion|movement|direction)",
+                        "composition_family": r"(?:\s+(?:composition|arrangement|layout))?",
+                    }[field]
+                    if field == "viewpoint" and label in {"panoramic", "close-crop"}:
+                        suffix = r"\s+(?:viewpoint|view|angle|perspective)"
+                    marker = field.replace("_", " ")
+                    prose = re.sub(
+                        rf"(?:\b{marker}:\s*)?\b(?:{pattern})[a-z-]*\b{suffix}",
+                        "", prose, flags=re.I,
+                    )
+            prose = re.sub(r"\s+", " ", prose).strip(" ,;.")
+            if len(prose) < 8:
+                prose = _LOCK_PHRASE[field](value)
+            changes[strategy_field] = prose
+        prose = changes.get(target, getattr(direction, target))
+        changes[target] = f"{_LOCK_PHRASE[field](value)}; {prose}".strip(" ;")
+    return direction.model_copy(update=changes)
 
 
 def locked_structural_fields(brief: dict) -> dict[str, str]:

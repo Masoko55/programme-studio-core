@@ -142,7 +142,7 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
         self.assertTrue(result["checked"])
         self.assertNotEqual(result["decision"], "unavailable")
 
-    def test_unrequested_literal_objects_fail_subject_fit_for_inferred_patterns(self):
+    def test_unrequested_literal_objects_fail_policy_without_changing_subject_score(self):
         scores = {"subject_score": .95, "motif_score": .95,
                   "unrequested_literal_object_visible": True}
         for motif in ("feather-like strokes", "repeating scale texture"):
@@ -151,7 +151,10 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                      "motif_literalization_policy": "motif_only",
                      "authorized_literal_subject": ""}
             result, prompt = self._assess(brief, scores)
-            self.assertEqual(result["decision"], "SUBJECT_DRIFT")
+            self.assertEqual(result["decision"], "UNREQUESTED_LITERAL_OBJECT")
+            self.assertEqual(result["subject_score"], .95)
+            self.assertEqual(result["motif_score"], .95)
+            self.assertTrue(hard_fidelity_failure(result))
             self.assertIn("unrequested_literal_object_visible", prompt)
         scores["unrequested_literal_object_visible"] = False
         explicit = {"primary_visual_subject": "a bird perched on a branch",

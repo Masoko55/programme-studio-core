@@ -24,6 +24,8 @@ SEMANTIC_FAILURE_CATEGORIES = {
     "motif_score": "MOTIF_DRIFT",
     "treatment_score": "TREATMENT_DRIFT",
     "audience_fit_score": "AUDIENCE_DRIFT",
+    "unrequested_literal_object_visible": "UNREQUESTED_LITERAL_OBJECT",
+    "unrequested_text_visible": "TEXT_OR_LOGO",
 }
 
 
@@ -106,6 +108,7 @@ def brief_fidelity_record(result: dict) -> dict:
             "human_description",
             "vision_text_signal",
             "vision_text_evidence",
+            "unrequested_literal_object_visible",
         )
     }
 
@@ -446,6 +449,7 @@ def assess_subject_adherence(
         "vision_human_signal": None,
         "vision_text_signal": None,
         "vision_text_evidence": "",
+        "unrequested_literal_object_visible": None,
     }
 
     if not chosen_model or not subject:
@@ -916,7 +920,6 @@ def assess_subject_adherence(
     unauthorized_literal = (visual_design.get("motif_literalization_policy") == "motif_only"
                             and answer.get("unrequested_literal_object_visible") is True)
     if unauthorized_literal:
-        scores["subject_score"] = 0.0
         debug["unrequested_literal_object_visible"] = True
 
     failed = [
@@ -1040,6 +1043,8 @@ def assess_subject_adherence(
                                       r"rows?|clusters?|lines?)\b", text_evidence, re.I)))
     if text_signal:
         hard_failed.append("unrequested_text_visible")
+    if unauthorized_literal:
+        hard_failed.append("unrequested_literal_object_visible")
 
     # Only a real subject failure should become SUBJECT_DRIFT.
     #
@@ -1048,6 +1053,8 @@ def assess_subject_adherence(
     # instead of unnecessarily rebuilding the whole requested subject.
     if text_signal:
         decision = "TEXT_OR_LOGO"
+    elif unauthorized_literal:
+        decision = "UNREQUESTED_LITERAL_OBJECT"
     elif (
         "subject_score"
         in hard_failed
@@ -1100,7 +1107,9 @@ def assess_subject_adherence(
         **scores,
         "decision": decision,
         "failure_category": ("TEXT_OR_LOGO" if text_signal else
+                             "UNREQUESTED_LITERAL_OBJECT" if unauthorized_literal else
                              SEMANTIC_FAILURE_CATEGORIES[worst] if worst else None),
+        "unrequested_literal_object_visible": unauthorized_literal,
         "vision_text_signal": text_signal,
         "vision_text_evidence": text_evidence if text_signal else "",
         "compound_fidelity_failure": (

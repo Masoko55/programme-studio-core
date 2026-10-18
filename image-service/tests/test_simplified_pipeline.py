@@ -11,13 +11,40 @@ from app.services.execution_plan import build_execution_plan
 from app.services.image_execution import _finalize_generation_status
 from app.services.prompt_compiler import (CompiledPrompt, _RETRY_CORRECTIONS,
                                           _concise_runtime_prompt, compile_candidate_prompt,
-                                          runtime_retry_category)
+                                          failure_category, runtime_retry_category)
 from app.services.comfyui_client import validate_background
+from app.services.scene_density import assess_explicit_safe_regions
 from app.schemas.image_job_state import ImageJobState, ImageOutputRecord
 from tests.test_semantic_foundation import document
 
 
 class SimplifiedPipelineTests(unittest.TestCase):
+    def test_safe_region_coordinates_and_global_decision_are_independent(self):
+        tiles = [.18] * 16
+        zones = {"title": "quiet top-left", "programme": "calm middle-right"}
+        for index in (0, 1, 4, 5):
+            tiles[index] = .01
+        density = {"decision": "PASS", "tile_edge_fractions": tiles}
+        result = assess_explicit_safe_regions(density, zones)
+        self.assertEqual(result["regions"]["title"]["tile_indexes"], [0, 1, 4, 5])
+        self.assertEqual(result["regions"]["programme"]["tile_indexes"], [6, 7, 10, 11])
+        self.assertEqual(result["regions"]["title"]["decision"], "PASS")
+        self.assertEqual(result["regions"]["programme"]["decision"], "FAIL")
+        self.assertEqual(result["decision"], "FAIL")
+        bottom = assess_explicit_safe_regions(density, {"programme": "quiet bottom-center"})
+        self.assertEqual(bottom["regions"]["programme"]["tile_indexes"], [9, 10, 13, 14])
+        self.assertEqual(bottom["decision"], "FAIL")
+        for index in (9, 10, 13, 14):
+            tiles[index] = .01
+        self.assertEqual(assess_explicit_safe_regions(density, {"programme": "quiet bottom-center"})["decision"], "PASS")
+
+    def test_known_rejection_categories_remain_stable(self):
+        for category in ("TEXT", "TEXT_OR_LOGO", "HUMAN", "PALETTE_ROLE_DRIFT", "DENSE_SAFE_REGION",
+                         "SUBJECT_DRIFT", "TREATMENT_DRIFT", "UNREQUESTED_LITERAL_OBJECT",
+                         "VISION_UNAVAILABLE"):
+            self.assertEqual(failure_category(category + ": example"), category)
+        self.assertEqual(failure_category("Generated background contains grouped glyph-like rows"), "TEXT_OR_LOGO")
+
     def test_concise_runtime_prompt_keeps_compiled_prompt_contract(self):
         for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
             with self.subTest(engine=engine):
@@ -207,18 +234,25 @@ class SimplifiedPipelineTests(unittest.TestCase):
             Image.new("RGB", (896, 1280), "navy").save(path)
             ocr = {"confirmed_tokens": [], "ocr_diagnostics": {"decision": "OCR_COMPLETE"},
                    "text_detected": False, "tokens": [], "text_lines": [], "text_area_ratio": 0}
-            human = {"detected": False, "ambiguous_face_signal": False}
-            density = {"decision": "DENSITY_DRIFT", "macro_form_balance": 0,
-                       "occupied_tile_fraction": 1, "quiet_tile_fraction": 0}
+            human = {"detected": False, "ambiguous_face_signal": False,
+                     "people": [], "faces": [], "profiles": [], "upper_bodies": [],
+                     "evidence": [], "strong_signals": [], "weak_signals": []}
+            density = {"decision": "PASS", "macro_form_balance": 0,
+                       "occupied_tile_fraction": 1, "quiet_tile_fraction": 0,
+                       "tile_edge_fractions": [.2] * 16}
             with patch("app.services.comfyui_client._cached_text_evidence", return_value=ocr), \
                  patch("app.services.comfyui_client.detect_human_signals", return_value=human), \
                  patch("app.services.comfyui_client.boilerplate_metrics", return_value={"boilerplate_score": 0}), \
                  patch("app.services.comfyui_client.validate_visual_quality", return_value={}), \
                  patch("app.services.comfyui_client.assess_scene_density", return_value=density):
-                with self.assertRaisesRegex(ValueError, "DENSE_SAFE_REGION"):
+                with self.assertRaisesRegex(ValueError, "DENSE_SAFE_REGION") as raised:
                     validate_background(path, enforce_palette=False,
                                         visual_design={"density_preference": "moderate",
                                                        "title_safe_region_strategy": "integrated quiet area"})
+            validation = raised.exception.diagnostics["validation"]
+            self.assertEqual(validation["failure_category"], "DENSE_SAFE_REGION")
+            self.assertEqual(validation["quality"]["global_density_decision"], "PASS")
+            self.assertEqual(validation["quality"]["explicit_safe_region_decision"], "FAIL")
 
     def test_pseudo_text_without_ocr_tokens_rejects(self):
         with tempfile.TemporaryDirectory() as root:
@@ -234,6 +268,32 @@ class SimplifiedPipelineTests(unittest.TestCase):
                  patch("app.services.comfyui_client.validate_visual_quality", return_value={}):
                 with self.assertRaisesRegex(ValueError, "grouped glyph-like rows"):
                     validate_background(path, enforce_palette=False)
+
+    def test_explicit_quiet_region_passes_when_its_tiles_are_calm(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "image.png"
+            Image.new("RGB", (896, 1280), "navy").save(path)
+            ocr = {"confirmed_tokens": [], "ocr_diagnostics": {"decision": "OCR_COMPLETE"},
+                   "text_detected": False, "tokens": [], "text_lines": [], "text_area_ratio": 0}
+            human = {"detected": False, "ambiguous_face_signal": False,
+                     "people": [], "faces": [], "profiles": [], "upper_bodies": [],
+                     "evidence": [], "strong_signals": [], "weak_signals": []}
+            tiles = [.2] * 16
+            for index in (0, 1, 4, 5):
+                tiles[index] = .01
+            density = {"decision": "PASS", "macro_form_balance": 0,
+                       "tile_edge_fractions": tiles}
+            with patch("app.services.comfyui_client._cached_text_evidence", return_value=ocr), \
+                 patch("app.services.comfyui_client.detect_human_signals", return_value=human), \
+                 patch("app.services.comfyui_client.boilerplate_metrics", return_value={"boilerplate_score": 0}), \
+                 patch("app.services.comfyui_client.validate_visual_quality", return_value={}), \
+                 patch("app.services.comfyui_client.assess_scene_density", return_value=density):
+                result = validate_background(path, enforce_palette=False,
+                                             visual_design={"density_preference": "moderate",
+                                                            "title_safe_region_strategy": "quiet top-left area"})
+            self.assertEqual(result["validation"]["decision"], "accepted")
+            self.assertEqual(result["validation"]["quality"]["global_density_decision"], "PASS")
+            self.assertEqual(result["validation"]["quality"]["explicit_safe_region_decision"], "PASS")
 
 
 if __name__ == "__main__":

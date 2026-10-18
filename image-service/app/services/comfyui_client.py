@@ -59,7 +59,7 @@ from app.services.composition_diversity import boilerplate_metrics, boilerplate_
 from app.services.subject_adherence import (
     SEMANTIC_FAILURE_CATEGORIES, assess_subject_adherence, brief_fidelity_record, hard_fidelity_failure,
 )
-from app.services.scene_density import assess_scene_density
+from app.services.scene_density import assess_scene_density, assess_explicit_safe_regions
 from app.services.prompt_freshness import source_prompt_manifest
 
 
@@ -1218,7 +1218,13 @@ def _pseudo_text_evidence(image: Image.Image) -> dict:
             x, y, width, height, area = (int(value) for value in stats[index])
             fill = area / max(1, width * height)
             if 3 <= width <= 45 and 6 <= height <= 30 and .17 <= fill <= .72 and .2 <= width / height <= 2.2:
-                glyphs.append((x, y, width, height, float(centroids[index][1])))
+                component = mask[y:y + height, x:x + width] > 0
+                # Letter-like components need strokes in both axes. A web arc
+                # or diagonal wire can have glyph-sized fragments and aligned
+                # rows without this independent shape evidence.
+                structured = (float(component.mean(axis=0).max()) >= .55 and
+                              float(component.mean(axis=1).max()) >= .55)
+                glyphs.append((x, y, width, height, float(centroids[index][1]), structured))
         rows = []
         for glyph in sorted(glyphs, key=lambda item: item[4]):
             match = next((row for row in rows if abs(row[0][4] - glyph[4]) <= max(row[0][3], glyph[3]) * .4), None)
@@ -1233,7 +1239,14 @@ def _pseudo_text_evidence(image: Image.Image) -> dict:
                 continue
             widths = np.array([item[2] for item in row], dtype=float)
             gaps = [right[0] - (left[0] + left[2]) for left, right in zip(row, row[1:])]
+            median_height = float(np.median([item[3] for item in row]))
+            top_spread = float(np.std([item[1] for item in row]))
+            baseline_spread = float(np.std([item[1] + item[3] for item in row]))
+            structured_count = sum(item[5] for item in row)
             if (float(np.std(widths) / max(np.mean(widths), 1)) >= .16 and
+                    top_spread <= .25 * median_height and
+                    baseline_spread <= .25 * median_height and
+                    structured_count >= max(3, len(row) * .45) and
                     sum(0 <= gap <= max(20, 2 * np.median(widths)) for gap in gaps) >= 4):
                 plausible.append((min(item[0] for item in row), max(item[0] + item[2] for item in row),
                                   float(np.mean([item[4] for item in row]))))
@@ -1241,12 +1254,20 @@ def _pseudo_text_evidence(image: Image.Image) -> dict:
                       max(0, min(first[1], second[1]) - max(first[0], second[0])) >=
                       .35 * min(first[1] - first[0], second[1] - second[0])
                       for index, first in enumerate(plausible) for second in plausible[index + 1:])
-        return {"detected": grouped, "aligned_rows": len(plausible), "glyph_components": len(glyphs)}
+        # A frame-wide lattice produces hundreds of fragments across many
+        # rows. Isolated word-like clusters do not occupy the entire frame.
+        geometry_suppressed = len(plausible) > 8 or len(glyphs) > 200
+        return {"detected": grouped and not geometry_suppressed,
+                "geometry_suppressed": geometry_suppressed,
+                "aligned_rows": len(plausible), "glyph_components": len(glyphs),
+                "structured_components": sum(item[5] for item in glyphs)}
     dark = grouped_rows(binary)
     light = grouped_rows(255 - binary)
     return {"detected": dark["detected"] or light["detected"],
             "aligned_rows": max(dark["aligned_rows"], light["aligned_rows"]),
-            "glyph_components": max(dark["glyph_components"], light["glyph_components"])}
+            "glyph_components": max(dark["glyph_components"], light["glyph_components"]),
+            "structured_components": max(dark["structured_components"], light["structured_components"]),
+            "geometry_suppressed": dark["geometry_suppressed"] and light["geometry_suppressed"]}
 
 
 def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = None) -> dict:
@@ -1802,15 +1823,17 @@ def validate_background(
         if visual_design:
             density = assess_scene_density(image, visual_design.get("density_preference", ""))
             quality_result["scene_density"] = density
+            quality_result["global_density_decision"] = density["decision"]
             quality_result["macro_form_balance"] = density["macro_form_balance"]
             if density["decision"] == "DENSITY_DRIFT":
                 problems.append(("DENSITY_DRIFT", "DENSITY_DRIFT: scene has no usable calm region for requested density"))
-            quiet_strategies = [str(visual_design.get(key) or "") for key in
-                                ("title_safe_region_strategy", "programme_safe_region_strategy")]
-            explicit_quiet = any(re.search(r"\b(?:quiet|calm|low.detail|breathing room)\b", value, re.I)
-                                 for value in quiet_strategies)
-            if (explicit_quiet and density["occupied_tile_fraction"] >= .75 and
-                    density["quiet_tile_fraction"] <= .0625):
+            safe_regions = assess_explicit_safe_regions(density, {
+                "title": str(visual_design.get("title_safe_region_strategy") or ""),
+                "programme": str(visual_design.get("programme_safe_region_strategy") or ""),
+            })
+            quality_result["explicit_safe_regions"] = safe_regions
+            quality_result["explicit_safe_region_decision"] = safe_regions["decision"]
+            if safe_regions["decision"] == "FAIL":
                 problems.append(("DENSE_SAFE_REGION", "DENSE_SAFE_REGION: explicit quiet region has insufficient calm tiles"))
 
         palette_result = {
@@ -1930,7 +1953,8 @@ def validate_background(
                 "structural_edge_density", "macro_structure_score", "coarse_edge_density",
                 "high_pass_mean", "boilerplate_score", "title_panel_score",
                 "fine_line_pair_ratio",
-                "macro_form_balance", "scene_density",
+                "macro_form_balance", "scene_density", "global_density_decision",
+                "explicit_safe_regions", "explicit_safe_region_decision",
             )
         },
     }

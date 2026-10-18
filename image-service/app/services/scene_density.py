@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 import cv2
 import numpy as np
 from PIL import Image
@@ -28,6 +30,7 @@ def assess_scene_density(image: Image.Image, preference: str) -> dict:
     drift = threshold is not None and pressure >= threshold and quiet <= .0625
     return {
         "requested_density": level, "overall_edge_density": round(float(np.mean(edges)), 4),
+        "tile_edge_fractions": [round(float(value), 4) for value in tiles],
         "occupied_tile_fraction": round(occupied, 4),
         "quiet_tile_fraction": round(quiet, 4),
         "safe_region_density": round(safe_density, 4),
@@ -39,3 +42,28 @@ def assess_scene_density(image: Image.Image, preference: str) -> dict:
         "density_rule_triggered": "spatial_crowding" if drift else None,
         "decision": "DENSITY_DRIFT" if drift else "PASS",
     }
+
+
+def assess_explicit_safe_regions(density: dict, strategies: dict[str, str]) -> dict:
+    """Check the area named by each quiet strategy, independently of global density."""
+    regions = {}
+    for name, strategy in strategies.items():
+        if not re.search(r"\b(?:quiet|calm|low.detail|breathing room)\b", strategy, re.I):
+            continue
+        tiles = density["tile_edge_fractions"]
+        words = strategy.casefold()
+        columns = ([0, 1] if re.search(r"\b(?:left|western?)\b", words) else
+                   [2, 3] if re.search(r"\b(?:right|eastern?)\b", words) else [1, 2])
+        rows = ([0, 1] if re.search(r"\b(?:top|upper)\b", words) else
+                [2, 3] if re.search(r"\b(?:bottom|lower)\b", words) else
+                [1, 2] if re.search(r"\b(?:middle|mid|center|centre)\b", words) else
+                [0, 1] if name == "title" else [2, 3])
+        indexes = [row * 4 + column for row in rows for column in columns]
+        local = [tiles[index] for index in indexes]
+        occupied = sum(value >= .10 for value in local) / len(local)
+        quiet = sum(value <= .04 for value in local) / len(local)
+        regions[name] = {"decision": "FAIL" if occupied >= .75 and quiet == 0 else "PASS",
+                         "tile_indexes": indexes, "occupied_tile_fraction": occupied,
+                         "quiet_tile_fraction": quiet}
+    return {"decision": "FAIL" if any(region["decision"] == "FAIL" for region in regions.values()) else "PASS",
+            "regions": regions}

@@ -42,6 +42,26 @@ class ExactOcrCases(unittest.TestCase):
             draw.arc((256-radius, 256-radius, 256+radius, 256+radius), 0, 360, fill="black", width=2)
         self.assertFalse(_pseudo_text_evidence(web)["detected"])
 
+    def test_dense_web_and_window_lattice_are_not_pseudo_words(self):
+        web = Image.new("RGB", (512, 512), "white")
+        draw = ImageDraw.Draw(web)
+        for coordinate in range(0, 512, 16):
+            draw.line((256, 256, coordinate, 0), fill="black", width=2)
+            draw.line((256, 256, coordinate, 511), fill="black", width=2)
+            draw.line((256, 256, 0, coordinate), fill="black", width=2)
+            draw.line((256, 256, 511, coordinate), fill="black", width=2)
+        for radius in range(20, 260, 18):
+            draw.arc((256-radius, 256-radius, 256+radius, 256+radius),
+                     0, 360, fill="black", width=2)
+        self.assertFalse(_pseudo_text_evidence(web)["detected"])
+
+        windows = Image.new("RGB", (512, 512), "white")
+        draw = ImageDraw.Draw(windows)
+        for y in range(32, 480, 32):
+            for x in range(32, 480, 32):
+                draw.rectangle((x, y, x + 15, y + 22), outline="black", width=2)
+        self.assertFalse(_pseudo_text_evidence(windows)["detected"])
+
     def evaluate(self, first, repeats=(), crops=False):
         image = Image.new("RGB", (300, 400), "white")
         scaled_repeats = []

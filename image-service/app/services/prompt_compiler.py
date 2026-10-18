@@ -58,6 +58,15 @@ def failure_category(reason: str) -> str:
     text = reason.casefold()
     if not text:
         return "INITIAL"
+    if re.match(r"^text(?:\b|_)", text):
+        return "TEXT_OR_LOGO" if text.startswith("text_or_logo") else "TEXT"
+    for category in ("UNREQUESTED_LITERAL_OBJECT", "DENSE_SAFE_REGION", "TEXT_OR_LOGO",
+                     "PALETTE_ROLE_DRIFT", "SUBJECT_DRIFT", "TREATMENT_DRIFT", "HUMAN",
+                     "VISION_UNAVAILABLE", "VALIDATOR_UNAVAILABLE"):
+        if category.casefold() in text:
+            return category
+    if "grouped glyph-like rows" in text:
+        return "TEXT_OR_LOGO"
     if "TITLE_PANEL" in reason.upper() or "TEMPLATE_PANEL" in reason.upper():
         return "TITLE_PANEL"
     if "SUBJECT_DRIFT" in reason.upper():
@@ -440,6 +449,8 @@ def _motif_policy_instruction(spec: CandidateSpec) -> str:
 _CORRECTIONS = {
     "HUMAN": "Remove people, faces, silhouettes and humanoid shapes from this same background scene.",
     "TEXT": "Render uninterrupted visual surfaces and coherent image forms across the scene; keep calm areas integrated into the artwork.",
+    "TEXT_OR_LOGO": "Render uninterrupted visual surfaces without words, logos or letter-like clusters.",
+    "UNREQUESTED_LITERAL_OBJECT": "Keep the requested motif as pattern structure without adding its unrequested literal source object.",
     "TITLE_PANEL": "Integrate the calm area into the scene itself. Remove separate panels, cards, banners, bordered boxes and blank sheets.",
     "SUBJECT_DRIFT": "Depict the requested visual environment with recognizable subject-specific forms and the supplied visual anchors. Retain this direction's composition and palette.",
     "ATMOSPHERE_DRIFT": "Strengthen the supplied atmosphere and lighting descriptors while preserving the same subject, motif, audience and palette.",
@@ -831,6 +842,7 @@ def retry_strength_level(attempt: int) -> str:
 
 _RETRY_CORRECTIONS = {
     "TEXT_OR_LOGO": "Use continuous visual surfaces without glyph- or signage-like marks.",
+    "UNREQUESTED_LITERAL_OBJECT": "Keep the supplied motif abstract; omit its unrequested literal source object.",
     "HUMAN": "Render only the requested non-human environment and motifs, without figures.",
     "PALETTE_OFF": "Strengthen the requested colour families and relationship while retaining shading character.",
     "PALETTE_ROLE_DRIFT": "Restore the requested primary-to-secondary visual-mass relationship.",

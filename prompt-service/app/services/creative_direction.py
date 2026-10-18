@@ -13,6 +13,14 @@ from app.schemas.creative_direction import (
 from app.services.ollama import (
     generate_text,
 )
+from app.services.grill_me_semantic import grounded_scene_family
+from app.services.direction_diversity import (
+    locked_structural_fields,
+    materialize_locked_structural_fields,
+)
+
+
+SKY_BLUE = "sky blue"
 
 
 logger = logging.getLogger(
@@ -49,8 +57,6 @@ POSITIVE_PROMPT_FORBIDDEN_TERMS = (
     "heroes",
     "superhero",
     "superheroes",
-    "spiderman",
-    "spider-man",
     "masked person",
     "masked character",
     "costume",
@@ -63,9 +69,9 @@ COLOUR_ALIASES = {
     "golden": "gold",
     "navy blue": "navy",
     "royal": "royal blue",
-    "sky": "sky blue",
-    "baby blue": "sky blue",
-    "light blue": "sky blue",
+    "sky": SKY_BLUE,
+    "baby blue": SKY_BLUE,
+    "light blue": SKY_BLUE,
     "dark blue": "navy",
     "hotpink": "hot pink",
     "rose pink": "rose",
@@ -78,45 +84,32 @@ COLOUR_ALIASES = {
 }
 
 
-KNOWN_COLOURS = (
-    "black",
-    "white",
-    "grey",
-    "silver",
-    "charcoal",
-    "red",
-    "orange",
-    "yellow",
-    "lime",
-    "green",
-    "forest green",
-    "mint green",
-    "teal",
-    "turquoise",
-    "cyan",
-    "aqua",
-    "blue",
-    "sky blue",
-    "royal blue",
-    "navy",
-    "purple",
-    "violet",
-    "lavender",
-    "magenta",
-    "pink",
-    "hot pink",
-    "rose",
-    "coral",
-    "peach",
-    "maroon",
-    "burgundy",
-    "brown",
-    "beige",
-    "cream",
-    "champagne",
-    "gold",
-    "rose gold",
-)
+def resolve_palette_mode(brief: dict) -> str:
+    """Use the same dominant/strict distinction as image validation."""
+    requested = str(brief.get("palette_mode") or "").lower()
+    if requested in {"strict", "monochrome", "achromatic"}:
+        return "strict" if requested == "strict" else "achromatic"
+    description = " ".join(str(brief.get(key) or "") for key in (
+        "creative_description", "palette_relationship", "colour_palette",
+    )).lower()
+    if re.search(r"\b(?:only (?:these |the )?colou?rs|use only\b|no third colou?r|strictly monochrome|exclusive palette)\b", description):
+        return "strict"
+    return "dominant"
+
+
+def direction_structural_summary(direction: CreativeDirectionOutput, brief: dict) -> dict:
+    """Carry a previous direction's spatial plan into later direction prompts."""
+    return {
+        "direction_id": direction.direction_id,
+        "composition_strategy": direction.composition_strategy,
+        "focal_strategy": direction.focal_strategy,
+        "depth_strategy": direction.depth_strategy,
+        "border_or_perimeter_strategy": direction.border_or_perimeter_strategy,
+        "title_safe_region_strategy": direction.title_safe_region_strategy,
+        "programme_safe_region_strategy": direction.programme_safe_region_strategy,
+        "background_inspiration": brief.get("background_inspiration"),
+    }
+
 
 
 def normalize_colour(
@@ -153,6 +146,12 @@ def requested_palette(
     brief: dict,
 ) -> list[str]:
     colours = []
+
+    for item in brief.get("palette") or []:
+        value = item.get("colour") if isinstance(item, dict) else item
+        colour = normalize_colour(str(value)) if value else None
+        if colour and colour not in colours:
+            colours.append(colour)
 
     for key in (
         "primary_colour",
@@ -209,6 +208,10 @@ def positive_palette_description(
         else None
     )
 
+    mode = resolve_palette_mode(
+        brief
+    )
+
     if (
         set(
             colours
@@ -220,24 +223,51 @@ def positive_palette_description(
     ):
         return (
             "A strictly achromatic palette of black and white, "
-            "with tonal variation only inside those requested "
-            "neutral colours."
+            "with tonal variation inside those requested neutral colours."
         )
 
     if secondary:
+        relationship = str(
+            brief.get(
+                "palette_relationship"
+            )
+            or (
+                "the requested colour roles remain "
+                "visually clear"
+            )
+        )
+
+        if mode == "strict":
+            return (
+                f"A strict {', '.join(colours)} palette; "
+                f"{relationship}. Only the requested colour families "
+                "form the visible palette, apart from microscopic "
+                "anti-aliasing tolerance."
+            )
+
         return (
-            f"A controlled {primary} and {secondary} palette, "
-            f"with {primary} clearly dominant throughout the "
-            f"composition and {secondary} used as the supporting "
-            "colour. No third colour family is allowed."
+            f"A {', '.join(colours)} palette; "
+            f"{relationship}. Requested colours control the "
+            "main surfaces and visual mass. Small bounded achromatic shadows, "
+            "highlights and fine structural linework may support the design, "
+            "but must not become a background colour field or displace the "
+            "requested colours. Third chromatic design colour presence "
+            "remains negligible."
+        )
+
+    if mode == "strict":
+        return (
+            f"A strict {primary} palette. Only the requested colour families "
+            f"are represented, with {primary} remaining visually exclusive "
+            "apart from microscopic anti-aliasing tolerance."
         )
 
     return (
         f"A controlled {primary} palette with {primary} clearly "
-        "dominant throughout the composition. "
-        "No additional colour family is allowed."
+        "dominant, supported by bounded achromatic linework, "
+        "shadows and highlights. third chromatic design colour "
+        "presence remains negligible."
     )
-
 
 def palette_negative(
     brief: dict,
@@ -254,6 +284,10 @@ def palette_negative(
             "unrequested accent colours, multicolour palette, "
             "unrelated hues"
         )
+
+    if resolve_palette_mode(brief) != "strict":
+        return ("unrequested chromatic design colours, colour drift, unrelated hues, "
+                "large neutral areas that displace the requested colours")
 
     return (
         "off-palette colours, colour drift, "
@@ -544,25 +578,10 @@ def direction_configuration(
 def composition_variant(
     direction_id: str,
 ) -> str:
-    variants = {
-        "a": (
-            "Create a balanced border-led composition with detail "
-            "around the outer edges and a calm central field."
-        ),
-        "b": (
-            "Create an asymmetric corner-led composition with visual "
-            "weight anchored at opposite corners and a calm central field."
-        ),
-        "c": (
-            "Create a structured side-led composition with vertical "
-            "or diagonal detail at the edges and a calm central field."
-        ),
-    }
-
     return (
-        variants[
-            direction_id.lower()
-        ]
+        "Choose a composition, hierarchy, focal treatment, depth and safe-space "
+        "strategy that follows this brief. Make it materially distinct from "
+        "the other directions without assigning a fixed style to this slot."
     )
 
 
@@ -575,35 +594,409 @@ def _background_inspiration(brief: dict) -> str:
     ).strip()
 
 
+def _list_values(brief: dict, key: str) -> list[str]:
+    value = brief.get(key) or []
+    if isinstance(value, str):
+        value = [value]
+    if not isinstance(value, list):
+        return []
+    return [
+        str(item).strip()
+        for item in value
+        if str(item).strip()
+    ]
+
+
+def _is_negative_instruction_clause(
+    value: str,
+) -> bool:
+    """Return True when prose is an exclusion/instruction rather than visual description."""
+    return bool(
+        re.search(
+            r"\b(?:do not|don't|never|avoid|without|must not|should not|no)\b",
+            str(value),
+            re.IGNORECASE,
+        )
+    )
+
+
+def _reference_name(
+    brief: dict,
+) -> str:
+    context = (
+        brief.get(
+            "grill_me_context"
+        )
+        or {}
+    )
+
+    if not context.get(
+        "reference_detected"
+    ):
+        return ""
+
+    return str(
+        context.get(
+            "reference_name"
+        )
+        or ""
+    ).strip()
+
+
+def _contains_reference_name(
+    value: str,
+    brief: dict,
+) -> bool:
+    name = _reference_name(
+        brief
+    )
+
+    if not name:
+        return False
+
+    return bool(
+        re.search(
+            rf"\b{re.escape(name)}\b",
+            str(value),
+            re.IGNORECASE,
+        )
+    )
+
+
+def _semantic_values(
+    brief: dict,
+    key: str,
+) -> list[str]:
+    semantics = (
+        brief.get(
+            "visual_semantics"
+        )
+        or (
+            brief.get(
+                "grill_me_context"
+            )
+            or {}
+        ).get(
+            "visual_semantics"
+        )
+        or {}
+    )
+
+    value = semantics.get(
+        key
+    )
+
+    if isinstance(
+        value,
+        list,
+    ):
+        return [
+            str(item).strip()
+            for item
+            in value
+            if str(item).strip()
+        ]
+
+    if value:
+        return [
+            str(value).strip()
+        ]
+
+    return []
+
+
+def _renderable_subject_description(
+    brief: dict,
+) -> str:
+    """Describe the renderable subject without leaking a named reference."""
+    if _reference_name(
+        brief
+    ):
+        parts = []
+
+        for key in (
+            "motif_structure_description",
+            "motif_descriptors",
+            "composition_affinities",
+            "atmosphere_descriptors",
+        ):
+            for value in _semantic_values(
+                brief,
+                key,
+            ):
+                phrase = _safe_visual_phrase(
+                    value
+                )
+
+                if (
+                    phrase
+                    and not _contains_reference_name(
+                        phrase,
+                        brief,
+                    )
+                ):
+                    parts.append(
+                        phrase
+                    )
+
+        if parts:
+            return ", ".join(
+                dict.fromkeys(
+                    parts
+                )
+            )
+
+    inspiration = (
+        _background_inspiration(
+            brief
+        )
+    )
+
+    if not _contains_reference_name(
+        inspiration,
+        brief,
+    ):
+        return inspiration
+
+    return (
+        "abstract brief-specific visual geometry, "
+        "materials, atmosphere and spatial structure"
+    )
+
+
+def _safe_visual_phrase(value: str | None) -> str:
+    """Keep generic visual-language prose while excluding non-renderable instructions."""
+    if not value:
+        return ""
+
+    clauses = []
+    for clause in re.split(r"[,;.!?]+", str(value)):
+        clause = " ".join(clause.split())
+        if not clause:
+            continue
+        if any(
+            re.search(rf"\b{re.escape(term)}\b", clause, re.IGNORECASE)
+            for term in POSITIVE_PROMPT_FORBIDDEN_TERMS
+        ):
+            continue
+        if _is_negative_instruction_clause(
+            clause
+        ):
+            continue
+        clauses.append(clause)
+
+    return ", ".join(clauses)
+
+
 def reference_visual_language(
     brief: dict,
 ) -> str:
-    """Return safe abstract traits for recognizable-reference themes."""
-    reference = " ".join(
-        str(brief.get(field) or "")
-        for field in ("theme", "theme_reference_treatment")
-    ).casefold()
+    """Build descriptive visual language without named-reference or exclusion leakage."""
+    parts = []
 
-    if any(term in reference for term in ("spiderman", "spider-man", "spider man")):
-        return (
-            "Use radial web geometry, diagonal web strands, angular skyline "
-            "silhouettes and kinetic comic-book framing. "
+    semantics = (
+        brief.get(
+            "visual_semantics"
+        )
+        or (
+            brief.get(
+                "grill_me_context"
+            )
+            or {}
+        ).get(
+            "visual_semantics"
+        )
+        or {}
+    )
+
+    semantic_fields = (
+        (
+            "motif_descriptors",
+            "motifs",
+        ),
+        (
+            "motif_structure_description",
+            "motif structure",
+        ),
+        (
+            "atmosphere_descriptors",
+            "atmosphere",
+        ),
+        (
+            "lighting_descriptors",
+            "lighting",
+        ),
+        (
+            "material_descriptors",
+            "materials",
+        ),
+        (
+            "texture_descriptors",
+            "texture",
+        ),
+        (
+            "composition_affinities",
+            "composition",
+        ),
+    )
+
+    provenance = ((brief.get("semantic_contract") or {}).get("semantic_provenance") or
+                  (brief.get("grill_me_context") or {}).get("semantic_provenance") or {})
+
+    for key, label in semantic_fields:
+        if key in {"lighting_descriptors", "material_descriptors", "texture_descriptors"} and (
+            provenance.get(key) not in {"USER_EXPLICIT", "GRILL_ME_CLARIFIED"}
+        ):
+            continue
+        value = semantics.get(
+            key
         )
 
-    return ""
+        values = (
+            value
+            if isinstance(
+                value,
+                list,
+            )
+            else [
+                value
+            ]
+        )
 
+        phrases = []
+
+        for item in values:
+            phrase = _safe_visual_phrase(
+                item
+            )
+
+            if (
+                phrase
+                and not _contains_reference_name(
+                    phrase,
+                    brief,
+                )
+            ):
+                phrases.append(
+                    phrase
+                )
+
+        if phrases:
+            parts.append(
+                f"{label}: "
+                + ", ".join(
+                    phrases
+                )
+            )
+
+    #
+    # For briefs without a detected named reference, preserve the
+    # user's generic clarified visual fields as before.
+    #
+    if not _reference_name(
+        brief
+    ):
+        for key, label in (
+            (
+                "theme_reference_treatment",
+                "reference treatment",
+            ),
+            (
+                "visual_style",
+                "visual style",
+            ),
+            (
+                "material_language",
+                "materials",
+            ),
+            (
+                "texture_language",
+                "texture",
+            ),
+            (
+                "lighting_language",
+                "lighting",
+            ),
+            (
+                "mood",
+                "mood",
+            ),
+        ):
+            phrase = _safe_visual_phrase(
+                brief.get(
+                    key
+                )
+            )
+
+            if phrase:
+                parts.append(
+                    f"{label}: {phrase}"
+                )
+
+        for key, label in (
+            (
+                "visual_anchors",
+                "visual anchors",
+            ),
+            (
+                "symbolic_motifs",
+                "symbolic motifs",
+            ),
+            (
+                "environmental_motifs",
+                "environmental motifs",
+            ),
+        ):
+            phrases = [
+                phrase
+                for phrase
+                in (
+                    _safe_visual_phrase(
+                        value
+                    )
+                    for value
+                    in _list_values(
+                        brief,
+                        key,
+                    )
+                )
+                if phrase
+            ]
+
+            if phrases:
+                parts.append(
+                    f"{label}: "
+                    + ", ".join(
+                        phrases
+                    )
+                )
+
+    return (
+        "Clarified visual language: "
+        + "; ".join(
+            dict.fromkeys(
+                parts
+            )
+        )
+        + ". "
+        if parts
+        else ""
+    )
 
 def background_design_summary(
     brief: dict,
 ) -> str:
-    """Describe the user's visual request for the creative-direction model."""
+    """Describe the requested artwork without imposing a stock layout."""
     return (
         "User background inspiration: "
         + _background_inspiration(brief)
         + ". "
         + reference_visual_language(brief)
-        + "Preserve a calm open central field and keep decorative detail "
-        "toward the outer edges. Layout contract: "
+        + "Create original background artwork that follows the requested subject, "
+        + "aesthetic, palette and event context. Preserve usable negative space "
+        + "for later typography, but choose its shape and placement from the "
+        + "brief and the creative direction rather than a boilerplate frame. "
+        + "Layout contract: "
         + asset_layout_description(brief)
         + "."
     )
@@ -612,20 +1005,26 @@ def background_design_summary(
 def background_positive_requirements(
     brief: dict,
 ) -> str:
-    """Safe positive-prompt material derived from the Grill-Me answer."""
-    return (
-        "Make the visual subject clearly recognizable as: "
-        + _background_inspiration(brief)
-        + ". "
-        + reference_visual_language(brief)
-        + "Keep decoration at the outer edges and lower corners, "
-        "with a calm open central field."
+    """Return descriptive visual requirements only."""
+    subject = (
+        _renderable_subject_description(
+            brief
+        )
     )
 
+    return (
+        "Visual subject: "
+        + subject
+        + ". "
+        + reference_visual_language(
+            brief
+        )
+        + "Original brief-specific composition, coherent visual "
+        + "hierarchy, intentional calm negative space, balanced "
+        + "depth and gentle tonal modelling."
+    )
 
-def background_negative_constraints(
-    brief: dict,
-) -> str:
+def background_negative_constraints() -> str:
     return "unrelated generic imagery, crowded centre, readable text, people, characters"
 
 
@@ -633,15 +1032,72 @@ def fallback_prompt(
     brief: dict,
     role: str,
 ) -> str:
-    palette = positive_palette_description(brief)
+    palette = (
+        positive_palette_description(
+            brief
+        )
+    )
+
+    subject = (
+        _renderable_subject_description(
+            brief
+        )
+    )
+
     return (
-        f"{role} A4 portrait decorative event background, {palette} "
-        "strong tonal contrast, refined layered materials, controlled lighting, "
-        "balanced border details, generous visual breathing room, "
-        "calm upper and central regions, "
-        + _background_inspiration(brief)
+        f"{role} A4 portrait event-background artwork, "
+        f"{palette} "
+        "Brief-specific composition, coherent visual hierarchy, "
+        "intentional calm negative space and subject-appropriate depth. "
+        + subject
         + "."
     )
+
+_MATERIAL_WORDS = re.compile(
+    r"\b(?:concrete|parchment|paper|metal(?:lic)?|wood(?:en)?|velvet|"
+    r"marble|plastic|glass|fabric|stone|leather|silk|clay|ceramic)\b", re.I,
+)
+_TEXTURE_WORDS = re.compile(
+    r"\b(?:texture[ds]?|glossy|matte|etched|grainy|embossed)\b", re.I,
+)
+_LIGHTING_WORDS = re.compile(
+    r"\b(?:rim lighting|spotlight|backlit|neon lighting|studio lighting)\b", re.I,
+)
+_APPEARANCE_WORDS = re.compile(
+    r"\b(?:atmospheric perspective|watercolou?r|photorealistic|grunge|"
+    r"dark (?:atmospheric )?(?:background|field|wash)|"
+    r"light (?:background|field|wash)|(?:muted|desaturated|monochrome) (?:background|palette|field))\b", re.I,
+)
+_NAMED_COLOURS = re.compile(
+    r"\b(?:black|white|grey|gray|charcoal|brown|green|forest green|orange|"
+    r"purple|violet|yellow|pink|magenta|cyan|teal|turquoise|beige|cream|"
+    r"navy|burgundy|maroon|blue|red|gold|silver)\b", re.I,
+)
+
+
+def _unsupported_treatment(clause: str, brief: dict) -> bool:
+    """Keep concrete treatments only when the user's brief supports them."""
+    semantics = brief.get("visual_semantics") or {}
+    explicit_text = " ".join(str(brief.get(key) or "") for key in (
+        "theme", "background_inspiration", "creative_description", "theme_reference_treatment",
+        "material_language", "texture_language", "lighting_language", "visual_style",
+    )).casefold()
+    provenance = ((brief.get("semantic_contract") or {}).get("semantic_provenance") or
+                  (brief.get("grill_me_context") or {}).get("semantic_provenance") or {})
+    for key in ("material_descriptors", "texture_descriptors", "lighting_descriptors"):
+        if provenance.get(key) in {"USER_EXPLICIT", "GRILL_ME_CLARIFIED"}:
+            explicit_text += " " + " ".join(str(value) for value in (semantics.get(key) or [])).casefold()
+    for pattern in (_MATERIAL_WORDS, _TEXTURE_WORDS, _LIGHTING_WORDS, _APPEARANCE_WORDS):
+        if any(match.group().casefold() not in explicit_text and not (
+            match.group().casefold() == "dark atmospheric background" and "dark background" in explicit_text
+        ) for match in pattern.finditer(clause)):
+            return True
+    requested = {normalize_colour(colour) for colour in requested_palette(brief)}
+    for match in _NAMED_COLOURS.finditer(clause):
+        colour = normalize_colour(match.group())
+        if colour not in requested and match.group().casefold() not in explicit_text:
+            return True
+    return False
 
 
 def sanitize_positive_prompt(
@@ -682,9 +1138,20 @@ def sanitize_positive_prompt(
             )
         )
 
+        named_reference = (
+            _contains_reference_name(
+                clause,
+                brief,
+            )
+        )
+
+        unsupported_treatment = _unsupported_treatment(clause, brief)
+
         if (
             not blocked
             and not negative_instruction
+            and not named_reference
+            and not unsupported_treatment
         ):
             clean.append(
                 clause
@@ -725,9 +1192,10 @@ def sanitize_positive_prompt(
         + background_positive_requirements(
             brief
         )
-        + " Theme references are represented through abstract "
-        + "geometry, patterns, materials, architecture, atmosphere "
-        + "and colour relationships."
+        + " Theme references are represented through brief-grounded abstract "
+        + "geometry, patterns, spatial structure, atmosphere "
+        + "and colour relationships. Architecture, environment, materials, "
+        + "textures and lighting are used only when supported by the brief."
     )
 
     #
@@ -763,6 +1231,19 @@ def sanitize_positive_prompt(
             in POSITIVE_PROMPT_FORBIDDEN_TERMS
         )
 
+        negative_instruction = (
+            _is_negative_instruction_clause(
+                clause
+            )
+        )
+
+        named_reference = (
+            _contains_reference_name(
+                clause,
+                brief,
+            )
+        )
+
         key = re.sub(
             r"\s+",
             " ",
@@ -771,6 +1252,8 @@ def sanitize_positive_prompt(
 
         if (
             not blocked
+            and not negative_instruction
+            and not named_reference
             and key not in seen_clauses
         ):
             clean_final.append(
@@ -824,6 +1307,8 @@ def build_creative_direction_prompt(
     direction_id: str,
     role: str,
     correction_error: str | None = None,
+    previous_directions: list[str] | None = None,
+    diversity_constraints: dict | None = None,
 ) -> str:
     asset_type = (
         str(
@@ -864,25 +1349,17 @@ def build_creative_direction_prompt(
         (
             "If the event brief uses a recognizable person, fictional "
             "character, superhero, mascot, celebrity or franchise, "
-            "translate the reference into abstract geometry, materials, "
-            "patterns, architecture, atmosphere and colour relationships."
+            "translate the reference only into brief-grounded abstract geometry, "
+            "patterns, spatial structure, atmosphere and colour relationships. "
+            "Use architecture, environment, materials, textures or lighting "
+            "only when supported by the grounded semantic contract."
         ),
         (
             "Never place the referenced person or character itself "
             "inside positive_prompt."
         ),
-        (
-            "The requested primary colour must be clearly visible "
-            "and dominant."
-        ),
-        (
-            "The requested secondary colour must visibly support "
-            "the primary colour."
-        ),
-        (
-            "Do not introduce visible colour families that were not "
-            "explicitly requested."
-        ),
+        ("Respect the palette relationship specified by the user."),
+        (positive_palette_description(brief)),
         (
             "Use strong tonal contrast without inventing an "
             "unrequested colour family."
@@ -897,6 +1374,27 @@ def build_creative_direction_prompt(
                 direction_id
             )
         ),
+        (
+            "Do not use a stock programme template, universal border, fixed central "
+            "panel, repeated side bars or a boilerplate composition. Invent the "
+            "composition from this brief."
+        ),
+        (
+            "The new direction must differ structurally from prior directions in at "
+            "least two unlocked spatial decisions: composition family, viewpoint, "
+            "focal band, mass distribution, major flow, depth, perimeter, motif placement "
+            "or quiet-region geometry. Preserve every user-locked spatial requirement. "
+            "Rewording the same arrangement does not count."
+        ),
+        ("Name the viewpoint and distribution of major visual masses in the strategy fields; "
+         "use the user's requested subject in every direction; vary only unlocked camera and layout choices."),
+        ("Vary only unlocked viewpoint, mass placement, depth and spatial flow. "
+         "Do not invent material, texture or specific lighting treatments when the semantic contract leaves them empty. "
+         "Do not introduce unsupported scene-defining objects. Keep each supplied motif at its stated "
+         "importance: a subtle accent must not expand to cover the scene. Prefer a few coherent large "
+         "forms over uniformly distributed micro-detail unless the brief explicitly requests density."),
+        ("Describe the chosen composition, focal point, depth, perimeter treatment and separate calm title/programme areas in their strategy fields."),
+        ("Use the prior direction concepts to choose a materially different arrangement, not just a new palette."),
         (
             "Preserve calm visual regions through the composition."
         ),
@@ -926,6 +1424,21 @@ def build_creative_direction_prompt(
             ]
         )
 
+    event_brief = dict(brief)
+    grounded_family = grounded_scene_family(brief)
+    if isinstance(event_brief.get("visual_semantics"), dict):
+        event_brief["visual_semantics"] = {**event_brief["visual_semantics"],
+                                          "scene_family": grounded_family}
+    if isinstance(event_brief.get("grill_me_context"), dict):
+        event_brief["grill_me_context"] = dict(event_brief["grill_me_context"])
+        context_semantics = event_brief["grill_me_context"].get("visual_semantics")
+        if isinstance(context_semantics, dict):
+            event_brief["grill_me_context"]["visual_semantics"] = {
+                **context_semantics, "scene_family": grounded_family}
+    if isinstance(event_brief.get("semantic_contract"), dict):
+        event_brief["semantic_contract"] = {**event_brief["semantic_contract"],
+                                            "scene_family": grounded_family}
+
     payload = {
         "task": (
             "Create one creative direction for an "
@@ -950,9 +1463,7 @@ def build_creative_direction_prompt(
             )
         ),
         "background_negative_constraints": (
-            background_negative_constraints(
-                brief
-            )
+            background_negative_constraints()
         ),
         "asset_layout_contract": {
             "enabled": (
@@ -982,12 +1493,9 @@ def build_creative_direction_prompt(
                 )
             ),
         },
-        "creative_role": (
-            role
-        ),
-        "event_brief": (
-            brief
-        ),
+        "creative_role": "Choose a brief-specific visual role and composition; no slot has a preset style.",
+        "previous_direction_concepts": previous_directions or [],
+        "event_brief": event_brief,
         "positive_palette_description": (
             positive_palette_description(
                 brief
@@ -1023,6 +1531,13 @@ def build_creative_direction_prompt(
         ),
     }
 
+    if diversity_constraints:
+        payload["structural_diversity_plan"] = diversity_constraints
+        requirements.append(
+            "Keep locked structural fields exactly as supplied; choose at least two material "
+            "changes from the listed unlocked fields relative to each accepted direction."
+        )
+
     if correction_error:
         payload[
             "correction_required"
@@ -1036,6 +1551,21 @@ def build_creative_direction_prompt(
                 "the original event brief."
             ),
         }
+        if diversity_constraints and diversity_constraints.get("failed_diagnostic"):
+            retry_count = int(diversity_constraints.get("retry_count") or 0)
+            payload["correction_required"]["diversity_overlap"] = diversity_constraints["failed_diagnostic"]
+            payload["correction_required"]["instruction"] = (
+                "Second retry: choose clearly unused values from the available unlocked alternatives. "
+                "Change at least two unlocked major spatial choices relative to EACH accepted direction. "
+                "Keep every locked structural field fixed. "
+                "Preserve exactly the subject, event, theme, audience, palette, mood, important "
+                "motifs and reference treatment. Do not invent scene-defining objects."
+                if retry_count >= 2 else
+                "First retry: change at least two unlocked major spatial choices relative to EACH accepted "
+                "direction using the available alternatives. Keep every locked structural field fixed. "
+                "Preserve exactly the subject, event, theme, audience, palette, mood, "
+                "important motifs and reference treatment. Do not invent scene-defining objects."
+            )
 
     return (
         json.dumps(
@@ -1050,6 +1580,8 @@ async def generate_creative_direction(
     direction_id: str,
     brief: dict,
     correction_error: str | None = None,
+    previous_directions: list[str] | None = None,
+    diversity_constraints: dict | None = None,
 ) -> CreativeDirectionOutput:
     model, role = (
         direction_configuration(
@@ -1073,6 +1605,8 @@ async def generate_creative_direction(
             correction_error=(
                 correction_error
             ),
+            previous_directions=previous_directions,
+            diversity_constraints=diversity_constraints,
         )
     )
 
@@ -1100,15 +1634,17 @@ async def generate_creative_direction(
         direction_id.upper()
     )
 
-    direction.role = (
-        role
+    direction.role = direction.role or "brief-led"
+
+    direction = materialize_locked_structural_fields(
+        direction, locked_structural_fields(brief)
     )
 
     direction.positive_prompt = (
         sanitize_positive_prompt(
             direction.positive_prompt,
             brief,
-            role,
+            direction.role,
         )
     )
 
@@ -1135,14 +1671,13 @@ async def generate_creative_direction(
                         "masked character, mascot, costume, "
                         "costumed figure, humanoid"
                     ),
-                    "spiderman, spider-man, spider man",
                     (
                         "text, typography, lettering, words, "
                         "letters, numbers, writing, calligraphy, "
                         "signature, logo, watermark, signage"
                     ),
                     palette_negative(brief),
-                    background_negative_constraints(brief),
+                    background_negative_constraints(),
                 )
                 if value
             )

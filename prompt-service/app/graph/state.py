@@ -38,6 +38,8 @@ class PromptWorkflowState(
     validation_error_b: str | None
 
     validation_error_c: str | None
+    diversity_diagnostics_b: dict | None
+    diversity_diagnostics_c: dict | None
 
     retry_count_a: int
 

@@ -79,12 +79,12 @@ def build_execution_plan(
 
     execution_order = []
 
-    for engine in engines:
-        for direction_id in [
+    for direction_id in [
             "A",
             "B",
             "C",
         ]:
+        for engine in engines:
             execution_order.append(
                 {
                     "engine_id": (

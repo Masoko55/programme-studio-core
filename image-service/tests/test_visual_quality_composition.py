@@ -2,47 +2,192 @@ import unittest
 
 from PIL import Image, ImageDraw
 
-from app.config.settings import settings
 from app.services.visual_quality import validate_visual_quality
 
 
 class VisualQualityCompositionTests(unittest.TestCase):
-    def test_records_dense_central_region_without_rejecting_sound_artwork(self):
+    def test_central_architecture_can_have_quiet_perimeter(self):
         image = Image.new("RGB", (512, 704), "white")
         draw = ImageDraw.Draw(image)
-
-        # Give the outer frame enough intentional structure to pass the
-        # decorative-edge check, then fill the title/programme area with a
-        # high-contrast grid that must be rejected.
-        draw.rectangle((8, 8, 503, 695), outline="black", width=18)
-        for x in range(105, 410, 12):
-            draw.line((x, 90, x, 600), fill="black", width=5)
-        for y in range(90, 600, 12):
-            draw.line((105, y, 410, y), fill="black", width=5)
-
-        result = validate_visual_quality(image)
-
+        draw.rectangle((130, 110, 382, 625), outline="black", width=14)
+        for x in (165, 220, 290, 345):
+            draw.line((x, 160, x, 590), fill="#555555", width=8)
+        result = validate_visual_quality(image, visual_design={
+            "border_or_perimeter_strategy": "minimal quiet perimeter",
+            "focal_strategy": "central architectural doorway",
+        })
         self.assertTrue(result["visual_quality_passed"])
-        self.assertGreater(
-            result["center_structural_edge_density"],
-            settings.quality_center_max_edge_density,
+
+    def test_smooth_gradient_still_fails_with_quiet_perimeter(self):
+        image = Image.new("RGB", (512, 704))
+        for y in range(704):
+            shade = 180 + y // 40
+            ImageDraw.Draw(image).line((0, y, 511, y), fill=(shade, shade, shade))
+        with self.assertRaisesRegex(ValueError, "gradient|insufficient|flat"):
+            validate_visual_quality(image, visual_design={
+                "border_or_perimeter_strategy": "minimal quiet perimeter",
+            })
+
+    def test_rejects_dense_central_programme_region(self):
+        image = Image.new(
+            "RGB",
+            (512, 704),
+            "white",
         )
 
-    def test_accepts_an_edge_led_frame_with_a_calm_centre(self):
-        image = Image.new("RGB", (512, 704), "white")
-        draw = ImageDraw.Draw(image)
+        draw = ImageDraw.Draw(
+            image
+        )
 
-        draw.rectangle((8, 8, 503, 695), outline="black", width=18)
-        for offset in range(0, 88, 13):
-            draw.arc((10 + offset, 10 + offset, 180, 180), 180, 270, fill="black", width=4)
-            draw.arc((332, 524 - offset, 502 - offset, 694 - offset), 0, 90, fill="black", width=4)
+        #
+        # Give the outer frame enough intentional structure to satisfy the
+        # decorative-background requirement.
+        #
+        draw.rectangle(
+            (8, 8, 503, 695),
+            outline="black",
+            width=18,
+        )
+
+        #
+        # Deliberately fill the central title/programme region with a dense
+        # high-contrast grid.
+        #
+        # This represents exactly the kind of technically valid but unusable
+        # background that Programme Studio must reject.
+        #
+        for x in range(
+            105,
+            410,
+            12,
+        ):
+            draw.line(
+                (
+                    x,
+                    90,
+                    x,
+                    600,
+                ),
+                fill="black",
+                width=5,
+            )
+
+        for y in range(
+            90,
+            600,
+            12,
+        ):
+            draw.line(
+                (
+                    105,
+                    y,
+                    410,
+                    y,
+                ),
+                fill="black",
+                width=5,
+            )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "programme safe region",
+        ):
+            validate_visual_quality(
+                image,
+                enforce_overlay_region=True,
+            )
 
         result = validate_visual_quality(image)
-
         self.assertTrue(result["visual_quality_passed"])
+        self.assertFalse(result["center_safe_region_passed"])
+
+    def test_accepts_an_edge_led_frame_with_a_calm_centre(self):
+        image = Image.new(
+            "RGB",
+            (512, 704),
+            "white",
+        )
+
+        draw = ImageDraw.Draw(
+            image
+        )
+
+        #
+        # Strong decorative outer frame.
+        #
+        draw.rectangle(
+            (8, 8, 503, 695),
+            outline="black",
+            width=18,
+        )
+
+        #
+        # Add intentional detail to opposite outer corners while leaving the
+        # title/programme region calm.
+        #
+        for offset in range(
+            0,
+            88,
+            13,
+        ):
+            draw.arc(
+                (
+                    10 + offset,
+                    10 + offset,
+                    180,
+                    180,
+                ),
+                180,
+                270,
+                fill="black",
+                width=4,
+            )
+
+            draw.arc(
+                (
+                    332,
+                    524 - offset,
+                    502 - offset,
+                    694 - offset,
+                ),
+                0,
+                90,
+                fill="black",
+                width=4,
+            )
+
+        result = (
+            validate_visual_quality(
+                image
+            )
+        )
+
+        self.assertTrue(
+            result[
+                "visual_quality_passed"
+            ]
+        )
+
+        self.assertTrue(
+            result[
+                "center_safe_region_passed"
+            ]
+        )
+
+        self.assertLess(
+            result[
+                "center_structural_edge_density"
+            ],
+            result[
+                "outer_structural_edge_density"
+            ],
+        )
+
         self.assertLessEqual(
-            result["center_structural_edge_density"],
-            settings.quality_center_max_edge_density,
+            result[
+                "center_to_outer_edge_ratio"
+            ],
+            0.72,
         )
 
 

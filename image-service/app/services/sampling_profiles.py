@@ -140,6 +140,15 @@ SDXL_STRICT = SamplingProfile(
     scheduler="normal",
 )
 
+SDXL_COMPOSITION_RESCUE = SamplingProfile(
+    name="composition_variability", steps=28, cfg=5.5,
+    sampler_name="euler", scheduler="normal",
+)
+SDXL_SUBJECT_RESCUE = SamplingProfile(
+    name="subject_adherence_trial", steps=32, cfg=6.5,
+    sampler_name="dpmpp_2m", scheduler="karras",
+)
+
 
 # ============================================================
 # SD3.5 profiles
@@ -216,6 +225,15 @@ SD35_RESCUE = SamplingProfile(
     shift=2.0,
 )
 
+SD35_SUBJECT_RESCUE = SamplingProfile(
+    name="subject_rescue_trial", steps=32, cfg=4.5,
+    sampler_name="dpmpp_2m", scheduler="sgm_uniform", shift=None,
+)
+SD35_STRUCTURAL_RESCUE = SamplingProfile(
+    name="structural_rescue_trial", steps=32, cfg=4.5,
+    sampler_name="dpmpp_2m", scheduler="normal", shift=None,
+)
+
 
 # ============================================================
 # Controlled diagnostic profiles
@@ -224,6 +242,10 @@ SD35_RESCUE = SamplingProfile(
 
 _SDXL_PROBE = (
     SDXL_BASELINE,
+    SamplingProfile(name="cfg_5_5", steps=28, cfg=5.5,
+                    sampler_name="dpmpp_2m", scheduler="karras"),
+    SamplingProfile(name="cfg_6_5", steps=28, cfg=6.5,
+                    sampler_name="dpmpp_2m", scheduler="karras"),
     SamplingProfile(
         name="cfg_5",
         steps=28,
@@ -248,11 +270,19 @@ _SDXL_PROBE = (
     SDXL_PALETTE_GUIDANCE,
     SDXL_PALETTE_ALTERNATE,
     SDXL_STRICT,
+    SDXL_COMPOSITION_RESCUE,
+    SDXL_SUBJECT_RESCUE,
 )
 
 
 _SD35_PROBE = (
     SD35_OFFICIAL_BASELINE,
+    SamplingProfile(name="lower_guidance_trial", steps=24, cfg=3.5,
+                    sampler_name="dpmpp_2m", scheduler="sgm_uniform", shift=None),
+    SamplingProfile(name="higher_guidance_trial", steps=28, cfg=5.0,
+                    sampler_name="dpmpp_2m", scheduler="sgm_uniform", shift=None),
+    SamplingProfile(name="alternate_schedule_trial", steps=28, cfg=4.0,
+                    sampler_name="dpmpp_2m", scheduler="normal", shift=None),
 
     SamplingProfile(
         name="explicit_shift_3",
@@ -293,6 +323,8 @@ _SD35_PROBE = (
     SD35_ALTERNATE_SAMPLER,
     SD35_REVISED_SCHEDULE,
     SD35_RESCUE,
+    SD35_SUBJECT_RESCUE,
+    SD35_STRUCTURAL_RESCUE,
 )
 
 
@@ -460,20 +492,38 @@ def profile_by_name(
     )
 
 
+def recommended_probe_profiles(engine_id: str) -> tuple[SamplingProfile, ...]:
+    """Small one-factor-at-a-time matrix; no Cartesian product."""
+    if engine_id == settings.engine_2_id:
+        names = ("baseline", "composition_variability")
+    elif engine_id == settings.engine_3_id:
+        names = ("alternate_sampler", "subject_rescue_trial",
+                 "structural_rescue_trial")
+    else:
+        raise ValueError(f"No native profile matrix for {engine_id}")
+    return tuple(profile_by_name(engine_id, name) for name in names)
+
+
 # ============================================================
 # SDXL production selection
 # ============================================================
 
 
 def _select_sdxl_profile(
-    attempt: int,
     stage: str,
     history: FailureHistorySummary,
 ) -> SamplingProfile:
+    if history.consecutive_category == "DIRECTION_DUPLICATE":
+        return SDXL_COMPOSITION_RESCUE
+    if history.consecutive_category == "SUBJECT_DRIFT":
+        return SDXL_SUBJECT_RESCUE
+    if history.consecutive_category in {"TEXT", "HUMAN"} and stage == "normal":
+        return SDXL_BASELINE
     palette_count = (
         history.count(
             "PALETTE_OFF"
         )
+        + history.count("PALETTE_ROLE_DRIFT")
         + history.count(
             "PRIMARY_MISSING"
         )
@@ -486,6 +536,7 @@ def _select_sdxl_profile(
         history.consecutive_category
         in {
             "PALETTE_OFF",
+            "PALETTE_ROLE_DRIFT",
             "PRIMARY_MISSING",
             "SECONDARY_MISSING",
         }
@@ -571,10 +622,15 @@ def _select_sdxl_profile(
 
 
 def _select_sd35_profile(
-    attempt: int,
     stage: str,
     history: FailureHistorySummary,
 ) -> SamplingProfile:
+    if history.consecutive_category == "SUBJECT_DRIFT":
+        return SD35_SUBJECT_RESCUE
+    if history.consecutive_category in {"FLAT", "GRADIENT", "DIRECTION_DUPLICATE"}:
+        return SD35_STRUCTURAL_RESCUE
+    if history.consecutive_category in {"TEXT", "HUMAN"} and stage == "normal":
+        return SD35_PRODUCTION_BASELINE
     raster_count = (
         history.count(
             "RASTER"
@@ -712,7 +768,6 @@ def select_sampling_profile(
     ):
         return (
             _select_sdxl_profile(
-                attempt,
                 stage,
                 history,
             )
@@ -724,7 +779,6 @@ def select_sampling_profile(
     ):
         return (
             _select_sd35_profile(
-                attempt,
                 stage,
                 history,
             )
@@ -734,3 +788,27 @@ def select_sampling_profile(
     # FLUX keeps its existing generation path.
     #
     return None
+
+
+def profile_selection_diagnostics(profile: SamplingProfile | None,
+                                  history: FailureHistorySummary) -> dict:
+    category = history.consecutive_category or "INITIAL"
+    recovery = {
+        "SUBJECT_DRIFT": "subject_adherence",
+        "ATMOSPHERE_DRIFT": "atmosphere_fidelity",
+        "MOTIF_DRIFT": "motif_fidelity",
+        "AUDIENCE_DRIFT": "audience_fit",
+        "DIRECTION_DUPLICATE": "composition_diversity",
+        "FLAT": "macro_structure", "GRADIENT": "macro_structure",
+        "RASTER": "raster_safety",
+        "PALETTE_OFF": "palette", "PRIMARY_MISSING": "palette",
+        "SECONDARY_MISSING": "palette", "TEXT": "prompt_only",
+        "HUMAN": "prompt_only",
+    }.get(category, "baseline")
+    return {
+        "selection_reason": f"{category}: {profile.name if profile else 'engine_default'}",
+        "failure_history": {"counts": dict(history.counts),
+                            "consecutive_category": category,
+                            "consecutive_count": history.consecutive_count},
+        "renderer_recovery_type": recovery,
+    }

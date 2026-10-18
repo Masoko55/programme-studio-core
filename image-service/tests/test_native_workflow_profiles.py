@@ -33,6 +33,12 @@ class NativeWorkflowProfileTests(unittest.TestCase):
             "directions": [{"direction": {
                 "direction_id": "B", "role": "expressive",
                 "positive_prompt": "dynamic asymmetric skyline",
+                "composition_strategy": "asymmetric layered skyline",
+                "focal_strategy": "off-centre tower focus",
+                "depth_strategy": "foreground to background depth",
+                "border_or_perimeter_strategy": "open irregular perimeter",
+                "title_safe_region_strategy": "quiet upper reading area",
+                "programme_safe_region_strategy": "quiet lower reading area",
                 "negative_prompt": "people", "layout_guidance": {},
             }}],
         }
@@ -47,6 +53,8 @@ class NativeWorkflowProfileTests(unittest.TestCase):
                 return self.data
 
         async def fake_request(self, method, path, **kwargs):
+            if path == "/upload/image":
+                return Response({"name": kwargs["files"]["image"][0], "subfolder": ""})
             if path == "/object_info":
                 return Response({})
             if path == "/queue":
@@ -60,6 +68,7 @@ class NativeWorkflowProfileTests(unittest.TestCase):
             job_dir.mkdir()
             (job_dir / "prompts.json").write_text(json.dumps(document), encoding="utf-8")
             with patch.object(settings, "programme_data_path", Path(directory)), \
+                 patch.object(settings, "template_conditioning_enabled", True), \
                  patch("app.services.comfyui_client.validate_workflow"), \
                  patch.object(ComfyUIClient, "request", new=fake_request):
                 async def check():
@@ -81,6 +90,16 @@ class NativeWorkflowProfileTests(unittest.TestCase):
             self.assertEqual(saved["retry_stage"], "normal")
             self.assertEqual(saved["sampling_profile"]["name"], "baseline")
             self.assertEqual(saved["workflow"]["3"]["inputs"]["sampler_name"], "dpmpp_2m")
+            self.assertEqual(saved["generation_mode"], "native_text_to_image")
+            self.assertEqual(saved["GENERATION_MODE"], "native_text_to_image")
+            self.assertFalse(saved["TEMPLATE_CONDITIONING_ENABLED"])
+            self.assertFalse(saved["MASKED_DENOISING_ENABLED"])
+            self.assertIn("city skyline", saved["visual_anchors"][0])
+            self.assertFalse(saved["template_conditioning"]["enabled"])
+            self.assertFalse(saved["template_conditioning"]["masked_denoising_enabled"])
+            self.assertEqual(saved["workflow"]["3"]["inputs"]["latent_image"], ["53", 0])
+            self.assertFalse(any(node["class_type"] in {"LoadImage", "VAEEncode", "SetLatentNoiseMask"}
+                                 for node in saved["workflow"].values()))
 
     def test_resume_keeps_attempt_budget_and_correction_context(self):
         reason = "Generated background became a smooth gradient"
@@ -128,6 +147,12 @@ class NativeWorkflowProfileTests(unittest.TestCase):
             "directions": [{"direction": {
                 "direction_id": "B", "role": "expressive",
                 "positive_prompt": "dynamic asymmetric city architecture",
+                "composition_strategy": "asymmetric layered skyline",
+                "focal_strategy": "off-centre tower focus",
+                "depth_strategy": "foreground to background depth",
+                "border_or_perimeter_strategy": "open irregular perimeter",
+                "title_safe_region_strategy": "quiet upper reading area",
+                "programme_safe_region_strategy": "quiet lower reading area",
                 "negative_prompt": "people", "layout_guidance": {},
             }}],
         }
@@ -142,7 +167,13 @@ class NativeWorkflowProfileTests(unittest.TestCase):
             self.assertEqual((positive, negative), (compiled.positive, compiled.negative))
             workflow = build_workflow(engine, positive, negative, 123, "test/native", compiled)
             if engine == settings.engine_2_id:
-                self.assertEqual(workflow["16"]["inputs"]["text"], compiled.positive)
+                self.assertEqual(workflow["16"]["class_type"], "CLIPTextEncodeSDXL")
+                self.assertEqual(workflow["16"]["inputs"]["text_g"], compiled.clip_g)
+                self.assertEqual(workflow["16"]["inputs"]["text_l"], compiled.clip_l)
+                self.assertIn("spiderweb", workflow["16"]["inputs"]["text_g"])
+                self.assertIn("spiderweb", workflow["16"]["inputs"]["text_l"])
+                self.assertIn("Correction:", workflow["16"]["inputs"]["text_g"])
+                self.assertIn("Correction:", workflow["16"]["inputs"]["text_l"])
                 self.assertEqual(workflow["40"]["inputs"]["text"], compiled.negative)
             else:
                 self.assertEqual(workflow["16"]["inputs"]["clip_l"], compiled.clip_l)
@@ -150,7 +181,7 @@ class NativeWorkflowProfileTests(unittest.TestCase):
                 self.assertEqual(workflow["16"]["inputs"]["t5xxl"], compiled.t5)
                 self.assertEqual(workflow["40"]["inputs"]["t5xxl"], compiled.negative)
 
-    def test_sd35_keeps_its_subject_before_safety_suffix(self):
+    def test_sd35_keeps_its_subject_without_negative_concepts_in_positive(self):
         prompt = _engine_positive_prompt(
             settings.engine_3_id,
             "Comic city skyline with red web geometry on royal blue",
@@ -159,7 +190,7 @@ class NativeWorkflowProfileTests(unittest.TestCase):
         )
 
         self.assertTrue(prompt.startswith("Comic city skyline"))
-        self.assertIn("no people", prompt)
+        self.assertNotIn("no people", prompt)
         self.assertNotIn("STRICT COLOUR PALETTE CONTRACT", prompt)
 
     def test_persisted_candidate_cannot_exceed_nine_attempts(self):

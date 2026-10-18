@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Blind Programme Studio candidate review",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["candidate_reference", "brief_identifier", "human_subject_rating", "human_atmosphere_rating", "human_motif_rating", "human_audience_fit_rating", "human_composition_quality_rating", "human_overall_rating", "preferred"],
+    "properties": {
+      "candidate_reference": {"type": "string"},
+      "brief_identifier": {"type": "string"},
+      "engine": {"type": ["string", "null"]},
+      "profile": {"type": ["string", "null"]},
+      "direction": {"type": ["string", "null"]},
+      "image_path": {"type": ["string", "null"]},
+      "semantic_contract_summary": {"type": "object"},
+      "human_subject_rating": {"type": "integer", "minimum": 1, "maximum": 5},
+      "human_atmosphere_rating": {"type": "integer", "minimum": 1, "maximum": 5},
+      "human_motif_rating": {"type": "integer", "minimum": 1, "maximum": 5},
+      "human_audience_fit_rating": {"type": "integer", "minimum": 1, "maximum": 5},
+      "human_composition_quality_rating": {"type": "integer", "minimum": 1, "maximum": 5},
+      "human_overall_rating": {"type": "integer", "minimum": 1, "maximum": 5},
+      "preferred": {"type": "boolean"},
+      "acceptable": {"type": "boolean"},
+      "notes": {"type": "string"}
+    }
+  }
+}

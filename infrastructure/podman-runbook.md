@@ -22,7 +22,7 @@ Jackrabbit Oak store.
 
 ```bash
 podman run -d --replace --restart unless-stopped --name programme-repository --network programme-studio -p 8003:8003 \
-  -v /data/repository:/data/repository:rw \
+  -v "$PWD/data/repository:/data/repository:rw" \
   localhost/programme-repository-service:1.0
 ```
 
@@ -31,8 +31,7 @@ checkpoints, and `prompts.json`.
 
 ```bash
 podman run -d --replace --restart unless-stopped --name programme-prompt --network programme-studio -p 8001:8001 \
-  -v /data/programmes:/data/programmes:rw \
-  -v /data/programme-prompt-archive:/app/app/data/programmes:rw \
+  -v "$PWD/data/programmes:/data/programmes:rw" \
   -e PROGRAMME_DATA_PATH=/data/programmes \
   -e OLLAMA_BASE_URL=http://192.168.68.115:11434 \
   -e DIRECTION_A_MODEL=qwen2.5:14b \
@@ -48,7 +47,7 @@ Run the image service. The repository URL must use Podman DNS, never
 
 ```bash
 podman run -d --replace --restart unless-stopped --name programme-image --network programme-studio -p 8002:8002 \
-  -v /data/programmes:/data/programmes:rw \
+  -v "$PWD/data/programmes:/data/programmes:rw" \
   -e PROGRAMME_DATA_PATH=/data/programmes \
   -e COMFYUI_BASE_URL=http://192.168.68.115:8188 \
   -e REPOSITORY_SERVICE_BASE_URL=http://programme-repository:8003 \

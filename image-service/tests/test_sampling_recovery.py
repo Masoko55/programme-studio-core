@@ -4,7 +4,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
-from PIL import Image
+from PIL import Image, ImageDraw
+import numpy as np
 
 from app.config.settings import settings
 
@@ -12,9 +13,13 @@ from app.services.comfyui_client import (
     MAX_SD35_RECOVERABLE_OFF_PALETTE_RATIO,
     MAX_SDXL_RECOVERABLE_OFF_PALETTE_RATIO,
     _palette_only_recovery,
+    _edge_geometry_similarity,
+    _preserves_structural_detail,
     _recoverable_palette_error,
+    _palette_recovery_source_is_eligible,
     build_workflow,
 )
+from app.services.background_policy import constrain_to_requested_palette
 
 from app.services.prompt_compiler import (
     retry_stage,
@@ -88,6 +93,71 @@ def failure_record(
 class SamplingRecoveryTests(
     unittest.TestCase
 ):
+    def test_sdxl_role_drift_joins_palette_profile_history(self):
+        for count, attempt, expected in ((1, 2, "baseline"), (2, 3, "palette_guidance"),
+                                         (3, 4, "palette_alternate"), (6, 7, "palette_strict"),
+                                         (8, 9, "palette_strict")):
+            record = {"rejected_attempts": [
+                {"attempt_count": index, "rejection_reason": "PALETTE_ROLE_DRIFT: neutrals dominate"}
+                for index in range(1, count + 1)]}
+            profile = select_sampling_profile("sdxl-1-0", attempt, summarize_failures(record))
+            self.assertIn(expected, profile.name)
+
+    def test_palette_recovery_requires_sound_source_and_existing_colour_roles(self):
+        sound = {"primary_ratio": .35, "secondary_ratio": .22,
+                 "requested_chromatic_ratio": .57, "structural_neutral_ratio": .18,
+                 "largest_unrequested_region_ratio": .01,
+                 "validation": {"diagnostic_findings": []}}
+        self.assertTrue(_palette_recovery_source_is_eligible(sound, {"decision": "pass"}))
+        for changes in (
+            {"primary_ratio": .01}, {"secondary_ratio": 0},
+            {"requested_chromatic_ratio": .04, "structural_neutral_ratio": .9},
+            {"largest_unrequested_region_ratio": .18},
+            {"validation": {"diagnostic_findings": ["RASTER"]}},
+            {"validation": {"diagnostic_findings": ["FLAT"]}},
+        ):
+            with self.subTest(changes=changes):
+                self.assertFalse(_palette_recovery_source_is_eligible({**sound, **changes},
+                                                                       {"decision": "pass"}))
+        self.assertFalse(_palette_recovery_source_is_eligible(sound, {"decision": "BRIEF_FIDELITY_DRIFT"}))
+
+    def test_mild_cyan_drift_correction_preserves_architectural_detail(self):
+        image = Image.new("RGB", (480, 640), (42, 72, 180))
+        draw = ImageDraw.Draw(image)
+        for x in range(8, 480, 24):
+            draw.line((x, 0, x, 639), fill=(170, 180, 210), width=2)
+        for y in range(15, 640, 29):
+            draw.line((0, y, 479, y), fill=(21, 31, 70), width=2)
+        draw.rectangle((250, 50, 274, 600), fill=(30, 175, 190))
+        for y in range(55, 600, 14):
+            draw.line((250, y, 274, y), fill=(15, 105, 125), width=2)
+        corrected = constrain_to_requested_palette(image, "royal blue", "red", palette_mode="dominant")
+        before = np.asarray(image)
+        after = np.asarray(corrected)
+        self.assertTrue(np.array_equal(before[100, 50], after[100, 50]))
+        self.assertTrue(np.array_equal(before[100, 240], after[100, 240]))
+        self.assertFalse(np.array_equal(before[100, 260], after[100, 260]))
+        with TemporaryDirectory() as directory:
+            source = Path(directory) / "source.png"
+            target = Path(directory) / "target.png"
+            image.save(source)
+            corrected.save(target)
+            self.assertGreater(_edge_geometry_similarity(source, target), .85)
+
+    def test_palette_recovery_preserves_structural_detail(self):
+        raw = {"structural_edge_density": 0.22}
+        self.assertFalse(_preserves_structural_detail(raw, {"structural_edge_density": 0.15}))
+        self.assertFalse(_preserves_structural_detail(raw, {"structural_edge_density": 0.18}))
+        self.assertTrue(_preserves_structural_detail(raw, {"structural_edge_density": 0.21}))
+        self.assertFalse(_preserves_structural_detail(
+            {"structural_edge_density": 0.04},
+            {"structural_edge_density": 0.03},
+        ))
+        self.assertFalse(_preserves_structural_detail(
+            {"structural_edge_density": 0.22, "image_entropy": 6.0},
+            {"structural_edge_density": 0.21, "image_entropy": 4.0},
+        ))
+
     # ========================================================
     # Palette recovery limits
     # ========================================================

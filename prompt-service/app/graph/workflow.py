@@ -1,4 +1,5 @@
 import logging
+import json
 
 from datetime import (
     datetime,
@@ -26,8 +27,10 @@ from app.schemas.prompts_document import (
 )
 
 from app.services.creative_direction import (
+    direction_structural_summary,
     generate_creative_direction,
 )
+from app.services.direction_diversity import build_diversity_constraints, locked_structural_fields
 
 from app.services.persistence import (
     persist_direction_checkpoint,
@@ -36,6 +39,7 @@ from app.services.persistence import (
 
 from app.services.validation import (
     validate_creative_direction,
+    validate_direction_diversity,
 )
 
 
@@ -82,12 +86,15 @@ def _log_generation_failure(
     retry_count: int,
     error: Exception,
 ) -> None:
+    label = ("initial" if retry_count == 1 else
+             f"retry={retry_count - 1}/{MAX_RETRIES}")
     logger.warning(
         "Creative direction generation failed: "
-        "direction=%s retry=%s/%s error=%s",
+        "direction=%s attempt=%s/%s %s error=%s",
         direction_id,
         retry_count,
-        MAX_RETRIES,
+        MAX_RETRIES + 1,
+        label,
         str(
             error
         ),
@@ -99,16 +106,29 @@ def _log_validation_failure(
     retry_count: int,
     error: Exception,
 ) -> None:
+    label = ("initial" if retry_count == 1 else
+             f"retry={retry_count - 1}/{MAX_RETRIES}")
     logger.warning(
         "Creative direction validation failed: "
-        "direction=%s retry=%s/%s error=%s",
+        "direction=%s attempt=%s/%s %s error=%s",
         direction_id,
         retry_count,
-        MAX_RETRIES,
+        MAX_RETRIES + 1,
+        label,
         str(
             error
         ),
     )
+
+
+def _diversity_failure(error: ValueError, direction_id: str) -> dict | None:
+    diagnostic = getattr(error, "diversity_diagnostics", None)
+    if isinstance(diagnostic, dict):
+        logger.warning("direction_diversity=%s", json.dumps(
+            {"direction_id": direction_id, **diagnostic}, sort_keys=True
+        ))
+        return diagnostic
+    return None
 
 
 async def generate_direction_a(
@@ -201,6 +221,8 @@ def validate_direction_a(
                 "brief"
             ],
         )
+        validate_direction_diversity(state["direction_a"], [],
+                                     locked_structural_fields(state["brief"]))
 
         logger.info(
             "Direction A validation passed"
@@ -317,9 +339,7 @@ def route_after_validation_a(
     )
 
     raise ValueError(
-        "Direction A failed validation "
-        f"after {MAX_RETRIES} retries: "
-        f"{error}"
+        f"PROMPT_DIRECTION_FAILED:A:{error or 'unknown validation error'}"
     )
 
 
@@ -353,6 +373,12 @@ async def generate_direction_b(
                 brief=state[
                     "brief"
                 ],
+                previous_directions=[direction_structural_summary(state["direction_a"], state["brief"])] if state.get("direction_a") else [],
+                diversity_constraints=build_diversity_constraints(
+                    "B", [state["direction_a"]] if state.get("direction_a") else [], state["brief"],
+                    retry_count=current_retry,
+                    failed_diagnostic=state.get("diversity_diagnostics_b"),
+                ),
                 correction_error=(
                     state.get(
                         "validation_error_b"
@@ -413,6 +439,9 @@ def validate_direction_b(
                 "brief"
             ],
         )
+        if state.get("direction_a"):
+            validate_direction_diversity(state["direction_b"], [state["direction_a"]],
+                                         locked_structural_fields(state["brief"]))
 
         logger.info(
             "Direction B validation passed"
@@ -420,9 +449,11 @@ def validate_direction_b(
 
         return {
             "validation_error_b": None,
+            "diversity_diagnostics_b": None,
         }
 
     except ValueError as error:
+        diversity_diagnostic = _diversity_failure(error, "B")
         next_retry = (
             _retry_count(
                 state,
@@ -446,6 +477,7 @@ def validate_direction_b(
             "retry_count_b": (
                 next_retry
             ),
+            "diversity_diagnostics_b": diversity_diagnostic,
             "direction_b": None,
         }
 
@@ -529,9 +561,7 @@ def route_after_validation_b(
     )
 
     raise ValueError(
-        "Direction B failed validation "
-        f"after {MAX_RETRIES} retries: "
-        f"{error}"
+        f"PROMPT_DIRECTION_FAILED:B:{error or 'unknown validation error'}"
     )
 
 
@@ -565,6 +595,15 @@ async def generate_direction_c(
                 brief=state[
                     "brief"
                 ],
+                previous_directions=[
+                    direction_structural_summary(item, state["brief"])
+                    for item in (state.get("direction_a"), state.get("direction_b")) if item
+                ],
+                diversity_constraints=build_diversity_constraints(
+                    "C", [item for item in (state.get("direction_a"), state.get("direction_b")) if item],
+                    state["brief"], retry_count=current_retry,
+                    failed_diagnostic=state.get("diversity_diagnostics_c"),
+                ),
                 correction_error=(
                     state.get(
                         "validation_error_c"
@@ -625,6 +664,11 @@ def validate_direction_c(
                 "brief"
             ],
         )
+        validate_direction_diversity(
+            state["direction_c"],
+            [item for item in (state.get("direction_a"), state.get("direction_b")) if item],
+            locked_structural_fields(state["brief"]),
+        )
 
         logger.info(
             "Direction C validation passed"
@@ -632,9 +676,11 @@ def validate_direction_c(
 
         return {
             "validation_error_c": None,
+            "diversity_diagnostics_c": None,
         }
 
     except ValueError as error:
+        diversity_diagnostic = _diversity_failure(error, "C")
         next_retry = (
             _retry_count(
                 state,
@@ -658,6 +704,7 @@ def validate_direction_c(
             "retry_count_c": (
                 next_retry
             ),
+            "diversity_diagnostics_c": diversity_diagnostic,
             "direction_c": None,
         }
 
@@ -741,9 +788,7 @@ def route_after_validation_c(
     )
 
     raise ValueError(
-        "Direction C failed validation "
-        f"after {MAX_RETRIES} retries: "
-        f"{error}"
+        f"PROMPT_DIRECTION_FAILED:C:{error or 'unknown validation error'}"
     )
 
 

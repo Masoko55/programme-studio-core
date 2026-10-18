@@ -1,4 +1,4 @@
-"""Generate one native-engine candidate under a fresh reference for diagnosis.
+"""Generate one engine candidate under a fresh reference for diagnosis.
 
 This probe intentionally generates exactly ONE image.
 
@@ -28,19 +28,20 @@ Production code never enables this behavior.
 
 Examples:
 
-    python scripts/probe_native_candidate.py \
+    # From the programme-studio repository root, use the image-service venv.
+    ./image-service/.venv/bin/python image-service/scripts/probe_native_candidate.py \
         --source-reference 5592AE-741489 \
         --engine sd-3-5-medium \
         --direction A
 
-    python scripts/probe_native_candidate.py \
+    ./image-service/.venv/bin/python image-service/scripts/probe_native_candidate.py \
         --source-reference 5592AE-741489 \
         --engine sd-3-5-medium \
         --direction A \
         --sampling-profile alternate_sampler \
         --seed 20261009
 
-    python scripts/probe_native_candidate.py \
+    ./image-service/.venv/bin/python image-service/scripts/probe_native_candidate.py \
         --source-reference 5592AE-741489 \
         --engine sd-3-5-medium \
         --direction A \
@@ -52,6 +53,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import shlex
 import shutil
 import sys
 import uuid
@@ -83,6 +85,7 @@ from app.services.atomic import write_json
 from app.services.candidate_spec import (
     build_candidate_spec,
 )
+from app.services.prompt_freshness import source_prompt_manifest
 
 #
 # Import the module itself as well as its classes.
@@ -109,6 +112,24 @@ from app.services.sampling_profiles import (
     profile_by_name,
     probe_profiles,
 )
+
+
+def classify_probe_failure(record: dict, error: BaseException) -> str:
+    """Keep validator, vision, and renderer failures distinct in probe output."""
+    category = str(record.get("primary_failure_category") or record.get("outcome_category") or "").upper()
+    if category in {"OCR_TIMEOUT", "OCR_UNAVAILABLE", "OCR_PARTIAL",
+                    "VISION_UNAVAILABLE", "BRIEF_FIDELITY_DRIFT"}:
+        return "OCR_UNAVAILABLE" if category == "OCR_PARTIAL" else category
+    message = str(error).casefold()
+    if "ocr_timeout" in message or ("tesseract" in message and "timeout" in message):
+        return "OCR_TIMEOUT"
+    if "ocr_unavailable" in message or "ocr_partial" in message:
+        return "OCR_UNAVAILABLE"
+    if "vision_unavailable" in message or "vision check unavailable" in message:
+        return "VISION_UNAVAILABLE"
+    if isinstance(error, asyncio.TimeoutError) or "timeout" in message or "timed out" in message:
+        return "COMFYUI_TIMEOUT"
+    return category or "PROBE_FAILURE"
 
 
 # ============================================================
@@ -150,6 +171,7 @@ def _parse_args():
         "--engine",
         required=True,
         choices=(
+            settings.engine_1_id,
             settings.engine_2_id,
             settings.engine_3_id,
         ),
@@ -227,6 +249,7 @@ class ProbeValidationCapture:
             str
             | None
         ) = None
+        self.full_validation: dict[str, Any] | None = None
 
         self.rejected_image_preserved = (
             False
@@ -262,6 +285,9 @@ class ProbeValidationCapture:
                 error
             )
         )
+        diagnostics = getattr(error, "diagnostics", None)
+        if isinstance(diagnostics, dict):
+            self.full_validation = diagnostics.get("validation")
 
         self.rejected_image_path.parent.mkdir(
             parents=True,
@@ -389,11 +415,13 @@ def _capture_probe_validation(
         # Nothing about its thresholds or behavior is changed.
         #
         try:
-            return original_validate(
+            result = original_validate(
                 path,
                 *args,
                 **kwargs,
             )
+            capture.full_validation = result.get("validation") if isinstance(result, dict) else None
+            return result
 
         except ValueError as validation_error:
             #
@@ -474,6 +502,20 @@ def _load_record(
         return {}
 
 
+def _final_validation(record: dict, captured: dict | None) -> dict:
+    """Represent the final candidate outcome, including failed recovery."""
+    result = dict(captured or record.get("validation") or {})
+    if record.get("status") == "rejected":
+        result["decision"] = "rejected"
+        result["failure_category"] = (
+            record.get("primary_failure_category") or record.get("outcome_category")
+            or result.get("failure_category")
+        )
+    recovery = record.get("palette_recovery") or {}
+    result["recovery_attempted"] = bool(recovery.get("attempted"))
+    return result
+
+
 def _persist_probe_diagnostics(
     *,
     reference: str,
@@ -516,6 +558,7 @@ def _persist_probe_diagnostics(
     ] = (
         capture.full_validation_error
     )
+    record["full_validation"] = _final_validation(record, capture.full_validation)
 
     record[
         "rejected_image_path"
@@ -527,7 +570,7 @@ def _persist_probe_diagnostics(
             capture
             .rejected_image_preserved
         )
-        else None
+        else record.get("rejected_image_path")
     )
 
     #
@@ -556,6 +599,7 @@ def _persist_probe_diagnostics(
                 in {
                     "output_path",
                     "palette_checked",
+                    "validation",
                 }
             ):
                 continue
@@ -633,6 +677,22 @@ def _diagnostic_summary(
         "sampling_profile": (
             profile
         ),
+        "selection_reason": record.get("selection_reason"),
+        "failure_history": record.get("failure_history"),
+        "renderer_recovery_type": record.get("renderer_recovery_type"),
+        "compiled_conditioning": record.get("compiled_prompt"),
+        "probe_raw_validation": record.get("probe_raw_validation"),
+        "full_validation": record.get("full_validation"),
+        "probe_full_validation_error": record.get("probe_full_validation_error"),
+        "raw_non_palette_decision": (raw.get("validation") or {}).get("decision"),
+        "full_decision": (record.get("full_validation") or {}).get("decision"),
+        "full_failure_category": (record.get("full_validation") or {}).get("failure_category") or record.get("outcome_category"),
+        "palette_recovery": record.get("palette_recovery"),
+        "subject_adherence": record.get("subject_adherence"),
+        "brief_fidelity": record.get("brief_fidelity"),
+        "effective_workflow": record.get("effective_workflow"),
+        "direction_similarity_diagnostics": record.get("direction_similarity_diagnostics"),
+        "output_path": record.get("output_path"),
         "retry_stage": (
             record.get(
                 "retry_stage"
@@ -797,6 +857,9 @@ async def main() -> None:
     if (
         args.list_profiles
     ):
+        if args.engine == settings.engine_1_id:
+            print("FLUX uses its configured workflow without a sampling-profile override.")
+            return
         for profile in probe_profiles(
             args.engine
         ):
@@ -834,6 +897,8 @@ async def main() -> None:
             args.source_reference
         )
     )
+    source_manifest = source_prompt_manifest(document)
+    print("SOURCE_PROMPT_MANIFEST=" + json.dumps(source_manifest, sort_keys=True))
 
     reference = (
         _new_reference()
@@ -879,6 +944,7 @@ async def main() -> None:
             "source_reference": (
                 args.source_reference
             ),
+            "source_prompt_manifest": source_manifest,
             "engine": (
                 args.engine
             ),
@@ -987,7 +1053,7 @@ async def main() -> None:
                 )
 
                 result = (
-                    await client.generate_image(
+                    await asyncio.wait_for(client.generate_image(
                         reference,
                         args.engine,
                         args.direction,
@@ -1014,10 +1080,10 @@ async def main() -> None:
                         seed_override=(
                             args.seed
                         ),
-                    )
+                    ), timeout=settings.comfyui_generation_timeout_seconds + 90)
                 )
 
-    except ComfyUIError as error:
+    except (ComfyUIError, asyncio.TimeoutError) as error:
         #
         # generate_image() has already persisted the normal rejection record.
         #
@@ -1031,6 +1097,8 @@ async def main() -> None:
                 capture=capture,
             )
         )
+        stored["probe_failure_category"] = classify_probe_failure(stored, error)
+        write_json(_record_path(reference, args.engine, args.direction), stored)
 
         print(
             json.dumps(
@@ -1049,12 +1117,16 @@ async def main() -> None:
             flush=True,
         )
 
+        rejected_path = stored.get("rejected_image_path")
+        if rejected_path and Path(rejected_path).is_file():
+            print(f"VIEW_COMMAND=xdg-open {shlex.quote(str(rejected_path))}", flush=True)
+
         #
         # Retain the non-zero exit status.
         #
         # A diagnostic rejection must still be a real rejection.
         #
-        raise
+        raise SystemExit(1) from None
 
     # ========================================================
     # Accepted candidate
@@ -1089,6 +1161,9 @@ async def main() -> None:
         ),
         flush=True,
     )
+    output_path = result.get("output_path")
+    if output_path and Path(output_path).is_file():
+        print(f"VIEW_COMMAND=xdg-open {shlex.quote(str(output_path))}", flush=True)
 
 
 if __name__ == "__main__":

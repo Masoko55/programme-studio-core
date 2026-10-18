@@ -1,4 +1,5 @@
 import json
+import hashlib
 import re
 import shutil
 
@@ -22,8 +23,13 @@ from app.schemas.prompts_document import (
 )
 
 
+JOB_FILENAME = "job.json"
+PROMPTS_FILENAME = "prompts.json"
+
+
 REFERENCE_PATTERN = re.compile(
-    r"^[A-F0-9]{6}-[0-9]{6}$"
+    r"^[A-F0-9]{6}-\d{6}$",
+    re.ASCII,
 )
 
 
@@ -113,7 +119,7 @@ def get_job_metadata_path(
         get_job_directory(
             reference_number
         )
-        / "job.json"
+        / JOB_FILENAME
     )
 
 
@@ -196,7 +202,7 @@ def persist_job_metadata(
 
     metadata_path = (
         job_directory
-        / "job.json"
+        / JOB_FILENAME
     )
 
     metadata[
@@ -471,17 +477,20 @@ def persist_prompts_document(
 
     prompts_path = (
         job_directory
-        / "prompts.json"
+        / PROMPTS_FILENAME
     )
 
+    payload = document.model_dump(mode="json")
+    payload.pop("prompt_generation_sha256", None)
+    payload["prompt_generation_sha256"] = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    ).hexdigest()
     with prompts_path.open(
         "w",
         encoding="utf-8",
     ) as file:
         json.dump(
-            document.model_dump(
-                mode="json"
-            ),
+            payload,
             file,
             ensure_ascii=False,
             indent=2,
@@ -502,7 +511,7 @@ def load_prompts_document(
         get_job_directory(
             reference_number
         )
-        / "prompts.json"
+        / PROMPTS_FILENAME
     )
 
     if not (
@@ -556,7 +565,7 @@ def get_job_status(
 
     metadata_path = (
         job_directory
-        / "job.json"
+        / JOB_FILENAME
     )
 
     if metadata_path.exists():
@@ -573,7 +582,7 @@ def get_job_status(
 
     prompts_path = (
         job_directory
-        / "prompts.json"
+        / PROMPTS_FILENAME
     )
 
     if prompts_path.exists():

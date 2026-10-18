@@ -531,12 +531,138 @@ def _coherent_edge_ratio(
     )
 
 
+def _region_metrics(
+    structural_edge_mask: np.ndarray,
+    gray_float: np.ndarray,
+    *,
+    x_start: float,
+    x_end: float,
+    y_start: float,
+    y_end: float,
+) -> dict:
+    height, width = (
+        gray_float.shape
+    )
+
+    x0 = max(
+        0,
+        min(
+            width,
+            int(
+                width
+                * x_start
+            ),
+        ),
+    )
+
+    x1 = max(
+        x0,
+        min(
+            width,
+            int(
+                width
+                * x_end
+            ),
+        ),
+    )
+
+    y0 = max(
+        0,
+        min(
+            height,
+            int(
+                height
+                * y_start
+            ),
+        ),
+    )
+
+    y1 = max(
+        y0,
+        min(
+            height,
+            int(
+                height
+                * y_end
+            ),
+        ),
+    )
+
+    region_edges = (
+        structural_edge_mask[
+            y0:y1,
+            x0:x1,
+        ]
+    )
+
+    region_gray = (
+        gray_float[
+            y0:y1,
+            x0:x1,
+        ]
+    )
+
+    return {
+        "edge_density": (
+            float(
+                np.mean(
+                    region_edges
+                )
+            )
+            if region_edges.size
+            else 0.0
+        ),
+        "local_contrast": (
+            float(
+                np.std(
+                    region_gray
+                )
+            )
+            if region_gray.size
+            else 0.0
+        ),
+    }
+
+
 def _safe_region_metrics(
     structural_edge_mask: np.ndarray,
     gray_float: np.ndarray,
 ) -> dict:
     height, width = (
         gray_float.shape
+    )
+
+    center = _region_metrics(
+        structural_edge_mask,
+        gray_float,
+        x_start=CENTER_X_START,
+        x_end=CENTER_X_END,
+        y_start=CENTER_Y_START,
+        y_end=CENTER_Y_END,
+    )
+
+    #
+    # Measure the inner text cores of the current title/programme overlays,
+    # not their full bounding boxes. Decorative framing is intentionally
+    # allowed near the box edges, while the text-bearing interior must remain
+    # calm.
+    #
+    title = _region_metrics(
+        structural_edge_mask,
+        gray_float,
+        x_start=0.18,
+        x_end=0.82,
+        y_start=0.09,
+        y_end=0.19,
+    )
+
+    programme = _region_metrics(
+        structural_edge_mask,
+        gray_float,
+        x_start=0.18,
+        x_end=0.82,
+        y_start=0.51,
+        y_end=0.83,
     )
 
     x0 = int(
@@ -576,25 +702,11 @@ def _safe_region_metrics(
         ~center_mask
     )
 
-    center_edges = (
-        structural_edge_mask[
-            center_mask
-        ]
-    )
-
     outer_edges = (
         structural_edge_mask[
             outer_mask
         ]
     )
-
-    center_edge_density = float(
-        np.mean(
-            center_edges
-        )
-    ) if (
-        center_edges.size
-    ) else 0.0
 
     outer_edge_density = float(
         np.mean(
@@ -604,36 +716,234 @@ def _safe_region_metrics(
         outer_edges.size
     ) else 0.0
 
-    center_gray = (
-        gray_float[
-            y0:y1,
-            x0:x1,
-        ]
-    )
-
-    center_local_contrast = float(
-        np.std(
-            center_gray
-        )
-    ) if (
-        center_gray.size
-    ) else 0.0
-
     return {
         "center_structural_edge_density": (
-            center_edge_density
+            center[
+                "edge_density"
+            ]
         ),
         "outer_structural_edge_density": (
             outer_edge_density
         ),
         "center_local_contrast": (
-            center_local_contrast
+            center[
+                "local_contrast"
+            ]
+        ),
+        "title_structural_edge_density": (
+            title[
+                "edge_density"
+            ]
+        ),
+        "title_local_contrast": (
+            title[
+                "local_contrast"
+            ]
+        ),
+        "programme_structural_edge_density": (
+            programme[
+                "edge_density"
+            ]
+        ),
+        "programme_local_contrast": (
+            programme[
+                "local_contrast"
+            ]
         ),
     }
 
 
+def _reject_visual_defects(metrics: dict, directional: dict, fine_lines: dict, safe_region: dict,
+                           visual_design: dict | None = None) -> None:
+    edge_density = metrics["edge_density"]
+    directional_edge_dominance = metrics["directional_edge_dominance"]
+    full_span_line_ratio = metrics["full_span_line_ratio"]
+    largest_colour_ratio = metrics["largest_colour_ratio"]
+    entropy = metrics["entropy"]
+    structural_edge_density = metrics["structural_edge_density"]
+    laplacian_variance = metrics["laplacian_variance"]
+    highpass_mean = metrics["highpass_mean"]
+    coherent_edge_ratio = metrics["coherent_edge_ratio"]
+    macro_structure_score = metrics.get("macro_structure_score", 0.0)
+
+    # ========================================================
+    # Strong directional scanlines
+    # ========================================================
+
+    if (
+        edge_density
+        >= MIN_DIRECTIONAL_EDGE_DENSITY
+        and directional_edge_dominance
+        >= MAX_DIRECTIONAL_EDGE_DOMINANCE
+        and full_span_line_ratio
+        >= MIN_FULL_SPAN_LINE_RATIO
+    ):
+        axis = (
+            directional[
+                "dominant_directional_axis"
+            ]
+        )
+
+        raise ValueError(
+            "Generated background failed visual quality validation: "
+            f"excessive repetitive {axis} scanline or raster-band "
+            "structure was detected "
+            f"(edge density {edge_density:.2f}, "
+            f"directional dominance "
+            f"{directional_edge_dominance:.2f}, "
+            f"full-span ratio "
+            f"{full_span_line_ratio:.2f})."
+        )
+
+    # ========================================================
+    # Fine repetitive raster structure
+    # ========================================================
+
+    if (
+        fine_lines[
+            "fine_line_pair_ratio"
+        ]
+        >= MAX_FINE_LINE_PAIR_RATIO
+        and fine_lines[
+            "fine_line_mean_delta"
+        ]
+        >= MIN_FINE_LINE_MEAN_DELTA
+    ):
+        raise ValueError(
+            "Generated background failed visual quality validation: "
+            "fine repetitive "
+            f"{fine_lines['fine_line_axis']} raster-line structure "
+            "covers too much of the page "
+            f"(full-span adjacent-line ratio "
+            f"{fine_lines['fine_line_pair_ratio']:.2f}, "
+            f"mean adjacent-line delta "
+            f"{fine_lines['fine_line_mean_delta']:.2f})."
+        )
+
+    # ========================================================
+    # Blank / flat output
+    # ========================================================
+
+    if (
+        largest_colour_ratio
+        >= MAX_SINGLE_QUANTISED_COLOUR_RATIO
+        and edge_density
+        < MIN_FLAT_IMAGE_EDGE_DENSITY
+    ):
+        raise ValueError(
+            "Generated background failed visual quality validation: "
+            "the image is effectively a flat or blank colour field "
+            f"(dominant quantised colour ratio "
+            f"{largest_colour_ratio:.2f}, "
+            f"edge density "
+            f"{edge_density:.3f})."
+        )
+
+    if (
+        entropy
+        < MIN_FLAT_IMAGE_ENTROPY
+        and edge_density
+        < MIN_FLAT_IMAGE_EDGE_DENSITY
+    ):
+        raise ValueError(
+            "Generated background failed visual quality validation: "
+            "the image contains insufficient visual structure "
+            f"(entropy "
+            f"{entropy:.2f}, "
+            f"edge density "
+            f"{edge_density:.3f})."
+        )
+
+    # ========================================================
+    # Smooth gradient / colour wash
+    # ========================================================
+
+    if (
+        structural_edge_density
+        < MIN_STRUCTURAL_EDGE_DENSITY
+        and laplacian_variance
+        < LOW_STRUCTURE_MAX_LAPLACIAN_VARIANCE
+        and highpass_mean
+        < LOW_STRUCTURE_MAX_HIGHPASS_MEAN
+    ):
+        raise ValueError(
+            "Generated background failed visual quality validation: "
+            "the image is primarily a smooth gradient or colour wash "
+            "with insufficient designed structure "
+            f"(structural edge density "
+            f"{structural_edge_density:.3f}, "
+            f"laplacian variance "
+            f"{laplacian_variance:.2f}, "
+            f"high-pass mean "
+            f"{highpass_mean:.2f})."
+        )
+
+    # A subtle pixel texture can raise Laplacian variance while the intended
+    # subject remains barely visible. Require useful visible structure when
+    # both the sampled edges and local contrast are very low.
+    if (
+        structural_edge_density < 0.045
+        and edge_density < 0.12
+        and highpass_mean < 2.0
+        and macro_structure_score < 0.30
+    ):
+        raise ValueError(
+            "Generated background failed visual quality validation: "
+            "the subject has insufficient visible structure beneath fine texture "
+            f"(structural edge density {structural_edge_density:.3f}, "
+            f"edge density {edge_density:.3f}, high-pass mean {highpass_mean:.2f})."
+        )
+
+    # ========================================================
+    # Noise / grain without coherent forms
+    # ========================================================
+
+    if (
+        edge_density
+        >= NOISE_CHECK_MIN_RAW_EDGE_DENSITY
+        and structural_edge_density
+        <= NOISE_CHECK_MAX_STRUCTURAL_EDGE_DENSITY
+        and coherent_edge_ratio
+        < MIN_COHERENT_EDGE_RATIO
+    ):
+        raise ValueError(
+            "Generated background failed visual quality validation: "
+            "the image contains high-frequency texture or noise "
+            "without enough coherent designed structure "
+            f"(raw edge density "
+            f"{edge_density:.2f}, "
+            f"structural edge density "
+            f"{structural_edge_density:.3f}, "
+            f"coherent edge ratio "
+            f"{coherent_edge_ratio:.2f})."
+        )
+
+    # ========================================================
+    # Useful outer decorative structure
+    # ========================================================
+
+    perimeter = str((visual_design or {}).get("border_or_perimeter_strategy") or "").casefold()
+    expects_outer = any(
+        word in perimeter for word in ("frame", "border", "edge", "perimeter", "corner")
+    ) and not any(word in perimeter for word in ("open", "quiet", "minimal", "unframed"))
+    if expects_outer and (
+        safe_region["outer_structural_edge_density"] < MIN_OUTER_STRUCTURAL_EDGE_DENSITY
+    ):
+        raise ValueError(
+            "Generated background failed visual quality validation: "
+            "the outer background area contains too little useful "
+            "decorative structure for a programme background "
+            f"(outer structural edge density "
+            f"{safe_region['outer_structural_edge_density']:.3f})."
+        )
+
+
+
 def validate_visual_quality(
     image: Image.Image,
+    *,
+    enforce_overlay_region: bool = False,
+    visual_design: dict | None = None,
 ) -> dict:
     sample = (
         image.convert(
@@ -673,6 +983,12 @@ def validate_visual_quality(
         rgb,
         cv2.COLOR_RGB2GRAY,
     )
+    coarse = cv2.resize(cv2.GaussianBlur(gray, (0, 0), 5), (48, 66),
+                        interpolation=cv2.INTER_AREA)
+    coarse_edges = cv2.Canny(coarse, 20, 60)
+    coarse_edge_density = float(np.mean(coarse_edges > 0))
+    coarse_contrast = float(np.percentile(coarse, 90) - np.percentile(coarse, 10))
+    macro_structure_score = min(1.0, coarse_edge_density * 12) * min(1.0, coarse_contrast / 35)
 
     gray_float = gray.astype(
         np.float32
@@ -807,173 +1123,166 @@ def validate_visual_quality(
         ]
     )
 
-    # ========================================================
-    # Strong directional scanlines
-    # ========================================================
-
-    if (
-        edge_density
-        >= MIN_DIRECTIONAL_EDGE_DENSITY
-        and directional_edge_dominance
-        >= MAX_DIRECTIONAL_EDGE_DOMINANCE
-        and full_span_line_ratio
-        >= MIN_FULL_SPAN_LINE_RATIO
-    ):
-        axis = (
-            directional[
-                "dominant_directional_axis"
-            ]
-        )
-
-        raise ValueError(
-            "Generated background failed visual quality validation: "
-            f"excessive repetitive {axis} scanline or raster-band "
-            "structure was detected "
-            f"(edge density {edge_density:.2f}, "
-            f"directional dominance "
-            f"{directional_edge_dominance:.2f}, "
-            f"full-span ratio "
-            f"{full_span_line_ratio:.2f})."
-        )
+    _reject_visual_defects(
+        {
+            "edge_density": edge_density,
+            "directional_edge_dominance": directional_edge_dominance,
+            "full_span_line_ratio": full_span_line_ratio,
+            "largest_colour_ratio": largest_colour_ratio,
+            "entropy": entropy,
+            "structural_edge_density": structural_edge_density,
+            "laplacian_variance": laplacian_variance,
+            "highpass_mean": highpass_mean,
+            "coherent_edge_ratio": coherent_edge_ratio,
+            "macro_structure_score": macro_structure_score,
+        },
+        directional,
+        fine_lines,
+        safe_region,
+        visual_design,
+    )
 
     # ========================================================
-    # Fine repetitive raster structure
+    # Programme/title safe-region quality
     # ========================================================
+    #
+    # Programme Studio backgrounds are not merely decorative images.
+    #
+    # The title and programme content must be composited over the central
+    # portion of the artwork. A technically valid illustration can therefore
+    # still be unusable when architectural detail, line work or other visual
+    # structure fills the centre.
+    #
+    # We do not require a blank centre. Instead, the centre must be
+    # meaningfully calmer than the decorative outer region.
+    #
 
-    if (
-        fine_lines[
-            "fine_line_pair_ratio"
+    center_edge_density = float(
+        safe_region[
+            "center_structural_edge_density"
         ]
-        >= MAX_FINE_LINE_PAIR_RATIO
-        and fine_lines[
-            "fine_line_mean_delta"
-        ]
-        >= MIN_FINE_LINE_MEAN_DELTA
-    ):
-        raise ValueError(
-            "Generated background failed visual quality validation: "
-            "fine repetitive "
-            f"{fine_lines['fine_line_axis']} raster-line structure "
-            "covers too much of the page "
-            f"(full-span adjacent-line ratio "
-            f"{fine_lines['fine_line_pair_ratio']:.2f}, "
-            f"mean adjacent-line delta "
-            f"{fine_lines['fine_line_mean_delta']:.2f})."
-        )
+    )
 
-    # ========================================================
-    # Blank / flat output
-    # ========================================================
-
-    if (
-        largest_colour_ratio
-        >= MAX_SINGLE_QUANTISED_COLOUR_RATIO
-        and edge_density
-        < MIN_FLAT_IMAGE_EDGE_DENSITY
-    ):
-        raise ValueError(
-            "Generated background failed visual quality validation: "
-            "the image is effectively a flat or blank colour field "
-            f"(dominant quantised colour ratio "
-            f"{largest_colour_ratio:.2f}, "
-            f"edge density "
-            f"{edge_density:.3f})."
-        )
-
-    if (
-        entropy
-        < MIN_FLAT_IMAGE_ENTROPY
-        and edge_density
-        < MIN_FLAT_IMAGE_EDGE_DENSITY
-    ):
-        raise ValueError(
-            "Generated background failed visual quality validation: "
-            "the image contains insufficient visual structure "
-            f"(entropy "
-            f"{entropy:.2f}, "
-            f"edge density "
-            f"{edge_density:.3f})."
-        )
-
-    # ========================================================
-    # Smooth gradient / colour wash
-    # ========================================================
-
-    if (
-        structural_edge_density
-        < MIN_STRUCTURAL_EDGE_DENSITY
-        and laplacian_variance
-        < LOW_STRUCTURE_MAX_LAPLACIAN_VARIANCE
-        and highpass_mean
-        < LOW_STRUCTURE_MAX_HIGHPASS_MEAN
-    ):
-        raise ValueError(
-            "Generated background failed visual quality validation: "
-            "the image is primarily a smooth gradient or colour wash "
-            "with insufficient designed structure "
-            f"(structural edge density "
-            f"{structural_edge_density:.3f}, "
-            f"laplacian variance "
-            f"{laplacian_variance:.2f}, "
-            f"high-pass mean "
-            f"{highpass_mean:.2f})."
-        )
-
-    # ========================================================
-    # Noise / grain without coherent forms
-    # ========================================================
-
-    if (
-        edge_density
-        >= NOISE_CHECK_MIN_RAW_EDGE_DENSITY
-        and structural_edge_density
-        <= NOISE_CHECK_MAX_STRUCTURAL_EDGE_DENSITY
-        and coherent_edge_ratio
-        < MIN_COHERENT_EDGE_RATIO
-    ):
-        raise ValueError(
-            "Generated background failed visual quality validation: "
-            "the image contains high-frequency texture or noise "
-            "without enough coherent designed structure "
-            f"(raw edge density "
-            f"{edge_density:.2f}, "
-            f"structural edge density "
-            f"{structural_edge_density:.3f}, "
-            f"coherent edge ratio "
-            f"{coherent_edge_ratio:.2f})."
-        )
-
-    # ========================================================
-    # Useful outer decorative structure
-    # ========================================================
-
-    if (
+    outer_edge_density = float(
         safe_region[
             "outer_structural_edge_density"
         ]
-        < MIN_OUTER_STRUCTURAL_EDGE_DENSITY
+    )
+
+    center_local_contrast = float(
+        safe_region[
+            "center_local_contrast"
+        ]
+    )
+
+    #
+    # Generic central-zone limits.
+    #
+    # A centre with meaningful structure must still be clearly calmer than the
+    # outer decoration. This catches candidates whose absolute density is only
+    # moderate but whose centre is almost as busy as the edges.
+    #
+    MAX_USABLE_CENTER_EDGE_DENSITY = 0.10
+    MIN_MEANINGFUL_CENTER_EDGE_DENSITY = 0.06
+    MAX_CENTER_TO_OUTER_EDGE_RATIO = 0.80
+
+    #
+    # Text-core limits for the title and programme overlays.
+    #
+    # These are intentionally applied to inset text cores rather than the full
+    # overlay boxes, so edge framing can touch the outside of a title/programme
+    # panel without making the actual text-bearing area unusable.
+    #
+    MAX_TITLE_ZONE_EDGE_DENSITY = 0.10
+    MAX_PROGRAMME_ZONE_EDGE_DENSITY = 0.10
+
+    center_to_outer_ratio = (
+        center_edge_density
+        / max(
+            outer_edge_density,
+            1e-6,
+        )
+    )
+
+    dense_center = bool(
+        center_edge_density
+        > MAX_USABLE_CENTER_EDGE_DENSITY
+    )
+
+    insufficient_edge_bias = bool(
+        center_edge_density
+        > MIN_MEANINGFUL_CENTER_EDGE_DENSITY
+        and center_to_outer_ratio
+        > MAX_CENTER_TO_OUTER_EDGE_RATIO
+    )
+
+    excessive_center_contrast = bool(
+        center_local_contrast
+        > MAX_CENTER_LOCAL_CONTRAST
+    )
+
+    title_edge_density = float(
+        safe_region[
+            "title_structural_edge_density"
+        ]
+    )
+
+    programme_edge_density = float(
+        safe_region[
+            "programme_structural_edge_density"
+        ]
+    )
+
+    if enforce_overlay_region and (
+        title_edge_density
+        > MAX_TITLE_ZONE_EDGE_DENSITY
+        or programme_edge_density
+        > MAX_PROGRAMME_ZONE_EDGE_DENSITY
     ):
         raise ValueError(
             "Generated background failed visual quality validation: "
-            "the outer background area contains too little useful "
-            "decorative structure for a programme background "
-            f"(outer structural edge density "
-            f"{safe_region['outer_structural_edge_density']:.3f})."
+            "programme safe region is too visually dense "
+            f"(title structural edge density "
+            f"{title_edge_density:.3f}, "
+            f"programme structural edge density "
+            f"{programme_edge_density:.3f}, "
+            f"outer structural edge density "
+            f"{outer_edge_density:.3f})."
         )
 
-    # ========================================================
-    # Centre diagnostics
-    #
-    # The compositor draws opaque title and programme panels over this region.
-    # Keep the measurements in the candidate record for review, but do not
-    # discard a sound illustration solely because it has central detail. The
-    # hard quality gates above still reject raster, noise, blank, gradient and
-    # malformed output across the complete image.
-    # ========================================================
+    if enforce_overlay_region and (
+        dense_center
+        or insufficient_edge_bias
+    ):
+        raise ValueError(
+            "Generated background failed visual quality validation: "
+            "programme safe region is too visually dense "
+            f"(center structural edge density "
+            f"{center_edge_density:.3f}, "
+            f"outer structural edge density "
+            f"{outer_edge_density:.3f}, "
+            f"center-to-outer ratio "
+            f"{center_to_outer_ratio:.2f})."
+        )
+
+    if enforce_overlay_region and (
+        excessive_center_contrast
+        and insufficient_edge_bias
+    ):
+        raise ValueError(
+            "Generated background failed visual quality validation: "
+            "programme safe region has too much local contrast "
+            f"(center local contrast "
+            f"{center_local_contrast:.2f}, "
+            f"center-to-outer ratio "
+            f"{center_to_outer_ratio:.2f})."
+        )
 
     return {
         "visual_quality_checked": True,
         "visual_quality_passed": True,
+        "macro_structure_score": macro_structure_score,
+        "coarse_edge_density": coarse_edge_density,
 
         "edge_density": (
             edge_density
@@ -1060,4 +1369,45 @@ def validate_visual_quality(
                 "center_local_contrast"
             ]
         ),
+
+        "title_structural_edge_density": (
+            safe_region[
+                "title_structural_edge_density"
+            ]
+        ),
+
+        "title_local_contrast": (
+            safe_region[
+                "title_local_contrast"
+            ]
+        ),
+
+        "programme_structural_edge_density": (
+            safe_region[
+                "programme_structural_edge_density"
+            ]
+        ),
+
+        "programme_local_contrast": (
+            safe_region[
+                "programme_local_contrast"
+            ]
+        ),
+
+        "center_to_outer_edge_ratio": (
+            center_to_outer_ratio
+        ),
+
+        # The composer places adaptive blurred panels behind text. Raw image
+        # detail is useful selection data, but is not itself a readability
+        # failure. The optional strict mode remains for diagnostics.
+        "center_safe_region_passed": not (
+            title_edge_density > MAX_TITLE_ZONE_EDGE_DENSITY
+            or programme_edge_density > MAX_PROGRAMME_ZONE_EDGE_DENSITY
+            or dense_center
+            or insufficient_edge_bias
+            or (excessive_center_contrast and insufficient_edge_bias)
+        ),
+
+        
     }

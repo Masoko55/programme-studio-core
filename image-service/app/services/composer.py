@@ -180,6 +180,26 @@ def load_font(
     )
 
 
+def _append_wrapped_paragraph(
+    draw: ImageDraw.ImageDraw,
+    paragraph: str,
+    font,
+    max_width: int,
+    lines: list[str],
+) -> None:
+    current = ""
+    for word in paragraph.split(" "):
+        candidate = current + (" " if current else "") + word
+        if draw.textlength(candidate, font=font) <= max_width:
+            current = candidate
+        else:
+            if current:
+                lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+
+
 def wrap_text(
     draw: ImageDraw.ImageDraw,
     text: str,
@@ -188,51 +208,8 @@ def wrap_text(
 ) -> list[str]:
     lines = []
 
-    for paragraph in (
-        str(
-            text
-        ).split(
-            "\n"
-        )
-    ):
-        current = ""
-
-        for word in (
-            paragraph.split(
-                " "
-            )
-        ):
-            candidate = (
-                current
-                + (
-                    " "
-                    if current
-                    else ""
-                )
-                + word
-            )
-
-            if (
-                draw.textlength(
-                    candidate,
-                    font=font,
-                )
-                <= max_width
-            ):
-                current = candidate
-
-            else:
-                if current:
-                    lines.append(
-                        current
-                    )
-
-                current = word
-
-        if current:
-            lines.append(
-                current
-            )
+    for paragraph in str(text).split("\n"):
+        _append_wrapped_paragraph(draw, paragraph, font, max_width, lines)
 
     return lines
 
@@ -1466,84 +1443,7 @@ def validate_layout(
                 )
 
 
-def compose_programme(
-    reference_number: str,
-    engine_id: str,
-    direction_id: str,
-    background_path: str,
-    brief: dict,
-    layout_guidance: dict,
-    output_path: Path | None = None,
-) -> CompositionResult:
-    validate_layout(
-        layout_guidance
-    )
-
-    with Image.open(
-        background_path
-    ) as source:
-        source.load()
-
-        canvas = (
-            source
-            .convert(
-                "RGBA"
-            )
-            .resize(
-                (
-                    CANVAS_WIDTH,
-                    CANVAS_HEIGHT,
-                ),
-                Image.Resampling.LANCZOS,
-            )
-        )
-
-    title_content = [
-        (
-            brief[
-                "title"
-            ],
-            True,
-        )
-    ]
-
-    metadata = [
-        str(
-            brief[
-                key
-            ]
-        )
-        for key in (
-            "event_date",
-            "start_time",
-            "venue",
-        )
-        if (
-            brief.get(
-                key
-            )
-        )
-    ]
-
-    if metadata:
-        title_content.append(
-            (
-                " | ".join(
-                    metadata
-                ),
-                False,
-            )
-        )
-
-    draw_panel(
-        canvas,
-        title_content,
-        layout_guidance[
-            "title_zone"
-        ],
-        max_size=80,
-    )
-
+def _programme_rows(brief: dict) -> list[tuple[str, bool]]:
     programme = (
         brief.get(
             "programme"
@@ -1645,6 +1545,89 @@ def compose_programme(
                     False,
                 )
             )
+
+    return rows
+
+
+def compose_programme(
+    reference_number: str,
+    engine_id: str,
+    direction_id: str,
+    background_path: str,
+    brief: dict,
+    layout_guidance: dict,
+    output_path: Path | None = None,
+) -> CompositionResult:
+    validate_layout(
+        layout_guidance
+    )
+
+    with Image.open(
+        background_path
+    ) as source:
+        source.load()
+
+        canvas = (
+            source
+            .convert(
+                "RGBA"
+            )
+            .resize(
+                (
+                    CANVAS_WIDTH,
+                    CANVAS_HEIGHT,
+                ),
+                Image.Resampling.LANCZOS,
+            )
+        )
+
+    title_content = [
+        (
+            brief[
+                "title"
+            ],
+            True,
+        )
+    ]
+
+    metadata = [
+        str(
+            brief[
+                key
+            ]
+        )
+        for key in (
+            "event_date",
+            "start_time",
+            "venue",
+        )
+        if (
+            brief.get(
+                key
+            )
+        )
+    ]
+
+    if metadata:
+        title_content.append(
+            (
+                " | ".join(
+                    metadata
+                ),
+                False,
+            )
+        )
+
+    draw_panel(
+        canvas,
+        title_content,
+        layout_guidance[
+            "title_zone"
+        ],
+        max_size=80,
+    )
+
+    rows = _programme_rows(brief)
 
     if rows:
         draw_panel(

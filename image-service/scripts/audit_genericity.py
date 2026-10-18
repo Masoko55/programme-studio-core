@@ -90,6 +90,7 @@ def _vision_contract(design: dict) -> tuple[dict, str]:
     response.json.return_value = {"message": {"content": json.dumps({
         "subject_score": .9, "atmosphere_score": .9, "motif_score": .9,
         "audience_fit_score": .9, "observed_evidence": ["matching forms"],
+        "unrequested_literal_object_visible": False,
         "reason": "visible brief fit",
     })}}
     with patch("app.services.subject_adherence.Image.open", return_value=opened), \

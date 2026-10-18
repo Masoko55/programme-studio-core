@@ -4,7 +4,7 @@ import unittest
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from app.services.candidate_spec import build_candidate_spec
 from app.services.execution_plan import build_execution_plan
@@ -231,7 +231,13 @@ class SimplifiedPipelineTests(unittest.TestCase):
     def test_explicit_quiet_region_with_no_quiet_tiles_is_hard(self):
         with tempfile.TemporaryDirectory() as root:
             path = Path(root) / "image.png"
-            Image.new("RGB", (896, 1280), "navy").save(path)
+            artwork = Image.new("RGB", (896, 1280), "white")
+            draw = ImageDraw.Draw(artwork)
+            for coordinate in range(0, 896, 8):
+                draw.line((coordinate, 0, coordinate, 640), fill="black", width=2)
+            for coordinate in range(0, 640, 8):
+                draw.line((0, coordinate, 895, coordinate), fill="black", width=2)
+            artwork.save(path)
             ocr = {"confirmed_tokens": [], "ocr_diagnostics": {"decision": "OCR_COMPLETE"},
                    "text_detected": False, "tokens": [], "text_lines": [], "text_area_ratio": 0}
             human = {"detected": False, "ambiguous_face_signal": False,

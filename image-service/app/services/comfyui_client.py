@@ -1830,11 +1830,14 @@ def validate_background(
             safe_regions = assess_explicit_safe_regions(density, {
                 "title": str(visual_design.get("title_safe_region_strategy") or ""),
                 "programme": str(visual_design.get("programme_safe_region_strategy") or ""),
-            })
+            }, image)
             quality_result["explicit_safe_regions"] = safe_regions
             quality_result["explicit_safe_region_decision"] = safe_regions["decision"]
             if safe_regions["decision"] == "FAIL":
-                problems.append(("DENSE_SAFE_REGION", "DENSE_SAFE_REGION: explicit quiet region has insufficient calm tiles"))
+                failed_names = [name for name, region in safe_regions["regions"].items()
+                                if region["decision"] == "FAIL"]
+                problems.append(("DENSE_SAFE_REGION", "DENSE_SAFE_REGION: high-contrast visual interference in " +
+                                 ", ".join(failed_names) + " region"))
 
         palette_result = {
             "palette_checked": False,

@@ -44,8 +44,36 @@ def assess_scene_density(image: Image.Image, preference: str) -> dict:
     }
 
 
-def assess_explicit_safe_regions(density: dict, strategies: dict[str, str]) -> dict:
-    """Check the area named by each quiet strategy, independently of global density."""
+def _overlay_interference(image: Image.Image, rows: list[int], columns: list[int]) -> dict:
+    """Measure sharp detail and large contrasting forms inside one text area."""
+    gray = cv2.cvtColor(np.asarray(image.convert("RGB")), cv2.COLOR_RGB2GRAY)
+    height, width = gray.shape
+    crop = gray[rows[0] * height // 4:(rows[-1] + 1) * height // 4,
+                columns[0] * width // 4:(columns[-1] + 1) * width // 4]
+    local = cv2.resize(crop, (128, 128), interpolation=cv2.INTER_AREA)
+    fine_blur = cv2.GaussianBlur(local, (0, 0), 2)
+    broad_blur = cv2.GaussianBlur(local, (0, 0), 6)
+    high_frequency = float(np.mean(np.abs(local.astype(np.float32) - fine_blur) >= 18))
+    edge_density = float(np.mean(cv2.Canny(local, 40, 100) > 0))
+    contrast = float(np.percentile(local, 90) - np.percentile(local, 10))
+    broad_contrast = float(np.percentile(broad_blur, 90) - np.percentile(broad_blur, 10))
+    broad_edge_density = float(np.mean(cv2.Canny(broad_blur, 35, 90) > 0))
+    dense_detail = contrast >= 65 and (high_frequency >= .18 or
+                                       (edge_density >= .13 and high_frequency >= .08))
+    focal_interference = (broad_contrast >= 80 and broad_edge_density >= .008 and
+                          edge_density < .06 and high_frequency < .16)
+    reason = "dense_high_contrast_detail" if dense_detail else "large_contrasting_form" if focal_interference else None
+    return {"decision": "FAIL" if reason else "PASS", "reason": reason,
+            "local_edge_density": round(edge_density, 4),
+            "local_contrast": round(contrast, 2),
+            "high_frequency_fraction": round(high_frequency, 4),
+            "broad_contrast": round(broad_contrast, 2),
+            "broad_edge_density": round(broad_edge_density, 4)}
+
+
+def assess_explicit_safe_regions(density: dict, strategies: dict[str, str],
+                                 image: Image.Image | None = None) -> dict:
+    """Check typography usability in named regions, separately from global density."""
     regions = {}
     for name, strategy in strategies.items():
         if not re.search(r"\b(?:quiet|calm|low.detail|breathing room)\b", strategy, re.I):
@@ -62,8 +90,10 @@ def assess_explicit_safe_regions(density: dict, strategies: dict[str, str]) -> d
         local = [tiles[index] for index in indexes]
         occupied = sum(value >= .10 for value in local) / len(local)
         quiet = sum(value <= .04 for value in local) / len(local)
-        regions[name] = {"decision": "FAIL" if occupied >= .75 and quiet == 0 else "PASS",
-                         "tile_indexes": indexes, "occupied_tile_fraction": occupied,
-                         "quiet_tile_fraction": quiet}
+        legacy_decision = "FAIL" if occupied >= .75 and quiet == 0 else "PASS"
+        interference = (_overlay_interference(image, rows, columns) if image is not None else
+                        {"decision": legacy_decision, "reason": "occupied_tiles" if legacy_decision == "FAIL" else None})
+        regions[name] = {**interference, "tile_indexes": indexes,
+                         "occupied_tile_fraction": occupied, "quiet_tile_fraction": quiet}
     return {"decision": "FAIL" if any(region["decision"] == "FAIL" for region in regions.values()) else "PASS",
             "regions": regions}

@@ -193,6 +193,14 @@ class SemanticFoundationTests(unittest.TestCase):
         semantically_poor = {**valid, "brief_fidelity": {**valid["brief_fidelity"],
                            "atmosphere_score": .3, "motif_score": .35, "audience_fit_score": .4}}
         self.assertFalse(hard_validity(semantically_poor)["passed"])
+        soft_mismatch = {**valid, "brief_fidelity": {**valid["brief_fidelity"],
+                         "decision": "BRIEF_FIDELITY_DRIFT", "subject_score": .5,
+                         "failed_dimensions": ["subject_score"], "hard_failed_dimensions": []}}
+        self.assertTrue(hard_validity(soft_mismatch)["passed"])
+        checked_soft_mismatch = {**soft_mismatch, "brief_fidelity": {
+            **soft_mismatch["brief_fidelity"], "checked": True}}
+        self.assertTrue(hard_validity(checked_soft_mismatch, require_vision=True)["passed"])
+        self.assertFalse(hard_validity(soft_mismatch, require_vision=True)["passed"])
         partial = {"validation": {"decision": "accepted", "quality": {"macro_structure_score": .8}}}
         self.assertEqual(score_candidate(partial)["quality"]["availability"]["subject_fidelity"], "UNAVAILABLE")
         self.assertFalse(hard_validity(partial, require_vision=True)["passed"])

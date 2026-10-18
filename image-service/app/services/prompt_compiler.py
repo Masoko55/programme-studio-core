@@ -682,12 +682,12 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         composition, correction, attempt,
     )
     if spec.engine_id == "sdxl-1-0":
-        negative = ("people, faces, characters, readable text, lettering, numbers, logos, watermark, "
+        negative = ("people, faces, characters, readable text, words, letters, lettering, numbers, logos, watermark, "
                     "pseudo-glyphs, signage, poster mockup, bordered panel, blank card, banner")
         if _scene_tone(spec)[1]:
             negative += ", " + _scene_tone(spec)[1]
     else:
-        negative = "people, faces, characters, text, glyphs, logos, title panels"
+        negative = "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels"
     extra_negative = {
         "RASTER": ", scanlines, raster grid",
         "NOISE": ", grain, noise",
@@ -1005,6 +1005,11 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                       "", value, flags=re.I).strip()
     cleaned = {name: clean(value) for name, value in
                (("positive", positive), ("clip_l", clip_l), ("clip_g", clip_g), ("t5", t5))}
+    if spec.engine_id == "flux-2":
+        cleaned["positive"] = _join_sections(
+            cleaned["positive"],
+            "Purely pictorial background surfaces; no words, letters, numbers, logos, signage or watermarks.",
+        )
     coverage = {**compiled.conditioning_coverage,
                 "treatment": [channel for channel in (("positive",) if spec.engine_id == "flux-2" else
                                                         ("positive", "clip_g", "t5") if spec.engine_id == "sd-3-5-medium"

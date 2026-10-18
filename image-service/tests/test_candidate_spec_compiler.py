@@ -84,6 +84,21 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_final_workflow_keeps_text_exclusions_for_each_engine(self):
+        for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
+            spec = build_candidate_spec(document_for(CASES[0]), engine, "B")
+            compiled = compile_candidate_prompt(spec, 1, concise=True)
+            workflow = build_workflow(engine, compiled.positive, compiled.negative,
+                                      123, "offline", compiled_prompt=compiled)
+            if engine == "flux-2":
+                active = workflow["4"]["inputs"]["text"].lower()
+            elif engine == "sdxl-1-0":
+                active = workflow["40"]["inputs"]["text"].lower()
+            else:
+                active = workflow["40"]["inputs"]["t5xxl"].lower()
+            for prohibited in ("words", "letters", "numbers", "logos", "signage", "watermark"):
+                self.assertIn(prohibited, active)
+
     def test_background_only_preserves_negative_meaning(self):
         spec = build_candidate_spec(document_for(CASES[0]), "sdxl-1-0", "B")
         for phrase in ("no typography or glyph-like marks", "without text", "no logos", "without logos"):

@@ -104,6 +104,8 @@ def brief_fidelity_record(result: dict) -> dict:
             "hard_failed_dimensions",
             "compound_fidelity_failure",
             "human_description",
+            "vision_text_signal",
+            "vision_text_evidence",
         )
     }
 
@@ -442,6 +444,8 @@ def assess_subject_adherence(
         "observed_evidence": [],
         "background_usability_score": None,
         "vision_human_signal": None,
+        "vision_text_signal": None,
+        "vision_text_evidence": "",
     }
 
     if not chosen_model or not subject:
@@ -503,6 +507,8 @@ def assess_subject_adherence(
         "Return one JSON object with numeric subject_score, atmosphere_score, motif_score, "
         "audience_fit_score, treatment_score, background_usability_score (0 to 1); "
         "boolean human_visible and unrequested_literal_object_visible; "
+        "boolean unrequested_text_visible and text_evidence describing any visible words, letters, "
+        "numbers, logos, signage or grouped pseudo-glyphs and their location; "
         "observed_evidence as a list of visible forms; and a short reason. "
         "Always include unrequested_literal_object_visible as a JSON boolean, even when false. "
         "Requested subject: "
@@ -619,17 +625,27 @@ def assess_subject_adherence(
             debug["response_length"] = len(raw_text) if isinstance(raw_text, str) else 0
             debug["final_source"] = ("message.content" if endpoint == "/api/chat" else "response") if isinstance(raw_text, str) and raw_text.strip() else None
             debug["raw_text_preview"] = "<omitted>" if isinstance(raw_text, str) else None
-            answer = _model_answer(payload, endpoint)
-            missing = [field for field in required if field not in answer and
-                       not (field == "subject_score" and "score" in answer)]
-            if (visual_design.get("motif_literalization_policy") == "motif_only" and
-                    not isinstance(answer.get("unrequested_literal_object_visible"), bool)):
-                missing.append("boolean unrequested_literal_object_visible")
-            if not missing:
+            debug["assessment_attempts"] = assessment_attempt + 1
+            try:
+                answer = _model_answer(payload, endpoint)
+                vision_human = answer.get("human_visible") if isinstance(answer.get("human_visible"), bool) else None
+                human_description = str(answer.get("human_description") or "")[:240]
+                missing = [field for field in required if field not in answer and
+                           not (field == "subject_score" and "score" in answer)]
+                if (visual_design.get("motif_literalization_policy") == "motif_only" and
+                        not isinstance(answer.get("unrequested_literal_object_visible"), bool)):
+                    missing.append("boolean unrequested_literal_object_visible")
+                if missing:
+                    raise ValueError("Vision response lacks " + ", ".join(missing))
+                for field in required:
+                    _extract_numeric_score(answer.get(field, answer.get("score") if field == "subject_score" else None),
+                                           field, [])
+                if not isinstance(answer.get("observed_evidence", answer.get("matched_anchors", [])), list):
+                    raise ValueError("Vision response lacks observed evidence")
                 break
-            if assessment_attempt:
-                raise ValueError("Vision response lacks " + ", ".join(missing))
-        debug["assessment_attempts"] = assessment_attempt + 1
+            except (ValueError, TypeError):
+                if assessment_attempt:
+                    raise
 
         debug[
             "http_status"
@@ -1012,14 +1028,27 @@ def assess_subject_adherence(
         in hard_dimensions
         if field
         in failed
+        and (field not in {"subject_score", "treatment_score", "audience_fit_score"}
+             or scores[field] < required[field] - 0.10)
     ]
+
+    text_evidence = str(answer.get("text_evidence") or "")[:240].strip()
+    text_signal = (answer.get("unrequested_text_visible") is True
+                   and bool(re.search(r"\b(?:letters?|words?|numbers?|logos?|signage|glyphs?|"
+                                      r"typography|writing|watermark)\b", text_evidence, re.I))
+                   and bool(re.search(r"\b(?:upper|lower|left|right|middle|center|centre|"
+                                      r"rows?|clusters?|lines?)\b", text_evidence, re.I)))
+    if text_signal:
+        hard_failed.append("unrequested_text_visible")
 
     # Only a real subject failure should become SUBJECT_DRIFT.
     #
     # A defining explicit motif can still be a hard semantic failure, but it
     # must remain MOTIF_DRIFT so retry compilation strengthens the motif
     # instead of unnecessarily rebuilding the whole requested subject.
-    if (
+    if text_signal:
+        decision = "TEXT_OR_LOGO"
+    elif (
         "subject_score"
         in hard_failed
     ):
@@ -1070,13 +1099,10 @@ def assess_subject_adherence(
         ],
         **scores,
         "decision": decision,
-        "failure_category": (
-            SEMANTIC_FAILURE_CATEGORIES[
-                worst
-            ]
-            if worst
-            else None
-        ),
+        "failure_category": ("TEXT_OR_LOGO" if text_signal else
+                             SEMANTIC_FAILURE_CATEGORIES[worst] if worst else None),
+        "vision_text_signal": text_signal,
+        "vision_text_evidence": text_evidence if text_signal else "",
         "compound_fidelity_failure": (
             compound_failure
         ),

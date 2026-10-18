@@ -31,6 +31,60 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_malformed_json_once_then_valid_uses_same_candidate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "candidate.png"
+            Image.new("RGB", (32, 32), "white").save(path)
+            def response(content):
+                result = Mock(status_code=200, headers={"content-type": "application/json"})
+                result.json.return_value = {"message": {"content": content}}
+                return result
+            valid = json.dumps({"subject_score": .9, "observed_evidence": ["correct forms"]})
+            with patch("app.services.subject_adherence.httpx.post",
+                       side_effect=[response("not json"), response(valid)]) as send:
+                result = assess_subject_adherence(path, {"primary_visual_subject": "landscape"},
+                                                  model="minicpm-v4.5:latest")
+                self.assertEqual(send.call_count, 2)
+                self.assertTrue(result["checked"])
+                self.assertEqual(result["vision_debug"]["assessment_attempts"], 2)
+            with patch("app.services.subject_adherence.httpx.post",
+                       side_effect=[response("not json"), response("not json")]) as send:
+                result = assess_subject_adherence(path, {"primary_visual_subject": "landscape"},
+                                                  model="minicpm-v4.5:latest")
+                self.assertEqual(send.call_count, 2)
+                self.assertEqual(result["decision"], "unavailable")
+                self.assertNotEqual(result.get("failure_category"), "SUBJECT_DRIFT")
+
+    def test_borderline_artistic_scores_are_diagnostic_but_wrong_subject_is_hard(self):
+        brief = {"primary_visual_subject": "layered river landscape",
+                 "theme_reference_treatment": "first-person viewpoint through curved banks",
+                 "semantic_provenance": {"theme_reference_treatment": "USER_EXPLICIT"},
+                 "visual_semantics": {"motif_descriptors": ["fine light ripples"],
+                                      "audience_descriptors": ["family guests"]}}
+        for field in ("subject_score", "treatment_score", "audience_fit_score"):
+            scores = {"subject_score": .9, "motif_score": .9, "audience_fit_score": .9,
+                      "treatment_score": .9, field: .5}
+            result, _ = self._assess(brief, scores)
+            self.assertEqual(result["decision"], "BRIEF_FIDELITY_DRIFT")
+            self.assertIn(field, result["failed_dimensions"])
+            self.assertFalse(hard_fidelity_failure(result))
+        wrong, _ = self._assess(brief, {"subject_score": .2, "motif_score": .9,
+                                         "audience_fit_score": .9, "treatment_score": .9})
+        self.assertEqual(wrong["decision"], "SUBJECT_DRIFT")
+        self.assertTrue(hard_fidelity_failure(wrong))
+
+    def test_vision_text_requires_concrete_evidence(self):
+        brief = {"primary_visual_subject": "abstract layered marks"}
+        scores = {"subject_score": .9, "unrequested_text_visible": True,
+                  "text_evidence": "two rows of letter-like glyphs in the upper left"}
+        result, prompt = self._assess(brief, scores)
+        self.assertEqual(result["decision"], "TEXT_OR_LOGO")
+        self.assertTrue(hard_fidelity_failure(result))
+        self.assertIn("unrequested_text_visible", prompt)
+        for evidence in ("", "abstract decorative lines"):
+            result, _ = self._assess(brief, {**scores, "text_evidence": evidence})
+            self.assertFalse(hard_fidelity_failure(result))
+
     def test_motif_only_retries_one_missing_boolean_then_fails_closed(self):
         brief = {"primary_visual_subject": "abstract layered marks",
                  "motif_literalization_policy": "motif_only",

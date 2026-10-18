@@ -52,16 +52,22 @@ def hard_validity(record: dict, *, require_vision: bool = False, require_ocr: bo
     if validation.get("decision") not in {"accepted", "rejected"}:
         failures.append("VALIDATION_UNAVAILABLE")
     fidelity = record.get("brief_fidelity") or record.get("subject_adherence") or {}
-    if fidelity.get("decision") in {"SUBJECT_DRIFT", "BRIEF_FIDELITY_DRIFT"}:
-        failures.append(fidelity.get("failure_category") or fidelity["decision"])
-    thresholds = fidelity.get("thresholds") or {}
-    for dimension in ("subject_score", "atmosphere_score", "motif_score", "audience_fit_score"):
-        score = fidelity.get(dimension)
-        limit = thresholds.get(dimension, settings.subject_adherence_threshold if dimension == "subject_score"
-                               else settings.brief_fidelity_threshold)
-        if isinstance(score, (float, int)) and score < limit:
-            failures.append(dimension.upper() + "_BELOW_MINIMUM")
-    if require_vision and fidelity.get("decision") != "pass":
+    if "hard_failed_dimensions" in fidelity:
+        failures.extend(fidelity.get("hard_failed_dimensions") or [])
+    else:
+        # Older persisted records did not distinguish soft from hard misses.
+        if fidelity.get("decision") in {"SUBJECT_DRIFT", "BRIEF_FIDELITY_DRIFT"}:
+            failures.append(fidelity.get("failure_category") or fidelity["decision"])
+        thresholds = fidelity.get("thresholds") or {}
+        for dimension in ("subject_score", "atmosphere_score", "motif_score", "audience_fit_score"):
+            score = fidelity.get(dimension)
+            limit = thresholds.get(dimension, settings.subject_adherence_threshold if dimension == "subject_score"
+                                   else settings.brief_fidelity_threshold)
+            if isinstance(score, (float, int)) and score < limit:
+                failures.append(dimension.upper() + "_BELOW_MINIMUM")
+    if require_vision and not (fidelity.get("checked") is True and
+                               fidelity.get("decision") in {"pass", "BRIEF_FIDELITY_DRIFT"} and
+                               not fidelity.get("hard_failed_dimensions")):
         failures.append("VISION_UNAVAILABLE" if fidelity.get("decision") == "unavailable" else "VISION_REQUIRED")
     ocr = (validation.get("text") or {}).get("ocr_diagnostics") or {}
     if require_ocr and ocr.get("decision") not in {"complete", "OCR_PARTIAL_SUFFICIENT"}:

@@ -12,13 +12,46 @@ from app.services.image_execution import _finalize_generation_status
 from app.services.prompt_compiler import (CompiledPrompt, _RETRY_CORRECTIONS,
                                           _concise_runtime_prompt, compile_candidate_prompt,
                                           failure_category, runtime_retry_category)
-from app.services.comfyui_client import validate_background
+from app.services.comfyui_client import _record_safe_region_retry, validate_background
 from app.services.scene_density import assess_explicit_safe_regions
 from app.schemas.image_job_state import ImageJobState, ImageOutputRecord
 from tests.test_semantic_foundation import document
 
 
 class SimplifiedPipelineTests(unittest.TestCase):
+    def test_safe_region_retry_records_comparable_scores(self):
+        record = {"rejected_attempts": [{"validation": {"quality": {"explicit_safe_regions": {
+            "regions": {"title": {"usability_score": .125}}}}}}]}
+        current = {"quality": {"explicit_safe_regions": {"regions": {
+            "title": {"usability_score": .75}}}}}
+        _record_safe_region_retry(record, current)
+        self.assertEqual(record["safe_region_retry"], {
+            "previous_score": .125, "current_score": .75, "improved": True})
+
+    def test_global_pass_with_borderline_region_is_diagnostic(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "image.png"
+            image = Image.new("RGB", (896, 1280), "white")
+            ImageDraw.Draw(image).rectangle((260, 50, 635, 500), fill="black")
+            image.save(path)
+            ocr = {"confirmed_tokens": [], "ocr_diagnostics": {"decision": "complete"},
+                   "text_detected": False, "tokens": [], "text_lines": [], "text_area_ratio": 0}
+            human = {"detected": False, "ambiguous_face_signal": False,
+                     "people": [], "faces": [], "profiles": [], "upper_bodies": [],
+                     "evidence": [], "strong_signals": [], "weak_signals": []}
+            with patch("app.services.comfyui_client._cached_text_evidence", return_value=ocr), \
+                 patch("app.services.comfyui_client.detect_human_signals", return_value=human), \
+                 patch("app.services.comfyui_client.boilerplate_metrics", return_value={"boilerplate_score": 0}), \
+                 patch("app.services.comfyui_client.validate_visual_quality", return_value={}):
+                result = validate_background(path, enforce_palette=False,
+                                             visual_design={"density_preference": "moderate",
+                                                            "title_safe_region_strategy": "quiet upper centre"})
+        validation = result["validation"]
+        self.assertEqual(validation["decision"], "accepted")
+        self.assertEqual(validation["quality"]["global_density_decision"], "PASS")
+        self.assertEqual(validation["quality"]["explicit_safe_region_decision"], "BORDERLINE")
+        self.assertIn("SAFE_REGION_BORDERLINE", validation["diagnostic_findings"])
+
     def test_safe_region_coordinates_and_global_decision_are_independent(self):
         tiles = [.18] * 16
         zones = {"title": "quiet top-left", "programme": "calm middle-right"}

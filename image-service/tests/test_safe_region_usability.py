@@ -48,12 +48,37 @@ class SafeRegionUsabilityTests(unittest.TestCase):
                 pixels[y:y+8, x:x+8] = 0 if (x + y) % 16 else 255
         self.assertEqual(self.assess(Image.fromarray(pixels))["decision"], "FAIL")
 
-    def test_large_focal_form_interferes(self):
+    def test_single_large_focal_form_is_diagnostic(self):
         image = Image.new("RGB", (512, 512), "white")
         ImageDraw.Draw(image).rectangle((30, 30, 225, 225), fill="black")
         result = self.assess(image)
-        self.assertEqual(result["decision"], "FAIL")
+        self.assertEqual(result["decision"], "BORDERLINE")
         self.assertEqual(result["regions"]["title"]["reason"], "large_contrasting_form")
+        self.assertGreaterEqual(result["regions"]["title"]["calm_tile_fraction"], .25)
+
+    def test_decorative_border_with_open_title_area_is_usable(self):
+        image = Image.new("RGB", (512, 512), "#eee8df")
+        draw = ImageDraw.Draw(image)
+        for y in range(0, 512, 36):
+            draw.ellipse((0, y, 70, y + 58), fill="#345735")
+            draw.ellipse((442, y, 511, y + 58), fill="#345735")
+        self.assertNotEqual(self.assess(image, "quiet top-center title")["decision"], "FAIL")
+
+    def test_broad_architectural_planes_leave_readable_area(self):
+        image = Image.new("RGB", (512, 512), "#d9d5cb")
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((0, 0, 165, 511), fill="#282a31")
+        draw.rectangle((345, 0, 511, 511), fill="#373941")
+        draw.rectangle((185, 0, 325, 511), fill="#bbb9b2")
+        self.assertNotEqual(self.assess(image, "calm top-center")["decision"], "FAIL")
+
+    def test_competing_detail_across_programme_area_fails(self):
+        image = Image.new("RGB", (512, 512), "white")
+        draw = ImageDraw.Draw(image)
+        for x in range(128, 384, 10):
+            for y in range(256, 512, 10):
+                draw.rectangle((x, y, x + 6, y + 6), fill="black")
+        self.assertEqual(self.assess(image, "quiet bottom-center programme")["decision"], "FAIL")
 
     def test_global_and_local_decisions_are_independent(self):
         calm = Image.new("RGB", (512, 512), "white")

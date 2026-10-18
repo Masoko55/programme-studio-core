@@ -384,7 +384,10 @@ def _semantic_failure_categories(record: dict) -> list[str]:
     """Translate known failed dimensions and retain unknown ones for diagnosis."""
     categories = []
     unknown = []
-    for field in record.get("semantic_failed_dimensions") or []:
+    assessment = record.get("subject_adherence") or {}
+    fields = (assessment.get("hard_failed_dimensions") if "hard_failed_dimensions" in assessment
+              else record.get("semantic_failed_dimensions")) or []
+    for field in fields:
         category = SEMANTIC_FAILURE_CATEGORIES.get(field)
         if category:
             categories.append(category)
@@ -393,6 +396,20 @@ def _semantic_failure_categories(record: dict) -> list[str]:
     if unknown:
         record["unknown_semantic_failed_dimensions"] = unknown
     return list(dict.fromkeys(categories))
+
+
+def _record_safe_region_retry(record: dict, validation: dict) -> None:
+    """Compare the latest explicit-region usability with the previous attempt."""
+    def score(item: dict) -> float | None:
+        regions = ((item.get("quality") or {}).get("explicit_safe_regions") or {}).get("regions") or {}
+        values = [region.get("usability_score") for region in regions.values()]
+        return round(min(values), 4) if values and all(isinstance(value, (int, float)) for value in values) else None
+
+    current = score(validation)
+    previous_attempts = record.get("rejected_attempts") or []
+    previous = score(previous_attempts[-1].get("validation") or {}) if previous_attempts else None
+    record["safe_region_retry"] = {"previous_score": previous, "current_score": current,
+                                   "improved": current > previous if current is not None and previous is not None else None}
 
 
 def write_json(path: Path, record: dict) -> None:
@@ -1838,6 +1855,8 @@ def validate_background(
                                 if region["decision"] == "FAIL"]
                 problems.append(("DENSE_SAFE_REGION", "DENSE_SAFE_REGION: high-contrast visual interference in " +
                                  ", ".join(failed_names) + " region"))
+            elif safe_regions["decision"] == "BORDERLINE":
+                problems.append(("SAFE_REGION_BORDERLINE", "Named text region has visual detail but usable calm area"))
 
         palette_result = {
             "palette_checked": False,
@@ -2676,6 +2695,7 @@ class ComfyUIClient:
                     vision_human_signal=adherence_result.get("vision_human_signal") if adherence_result else None,
                 )
                 validation = raw_validation
+                _record_safe_region_retry(record, raw_validation.get("validation") or {})
                 if adherence_result:
                     if hard_fidelity_failure(adherence_result):
                         category = ("VISION_UNAVAILABLE" if adherence_result["decision"] == "unavailable"
@@ -2700,6 +2720,7 @@ class ComfyUIClient:
                 diagnostics = getattr(error, "diagnostics", None)
                 if diagnostics:
                     record.update(diagnostics)
+                    _record_safe_region_retry(record, diagnostics.get("validation") or {})
                     recovery["source_off_palette_ratio"] = diagnostics.get("off_palette_ratio")
                 if adherence_result and adherence_result.get("decision") != "pass":
                     combined = record.get("all_failure_categories") or [classify_failure(str(error))]

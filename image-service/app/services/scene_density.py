@@ -53,20 +53,35 @@ def _overlay_interference(image: Image.Image, rows: list[int], columns: list[int
     local = cv2.resize(crop, (128, 128), interpolation=cv2.INTER_AREA)
     fine_blur = cv2.GaussianBlur(local, (0, 0), 2)
     broad_blur = cv2.GaussianBlur(local, (0, 0), 6)
-    high_frequency = float(np.mean(np.abs(local.astype(np.float32) - fine_blur) >= 18))
-    edge_density = float(np.mean(cv2.Canny(local, 40, 100) > 0))
+    high_frequency_mask = np.abs(local.astype(np.float32) - fine_blur) >= 18
+    edge_mask = cv2.Canny(local, 40, 100) > 0
+    high_frequency = float(np.mean(high_frequency_mask))
+    edge_density = float(np.mean(edge_mask))
+    detail_tiles = (high_frequency_mask | edge_mask).reshape(4, 32, 4, 32).mean(axis=(1, 3))
+    calm_fraction = float(np.mean(detail_tiles <= .10))
     contrast = float(np.percentile(local, 90) - np.percentile(local, 10))
     broad_contrast = float(np.percentile(broad_blur, 90) - np.percentile(broad_blur, 10))
     broad_edge_density = float(np.mean(cv2.Canny(broad_blur, 35, 90) > 0))
     dense_detail = contrast >= 65 and (high_frequency >= .18 or
                                        (edge_density >= .13 and high_frequency >= .08))
-    focal_interference = (broad_contrast >= 80 and broad_edge_density >= .008 and
-                          edge_density < .06 and high_frequency < .16)
-    reason = "dense_high_contrast_detail" if dense_detail else "large_contrasting_form" if focal_interference else None
-    return {"decision": "FAIL" if reason else "PASS", "reason": reason,
+    broad_form = (broad_contrast >= 80 and broad_edge_density >= .008 and
+                  edge_density < .06 and high_frequency < .16)
+    # Broad planes and silhouettes can leave ample room for legible type.
+    # Hard failure needs sharp detail across nearly the entire named area.
+    unusable = (dense_detail and calm_fraction <= .125 and
+                (edge_density >= .16 and high_frequency >= .12 or high_frequency >= .23))
+    borderline = dense_detail or broad_form or (contrast >= 65 and edge_density >= .09 and calm_fraction <= .5)
+    decision = "FAIL" if unusable else "BORDERLINE" if borderline else "PASS"
+    reason = ("dense_high_contrast_detail" if unusable else
+              "detail_with_calm_area" if dense_detail else
+              "large_contrasting_form" if broad_form else
+              "moderate_local_detail" if borderline else None)
+    return {"decision": decision, "reason": reason,
             "local_edge_density": round(edge_density, 4),
             "local_contrast": round(contrast, 2),
             "high_frequency_fraction": round(high_frequency, 4),
+            "calm_tile_fraction": round(calm_fraction, 4),
+            "usability_score": round(calm_fraction, 4),
             "broad_contrast": round(broad_contrast, 2),
             "broad_edge_density": round(broad_edge_density, 4)}
 
@@ -95,5 +110,6 @@ def assess_explicit_safe_regions(density: dict, strategies: dict[str, str],
                         {"decision": legacy_decision, "reason": "occupied_tiles" if legacy_decision == "FAIL" else None})
         regions[name] = {**interference, "tile_indexes": indexes,
                          "occupied_tile_fraction": occupied, "quiet_tile_fraction": quiet}
-    return {"decision": "FAIL" if any(region["decision"] == "FAIL" for region in regions.values()) else "PASS",
+    return {"decision": ("FAIL" if any(region["decision"] == "FAIL" for region in regions.values()) else
+                         "BORDERLINE" if any(region["decision"] == "BORDERLINE" for region in regions.values()) else "PASS"),
             "regions": regions}

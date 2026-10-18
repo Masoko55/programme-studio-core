@@ -2,10 +2,10 @@
 import unittest
 from unittest.mock import patch
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 
 from app.services.background_policy import detect_human_signals
-from app.services.comfyui_client import detect_text_evidence, detected_text_tokens
+from app.services.comfyui_client import _pseudo_text_evidence, detect_text_evidence, detected_text_tokens
 from app.services.composition_diversity import boilerplate_metrics
 
 
@@ -15,6 +15,33 @@ def ocr_data(*items):
 
 
 class ExactOcrCases(unittest.TestCase):
+    def test_grouped_pseudo_glyphs_without_ocr_and_grid_control(self):
+        artwork = Image.new("RGB", (512, 512), "white")
+        draw = ImageDraw.Draw(artwork)
+        for y in (150, 195):
+            x = 60
+            for width in (9, 7, 12, 6, 11, 8, 13, 6):
+                draw.line((x, y, x, y + 13), fill="black", width=2)
+                draw.line((x, y, x + width, y), fill="black", width=2)
+                draw.line((x + width, y, x + width, y + 13), fill="black", width=2)
+                x += width + 8
+        self.assertTrue(_pseudo_text_evidence(artwork)["detected"])
+        self.assertTrue(_pseudo_text_evidence(ImageOps.invert(artwork))["detected"])
+        grid = Image.new("RGB", (512, 512), "white")
+        draw = ImageDraw.Draw(grid)
+        for coordinate in range(0, 512, 32):
+            draw.line((coordinate, 0, coordinate, 511), fill="black", width=2)
+            draw.line((0, coordinate, 511, coordinate), fill="black", width=2)
+        self.assertFalse(_pseudo_text_evidence(grid)["detected"])
+        web = Image.new("RGB", (512, 512), "white")
+        draw = ImageDraw.Draw(web)
+        for coordinate in range(0, 512, 32):
+            draw.line((256, 256, coordinate, 0), fill="black", width=2)
+            draw.line((256, 256, coordinate, 511), fill="black", width=2)
+        for radius in (70, 130, 190):
+            draw.arc((256-radius, 256-radius, 256+radius, 256+radius), 0, 360, fill="black", width=2)
+        self.assertFalse(_pseudo_text_evidence(web)["detected"])
+
     def evaluate(self, first, repeats=(), crops=False):
         image = Image.new("RGB", (300, 400), "white")
         scaled_repeats = []

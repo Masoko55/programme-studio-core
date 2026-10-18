@@ -31,6 +31,31 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_motif_only_retries_one_missing_boolean_then_fails_closed(self):
+        brief = {"primary_visual_subject": "abstract layered marks",
+                 "motif_literalization_policy": "motif_only",
+                 "visual_semantics": {"motif_descriptors": ["curved strokes"]}}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "candidate.png"
+            Image.new("RGB", (32, 32), "white").save(path)
+            def response(body):
+                result = Mock(status_code=200, headers={"content-type": "application/json"})
+                result.json.return_value = {"message": {"content": json.dumps(body)}}
+                return result
+            scores = {"subject_score": .95, "motif_score": .95,
+                      "observed_evidence": ["matching forms"], "reason": "brief fit"}
+            with patch("app.services.subject_adherence.httpx.post",
+                       side_effect=[response(scores), response({**scores, "unrequested_literal_object_visible": False})]) as send:
+                result = assess_subject_adherence(path, brief, model="minicpm-v4.5:latest")
+                self.assertEqual(send.call_count, 2)
+                self.assertTrue(result["checked"])
+            with patch("app.services.subject_adherence.httpx.post",
+                       side_effect=[response(scores), response(scores)]) as send:
+                result = assess_subject_adherence(path, brief, model="minicpm-v4.5:latest")
+                self.assertEqual(send.call_count, 2)
+                self.assertEqual(result["decision"], "unavailable")
+                self.assertTrue(hard_fidelity_failure(result))
+
     def test_motif_only_requires_explicit_boolean_literal_object_signal(self):
         brief = {
             "primary_visual_subject": "abstract layered marks",

@@ -162,9 +162,9 @@ class SimplifiedPipelineTests(unittest.TestCase):
                             self.assertIn(phrases, effective)
                             self.assertIn("Preserve all original requested semantics", effective)
                     if engine == "sdxl-1-0":
-                        self.assertIn(phrases, attempts[3].clip_g)
+                        self.assertIn("targeted_recovery:", attempts[3].clip_g)
                     elif engine == "sd-3-5-medium":
-                        self.assertIn(phrases, attempts[3].t5)
+                        self.assertIn("targeted_recovery:", attempts[3].t5)
                     else:
                         self.assertFalse(attempts[3].negative_prompt_channel_active)
                         self.assertIn(phrases, attempts[3].positive)
@@ -200,6 +200,40 @@ class SimplifiedPipelineTests(unittest.TestCase):
                                              visual_design={"density_preference": "moderate"})
             self.assertEqual(result["validation"]["decision"], "accepted")
             self.assertIn("DENSITY_DRIFT", result["validation"]["diagnostic_findings"])
+
+    def test_explicit_quiet_region_with_no_quiet_tiles_is_hard(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "image.png"
+            Image.new("RGB", (896, 1280), "navy").save(path)
+            ocr = {"confirmed_tokens": [], "ocr_diagnostics": {"decision": "OCR_COMPLETE"},
+                   "text_detected": False, "tokens": [], "text_lines": [], "text_area_ratio": 0}
+            human = {"detected": False, "ambiguous_face_signal": False}
+            density = {"decision": "DENSITY_DRIFT", "macro_form_balance": 0,
+                       "occupied_tile_fraction": 1, "quiet_tile_fraction": 0}
+            with patch("app.services.comfyui_client._cached_text_evidence", return_value=ocr), \
+                 patch("app.services.comfyui_client.detect_human_signals", return_value=human), \
+                 patch("app.services.comfyui_client.boilerplate_metrics", return_value={"boilerplate_score": 0}), \
+                 patch("app.services.comfyui_client.validate_visual_quality", return_value={}), \
+                 patch("app.services.comfyui_client.assess_scene_density", return_value=density):
+                with self.assertRaisesRegex(ValueError, "DENSE_SAFE_REGION"):
+                    validate_background(path, enforce_palette=False,
+                                        visual_design={"density_preference": "moderate",
+                                                       "title_safe_region_strategy": "integrated quiet area"})
+
+    def test_pseudo_text_without_ocr_tokens_rejects(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "image.png"
+            Image.new("RGB", (896, 1280), "navy").save(path)
+            evidence = {"confirmed_tokens": [], "ocr_diagnostics": {"decision": "OCR_COMPLETE"},
+                        "text_detected": True, "tokens": [], "text_lines": [], "text_area_ratio": 0,
+                        "pseudo_text": {"detected": True, "aligned_rows": 2}}
+            human = {"detected": False, "ambiguous_face_signal": False}
+            with patch("app.services.comfyui_client._cached_text_evidence", return_value=evidence), \
+                 patch("app.services.comfyui_client.detect_human_signals", return_value=human), \
+                 patch("app.services.comfyui_client.boilerplate_metrics", return_value={"boilerplate_score": 0}), \
+                 patch("app.services.comfyui_client.validate_visual_quality", return_value={}):
+                with self.assertRaisesRegex(ValueError, "grouped glyph-like rows"):
+                    validate_background(path, enforce_palette=False)
 
 
 if __name__ == "__main__":

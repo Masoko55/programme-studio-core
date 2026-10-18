@@ -115,6 +115,7 @@ def hard_fidelity_failure(result: dict | None) -> bool:
         and (
             result.get("hard_failed_dimensions")
             or result.get("decision") == "SUBJECT_DRIFT"
+            or (result.get("decision") == "unavailable" and result.get("thresholds"))
         )
     )
 
@@ -499,7 +500,11 @@ def assess_subject_adherence(
         "A subtle motif need not dominate, while a primary motif should be clearly visible. "
         "Assess whether subject presence has become full-frame subject saturation or concept-art clutter. "
         "Reject visible treatments incompatible with the requested mood. "
-        "Return only JSON scores, observed_evidence as a list of visible forms, and a short reason. "
+        "Return one JSON object with numeric subject_score, atmosphere_score, motif_score, "
+        "audience_fit_score, treatment_score, background_usability_score (0 to 1); "
+        "boolean human_visible and unrequested_literal_object_visible; "
+        "observed_evidence as a list of visible forms; and a short reason. "
+        "Always include unrequested_literal_object_visible as a JSON boolean, even when false. "
         "Requested subject: "
         + subject
         + ". Anchors: "
@@ -534,8 +539,8 @@ def assess_subject_adherence(
         + str(visual_design.get("motif_literalization_policy") or "literal_allowed")
         + ". Explicitly authorized literal subject: "
         + str(visual_design.get("authorized_literal_subject") or "none")[:200]
-        + ". Report unrequested_literal_object_visible as a boolean only for a clearly visible literal object "
-        "introduced solely from a motif and absent from the explicitly authorized subject"
+        + ". Set unrequested_literal_object_visible true only for a clearly visible literal object "
+        "introduced solely from a motif and absent from the explicitly authorized subject; otherwise set false"
         + ". Motif prominence: "
         + prominence
         + ". Incompatible treatments: "
@@ -596,14 +601,35 @@ def assess_subject_adherence(
                 ],
             )
 
-        response = httpx.post(
-            settings.ollama_base_url.rstrip(
-                "/"
+        for assessment_attempt in range(2):
+            response = httpx.post(
+                settings.ollama_base_url.rstrip("/") + endpoint,
+                json=request,
+                timeout=90,
             )
-            + endpoint,
-            json=request,
-            timeout=90,
-        )
+            response.raise_for_status()
+            payload = response.json()
+            if not isinstance(payload, dict):
+                raise ValueError("Ollama response must be an object")
+            message = payload.get("message") if endpoint == "/api/chat" else None
+            raw_text = message.get("content") if isinstance(message, dict) else payload.get("response")
+            thinking = message.get("thinking") if isinstance(message, dict) else payload.get("thinking")
+            debug["thinking_present"] = bool(thinking)
+            debug["thinking_preview_length"] = len(thinking) if isinstance(thinking, str) else 0
+            debug["response_length"] = len(raw_text) if isinstance(raw_text, str) else 0
+            debug["final_source"] = ("message.content" if endpoint == "/api/chat" else "response") if isinstance(raw_text, str) and raw_text.strip() else None
+            debug["raw_text_preview"] = "<omitted>" if isinstance(raw_text, str) else None
+            answer = _model_answer(payload, endpoint)
+            missing = [field for field in required if field not in answer and
+                       not (field == "subject_score" and "score" in answer)]
+            if (visual_design.get("motif_literalization_policy") == "motif_only" and
+                    not isinstance(answer.get("unrequested_literal_object_visible"), bool)):
+                missing.append("boolean unrequested_literal_object_visible")
+            if not missing:
+                break
+            if assessment_attempt:
+                raise ValueError("Vision response lacks " + ", ".join(missing))
+        debug["assessment_attempts"] = assessment_attempt + 1
 
         debug[
             "http_status"
@@ -615,10 +641,6 @@ def assess_subject_adherence(
             "content-type",
             "",
         )[:80]
-
-        response.raise_for_status()
-
-        payload = response.json()
 
         debug[
             "response_shape"

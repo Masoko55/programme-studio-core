@@ -1207,6 +1207,48 @@ def _ocr_data(image: Image.Image, config: str, variant: str, diagnostics: dict |
     return result
 
 
+def _pseudo_text_evidence(image: Image.Image) -> dict:
+    """Require multiple rows of varied, compact glyph-sized components."""
+    grey = cv2.resize(np.asarray(image.convert("L")), (512, 512), interpolation=cv2.INTER_AREA)
+    _, binary = cv2.threshold(grey, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    def grouped_rows(mask: np.ndarray) -> dict:
+        count, _, stats, centroids = cv2.connectedComponentsWithStats(mask, 8)
+        glyphs = []
+        for index in range(1, count):
+            x, y, width, height, area = (int(value) for value in stats[index])
+            fill = area / max(1, width * height)
+            if 3 <= width <= 45 and 6 <= height <= 30 and .17 <= fill <= .72 and .2 <= width / height <= 2.2:
+                glyphs.append((x, y, width, height, float(centroids[index][1])))
+        rows = []
+        for glyph in sorted(glyphs, key=lambda item: item[4]):
+            match = next((row for row in rows if abs(row[0][4] - glyph[4]) <= max(row[0][3], glyph[3]) * .4), None)
+            if match is None:
+                rows.append([glyph])
+            else:
+                match.append(glyph)
+        plausible = []
+        for row in rows:
+            row.sort()
+            if len(row) < 5:
+                continue
+            widths = np.array([item[2] for item in row], dtype=float)
+            gaps = [right[0] - (left[0] + left[2]) for left, right in zip(row, row[1:])]
+            if (float(np.std(widths) / max(np.mean(widths), 1)) >= .16 and
+                    sum(0 <= gap <= max(20, 2 * np.median(widths)) for gap in gaps) >= 4):
+                plausible.append((min(item[0] for item in row), max(item[0] + item[2] for item in row),
+                                  float(np.mean([item[4] for item in row]))))
+        grouped = any(abs(first[2] - second[2]) >= 8 and
+                      max(0, min(first[1], second[1]) - max(first[0], second[0])) >=
+                      .35 * min(first[1] - first[0], second[1] - second[0])
+                      for index, first in enumerate(plausible) for second in plausible[index + 1:])
+        return {"detected": grouped, "aligned_rows": len(plausible), "glyph_components": len(glyphs)}
+    dark = grouped_rows(binary)
+    light = grouped_rows(255 - binary)
+    return {"detected": dark["detected"] or light["detected"],
+            "aligned_rows": max(dark["aligned_rows"], light["aligned_rows"]),
+            "glyph_components": max(dark["glyph_components"], light["glyph_components"])}
+
+
 def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = None) -> dict:
     """Confirm typography with crop and preprocessing evidence, then group lines."""
     pass_timeout = timeout_seconds or settings.ocr_timeout_seconds
@@ -1266,7 +1308,8 @@ def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = 
     strong_single.extend(item for item in confirmed if len(item["token"]) >= 5
                          and item["area_ratio"] >= 0.01
                          and (item["crop_confirmed"] or len(item["passes"]) >= 2))
-    detected = bool(lines or strong_single)
+    pseudo_text = _pseudo_text_evidence(image)
+    detected = bool(lines or strong_single or pseudo_text["detected"])
     selected = confirmed if detected else []
     completed = set(diagnostics["completed_variants"])
     sufficient = {"original", "contrast"}.issubset(completed)
@@ -1285,6 +1328,7 @@ def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = 
     diagnostics.pop("_pass_timeout")
     return {
         "text_detected": detected,
+        "pseudo_text": pseudo_text,
         "tokens": [item["token"] for item in items],
         "confirmed_tokens": list(dict.fromkeys(item["token"] for item in selected)),
         "text_lines": lines,
@@ -1761,6 +1805,13 @@ def validate_background(
             quality_result["macro_form_balance"] = density["macro_form_balance"]
             if density["decision"] == "DENSITY_DRIFT":
                 problems.append(("DENSITY_DRIFT", "DENSITY_DRIFT: scene has no usable calm region for requested density"))
+            quiet_strategies = [str(visual_design.get(key) or "") for key in
+                                ("title_safe_region_strategy", "programme_safe_region_strategy")]
+            explicit_quiet = any(re.search(r"\b(?:quiet|calm|low.detail|breathing room)\b", value, re.I)
+                                 for value in quiet_strategies)
+            if (explicit_quiet and density["occupied_tile_fraction"] >= .75 and
+                    density["quiet_tile_fraction"] <= .0625):
+                problems.append(("DENSE_SAFE_REGION", "DENSE_SAFE_REGION: explicit quiet region has insufficient calm tiles"))
 
         palette_result = {
             "palette_checked": False,
@@ -1805,6 +1856,8 @@ def validate_background(
 
     if tokens:
         problems.append(("TEXT", "Generated background contains OCR text: " + ", ".join(tokens[:8])))
+    elif text_evidence.get("pseudo_text", {}).get("detected"):
+        problems.append(("TEXT_OR_LOGO", "Generated background contains grouped glyph-like rows"))
 
     if (
         human_signals[
@@ -1823,6 +1876,7 @@ def validate_background(
         "ocr_validation_attempts": ocr_validation_attempt,
         "ocr_validation_sha256": digest,
         "ocr_detected": bool(tokens),
+        "pseudo_text_evidence": text_evidence.get("pseudo_text", {}),
         "ocr_region_count": len(tokens),
         "human_detection": human_signals,
         "human_detection_confidence": human_signals.get("human_detection_confidence", "low"),
@@ -1834,8 +1888,8 @@ def validate_background(
         **quality_result,
         **palette_result,
     }
-    hard_categories = {"HUMAN", "TEXT", "OCR_TIMEOUT", "OCR_UNAVAILABLE",
-                       "OCR_PARTIAL_INSUFFICIENT", "DIMENSIONS", "PALETTE_OFF",
+    hard_categories = {"HUMAN", "TEXT", "TEXT_OR_LOGO", "OCR_TIMEOUT", "OCR_UNAVAILABLE",
+                       "OCR_PARTIAL_INSUFFICIENT", "DENSE_SAFE_REGION", "DIMENSIONS", "PALETTE_OFF",
                        "PALETTE_ROLE_DRIFT"}
     hard_problems = [item for item in problems if item[0] in hard_categories]
     validation_report = {
@@ -1882,7 +1936,7 @@ def validate_background(
     }
     validation_report["quality"]["raster_score"] = metrics.get("fine_line_pair_ratio")
     if hard_problems:
-        priority = {"HUMAN": 0, "TEXT": 0, "OCR_TIMEOUT": 1, "OCR_UNAVAILABLE": 1,
+        priority = {"HUMAN": 0, "TEXT": 0, "TEXT_OR_LOGO": 0, "OCR_TIMEOUT": 1, "OCR_UNAVAILABLE": 1,
                     "OCR_PARTIAL": 1, "TITLE_PANEL": 2,
                     "BOILERPLATE_COMPOSITION": 2,
                     "DIRECTION_DUPLICATE": 3, "FLAT": 4, "DENSE_SAFE_REGION": 5,

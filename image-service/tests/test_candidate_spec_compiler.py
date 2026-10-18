@@ -1,7 +1,8 @@
 import unittest
 
 from app.services.candidate_spec import build_candidate_spec
-from app.services.prompt_compiler import compile_candidate_prompt, failure_category, runtime_retry_category
+from app.services.prompt_compiler import (_background_only, _treatment_covered, compile_candidate_prompt,
+                                          failure_category, runtime_retry_category)
 from app.services.comfyui_client import build_workflow
 from app.services.sampling_profiles import FailureHistorySummary
 
@@ -83,6 +84,53 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_background_only_preserves_negative_meaning(self):
+        spec = build_candidate_spec(document_for(CASES[0]), "sdxl-1-0", "B")
+        for phrase in ("no typography or glyph-like marks", "without text", "no logos", "without logos"):
+            cleaned = _background_only(f"Decorative background with {phrase}.", spec).lower()
+            self.assertNotIn("no visual calm", cleaned)
+            self.assertNotIn("without visual calm", cleaned)
+            self.assertIn("continuous image surfaces", cleaned)
+        planned = _background_only("Quiet upper area for title and programme", spec).lower()
+        self.assertIn("quiet upper area", planned)
+        self.assertNotIn("programme", planned)
+
+    def test_concise_production_budget_for_three_generic_briefs(self):
+        unseen = document_for(CASES[0])
+        unseen["brief"].update(event_type="community lantern walk", theme="river reflections",
+                               background_inspiration=("Layered riverside lights and reflections, floating "
+                                                       "sculptural fabric, garden forms and a clear passage "
+                                                       "leading through several receding spaces"),
+                               theme_reference_treatment=("Use a first-person viewpoint and forward movement "
+                                                          "through layered riverside forms with curved flow of light "
+                                                          "across the foreground and receding depth into the scene"),
+                               palette_relationship=("Primary royal blue occupies broad visual mass while "
+                                                     "secondary red appears in repeated luminous accents with "
+                                                     "neutrals supporting both colour families"),
+                               palette_relationship_source="user_explicit")
+        for document in (document_for(CASES[0]), document_for(CASES[1]), unseen):
+            document["brief"]["audience_context"] = "invited guests"
+            for engine in ("sdxl-1-0", "sd-3-5-medium"):
+                spec = build_candidate_spec(document, engine, "B")
+                for attempt in (1, 4):
+                    compiled = compile_candidate_prompt(spec, attempt,
+                                                        "PALETTE_ROLE_DRIFT" if attempt > 1 else "", concise=True)
+                    budget = compiled.record()["prompt_budget"]
+                    self.assertFalse(budget["clip_l"]["budget_risk"])
+                    self.assertFalse(budget["clip_g"]["budget_risk"])
+                    if engine == "sd-3-5-medium":
+                        self.assertFalse(budget["t5"]["budget_risk"])
+                        for label in ("Event context:", "Audience:", "Event atmosphere:", "Palette:"):
+                            self.assertIn(label, compiled.clip_g)
+                    self.assertIn(spec.primary_colour, compiled.clip_g)
+                    self.assertIn(spec.secondary_colour, compiled.clip_g)
+
+    def test_structural_treatment_coverage_requires_each_feature(self):
+        source = "first-person viewpoint with curved flow into receding depth"
+        self.assertTrue(_treatment_covered(source, "Treatment: first-person view, curved flow, receding depth"))
+        self.assertFalse(_treatment_covered(source, "Treatment: first-person view, receding depth"))
+        self.assertFalse(_treatment_covered(source, "Treatment: aerial viewpoint, curved flow, shallow depth"))
+
     def test_unseen_abstract_brief_keeps_subject_motif_and_palette(self):
         document = document_for(CASES[0])
         document["brief"].update(event_type="community kite exhibition",

@@ -486,6 +486,12 @@ def _background_only(text: str, spec: CandidateSpec) -> str:
         phrase = str(phrase).strip()
         if len(phrase) >= 4:
             text = re.sub(r"\b" + re.escape(phrase) + r"\b", "", text, flags=re.I)
+    # Remove exclusions before replacing planning nouns with positive visual language.
+    text = re.sub(
+        r"\b(?:no|without)\s+(?:typography|text|logos?|glyph-like marks)"
+        r"(?:\s+(?:or|and)\s+(?:typography|text|logos?|glyph-like marks))*\b",
+        "continuous image surfaces", text, flags=re.I,
+    )
     text = re.sub(r"\bDirection\s+[ABC]\b\s*:?", "", text, flags=re.I)
     text = re.sub(r"\bvisual character\b", "", text, flags=re.I)
     text = re.sub(r"\bfor (?:later )?(?:title|programme|program|typography)\b", "", text, flags=re.I)
@@ -878,6 +884,28 @@ def _persistent_palette_correction(history, latest: str) -> str:
     return "Persistent palette recovery: restore the requested colour-family relationship and visual-mass roles."
 
 
+def _structural_treatment_features(text: str) -> set[str]:
+    text = text.casefold()
+    patterns = {
+        "viewpoint": r"\b(?:first.person|viewpoint|perspective|point.of.view|eye.level|overhead|aerial)\b",
+        "depth": r"\b(?:reced\w*|depth|foreground|distance|vanish\w*|layer\w*)\b",
+        "flow": r"\b(?:flow\w*|curv\w*|mov\w*|motion|travers\w*|sweep\w*|leading)\b",
+        "viewpoint:first_person": r"\bfirst.person\b|\beye.level\b",
+        "viewpoint:aerial": r"\b(?:aerial|overhead|bird.s.eye)\b",
+        "depth:receding": r"\b(?:reced\w*|vanish\w*)\b",
+        "depth:shallow": r"\bshallow\b",
+        "flow:curved": r"\bcurv\w*\b",
+        "flow:diagonal": r"\bdiagonal\b",
+    }
+    return {name for name, pattern in patterns.items() if re.search(pattern, text)}
+
+
+def _treatment_covered(source: str, channel: str) -> bool:
+    required = _structural_treatment_features(source)
+    return bool(source and (required <= _structural_treatment_features(channel)
+                            if required else _first_words(source, 6).casefold() in channel.casefold()))
+
+
 def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                             attempt: int, reason: str, failure_history=None) -> CompiledPrompt:
     design = spec.visual_design
@@ -890,56 +918,78 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     sd35_audience = _audience_context(spec) if spec.engine_id == "sd-3-5-medium" else ""
     motif = _direction_motif(spec)
     colours = ", ".join(str(item["colour"]) for item in design["requested_palette"])
-    palette = f"{colours}; {_palette_relationship(spec)}; no major unrelated chromatic family"
+    relationship = _first_words(_palette_relationship(spec), 10)
     composition = _spatial_instruction(design)
     strength = retry_strength_level(attempt)
-    correction = (_runtime_correction(runtime_retry_category(reason), compiled.retry_stage)
-                  if attempt > 1 else "")
+    full_correction = (_runtime_correction(runtime_retry_category(reason), compiled.retry_stage)
+                       if attempt > 1 else "")
+    correction = (f"{compiled.retry_stage}: " +
+                  _first_words(full_correction.split(": ", 1)[-1].split(" Preserve all original", 1)[0], 18)
+                  if full_correction else "")
     persistent_palette = (_persistent_palette_correction(failure_history, runtime_retry_category(reason))
                           if spec.engine_id == "sdxl-1-0" and attempt > 1 else "")
     subject_line = f"Visual subject: {subject}."
+    short_subject_line = f"Visual subject: {_first_words(subject, 9)}."
     anchor_line = f"Anchors: {_first_words(anchors, 14)}." if anchors else ""
-    mood_line = (f"Event atmosphere: {_first_words(mood, 10)}."
+    mood_line = (f"Event atmosphere: {_first_words(mood, 7)}."
                  if spec.engine_id == "sd-3-5-medium" and mood else
-                 f"Mood: {_first_words(mood, 10)}." if mood else "")
+                 f"Mood: {_first_words(mood, 7)}." if mood else "")
     if spec.engine_id == "sd-3-5-medium" and not mood_line:
         mood_line = "Event atmosphere: event-appropriate."
-    audience_line = f"Audience: {_first_words(audience, 7)}." if audience else ""
+    audience_line = f"Audience: {_first_words(audience, 5)}." if audience else ""
     sd35_event_line = f"Event context: {sd35_event}." if sd35_event else ""
     sd35_audience_line = f"Audience: {sd35_audience}." if sd35_audience else ""
-    motif_line = f"Motif: {_first_words(motif, 16)}." if motif else ""
-    motif_policy_line = _motif_policy_instruction(spec)
-    motif_palette_line = ("Motif structure uses requested colour families as part of the design."
-                          if motif and colours and design["palette_mode"] not in {"achromatic", "monochrome"} else "")
+    motif_line = f"Motif: {_first_words(motif, 10)}." if motif else ""
+    motif_policy_line = (_first_words(_motif_policy_instruction(spec), 12)
+                         if design.get("motif_literalization_policy") == "motif_only" else "")
     treatment = design["theme_reference_treatment"]
-    treatment_line = (f"Reference treatment: {_first_words(treatment, 22)}."
+    treatment_line = (f"Treatment: {_first_words(treatment, 22)}."
                       if treatment else "")
+    short_treatment = _first_words(treatment, 10)
+    for feature, label in (("viewpoint:first_person", "first-person viewpoint"),
+                           ("viewpoint:aerial", "aerial viewpoint"),
+                           ("depth:receding", "receding depth"),
+                           ("depth:shallow", "shallow depth"),
+                           ("flow:curved", "curved flow"),
+                           ("flow:diagonal", "diagonal flow")):
+        if feature in _structural_treatment_features(treatment) and feature not in _structural_treatment_features(short_treatment):
+            short_treatment = _join_sections(short_treatment, label)
+    for feature, label in (("viewpoint", "viewpoint"), ("depth", "layered depth"),
+                           ("flow", "movement flow")):
+        if feature in _structural_treatment_features(treatment) and feature not in _structural_treatment_features(short_treatment):
+            short_treatment = _join_sections(short_treatment, label)
+    short_treatment_line = f"Treatment: {short_treatment}." if short_treatment else ""
     style_line = (f"Style: {_first_words(design.get('visual_style'), 8)}."
                   if design.get("visual_style") else "")
-    palette_line = (f"Palette: {colours}; {_first_words(_palette_relationship(spec), 10)}."
-                    if spec.engine_id == "sd-3-5-medium" and colours else
-                    f"Palette: {palette}." if colours else "")
+    palette_line = f"Palette: {colours}; {relationship}; primary visual mass, secondary accents; neutrals support." if colours else ""
+    relationship_words = _palette_relationship(spec).split()
+    short_relationship = (" ".join(relationship_words) if len(relationship_words) <= 10 else
+                          " ".join((*relationship_words[:4], *relationship_words[-2:])))
+    short_palette_line = (f"Palette: {colours}; {short_relationship}; "
+                          "primary visual mass, secondary accents; neutrals support." if colours else "")
     palette_l_line = (f"Primary {design['requested_palette'][0]['colour']}; "
                       + (f"secondary {design['requested_palette'][1]['colour']}; "
                          if len(design['requested_palette']) > 1 else "")
-                      + f"relationship: {_first_words(_palette_relationship(spec), 12)}."
+                      + f"relationship: {relationship}."
                       if colours else "")
     spatial_line = f"Composition: {composition}." if composition else ""
     light_line = f"Lighting: {_first_words(design.get('lighting_language'), 8)}." if design.get("lighting_language") else ""
-    clip_l = (_join_sections(subject_line, palette_l_line, motif_line) if spec.engine_id == "sdxl-1-0"
-              else _join_sections(subject_line, anchor_line, sd35_event_line, sd35_audience_line)
+    clip_l = (_join_sections(short_subject_line, palette_l_line, motif_line) if spec.engine_id == "sdxl-1-0"
+              else _join_sections(short_subject_line, anchor_line, sd35_event_line, sd35_audience_line)
               if spec.engine_id == "sd-3-5-medium" else _join_sections(subject_line, anchor_line))
-    clip_g = (_join_sections(palette_line, subject_line, spatial_line, motif_line, motif_policy_line,
-                            motif_palette_line, treatment_line, mood_line, audience_line,
-                            persistent_palette, correction, style_line, light_line)
+    clip_g = (_join_sections(short_subject_line, mood_line, audience_line, short_treatment_line,
+                            spatial_line, motif_policy_line, short_palette_line,
+                            persistent_palette, correction)
               if spec.engine_id == "sdxl-1-0" else
-              _join_sections(subject_line, sd35_event_line, sd35_audience_line, mood_line,
-                             motif_line, motif_policy_line,
-                             treatment_line, palette_line, spatial_line, style_line, light_line,
+              _join_sections(short_subject_line, sd35_event_line, sd35_audience_line, mood_line,
+                             short_treatment_line, spatial_line, short_palette_line,
                              correction) if spec.engine_id == "sd-3-5-medium" else
               _join_sections(subject_line, mood_line, audience_line, motif_line, motif_policy_line,
                              treatment_line, palette_line, spatial_line, style_line, light_line))
-    positive = _join_sections(clip_g, correction if spec.engine_id == "flux-2" else "",
+    positive_source = clip_g.replace(short_subject_line, subject_line, 1).replace(short_treatment_line, treatment_line, 1) if spec.engine_id != "flux-2" else clip_g
+    positive = _join_sections(positive_source.replace(correction, "") if correction else positive_source,
+                             motif_line if motif_line not in clip_g else "",
+                             full_correction if full_correction else "",
                              "Continuous background artwork with integrated calm visual space.")
     if spec.engine_id == "flux-2":
         positive = _join_sections(positive, _affirmative_palette(spec),
@@ -947,26 +997,32 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     t5 = _join_sections(subject_line, anchor_line, sd35_event_line, sd35_audience_line,
                        mood_line, audience_line if spec.engine_id != "sd-3-5-medium" else "",
                        motif_line, motif_policy_line,
-                       treatment_line, palette_line, spatial_line, style_line, light_line, correction,
-                       "Recognizable scene with foreground, middle distance and background.")
+                       treatment_line, palette_line, spatial_line, style_line, light_line, correction)
     def clean(value: str) -> str:
         value = _background_only(value, spec)
         return re.sub(r"\b(?:8k|4k|masterpiece|ultra[- ]detailed|trending on artstation|"
                       r"award[- ]winning|unreal engine|octane render|cinematic masterpiece)\b",
                       "", value, flags=re.I).strip()
+    cleaned = {name: clean(value) for name, value in
+               (("positive", positive), ("clip_l", clip_l), ("clip_g", clip_g), ("t5", t5))}
     coverage = {**compiled.conditioning_coverage,
-                "treatment": [channel for channel, value in
-                              (("positive", positive), ("clip_g", clip_g), ("t5", t5))
-                              if treatment_line and treatment_line in value]}
+                "treatment": [channel for channel in (("positive",) if spec.engine_id == "flux-2" else
+                                                        ("positive", "clip_g", "t5") if spec.engine_id == "sd-3-5-medium"
+                                                        else ("positive", "clip_g"))
+                              if _treatment_covered(treatment, cleaned[channel])]}
     if spec.engine_id == "sd-3-5-medium":
         coverage["audience"] = [channel for channel, value in
                                 (("clip_l", clip_l), ("clip_g", clip_g), ("t5", t5))
-                                if sd35_audience and sd35_audience.casefold() in value.casefold()]
+                                if sd35_audience and sd35_audience.casefold() in cleaned[channel].casefold()]
         coverage["event_context"] = [channel for channel, value in
                                      (("clip_l", clip_l), ("clip_g", clip_g), ("t5", t5))
-                                     if sd35_event and sd35_event.casefold() in value.casefold()]
-    updated: CompiledPrompt = replace(compiled, positive=clean(positive), clip_l=clean(clip_l),
-                                      clip_g=clean(clip_g), t5=clean(t5) if spec.engine_id == "sd-3-5-medium" else None,
+                                     if sd35_event and sd35_event.casefold() in cleaned[channel].casefold()]
+    updated: CompiledPrompt = replace(compiled, positive=cleaned["positive"], clip_l=cleaned["clip_l"],
+                                      clip_g=cleaned["clip_g"], t5=cleaned["t5"] if spec.engine_id == "sd-3-5-medium" else None,
                                       failure_category=runtime_retry_category(reason), retry_stage=compiled.retry_stage,
-                                      retry_strength_level=strength, conditioning_coverage=coverage)
+                                      retry_strength_level=strength, conditioning_coverage=coverage,
+                                      truncated=bool(treatment and not any(channel in coverage["treatment"] for channel in
+                                                   (("positive",) if spec.engine_id == "flux-2" else
+                                                    ("clip_g", "t5") if spec.engine_id == "sd-3-5-medium" else
+                                                    ("clip_g",)))))
     return updated

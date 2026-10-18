@@ -1188,9 +1188,10 @@ def sanitize_positive_prompt(
         + background_positive_requirements(
             brief
         )
-        + " Theme references are represented through abstract "
-        + "geometry, patterns, architecture, atmosphere "
-        + "and colour relationships."
+        + " Theme references are represented through brief-grounded abstract "
+        + "geometry, patterns, spatial structure, atmosphere "
+        + "and colour relationships. Architecture, environment, materials, "
+        + "textures and lighting are used only when supported by the brief."
     )
 
     #
@@ -1344,9 +1345,10 @@ def build_creative_direction_prompt(
         (
             "If the event brief uses a recognizable person, fictional "
             "character, superhero, mascot, celebrity or franchise, "
-                "translate the reference into abstract geometry, patterns, "
-                "architecture, atmosphere and colour relationships. Use material, "
-                "texture or lighting treatments only when the brief supports them."
+            "translate the reference only into brief-grounded abstract geometry, "
+            "patterns, spatial structure, atmosphere and colour relationships. "
+            "Use architecture, environment, materials, textures or lighting "
+            "only when supported by the grounded semantic contract."
         ),
         (
             "Never place the referenced person or character itself "

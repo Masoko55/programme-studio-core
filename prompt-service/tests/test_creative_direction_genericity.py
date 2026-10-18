@@ -18,6 +18,26 @@ from app.services.validation import (
 
 
 class CreativeDirectionGenericityTests(unittest.TestCase):
+    def test_reference_translation_does_not_authorize_ungrounded_architecture(self):
+        brief = {"event_type": "celebration", "theme": "recognizable fictional character",
+                 "background_inspiration": "abstract curved shapes"}
+        payload = json.loads(build_creative_direction_prompt(brief, "A", "visual designer"))
+        instruction = " ".join(payload["requirements"]).lower()
+        self.assertIn("brief-grounded abstract geometry", instruction)
+        self.assertIn("architecture, environment", instruction)
+        self.assertIn("only when supported by the grounded semantic contract", instruction)
+        self.assertNotIn("patterns, architecture, atmosphere", instruction)
+        self.assertNotIn("architecture", str(payload["event_brief"]).lower())
+
+    def test_explicit_architecture_remains_in_reference_brief(self):
+        brief = {"event_type": "celebration", "theme": "recognizable fictional character",
+                 "background_inspiration": "layered stone architecture",
+                 "visual_semantics": {"scene_family": "architectural-interior"},
+                 "semantic_provenance": {"scene_family": "USER_EXPLICIT"}}
+        payload = json.loads(build_creative_direction_prompt(brief, "A", "visual designer"))
+        self.assertIn("layered stone architecture", str(payload["event_brief"]).lower())
+        self.assertIn("architecture", " ".join(payload["requirements"]).lower())
+
     def test_reference_visual_language_uses_clarified_fields_without_named_branches(self):
         brief = {
             "event_type": "invented celebration",

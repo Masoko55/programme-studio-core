@@ -610,7 +610,7 @@ def direction_signature(direction: CreativeDirectionOutput) -> dict[str, str]:
                                                   (r"radial|radiat|circular", "radial"),
                                                   (r"diagonal", "diagonal-depth"),
                                                   (r"panoramic|horizontal", "panoramic-layered"),
-                                                  (r"central|centre|center|monument", "central-monument"),
+                                                  (r"central|centre|center|monument", "central-focal"),
                                                   (r"asymmetr", "asymmetric-cluster"))),
         "depth_plan": choose(depth, ((r"reced", "receding"),
                                       (r"foreground|mid.?ground|distant|layer", "layered"),

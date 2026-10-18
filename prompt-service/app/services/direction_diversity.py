@@ -49,9 +49,9 @@ def _compatible_choices(brief: dict) -> dict[str, tuple[str, ...]]:
     kind = _scene_kind(brief)
     composition = {
         "organic": ("asymmetric-cluster", "diagonal-depth", "panoramic-layered", "radial"),
-        "abstract": ("central-monument", "diagonal-depth", "asymmetric-cluster", "panoramic-layered", "radial"),
-        "architectural-interior": ("central-monument", "diagonal-depth", "panoramic-layered", "asymmetric-cluster"),
-        "general": ("asymmetric-cluster", "central-monument", "diagonal-depth", "panoramic-layered"),
+        "abstract": ("central-focal", "diagonal-depth", "asymmetric-cluster", "panoramic-layered", "radial"),
+        "architectural-interior": ("central-focal", "diagonal-depth", "panoramic-layered", "asymmetric-cluster"),
+        "general": ("asymmetric-cluster", "central-focal", "diagonal-depth", "panoramic-layered"),
     }[kind]
     semantics = brief.get("visual_semantics") or (brief.get("grill_me_context") or {}).get("visual_semantics") or {}
     affinities = semantics.get("composition_affinities") or []

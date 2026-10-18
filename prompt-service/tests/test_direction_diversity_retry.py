@@ -23,6 +23,21 @@ from tests.test_direction_structure_contract import direction
 
 
 class DirectionRetryBoundaryTests(unittest.TestCase):
+    def test_general_composition_choices_are_structural_and_keep_alternatives(self):
+        brief = {"visual_semantics": {"scene_family": "general"}}
+        for letter in "ABC":
+            plan = build_diversity_constraints(letter, [], brief)
+            choices = plan["available_alternatives"]["composition_family"]
+            self.assertIn("central-focal", choices)
+            self.assertNotIn("central-monument", choices)
+            self.assertGreaterEqual(len(choices), 2)
+
+    def test_central_focal_and_legacy_monument_normalize_together(self):
+        current = direction("A", "central-focal composition")
+        legacy = direction("B", "central monument composition")
+        self.assertEqual(direction_signature(current)["composition_family"], "central-focal")
+        self.assertEqual(direction_signature(legacy)["composition_family"], "central-focal")
+
     def _spatial_brief(self, *affinities, source="USER_EXPLICIT"):
         return {"visual_semantics": {"scene_family": "architectural-interior",
                                      "composition_affinities": list(affinities)},

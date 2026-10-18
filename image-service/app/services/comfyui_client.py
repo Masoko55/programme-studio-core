@@ -56,7 +56,9 @@ from app.services.template_conditioning import (
 )
 from app.services.template_adherence import assess_template_adherence
 from app.services.composition_diversity import boilerplate_metrics, boilerplate_score, compare_directions_metrics
-from app.services.subject_adherence import assess_subject_adherence, brief_fidelity_record, hard_fidelity_failure
+from app.services.subject_adherence import (
+    SEMANTIC_FAILURE_CATEGORIES, assess_subject_adherence, brief_fidelity_record, hard_fidelity_failure,
+)
 from app.services.scene_density import assess_scene_density
 from app.services.prompt_freshness import source_prompt_manifest
 
@@ -374,8 +376,23 @@ def _record_brief_fidelity(record: dict, assessment: dict) -> None:
     record["brief_fidelity"] = brief_fidelity_record(assessment)
     record["semantic_dimension_scores"] = {
         key: assessment.get(key) for key in
-        ("subject_score", "atmosphere_score", "motif_score", "audience_fit_score")}
+        SEMANTIC_FAILURE_CATEGORIES}
     record["semantic_failed_dimensions"] = assessment.get("failed_dimensions") or []
+
+
+def _semantic_failure_categories(record: dict) -> list[str]:
+    """Translate known failed dimensions and retain unknown ones for diagnosis."""
+    categories = []
+    unknown = []
+    for field in record.get("semantic_failed_dimensions") or []:
+        category = SEMANTIC_FAILURE_CATEGORIES.get(field)
+        if category:
+            categories.append(category)
+        else:
+            unknown.append(field)
+    if unknown:
+        record["unknown_semantic_failed_dimensions"] = unknown
+    return list(dict.fromkeys(categories))
 
 
 def write_json(path: Path, record: dict) -> None:
@@ -2583,17 +2600,9 @@ class ComfyUIClient:
                         category = ("VISION_UNAVAILABLE" if adherence_result["decision"] == "unavailable"
                                     else adherence_result.get("failure_category") or adherence_result["decision"])
                         record["primary_failure_category"] = category
-                        failed_fields = adherence_result.get("failed_dimensions") or []
-                        field_categories = {
-                            "subject_score": "SUBJECT_DRIFT",
-                            "atmosphere_score": "ATMOSPHERE_DRIFT",
-                            "motif_score": "MOTIF_DRIFT",
-                            "audience_fit_score": "AUDIENCE_DRIFT",
-                        }
-                        record["all_failure_categories"] = [
-                            category, *(field_categories[field] for field in failed_fields
-                                        if field_categories[field] != category)
-                        ]
+                        record["all_failure_categories"] = list(dict.fromkeys([
+                            category, *_semantic_failure_categories(record),
+                        ]))
                         record["validation"] = {**record.get("validation", {}),
                                                 "decision": "rejected", "failure_category": category,
                                                 "subject_adherence": adherence_result,
@@ -2612,13 +2621,9 @@ class ComfyUIClient:
                     record.update(diagnostics)
                     recovery["source_off_palette_ratio"] = diagnostics.get("off_palette_ratio")
                 if adherence_result and adherence_result.get("decision") != "pass":
-                    semantic_categories = {
-                        "subject_score": "SUBJECT_DRIFT", "atmosphere_score": "ATMOSPHERE_DRIFT",
-                        "motif_score": "MOTIF_DRIFT", "audience_fit_score": "AUDIENCE_DRIFT",
-                    }
                     combined = record.get("all_failure_categories") or [classify_failure(str(error))]
                     record["all_failure_categories"] = list(dict.fromkeys([
-                        *combined, *(semantic_categories[field] for field in record["semantic_failed_dimensions"]),
+                        *combined, *_semantic_failure_categories(record),
                         *(["VISION_UNAVAILABLE"] if adherence_result["decision"] == "unavailable" else []),
                     ]))
                     record["secondary_failure_categories"] = [

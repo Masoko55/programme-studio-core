@@ -12,15 +12,89 @@ from PIL import Image
 
 from app.services.background_policy import _palette_role_metrics, validate_palette
 from app.services.candidate_spec import build_candidate_spec
-from app.services.comfyui_client import ComfyUIClient, ComfyUIError, detect_text_evidence, validate_background
+from app.services.comfyui_client import (
+    ComfyUIClient, ComfyUIError, _semantic_failure_categories, detect_text_evidence, validate_background,
+)
 from app.services.prompt_compiler import compile_candidate_prompt
 from app.services.prompt_freshness import source_prompt_manifest
 from app.services.scene_density import assess_scene_density
 from app.services.subject_adherence import _extract_numeric_score, assess_subject_adherence
+from app.services.sampling_profiles import summarize_failures
 from tests.test_semantic_foundation import document
 
 
 class ProbeHardeningTests(unittest.TestCase):
+    def test_semantic_failure_categories_cover_treatment_and_preserve_unknowns(self):
+        mapping = {
+            "subject_score": "SUBJECT_DRIFT",
+            "atmosphere_score": "ATMOSPHERE_DRIFT",
+            "motif_score": "MOTIF_DRIFT",
+            "treatment_score": "TREATMENT_DRIFT",
+            "audience_fit_score": "AUDIENCE_DRIFT",
+        }
+        for field, category in mapping.items():
+            record = {"semantic_failed_dimensions": [field]}
+            self.assertEqual(_semantic_failure_categories(record), [category])
+        record = {"semantic_failed_dimensions": ["motif_score", "treatment_score", "future_score"]}
+        self.assertEqual(_semantic_failure_categories(record), ["MOTIF_DRIFT", "TREATMENT_DRIFT"])
+        self.assertEqual(record["unknown_semantic_failed_dimensions"], ["future_score"])
+
+    def test_treatment_failure_keeps_palette_or_human_primary_and_retry_history(self):
+        source = document()
+        for primary in ("PALETTE_ROLE_DRIFT", "HUMAN"):
+            with self.subTest(primary=primary), tempfile.TemporaryDirectory() as root:
+                candidate = Path(root) / "image-a.part.png"
+                Image.new("RGB", (64, 64), "blue").save(candidate)
+                record = {"reference_number": "ABCDEF-123456", "engine_id": "sdxl-1-0",
+                          "direction_id": "A", "attempt_count": 2}
+                error = ValueError(primary + ": hard rejection")
+                error.diagnostics = {"validation": {"decision": "rejected", "failure_category": primary},
+                                     "primary_failure_category": primary, "all_failure_categories": [primary]}
+                fidelity = {"decision": "TREATMENT_DRIFT", "failure_category": "TREATMENT_DRIFT",
+                            "subject_score": .9, "atmosphere_score": .9, "motif_score": .9,
+                            "treatment_score": .1, "audience_fit_score": .9,
+                            "failed_dimensions": ["treatment_score"], "vision_human_signal": False}
+                with patch("app.services.comfyui_client.load_prompts_document", return_value=source), \
+                     patch("app.services.comfyui_client.compare_directions_metrics", return_value={"similarity": 0}), \
+                     patch("app.services.comfyui_client.validate_background", side_effect=error), \
+                     patch("app.services.comfyui_client.assess_subject_adherence", return_value=fidelity), \
+                     patch("app.services.comfyui_client.write_json"):
+                    with self.assertRaises(ComfyUIError):
+                        ComfyUIClient()._validate_downloaded_candidate(record, False,
+                            Path(root) / "image-a.png", candidate, {}, ("navy", "gold"))
+                self.assertEqual(record["primary_failure_category"], primary)
+                self.assertIn("TREATMENT_DRIFT", record["all_failure_categories"])
+                self.assertEqual(record["semantic_dimension_scores"]["treatment_score"], .1)
+                history = summarize_failures({"rejected_attempts": [
+                    {"attempt_count": 1, "rejection_reason": "PALETTE_ROLE_DRIFT: palette roles"},
+                    {"attempt_count": 2, "rejection_reason": "TREATMENT_DRIFT: treatment missing"}]})
+                self.assertEqual(history.counts["PALETTE_ROLE_DRIFT"], 1)
+                self.assertEqual(history.counts["TREATMENT_DRIFT"], 1)
+
+    def test_hard_treatment_failure_uses_semantic_category_without_crashing(self):
+        with tempfile.TemporaryDirectory() as root:
+            candidate = Path(root) / "image-a.part.png"
+            Image.new("RGB", (64, 64), "blue").save(candidate)
+            record = {"reference_number": "ABCDEF-123456", "engine_id": "sdxl-1-0",
+                      "direction_id": "A", "attempt_count": 1}
+            fidelity = {"decision": "TREATMENT_DRIFT", "failure_category": "TREATMENT_DRIFT",
+                        "subject_score": .9, "atmosphere_score": .9, "motif_score": .2,
+                        "treatment_score": .1, "audience_fit_score": .9,
+                        "failed_dimensions": ["motif_score", "treatment_score"],
+                        "hard_failed_dimensions": ["treatment_score"], "vision_human_signal": False,
+                        "reason": "requested treatment is absent"}
+            with patch("app.services.comfyui_client.load_prompts_document", return_value=document()), \
+                 patch("app.services.comfyui_client.compare_directions_metrics", return_value={"similarity": 0}), \
+                 patch("app.services.comfyui_client.validate_background", return_value={"decision": "accepted"}), \
+                 patch("app.services.comfyui_client.assess_subject_adherence", return_value=fidelity), \
+                 patch("app.services.comfyui_client.write_json"):
+                with self.assertRaises(ComfyUIError):
+                    ComfyUIClient()._validate_downloaded_candidate(record, False,
+                        Path(root) / "image-a.png", candidate, {}, ("navy", "gold"))
+            self.assertEqual(record["primary_failure_category"], "TREATMENT_DRIFT")
+            self.assertIn("MOTIF_DRIFT", record["all_failure_categories"])
+            self.assertIn("TREATMENT_DRIFT", record["all_failure_categories"])
+
     def test_default_palette_relationship_is_diagnostic(self):
         for primary, secondary, counts in (
             ("green", "cream", {"green": 5000, "cream": 17000}),

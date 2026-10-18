@@ -356,9 +356,65 @@ class CandidateSpecCompilerTests(unittest.TestCase):
             spec = build_candidate_spec(document, engine, "B")
             compiled = compile_candidate_prompt(spec, 2, "Generated background contains OCR text")
             for prompt in (compiled.positive, compiled.clip_l, compiled.clip_g, compiled.t5 or ""):
-                self.assertNotIn("bridal shower", prompt.casefold())
+                if engine != "sd-3-5-medium":
+                    self.assertNotIn("bridal shower", prompt.casefold())
                 self.assertNotIn("THE BRIDAL SHOWER", prompt)
+            if engine == "sd-3-5-medium":
+                self.assertIn("Event context: bridal shower.", compiled.clip_g)
             self.assertIn("uninterrupted visual surfaces", compiled.positive)
+
+    def test_sd35_event_and_audience_are_grounded_across_active_encoders(self):
+        cases = (
+            ("children's birthday party", "children aged 7 to 10", "playful, energetic"),
+            ("formal civic ceremony", "adult guests", "dignified, calm"),
+            ("unseen lantern symposium", "curious observers", "reflective, warm"),
+        )
+        for event, audience, mood in cases:
+            with self.subTest(event=event):
+                document = document_for(CASES[2])
+                document["brief"].update(
+                    event_context=event, audience_context=audience,
+                    visual_semantics={"audience_descriptors": [audience],
+                                      "atmosphere_descriptors": mood.split(", ")},
+                )
+                spec = build_candidate_spec(document, "sd-3-5-medium", "B")
+                for concise in (False, True):
+                    compiled = compile_candidate_prompt(spec, 1, concise=concise)
+                    for channel in (compiled.clip_g, compiled.t5):
+                        self.assertIn(event, channel.casefold())
+                        self.assertIn(audience, channel.casefold())
+                        self.assertIn(mood.split(", ")[0], channel.casefold())
+                        for label in ("Event context:", "Audience:", "Event atmosphere:", "Palette:"):
+                            self.assertIn(label, channel)
+                    self.assertIn("clip_g", compiled.conditioning_coverage["audience"])
+                    self.assertIn("t5", compiled.conditioning_coverage["audience"])
+                    self.assertIn("clip_g", compiled.conditioning_coverage["event_context"])
+                    self.assertIn("t5", compiled.conditioning_coverage["event_context"])
+                    self.assertFalse(compiled.record()["prompt_budget"]["clip_g"]["budget_risk"])
+                    self.assertFalse(compiled.record()["prompt_budget"]["t5"]["budget_risk"])
+
+    def test_sd35_audience_fallbacks_do_not_invent_or_repeat_context(self):
+        for fields, expected in (
+            ({}, ""),
+            ({"age_group": "ages 7 to 10"}, "ages 7 to 10"),
+            ({"audience_context": "invited researchers"}, "invited researchers"),
+            ({"audience_context": "adult guests", "visual_semantics":
+              {"audience_descriptors": ["adult guests"]}}, "adult guests"),
+        ):
+            with self.subTest(fields=fields):
+                document = document_for(CASES[2])
+                document["brief"].update(fields)
+                spec = build_candidate_spec(document, "sd-3-5-medium", "B")
+                spec.visual_design["visual_semantics"]["audience_descriptors"] = (
+                    fields.get("visual_semantics", {}).get("audience_descriptors", []))
+                compiled = compile_candidate_prompt(spec, 1, concise=True)
+                if expected:
+                    self.assertIn(expected, compiled.clip_g.casefold())
+                    self.assertIn(expected, compiled.t5.casefold())
+                    self.assertEqual(compiled.clip_g.casefold().count(expected), 1)
+                else:
+                    self.assertNotIn("Audience:", compiled.clip_g)
+                    self.assertEqual(compiled.conditioning_coverage["audience"], [])
 
     def test_incomplete_direction_strategy_is_rejected(self):
         for name in (

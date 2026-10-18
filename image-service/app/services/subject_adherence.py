@@ -18,6 +18,15 @@ from PIL import Image
 from app.config.settings import settings
 
 
+SEMANTIC_FAILURE_CATEGORIES = {
+    "subject_score": "SUBJECT_DRIFT",
+    "atmosphere_score": "ATMOSPHERE_DRIFT",
+    "motif_score": "MOTIF_DRIFT",
+    "treatment_score": "TREATMENT_DRIFT",
+    "audience_fit_score": "AUDIENCE_DRIFT",
+}
+
+
 def select_vision_endpoint(model_name: str) -> str:
     """Use the endpoint verified for the installed MiniCPM vision model."""
     return "/api/chat" if model_name.strip().casefold().startswith("minicpm-v4.5") else "/api/generate"
@@ -983,14 +992,6 @@ def assess_subject_adherence(
         in failed
     ]
 
-    category_by_field = {
-        "subject_score": "SUBJECT_DRIFT",
-        "atmosphere_score": "ATMOSPHERE_DRIFT",
-        "motif_score": "MOTIF_DRIFT",
-        "treatment_score": "TREATMENT_DRIFT",
-        "audience_fit_score": "AUDIENCE_DRIFT",
-    }
-
     # Only a real subject failure should become SUBJECT_DRIFT.
     #
     # A defining explicit motif can still be a hard semantic failure, but it
@@ -1048,7 +1049,7 @@ def assess_subject_adherence(
         **scores,
         "decision": decision,
         "failure_category": (
-            category_by_field[
+            SEMANTIC_FAILURE_CATEGORIES[
                 worst
             ]
             if worst

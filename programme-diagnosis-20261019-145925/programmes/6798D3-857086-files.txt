@@ -1,0 +1,7 @@
+REFERENCE=6798D3-857086
+
+2026-10-19 14:47:31.8730090470 22503 /home/ntlhari/NerdCode/programme-studio/data/programmes/6798D3-857086/prompts.json
+2026-10-19 14:47:31.8760089860 7660 /home/ntlhari/NerdCode/programme-studio/data/programmes/6798D3-857086/brief.json
+2026-10-19 14:47:31.8800089050 139 /home/ntlhari/NerdCode/programme-studio/data/programmes/6798D3-857086/probe-source.json
+2026-10-19 14:47:38.3628781770 1147892 /home/ntlhari/NerdCode/programme-studio/data/programmes/6798D3-857086/backgrounds/flux-2/image-c.png
+2026-10-19 14:48:00.8404376200 131023 /home/ntlhari/NerdCode/programme-studio/data/programmes/6798D3-857086/backgrounds/flux-2/image-c.json

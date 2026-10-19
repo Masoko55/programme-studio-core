@@ -1,0 +1,7 @@
+REFERENCE=222DE9-982440
+
+2026-10-19 12:41:10.5169504930 19146 /home/ntlhari/NerdCode/programme-studio/data/programmes/222DE9-982440/prompts.json
+2026-10-19 12:41:10.5199504990 6337 /home/ntlhari/NerdCode/programme-studio/data/programmes/222DE9-982440/brief.json
+2026-10-19 12:41:10.5239505060 139 /home/ntlhari/NerdCode/programme-studio/data/programmes/222DE9-982440/probe-source.json
+2026-10-19 12:41:19.2869669470 1709058 /home/ntlhari/NerdCode/programme-studio/data/programmes/222DE9-982440/backgrounds/flux-2/image-a.png
+2026-10-19 12:41:47.5040213110 131652 /home/ntlhari/NerdCode/programme-studio/data/programmes/222DE9-982440/backgrounds/flux-2/image-a.json

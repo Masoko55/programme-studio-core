@@ -1,0 +1,3453 @@
+{
+  "reference_number": "0BB686-825578",
+  "source_reference": "4D50E8-667425",
+  "source_prompt_manifest": {
+    "prompt_schema_version": "1.0",
+    "semantic_contract_version": "1.0",
+    "creative_direction_version": "2.0",
+    "prompt_generation_sha256": "9135d9bda719e18da102c2cb1c9548078d8c2b5014bbd2a8048f7caf0c2e4be7",
+    "hash_verified": false,
+    "freshness_status": "STALE_FOR_EXPERIMENT",
+    "created_at": "2026-10-18T18:02:38.935574Z"
+  },
+  "engine_id": "sd-3-5-medium",
+  "direction_id": "C",
+  "seed": 20261010,
+  "workflow_sha256": "624fc30a0129d41178769673a637eefc8cfc2590a54473901b3e1dff7b281045",
+  "effective_workflow": {
+    "workflow_sha256": "624fc30a0129d41178769673a637eefc8cfc2590a54473901b3e1dff7b281045",
+    "checkpoint": "sd3.5_medium.safetensors",
+    "clip_l": "clip_l.safetensors",
+    "clip_g": "clip_g.safetensors",
+    "t5": "t5xxl_fp8_e4m3fn.safetensors",
+    "vae": [
+      "4",
+      2
+    ],
+    "sampler": "dpmpp_2m",
+    "scheduler": "sgm_uniform",
+    "cfg": 4.0,
+    "steps": 28,
+    "shift": null,
+    "width": 896,
+    "height": 1280,
+    "seed": 20261010,
+    "positive_fields": {
+      "clip_l": "Background artwork. Visual subject: Botanical garden. Event context: . Audience: adults.",
+      "clip_g": "Background artwork. Visual subject: Botanical garden. Event context: . Audience: adults. Visual motif: The motif of lush foliage and botanical elements should be consistent throughout the background. Event atmosphere: warm and elegant, peaceful. Desired lighting: soft and natural. Composition: Use an asymmetric-cluster composition to balance a dominant motif in. Focal: Place the focal point in the right lower. Depth: Employ a shallow depth plan to keep the. Palette: green, cream; green clearly visible in substantial design elements; cream clearly visible. Correction: Correct the requested colour relationship while",
+      "t5xxl": "Visual subject and environment: Botanical garden. Visual anchors: . Event context: . Audience: adults. Event atmosphere: warm and elegant, peaceful. environment-only composition. Desired lighting: soft and natural. Composition and spatial depth: Use an asymmetric-cluster composition to balance a dominant motif in the right lower area with quieter regions, emphasizing visual interest.. Focal strategy: Place the focal point in the right lower quadrant to draw the viewer's attention to that area, creating a sense of depth and intrigue.. Depth strategy: Employ a shallow depth plan to keep the scene coherent and uncluttered, with minimal layered elements.. Perimeter strategy: Use an open perimeter to create a sense of space and continuity, avoiding a framed look.. Preserve intentional negative space as integrated low-detail visual breathing room according to Position the visual calm in the upper portion of the scene to maintain clarity and avoid overlapping with the focal point.; Place the visual calm visual calm in the lower portion, ensuring it is easily accessible and does not interfere with the main visual elements.. Use natural visual hierarchy, breathing room and spatial balance with controlled subject concentration. Supporting motif topology visibly follows: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere.. Palette: green, cream; dominant palette; green clearly visible in substantial design elements; cream clearly visible in substantial design elements; requested colour families own principal surfaces and visual mass; both requested families remain substantial; neutrals support only fine linework, shading and highlights; natural tonal variation within requested families; no large unrequested chromatic region. moderate density; large subject forms, readable motif, concentrated detail, calm visual space. Decorative background artwork with continuous image surfaces. Design language: Materials: organic materials. Texture: natural textures. Lighting: soft and natural. Correction: Correct the requested colour relationship while preserving this design's texture, shading and details."
+    },
+    "negative_fields": {
+      "clip_l": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, urban or industrial settings, bright or harsh lighting",
+      "clip_g": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, urban or industrial settings, bright or harsh lighting",
+      "t5xxl": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, urban or industrial settings, bright or harsh lighting"
+    },
+    "positive_route": [
+      "16",
+      0
+    ],
+    "negative_route": [
+      "40",
+      0
+    ],
+    "model_route": [
+      "4",
+      0
+    ]
+  },
+  "request_id": "ee0f8e19-dc87-4b8b-a29f-d37d1c48cc46",
+  "status": "rejected",
+  "attempt_count": 2,
+  "positive_prompt": "Background inspiration: Botanical garden. Visual motif: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere. Motif as abstract pattern structure; no unrequested literal objects. Brief anchors: . Composition: Use an asymmetric-cluster composition to balance a dominant motif in the right lower area with quieter regions, emphasizing visual interest.. Focal strategy: Place the focal point in the right lower quadrant to draw the viewer's attention to that area, creating a sense of depth and intrigue.. Depth strategy: Employ a shallow depth plan to keep the scene coherent and uncluttered, with minimal layered elements.. Perimeter strategy: Use an open perimeter to create a sense of space and continuity, avoiding a framed look.. Preserve intentional negative space as integrated low-detail visual breathing room according to Position the visual calm in the upper portion of the scene to maintain clarity and avoid overlapping with the focal point.; Place the visual calm visual calm in the lower portion, ensuring it is easily accessible and does not interfere with the main visual elements.. Use natural visual hierarchy, breathing room and spatial balance with controlled subject concentration. Design language: Materials: organic materials. Texture: natural textures. Lighting: soft and natural. Palette: green, cream; dominant palette; green clearly visible in substantial design elements; cream clearly visible in substantial design elements; requested colour families own principal surfaces and visual mass; both requested families remain substantial; neutrals support only fine linework, shading and highlights; natural tonal variation within requested families; no large unrequested chromatic region. Visual hierarchy: the subject is present without saturating the frame; coherent large forms, limited mid-size forms and concentrated small detail. Large forms establish the subject, medium forms carry motif topology, small details support texture. Preserve integrated low-detail breathing room and readable depth; avoid uniformly distributed micro-detail. Motif prominence is supporting. Lighting, contrast and edge character should express the requested atmosphere and audience without changing the subject. Keep the result usable as background artwork rather than a crowded standalone illustration. Event atmosphere: warm and elegant, peaceful. Audience fit: adults. environment-only composition. Desired lighting: soft and natural. Supporting motif topology visibly follows: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere.. Correction: Correct the requested colour relationship while preserving this design's texture, shading and details. Use only brief-grounded subject and motif content with this direction's spatial strategies. Pure visual background artwork with a clear subject and natural low-detail breathing room. Continuous scene surfaces and integrated calm areas.",
+  "workflow": {
+    "4": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": {
+        "ckpt_name": "sd3.5_medium.safetensors"
+      }
+    },
+    "54": {
+      "class_type": "TripleCLIPLoader",
+      "inputs": {
+        "clip_name1": "clip_l.safetensors",
+        "clip_name2": "clip_g.safetensors",
+        "clip_name3": "t5xxl_fp8_e4m3fn.safetensors"
+      }
+    },
+    "16": {
+      "class_type": "CLIPTextEncodeSD3",
+      "inputs": {
+        "clip": [
+          "54",
+          0
+        ],
+        "clip_l": "Background artwork. Visual subject: Botanical garden. Event context: . Audience: adults.",
+        "clip_g": "Background artwork. Visual subject: Botanical garden. Event context: . Audience: adults. Visual motif: The motif of lush foliage and botanical elements should be consistent throughout the background. Event atmosphere: warm and elegant, peaceful. Desired lighting: soft and natural. Composition: Use an asymmetric-cluster composition to balance a dominant motif in. Focal: Place the focal point in the right lower. Depth: Employ a shallow depth plan to keep the. Palette: green, cream; green clearly visible in substantial design elements; cream clearly visible. Correction: Correct the requested colour relationship while",
+        "t5xxl": "Visual subject and environment: Botanical garden. Visual anchors: . Event context: . Audience: adults. Event atmosphere: warm and elegant, peaceful. environment-only composition. Desired lighting: soft and natural. Composition and spatial depth: Use an asymmetric-cluster composition to balance a dominant motif in the right lower area with quieter regions, emphasizing visual interest.. Focal strategy: Place the focal point in the right lower quadrant to draw the viewer's attention to that area, creating a sense of depth and intrigue.. Depth strategy: Employ a shallow depth plan to keep the scene coherent and uncluttered, with minimal layered elements.. Perimeter strategy: Use an open perimeter to create a sense of space and continuity, avoiding a framed look.. Preserve intentional negative space as integrated low-detail visual breathing room according to Position the visual calm in the upper portion of the scene to maintain clarity and avoid overlapping with the focal point.; Place the visual calm visual calm in the lower portion, ensuring it is easily accessible and does not interfere with the main visual elements.. Use natural visual hierarchy, breathing room and spatial balance with controlled subject concentration. Supporting motif topology visibly follows: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere.. Palette: green, cream; dominant palette; green clearly visible in substantial design elements; cream clearly visible in substantial design elements; requested colour families own principal surfaces and visual mass; both requested families remain substantial; neutrals support only fine linework, shading and highlights; natural tonal variation within requested families; no large unrequested chromatic region. moderate density; large subject forms, readable motif, concentrated detail, calm visual space. Decorative background artwork with continuous image surfaces. Design language: Materials: organic materials. Texture: natural textures. Lighting: soft and natural. Correction: Correct the requested colour relationship while preserving this design's texture, shading and details.",
+        "empty_padding": "none"
+      }
+    },
+    "40": {
+      "class_type": "CLIPTextEncodeSD3",
+      "inputs": {
+        "clip": [
+          "54",
+          0
+        ],
+        "clip_l": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, urban or industrial settings, bright or harsh lighting",
+        "clip_g": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, urban or industrial settings, bright or harsh lighting",
+        "t5xxl": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, urban or industrial settings, bright or harsh lighting",
+        "empty_padding": "none"
+      }
+    },
+    "53": {
+      "class_type": "EmptySD3LatentImage",
+      "inputs": {
+        "width": 896,
+        "height": 1280,
+        "batch_size": 1
+      }
+    },
+    "3": {
+      "class_type": "KSampler",
+      "inputs": {
+        "seed": 20261010,
+        "steps": 28,
+        "cfg": 4.0,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "sgm_uniform",
+        "denoise": 1.0,
+        "model": [
+          "4",
+          0
+        ],
+        "positive": [
+          "16",
+          0
+        ],
+        "negative": [
+          "40",
+          0
+        ],
+        "latent_image": [
+          "53",
+          0
+        ]
+      }
+    },
+    "8": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "3",
+          0
+        ],
+        "vae": [
+          "4",
+          2
+        ]
+      }
+    },
+    "9": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "filename_prefix": "programme-studio/0BB686-825578/sd-3-5-medium/c",
+        "images": [
+          "8",
+          0
+        ]
+      }
+    }
+  },
+  "spec_sha256": "21d679b3bed57f69d6ed9083546e2593701abfe9459711d879dffbf690d01d15",
+  "SPEC_SHA256": "21d679b3bed57f69d6ed9083546e2593701abfe9459711d879dffbf690d01d15",
+  "ENGINE": "sd-3-5-medium",
+  "DIRECTION": "C",
+  "DIRECTION_ROLE": "Creative Director",
+  "ATTEMPT": 2,
+  "RETRY_STAGE": "normal",
+  "SEED": 20261010,
+  "candidate_spec_sha256": "21d679b3bed57f69d6ed9083546e2593701abfe9459711d879dffbf690d01d15",
+  "semantic_contract_version": "1.0",
+  "semantic_contract_sha256": "5aa859662f73aa9944a2c5847676dc96d61f8c78f668cb057da595e6195d1bad",
+  "semantic_consistency": {
+    "conflicts": [],
+    "requires_clarification": false,
+    "valid": true
+  },
+  "semantic_completeness": {
+    "fields": {
+      "atmosphere_descriptors": "PRESENT",
+      "audience_descriptors": "PRESENT",
+      "composition_affinities": "PRESENT",
+      "material_descriptors": "PRESENT",
+      "motif_descriptors": "PRESENT",
+      "motif_structure_description": "PRESENT",
+      "palette": "PRESENT",
+      "primary_visual_subject": "PRESENT"
+    },
+    "ready": true,
+    "score": 1.0
+  },
+  "vision_model": "minicpm-v4.5:latest",
+  "ocr_config": {
+    "timeout_seconds": 7.0
+  },
+  "direction_role": "Creative Director",
+  "creative_concept": "Create a balanced composition with a prominent focal point in the right lower area, using open perimeters and shallow depth, A green, cream palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: Use only the supplied visual motifs and treatment, Clarified visual language: motifs: lush foliage, botanical elements, motif structure: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere, atmosphere: warm and elegant, peaceful, composition: natural and organic, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+  "visual_anchors": [],
+  "composition_strategy": "Use an asymmetric-cluster composition to balance a dominant motif in the right lower area with quieter regions, emphasizing visual interest.",
+  "resolved_palette": [
+    {
+      "colour": "green",
+      "role": "primary"
+    },
+    {
+      "colour": "cream",
+      "role": "secondary"
+    }
+  ],
+  "palette_mode": "dominant",
+  "requested_primary": "green",
+  "requested_secondary": "cream",
+  "palette_roles": [
+    "primary",
+    "secondary"
+  ],
+  "safe_region_strategy": {
+    "title": "Position the title in the upper portion of the scene to maintain clarity and avoid overlapping with the focal point.",
+    "programme": "Place the programme information in the lower portion, ensuring it is easily accessible and does not interfere with the main visual elements."
+  },
+  "sampling_profile": {
+    "name": "alternate_sampler",
+    "steps": 28,
+    "cfg": 4.0,
+    "sampler_name": "dpmpp_2m",
+    "scheduler": "sgm_uniform",
+    "shift": null,
+    "shift_mode": "checkpoint_default"
+  },
+  "sampling_profile_name": "alternate_sampler",
+  "sampling_profile_stage": "normal",
+  "sampling_profile_failure_history": {
+    "counts": {
+      "PALETTE_OFF": 1
+    },
+    "consecutive_category": "PALETTE_OFF",
+    "consecutive_count": 1
+  },
+  "selection_reason": "PALETTE_OFF: alternate_sampler",
+  "failure_history": {
+    "counts": {
+      "PALETTE_OFF": 1
+    },
+    "consecutive_category": "PALETTE_OFF",
+    "consecutive_count": 1
+  },
+  "renderer_recovery_type": "palette",
+  "generation_mode": "native_text_to_image",
+  "GENERATION_MODE": "native_text_to_image",
+  "TEMPLATE_CONDITIONING_ENABLED": false,
+  "MASKED_DENOISING_ENABLED": false,
+  "TEMPLATE_PATH": null,
+  "template_conditioning": {
+    "enabled": false,
+    "masked_denoising_enabled": false
+  },
+  "negative_prompt": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, urban or industrial settings, bright or harsh lighting",
+  "adaptations": [],
+  "retry_stage": "normal",
+  "failure_category": "OCR_TIMEOUT",
+  "compiled_prompt": {
+    "positive": "Background inspiration: Botanical garden. Visual motif: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere. Motif as abstract pattern structure; no unrequested literal objects. Brief anchors: . Composition: Use an asymmetric-cluster composition to balance a dominant motif in the right lower area with quieter regions, emphasizing visual interest.. Focal strategy: Place the focal point in the right lower quadrant to draw the viewer's attention to that area, creating a sense of depth and intrigue.. Depth strategy: Employ a shallow depth plan to keep the scene coherent and uncluttered, with minimal layered elements.. Perimeter strategy: Use an open perimeter to create a sense of space and continuity, avoiding a framed look.. Preserve intentional negative space as integrated low-detail visual breathing room according to Position the visual calm in the upper portion of the scene to maintain clarity and avoid overlapping with the focal point.; Place the visual calm visual calm in the lower portion, ensuring it is easily accessible and does not interfere with the main visual elements.. Use natural visual hierarchy, breathing room and spatial balance with controlled subject concentration. Design language: Materials: organic materials. Texture: natural textures. Lighting: soft and natural. Palette: green, cream; dominant palette; green clearly visible in substantial design elements; cream clearly visible in substantial design elements; requested colour families own principal surfaces and visual mass; both requested families remain substantial; neutrals support only fine linework, shading and highlights; natural tonal variation within requested families; no large unrequested chromatic region. Visual hierarchy: the subject is present without saturating the frame; coherent large forms, limited mid-size forms and concentrated small detail. Large forms establish the subject, medium forms carry motif topology, small details support texture. Preserve integrated low-detail breathing room and readable depth; avoid uniformly distributed micro-detail. Motif prominence is supporting. Lighting, contrast and edge character should express the requested atmosphere and audience without changing the subject. Keep the result usable as background artwork rather than a crowded standalone illustration. Event atmosphere: warm and elegant, peaceful. Audience fit: adults. environment-only composition. Desired lighting: soft and natural. Supporting motif topology visibly follows: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere.. Correction: Correct the requested colour relationship while preserving this design's texture, shading and details. Use only brief-grounded subject and motif content with this direction's spatial strategies. Pure visual background artwork with a clear subject and natural low-detail breathing room. Continuous scene surfaces and integrated calm areas.",
+    "negative": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, urban or industrial settings, bright or harsh lighting",
+    "clip_l": "Background artwork. Visual subject: Botanical garden. Event context: . Audience: adults.",
+    "clip_g": "Background artwork. Visual subject: Botanical garden. Event context: . Audience: adults. Visual motif: The motif of lush foliage and botanical elements should be consistent throughout the background. Event atmosphere: warm and elegant, peaceful. Desired lighting: soft and natural. Composition: Use an asymmetric-cluster composition to balance a dominant motif in. Focal: Place the focal point in the right lower. Depth: Employ a shallow depth plan to keep the. Palette: green, cream; green clearly visible in substantial design elements; cream clearly visible. Correction: Correct the requested colour relationship while",
+    "t5": "Visual subject and environment: Botanical garden. Visual anchors: . Event context: . Audience: adults. Event atmosphere: warm and elegant, peaceful. environment-only composition. Desired lighting: soft and natural. Composition and spatial depth: Use an asymmetric-cluster composition to balance a dominant motif in the right lower area with quieter regions, emphasizing visual interest.. Focal strategy: Place the focal point in the right lower quadrant to draw the viewer's attention to that area, creating a sense of depth and intrigue.. Depth strategy: Employ a shallow depth plan to keep the scene coherent and uncluttered, with minimal layered elements.. Perimeter strategy: Use an open perimeter to create a sense of space and continuity, avoiding a framed look.. Preserve intentional negative space as integrated low-detail visual breathing room according to Position the visual calm in the upper portion of the scene to maintain clarity and avoid overlapping with the focal point.; Place the visual calm visual calm in the lower portion, ensuring it is easily accessible and does not interfere with the main visual elements.. Use natural visual hierarchy, breathing room and spatial balance with controlled subject concentration. Supporting motif topology visibly follows: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere.. Palette: green, cream; dominant palette; green clearly visible in substantial design elements; cream clearly visible in substantial design elements; requested colour families own principal surfaces and visual mass; both requested families remain substantial; neutrals support only fine linework, shading and highlights; natural tonal variation within requested families; no large unrequested chromatic region. moderate density; large subject forms, readable motif, concentrated detail, calm visual space. Decorative background artwork with continuous image surfaces. Design language: Materials: organic materials. Texture: natural textures. Lighting: soft and natural. Correction: Correct the requested colour relationship while preserving this design's texture, shading and details.",
+    "negative_prompt_channel_active": true,
+    "negative_semantics_preserved": true,
+    "incompatible_treatments": [
+      "urban or industrial settings",
+      "bright or harsh lighting"
+    ],
+    "semantic_contract_sha256": "5aa859662f73aa9944a2c5847676dc96d61f8c78f668cb057da595e6195d1bad",
+    "conditioning_coverage": {
+      "subject": [
+        "positive",
+        "clip_l",
+        "clip_g",
+        "t5"
+      ],
+      "atmosphere": [
+        "positive",
+        "clip_g",
+        "t5"
+      ],
+      "audience": [
+        "positive",
+        "clip_l",
+        "clip_g",
+        "t5"
+      ],
+      "motif": [
+        "positive",
+        "t5"
+      ],
+      "treatment": [],
+      "palette": [
+        "positive",
+        "clip_g",
+        "t5"
+      ],
+      "scene_family": [],
+      "event_context": [],
+      "incompatible_treatments": [
+        "negative"
+      ]
+    },
+    "engine_capabilities": {
+      "negative_prompt_channel": true,
+      "multi_encoder": true,
+      "long_context_encoder": true,
+      "supports_shift": true
+    },
+    "prompt_budget": {
+      "positive": {
+        "characters": 3088,
+        "approx_tokens": 423,
+        "budget_risk": false
+      },
+      "negative": {
+        "characters": 161,
+        "approx_tokens": 21,
+        "budget_risk": false
+      },
+      "clip_l": {
+        "characters": 88,
+        "approx_tokens": 11,
+        "budget_risk": false
+      },
+      "clip_g": {
+        "characters": 621,
+        "approx_tokens": 87,
+        "budget_risk": true
+      },
+      "t5": {
+        "characters": 2215,
+        "approx_tokens": 306,
+        "budget_risk": true
+      }
+    },
+    "truncated": false,
+    "retry_strength_level": "BASE"
+  },
+  "conditioning_coverage": {
+    "subject": [
+      "positive",
+      "clip_l",
+      "clip_g",
+      "t5"
+    ],
+    "atmosphere": [
+      "positive",
+      "clip_g",
+      "t5"
+    ],
+    "audience": [
+      "positive",
+      "clip_l",
+      "clip_g",
+      "t5"
+    ],
+    "motif": [
+      "positive",
+      "t5"
+    ],
+    "treatment": [],
+    "palette": [
+      "positive",
+      "clip_g",
+      "t5"
+    ],
+    "scene_family": [],
+    "event_context": [],
+    "incompatible_treatments": [
+      "negative"
+    ]
+  },
+  "prompt_budget": {
+    "positive": {
+      "characters": 3088,
+      "approx_tokens": 423,
+      "budget_risk": false
+    },
+    "negative": {
+      "characters": 161,
+      "approx_tokens": 21,
+      "budget_risk": false
+    },
+    "clip_l": {
+      "characters": 88,
+      "approx_tokens": 11,
+      "budget_risk": false
+    },
+    "clip_g": {
+      "characters": 621,
+      "approx_tokens": 87,
+      "budget_risk": true
+    },
+    "t5": {
+      "characters": 2215,
+      "approx_tokens": 306,
+      "budget_risk": true
+    }
+  },
+  "engine_capabilities": {
+    "negative_prompt_channel": true,
+    "multi_encoder": true,
+    "long_context_encoder": true,
+    "supports_shift": true
+  },
+  "reproducibility_manifest": {
+    "reference": "0BB686-825578",
+    "source_reference": "4D50E8-667425",
+    "semantic_contract_version": "1.0",
+    "semantic_contract_sha256": "5aa859662f73aa9944a2c5847676dc96d61f8c78f668cb057da595e6195d1bad",
+    "candidate_spec_sha256": "21d679b3bed57f69d6ed9083546e2593701abfe9459711d879dffbf690d01d15",
+    "engine": "sd-3-5-medium",
+    "engine_models": [
+      "clip_g.safetensors",
+      "clip_l.safetensors",
+      "sd3.5_medium.safetensors",
+      "t5xxl_fp8_e4m3fn.safetensors"
+    ],
+    "workflow_sha256": "624fc30a0129d41178769673a637eefc8cfc2590a54473901b3e1dff7b281045",
+    "effective_workflow_values": {
+      "workflow_sha256": "624fc30a0129d41178769673a637eefc8cfc2590a54473901b3e1dff7b281045",
+      "checkpoint": "sd3.5_medium.safetensors",
+      "clip_l": "clip_l.safetensors",
+      "clip_g": "clip_g.safetensors",
+      "t5": "t5xxl_fp8_e4m3fn.safetensors",
+      "vae": [
+        "4",
+        2
+      ],
+      "sampler": "dpmpp_2m",
+      "scheduler": "sgm_uniform",
+      "cfg": 4.0,
+      "steps": 28,
+      "shift": null,
+      "width": 896,
+      "height": 1280,
+      "seed": 20261010,
+      "positive_route": [
+        "16",
+        0
+      ],
+      "negative_route": [
+        "40",
+        0
+      ],
+      "model_route": [
+        "4",
+        0
+      ]
+    },
+    "direction": "C",
+    "sampling_profile": "alternate_sampler",
+    "sampler_name": "dpmpp_2m",
+    "scheduler": "sgm_uniform",
+    "cfg": 4.0,
+    "steps": 28,
+    "shift": null,
+    "width": 896,
+    "height": 1280,
+    "seed": 20261010,
+    "compiled_prompt_sha256": {
+      "positive": "b76788cb54fcfff1dc316ec2d57559309c7f685d708f7be8de9b1e15105a2932",
+      "negative": "0d85877dc3aebf891bf4f516c811dfc0af8a8f9a10440e4302f47217f3a30e67",
+      "clip_l": "b03f39f358c7152e1ed91915193f4dbcb9abda08602fd9d4ef8b8d988549715c",
+      "clip_g": "d4e3834cb405feb7a67fc2901e1c3fe3842e4efa4cb94861e3e45ecf9433b2e2",
+      "t5": "8524038c505d3bbc2a09ae25ecb4e5d781d26effa02b14bef6437dbbe5c628ab"
+    },
+    "conditioning_lengths": {
+      "positive": {
+        "characters": 3088,
+        "approx_tokens": 423,
+        "budget_risk": false
+      },
+      "negative": {
+        "characters": 161,
+        "approx_tokens": 21,
+        "budget_risk": false
+      },
+      "clip_l": {
+        "characters": 88,
+        "approx_tokens": 11,
+        "budget_risk": false
+      },
+      "clip_g": {
+        "characters": 621,
+        "approx_tokens": 87,
+        "budget_risk": true
+      },
+      "t5": {
+        "characters": 2215,
+        "approx_tokens": 306,
+        "budget_risk": true
+      }
+    },
+    "vision_model": "minicpm-v4.5:latest",
+    "ocr_config": {
+      "timeout_seconds": 7.0
+    },
+    "validator_version": null,
+    "retry_attempt": 2,
+    "retry_stage": "normal",
+    "failure_history": {
+      "counts": {
+        "PALETTE_OFF": 1
+      },
+      "consecutive_category": "PALETTE_OFF",
+      "consecutive_count": 1
+    },
+    "image_sha256": null
+  },
+  "rejected_attempts": [
+    {
+      "attempt_count": 1,
+      "seed": 20261009,
+      "prompt_id": "1f7d238e-c80f-4d55-9fed-98e6c63d0dff",
+      "sha256": "2f82ac6f1f23dcc3261565017e04cb937d4aa5765b1c3c737e1d8b3fc049c9ba",
+      "rejection_reason": "Generated background contains colours that were not requested (off-palette ratio 0.08; strongest matches: brown=0.12, charcoal=0.11, grey=0.02, rose gold=0.00; neutral ratio 0.17; largest unrelated region 0.01).",
+      "failure_category": "PALETTE_OFF",
+      "primary_failure_category": "PALETTE_OFF",
+      "all_failure_categories": [],
+      "validation": {
+        "decision": "rejected",
+        "failure_category": "PALETTE_OFF",
+        "diagnostic_findings": [
+          "DENSITY_DRIFT"
+        ],
+        "palette": {
+          "mode": "dominant",
+          "palette_match_ratio": null,
+          "off_palette_ratio": 0.08327414772727272,
+          "primary_ratio": 0.006702769886363636,
+          "secondary_ratio": 0.7367720170454546,
+          "requested_chromatic_ratio": 0.7434747869318182,
+          "neutral_ratio": 0.1732510653409091,
+          "unrequested_chromatic_ratio": 0.08327414772727272,
+          "largest_unrequested_region_ratio": 0.013405539772727272,
+          "primary_secondary_ratio": null,
+          "secondary_presence": null,
+          "dominance_relationship": null,
+          "dominance_relationship_passed": null
+        },
+        "text": {
+          "ocr_diagnostics": {
+            "attempted": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "completed_variants": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "timed_out_variants": [],
+            "failed_variants": [],
+            "failure_reasons": {},
+            "completed_variant_count": 4,
+            "required_variant_count": 2,
+            "enhancement_variant_failures": [],
+            "evidence_sufficiency": true,
+            "decision": "complete"
+          },
+          "detected": false,
+          "tokens": [],
+          "confirmed_tokens": [],
+          "text_lines": [],
+          "text_area_ratio": 0
+        },
+        "human": {
+          "detected": false,
+          "strong_signals": [],
+          "weak_signals": [],
+          "decision_reason": "no human evidence"
+        },
+        "quality": {
+          "structural_edge_density": 0.40089000355113635,
+          "macro_structure_score": 1.0,
+          "coarse_edge_density": 0.20707070707070707,
+          "high_pass_mean": 6.151154041290283,
+          "boilerplate_score": 0.0,
+          "title_panel_score": 0.0,
+          "fine_line_pair_ratio": 0.0,
+          "macro_form_balance": 1.0,
+          "scene_density": {
+            "requested_density": "moderate",
+            "overall_edge_density": 0.2274,
+            "tile_edge_fractions": [
+              0.2595,
+              0.2266,
+              0.2429,
+              0.2688,
+              0.2759,
+              0.1238,
+              0.1025,
+              0.2886,
+              0.2905,
+              0.2383,
+              0.0808,
+              0.292,
+              0.2451,
+              0.2461,
+              0.1926,
+              0.2642
+            ],
+            "occupied_tile_fraction": 0.9375,
+            "quiet_tile_fraction": 0.0,
+            "safe_region_density": 0.1364,
+            "edge_distribution_balance": 0.0654,
+            "macro_form_balance": 1.0,
+            "normalized_measurements": {
+              "density_pressure": 0.8719
+            },
+            "thresholds_used": {
+              "density_pressure": 0.85,
+              "max_quiet_tile_fraction": 0.0625,
+              "occupied_tile_edge_fraction": 0.1,
+              "quiet_tile_edge_fraction": 0.04
+            },
+            "density_rule_triggered": "spatial_crowding",
+            "decision": "DENSITY_DRIFT"
+          },
+          "global_density_decision": "DENSITY_DRIFT",
+          "explicit_safe_regions": {
+            "decision": "PASS",
+            "regions": {}
+          },
+          "explicit_safe_region_decision": "PASS",
+          "raster_score": 0.0
+        },
+        "brief_fidelity": {
+          "checked": true,
+          "subject_score": 0.95,
+          "atmosphere_score": 0.85,
+          "motif_score": 0.95,
+          "treatment_score": 0.85,
+          "audience_fit_score": 0.7,
+          "thresholds": {
+            "subject_score": 0.55,
+            "atmosphere_score": 0.55,
+            "motif_score": 0.55,
+            "audience_fit_score": 0.55
+          },
+          "decision": "pass",
+          "reason": "Subject: Lush foliage and botanical elements dominate the frame, consistent with requested 'Botanical garden' subject. Atmosphere: Warm and elegant, with soft, muted colors creating a peaceful feel. Motif: Strong, cohesive motif of foliage and flowers, supporting the requested 'lush foliage, botanic",
+          "observed_evidence": [
+            "Border of dense green foliage with white flowers",
+            "Central open space with soft gradient background",
+            "Consistent botanical motif (branches, leaves, flowers) throughout frame",
+            "No visible literal objects (buildings, people, text)"
+          ],
+          "model": "minicpm-v4.5:latest",
+          "failure_category": null,
+          "dimension_availability": {
+            "subject_score": "PASS",
+            "atmosphere_score": "PASS",
+            "motif_score": "PASS",
+            "audience_fit_score": "PASS"
+          },
+          "failed_dimensions": [],
+          "background_usability_score": 0.9,
+          "vision_human_signal": false,
+          "vision_debug": {
+            "endpoint": "/api/chat",
+            "model": "minicpm-v4.5:latest",
+            "score_parsing": [
+              {
+                "dimension_name": "subject_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.95,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "atmosphere_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "motif_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.95,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "treatment_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "audience_fit_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.7,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "background_usability_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.9,
+                "parse_failure_reason": null
+              }
+            ],
+            "thinking_present": false,
+            "thinking_preview_length": 0,
+            "response_length": 1625,
+            "final_source": "message.content",
+            "raw_text_preview": "<omitted>",
+            "assessment_attempts": 1,
+            "http_status": 200,
+            "response_content_type": "application/json; charset=utf-8",
+            "response_shape": [
+              "created_at",
+              "done",
+              "done_reason",
+              "eval_count",
+              "eval_duration",
+              "load_duration",
+              "message",
+              "model",
+              "prompt_eval_count",
+              "prompt_eval_duration",
+              "total_duration"
+            ],
+            "unconfirmed_human_report": false
+          },
+          "hard_dimensions": [
+            "subject_score"
+          ],
+          "hard_failed_dimensions": [],
+          "compound_fidelity_failure": false,
+          "human_description": "",
+          "vision_text_signal": false,
+          "vision_text_evidence": "",
+          "unrequested_literal_object_visible": false
+        }
+      },
+      "subject_adherence": {
+        "checked": true,
+        "score": 0.95,
+        "threshold": 0.55,
+        "subject": "Botanical garden",
+        "anchors": [],
+        "model": "minicpm-v4.5:latest",
+        "decision": "pass",
+        "reason": "Subject: Lush foliage and botanical elements dominate the frame, consistent with requested 'Botanical garden' subject. Atmosphere: Warm and elegant, with soft, muted colors creating a peaceful feel. Motif: Strong, cohesive motif of foliage and flowers, supporting the requested 'lush foliage, botanic",
+        "subject_score": 0.95,
+        "atmosphere_score": 0.85,
+        "motif_score": 0.95,
+        "treatment_score": 0.85,
+        "audience_fit_score": 0.7,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "observed_evidence": [
+          "Border of dense green foliage with white flowers",
+          "Central open space with soft gradient background",
+          "Consistent botanical motif (branches, leaves, flowers) throughout frame",
+          "No visible literal objects (buildings, people, text)"
+        ],
+        "background_usability_score": 0.9,
+        "vision_human_signal": false,
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false,
+        "failure_category": null,
+        "compound_fidelity_failure": false,
+        "hard_dimensions": [
+          "subject_score"
+        ],
+        "hard_failed_dimensions": [],
+        "failed_dimensions": [],
+        "human_description": "",
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.95,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.95,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.7,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1625,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        }
+      },
+      "direction_similarity_diagnostics": {
+        "similarity": 0.0,
+        "closest_peer": null,
+        "peer_comparisons": []
+      },
+      "palette_metrics": null,
+      "text_detection": {
+        "text_detected": false,
+        "pseudo_text": {
+          "detected": false,
+          "aligned_rows": 0,
+          "glyph_components": 91,
+          "structured_components": 87,
+          "geometry_suppressed": false
+        },
+        "tokens": [],
+        "confirmed_tokens": [],
+        "text_lines": [],
+        "max_confidence": 0,
+        "confirmation_passes": [],
+        "text_area_ratio": 0,
+        "evidence": [],
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 4,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        }
+      },
+      "human_detection": {
+        "people": [],
+        "evidence": [],
+        "strong_signals": [],
+        "weak_signals": [],
+        "overlaps": [],
+        "people_weights": [],
+        "faces": [],
+        "profiles": [],
+        "upper_bodies": [],
+        "strong_upper_body_signal": false,
+        "ambiguous_face_signal": false,
+        "detected": false,
+        "human_detection_confidence": "low",
+        "human_detection_reason": "isolated detector patterns without independent confirmation",
+        "largest_detection_area_ratio": 0.0,
+        "classical_human_signal": false,
+        "vision_human_signal": false,
+        "combined_human_decision": false,
+        "decision_reason": "no human evidence"
+      },
+      "quality_metrics": null,
+      "retry_stage": "normal",
+      "spec_sha256": "21d679b3bed57f69d6ed9083546e2593701abfe9459711d879dffbf690d01d15",
+      "direction_role": "Creative Director",
+      "compiled_prompt": {
+        "positive": "Background inspiration: Botanical garden. Visual motif: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere. Motif as abstract pattern structure; no unrequested literal objects. Brief anchors: . Composition: Use an asymmetric-cluster composition to balance a dominant motif in the right lower area with quieter regions, emphasizing visual interest.. Focal strategy: Place the focal point in the right lower quadrant to draw the viewer's attention to that area, creating a sense of depth and intrigue.. Depth strategy: Employ a shallow depth plan to keep the scene coherent and uncluttered, with minimal layered elements.. Perimeter strategy: Use an open perimeter to create a sense of space and continuity, avoiding a framed look.. Preserve intentional negative space as integrated low-detail visual breathing room according to Position the visual calm in the upper portion of the scene to maintain clarity and avoid overlapping with the focal point.; Place the visual calm visual calm in the lower portion, ensuring it is easily accessible and does not interfere with the main visual elements.. Use natural visual hierarchy, breathing room and spatial balance with controlled subject concentration. Design language: Materials: organic materials. Texture: natural textures. Lighting: soft and natural. Palette: green, cream; dominant palette; green clearly visible in substantial design elements; cream clearly visible in substantial design elements; requested colour families own principal surfaces and visual mass; both requested families remain substantial; neutrals support only fine linework, shading and highlights; natural tonal variation within requested families; no large unrequested chromatic region. Visual hierarchy: the subject is present without saturating the frame; coherent large forms, limited mid-size forms and concentrated small detail. Large forms establish the subject, medium forms carry motif topology, small details support texture. Preserve integrated low-detail breathing room and readable depth; avoid uniformly distributed micro-detail. Motif prominence is supporting. Lighting, contrast and edge character should express the requested atmosphere and audience without changing the subject. Keep the result usable as background artwork rather than a crowded standalone illustration. Event atmosphere: warm and elegant, peaceful. Audience fit: adults. environment-only composition. Desired lighting: soft and natural. Supporting motif topology visibly follows: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere.. Use only brief-grounded subject and motif content with this direction's spatial strategies. Pure visual background artwork with a clear subject and natural low-detail breathing room. Continuous scene surfaces and integrated calm areas.",
+        "negative": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, urban or industrial settings, bright or harsh lighting",
+        "clip_l": "Background artwork. Visual subject: Botanical garden. Event context: . Audience: adults.",
+        "clip_g": "Background artwork. Visual subject: Botanical garden. Event context: . Audience: adults. Visual motif: The motif of lush foliage and botanical elements should be consistent throughout the background. Event atmosphere: warm and elegant, peaceful. Desired lighting: soft and natural. Composition: Use an asymmetric-cluster composition to balance a dominant motif in. Focal: Place the focal point in the right lower. Depth: Employ a shallow depth plan to keep the. Palette: green, cream; green clearly visible in substantial design elements; cream clearly visible.",
+        "t5": "Visual subject and environment: Botanical garden. Visual anchors: . Event context: . Audience: adults. Event atmosphere: warm and elegant, peaceful. environment-only composition. Desired lighting: soft and natural. Composition and spatial depth: Use an asymmetric-cluster composition to balance a dominant motif in the right lower area with quieter regions, emphasizing visual interest.. Focal strategy: Place the focal point in the right lower quadrant to draw the viewer's attention to that area, creating a sense of depth and intrigue.. Depth strategy: Employ a shallow depth plan to keep the scene coherent and uncluttered, with minimal layered elements.. Perimeter strategy: Use an open perimeter to create a sense of space and continuity, avoiding a framed look.. Preserve intentional negative space as integrated low-detail visual breathing room according to Position the visual calm in the upper portion of the scene to maintain clarity and avoid overlapping with the focal point.; Place the visual calm visual calm in the lower portion, ensuring it is easily accessible and does not interfere with the main visual elements.. Use natural visual hierarchy, breathing room and spatial balance with controlled subject concentration. Supporting motif topology visibly follows: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere.. Palette: green, cream; dominant palette; green clearly visible in substantial design elements; cream clearly visible in substantial design elements; requested colour families own principal surfaces and visual mass; both requested families remain substantial; neutrals support only fine linework, shading and highlights; natural tonal variation within requested families; no large unrequested chromatic region. moderate density; large subject forms, readable motif, concentrated detail, calm visual space. Decorative background artwork with continuous image surfaces. Design language: Materials: organic materials. Texture: natural textures. Lighting: soft and natural.",
+        "negative_prompt_channel_active": true,
+        "negative_semantics_preserved": true,
+        "incompatible_treatments": [
+          "urban or industrial settings",
+          "bright or harsh lighting"
+        ],
+        "semantic_contract_sha256": "5aa859662f73aa9944a2c5847676dc96d61f8c78f668cb057da595e6195d1bad",
+        "conditioning_coverage": {
+          "subject": [
+            "positive",
+            "clip_l",
+            "clip_g",
+            "t5"
+          ],
+          "atmosphere": [
+            "positive",
+            "clip_g",
+            "t5"
+          ],
+          "audience": [
+            "positive",
+            "clip_l",
+            "clip_g",
+            "t5"
+          ],
+          "motif": [
+            "positive",
+            "t5"
+          ],
+          "treatment": [],
+          "palette": [
+            "positive",
+            "clip_g",
+            "t5"
+          ],
+          "scene_family": [],
+          "event_context": [],
+          "incompatible_treatments": [
+            "negative"
+          ]
+        },
+        "engine_capabilities": {
+          "negative_prompt_channel": true,
+          "multi_encoder": true,
+          "long_context_encoder": true,
+          "supports_shift": true
+        },
+        "prompt_budget": {
+          "positive": {
+            "characters": 2973,
+            "approx_tokens": 409,
+            "budget_risk": false
+          },
+          "negative": {
+            "characters": 161,
+            "approx_tokens": 21,
+            "budget_risk": false
+          },
+          "clip_l": {
+            "characters": 88,
+            "approx_tokens": 11,
+            "budget_risk": false
+          },
+          "clip_g": {
+            "characters": 561,
+            "approx_tokens": 80,
+            "budget_risk": true
+          },
+          "t5": {
+            "characters": 2100,
+            "approx_tokens": 292,
+            "budget_risk": true
+          }
+        },
+        "truncated": false,
+        "retry_strength_level": "BASE"
+      },
+      "sampling_profile": {
+        "name": "alternate_sampler",
+        "steps": 28,
+        "cfg": 4.0,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "sgm_uniform",
+        "shift": null,
+        "shift_mode": "checkpoint_default"
+      },
+      "selection_reason": "INITIAL: alternate_sampler",
+      "failure_history": {
+        "counts": {},
+        "consecutive_category": "INITIAL",
+        "consecutive_count": 0
+      },
+      "renderer_recovery_type": "baseline",
+      "outcome_category": "PALETTE_OFF",
+      "template_conditioning": {
+        "enabled": false,
+        "masked_denoising_enabled": false
+      },
+      "template_adherence": null,
+      "quality_evaluation": null,
+      "validator_availability": null,
+      "reproducibility_manifest": {
+        "reference": "0BB686-825578",
+        "source_reference": "4D50E8-667425",
+        "semantic_contract_version": "1.0",
+        "semantic_contract_sha256": "5aa859662f73aa9944a2c5847676dc96d61f8c78f668cb057da595e6195d1bad",
+        "candidate_spec_sha256": "21d679b3bed57f69d6ed9083546e2593701abfe9459711d879dffbf690d01d15",
+        "engine": "sd-3-5-medium",
+        "engine_models": [
+          "clip_g.safetensors",
+          "clip_l.safetensors",
+          "sd3.5_medium.safetensors",
+          "t5xxl_fp8_e4m3fn.safetensors"
+        ],
+        "workflow_sha256": "0c3c86b0c558c1a5df1c7b14506378cce08a44508ee190082383682548fbe1ce",
+        "effective_workflow_values": {
+          "workflow_sha256": "0c3c86b0c558c1a5df1c7b14506378cce08a44508ee190082383682548fbe1ce",
+          "checkpoint": "sd3.5_medium.safetensors",
+          "clip_l": "clip_l.safetensors",
+          "clip_g": "clip_g.safetensors",
+          "t5": "t5xxl_fp8_e4m3fn.safetensors",
+          "vae": [
+            "4",
+            2
+          ],
+          "sampler": "dpmpp_2m",
+          "scheduler": "sgm_uniform",
+          "cfg": 4.0,
+          "steps": 28,
+          "shift": null,
+          "width": 896,
+          "height": 1280,
+          "seed": 20261009,
+          "positive_route": [
+            "16",
+            0
+          ],
+          "negative_route": [
+            "40",
+            0
+          ],
+          "model_route": [
+            "4",
+            0
+          ]
+        },
+        "direction": "C",
+        "sampling_profile": "alternate_sampler",
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "sgm_uniform",
+        "cfg": 4.0,
+        "steps": 28,
+        "shift": null,
+        "width": 896,
+        "height": 1280,
+        "seed": 20261009,
+        "compiled_prompt_sha256": {
+          "positive": "0773d2507d0a9ac88768a62b234d63fad53f9513f30badae800be9fec57db5cf",
+          "negative": "0d85877dc3aebf891bf4f516c811dfc0af8a8f9a10440e4302f47217f3a30e67",
+          "clip_l": "b03f39f358c7152e1ed91915193f4dbcb9abda08602fd9d4ef8b8d988549715c",
+          "clip_g": "ed0a988d97d63290945e45eee156b1b1da11c0bb848df852e12346c78d592cc4",
+          "t5": "c8174d905912529b492dc826be48520e4614a12535cd320a41f6a519727bf16d"
+        },
+        "conditioning_lengths": {
+          "positive": {
+            "characters": 2973,
+            "approx_tokens": 409,
+            "budget_risk": false
+          },
+          "negative": {
+            "characters": 161,
+            "approx_tokens": 21,
+            "budget_risk": false
+          },
+          "clip_l": {
+            "characters": 88,
+            "approx_tokens": 11,
+            "budget_risk": false
+          },
+          "clip_g": {
+            "characters": 561,
+            "approx_tokens": 80,
+            "budget_risk": true
+          },
+          "t5": {
+            "characters": 2100,
+            "approx_tokens": 292,
+            "budget_risk": true
+          }
+        },
+        "vision_model": "minicpm-v4.5:latest",
+        "ocr_config": {
+          "timeout_seconds": 7.0
+        },
+        "validator_version": null,
+        "retry_attempt": 1,
+        "retry_stage": "normal",
+        "failure_history": {
+          "counts": {},
+          "consecutive_category": "INITIAL",
+          "consecutive_count": 0
+        },
+        "image_sha256": null
+      }
+    }
+  ],
+  "prompt_id": "830087a7-ef37-4304-a924-eaca75490366",
+  "palette_recovery": {
+    "eligible": false,
+    "attempted": false,
+    "source_off_palette_ratio": 0.9944513494318182,
+    "result": "not_attempted",
+    "failure_reason": "Palette-only recovery conditions were not met",
+    "normalized_off_palette_ratio": null,
+    "edge_geometry_similarity": null,
+    "structural_detail_preserved": null
+  },
+  "direction_similarity_score": 0.0,
+  "direction_similarity": 0.0,
+  "direction_similarity_diagnostics": {
+    "similarity": 0.0,
+    "closest_peer": null,
+    "peer_comparisons": []
+  },
+  "subject_adherence": {
+    "checked": true,
+    "score": 0.7,
+    "threshold": 0.55,
+    "subject": "Botanical garden",
+    "anchors": [],
+    "model": "minicpm-v4.5:latest",
+    "decision": "pass",
+    "reason": "The background successfully evokes a botanical garden through a consistent motif of lush foliage (supporting motif prominence). The atmosphere is peaceful and elegant, fitting the requested warm and elegant, peaceful mood. The motif topology is coherent, with botanical elements as the primary motif.",
+    "subject_score": 0.7,
+    "atmosphere_score": 0.8,
+    "motif_score": 1.0,
+    "treatment_score": 0.8,
+    "audience_fit_score": 0.8,
+    "thresholds": {
+      "subject_score": 0.55,
+      "atmosphere_score": 0.55,
+      "motif_score": 0.55,
+      "audience_fit_score": 0.55
+    },
+    "observed_evidence": [
+      "repeated leaf motifs (maple-like or similar botanical)",
+      "solid dark green background"
+    ],
+    "background_usability_score": 0.7,
+    "vision_human_signal": false,
+    "vision_text_signal": false,
+    "vision_text_evidence": "",
+    "unrequested_literal_object_visible": false,
+    "failure_category": null,
+    "compound_fidelity_failure": false,
+    "hard_dimensions": [
+      "subject_score"
+    ],
+    "hard_failed_dimensions": [],
+    "failed_dimensions": [],
+    "human_description": "",
+    "dimension_availability": {
+      "subject_score": "PASS",
+      "atmosphere_score": "PASS",
+      "motif_score": "PASS",
+      "audience_fit_score": "PASS"
+    },
+    "vision_debug": {
+      "endpoint": "/api/chat",
+      "model": "minicpm-v4.5:latest",
+      "score_parsing": [
+        {
+          "dimension_name": "subject_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.7,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "atmosphere_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.8,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "motif_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 1.0,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "treatment_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.8,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "audience_fit_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.8,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "background_usability_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.7,
+          "parse_failure_reason": null
+        }
+      ],
+      "thinking_present": false,
+      "thinking_preview_length": 0,
+      "response_length": 1188,
+      "final_source": "message.content",
+      "raw_text_preview": "<omitted>",
+      "assessment_attempts": 1,
+      "http_status": 200,
+      "response_content_type": "application/json; charset=utf-8",
+      "response_shape": [
+        "created_at",
+        "done",
+        "done_reason",
+        "eval_count",
+        "eval_duration",
+        "load_duration",
+        "message",
+        "model",
+        "prompt_eval_count",
+        "prompt_eval_duration",
+        "total_duration"
+      ],
+      "unconfirmed_human_report": false
+    }
+  },
+  "brief_fidelity": {
+    "checked": true,
+    "subject_score": 0.7,
+    "atmosphere_score": 0.8,
+    "motif_score": 1.0,
+    "treatment_score": 0.8,
+    "audience_fit_score": 0.8,
+    "thresholds": {
+      "subject_score": 0.55,
+      "atmosphere_score": 0.55,
+      "motif_score": 0.55,
+      "audience_fit_score": 0.55
+    },
+    "decision": "pass",
+    "reason": "The background successfully evokes a botanical garden through a consistent motif of lush foliage (supporting motif prominence). The atmosphere is peaceful and elegant, fitting the requested warm and elegant, peaceful mood. The motif topology is coherent, with botanical elements as the primary motif.",
+    "observed_evidence": [
+      "repeated leaf motifs (maple-like or similar botanical)",
+      "solid dark green background"
+    ],
+    "model": "minicpm-v4.5:latest",
+    "failure_category": null,
+    "dimension_availability": {
+      "subject_score": "PASS",
+      "atmosphere_score": "PASS",
+      "motif_score": "PASS",
+      "audience_fit_score": "PASS"
+    },
+    "failed_dimensions": [],
+    "background_usability_score": 0.7,
+    "vision_human_signal": false,
+    "vision_debug": {
+      "endpoint": "/api/chat",
+      "model": "minicpm-v4.5:latest",
+      "score_parsing": [
+        {
+          "dimension_name": "subject_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.7,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "atmosphere_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.8,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "motif_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 1.0,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "treatment_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.8,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "audience_fit_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.8,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "background_usability_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.7,
+          "parse_failure_reason": null
+        }
+      ],
+      "thinking_present": false,
+      "thinking_preview_length": 0,
+      "response_length": 1188,
+      "final_source": "message.content",
+      "raw_text_preview": "<omitted>",
+      "assessment_attempts": 1,
+      "http_status": 200,
+      "response_content_type": "application/json; charset=utf-8",
+      "response_shape": [
+        "created_at",
+        "done",
+        "done_reason",
+        "eval_count",
+        "eval_duration",
+        "load_duration",
+        "message",
+        "model",
+        "prompt_eval_count",
+        "prompt_eval_duration",
+        "total_duration"
+      ],
+      "unconfirmed_human_report": false
+    },
+    "hard_dimensions": [
+      "subject_score"
+    ],
+    "hard_failed_dimensions": [],
+    "compound_fidelity_failure": false,
+    "human_description": "",
+    "vision_text_signal": false,
+    "vision_text_evidence": "",
+    "unrequested_literal_object_visible": false
+  },
+  "semantic_dimension_scores": {
+    "subject_score": 0.7,
+    "atmosphere_score": 0.8,
+    "motif_score": 1.0,
+    "treatment_score": 0.8,
+    "audience_fit_score": 0.8,
+    "unrequested_literal_object_visible": false,
+    "unrequested_text_visible": null
+  },
+  "semantic_failed_dimensions": [],
+  "boilerplate_score": 0.0005189293919316972,
+  "entropy": 3.9920246601104736,
+  "high_pass_mean": 2.018265962600708,
+  "ocr_tokens": [],
+  "text_detection": {
+    "text_detected": false,
+    "pseudo_text": {
+      "detected": false,
+      "aligned_rows": 0,
+      "glyph_components": 4,
+      "structured_components": 4,
+      "geometry_suppressed": false
+    },
+    "tokens": [],
+    "confirmed_tokens": [],
+    "text_lines": [],
+    "max_confidence": 0,
+    "confirmation_passes": [],
+    "text_area_ratio": 0,
+    "evidence": [],
+    "ocr_diagnostics": {
+      "attempted": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "completed_variants": [],
+      "timed_out_variants": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "failed_variants": [],
+      "failure_reasons": {
+        "original": "RuntimeError: Tesseract process timeout",
+        "contrast": "RuntimeError: Tesseract process timeout",
+        "threshold": "RuntimeError: Tesseract process timeout",
+        "inverted": "RuntimeError: Tesseract process timeout"
+      },
+      "completed_variant_count": 0,
+      "required_variant_count": 2,
+      "enhancement_variant_failures": [
+        "threshold",
+        "inverted"
+      ],
+      "evidence_sufficiency": false,
+      "decision": "OCR_UNAVAILABLE"
+    }
+  },
+  "ocr_diagnostics": {
+    "attempted": [
+      "original",
+      "contrast",
+      "threshold",
+      "inverted"
+    ],
+    "completed_variants": [],
+    "timed_out_variants": [
+      "original",
+      "contrast",
+      "threshold",
+      "inverted"
+    ],
+    "failed_variants": [],
+    "failure_reasons": {
+      "original": "RuntimeError: Tesseract process timeout",
+      "contrast": "RuntimeError: Tesseract process timeout",
+      "threshold": "RuntimeError: Tesseract process timeout",
+      "inverted": "RuntimeError: Tesseract process timeout"
+    },
+    "completed_variant_count": 0,
+    "required_variant_count": 2,
+    "enhancement_variant_failures": [
+      "threshold",
+      "inverted"
+    ],
+    "evidence_sufficiency": false,
+    "decision": "OCR_UNAVAILABLE"
+  },
+  "ocr_validation_attempts": 2,
+  "ocr_validation_sha256": "0c1c45d37f5becd6ffa21747f4b0b2eef125bd3dcae81358920c660776d5bebb",
+  "ocr_detected": false,
+  "pseudo_text_evidence": {
+    "detected": false,
+    "aligned_rows": 0,
+    "glyph_components": 4,
+    "structured_components": 4,
+    "geometry_suppressed": false
+  },
+  "ocr_region_count": 0,
+  "human_detection": {
+    "people": [],
+    "evidence": [],
+    "strong_signals": [],
+    "weak_signals": [],
+    "overlaps": [],
+    "people_weights": [],
+    "faces": [],
+    "profiles": [],
+    "upper_bodies": [],
+    "strong_upper_body_signal": false,
+    "ambiguous_face_signal": false,
+    "detected": false,
+    "human_detection_confidence": "low",
+    "human_detection_reason": "isolated detector patterns without independent confirmation",
+    "largest_detection_area_ratio": 0.0,
+    "classical_human_signal": false,
+    "vision_human_signal": false,
+    "combined_human_decision": false,
+    "decision_reason": "no human evidence"
+  },
+  "human_detection_confidence": "low",
+  "human_detection_evidence": [],
+  "classical_human_signal": false,
+  "vision_human_signal": false,
+  "combined_human_decision": false,
+  "decision_reason": "no human evidence",
+  "visual_quality_checked": true,
+  "visual_quality_passed": true,
+  "macro_structure_score": 0.4857142857142857,
+  "coarse_edge_density": 0.1597222222222222,
+  "edge_density": 0.13215775923295456,
+  "structural_edge_density": 0.09737881747159091,
+  "horizontal_edge_density": 0.025057705965909092,
+  "vertical_edge_density": 0.03856312144886364,
+  "directional_edge_dominance": 0.2917961205810731,
+  "full_span_line_ratio": 0.00390625,
+  "fine_horizontal_pair_ratio": 0.022673964034401875,
+  "fine_vertical_pair_ratio": 0.21899441340782122,
+  "fine_line_pair_ratio": 0.21899441340782122,
+  "fine_line_mean_delta": 13.271639823913574,
+  "image_entropy": 3.9920246601104736,
+  "largest_quantised_colour_ratio": 0.7658358487215909,
+  "laplacian_variance": 178.33338928222656,
+  "highpass_mean": 2.018265962600708,
+  "coherent_edge_ratio": 0.9694130614494351,
+  "center_structural_edge_density": 0.10778592448501172,
+  "outer_structural_edge_density": 0.08903507018034951,
+  "center_local_contrast": 9.333946228027344,
+  "title_structural_edge_density": 0.13058720420683612,
+  "title_local_contrast": 10.28182601928711,
+  "programme_structural_edge_density": 0.10272001737336446,
+  "programme_local_contrast": 8.742177963256836,
+  "center_to_outer_edge_ratio": 1.2106007696369583,
+  "center_safe_region_passed": false,
+  "title_panel_score": 0.0,
+  "largest_flat_rectangle_ratio": 0.0,
+  "flat_rectangular_coverage_ratio": 0.0,
+  "flat_coverage_ratio": 0.6761807528409091,
+  "long_axis_separator_ratio": 0.0,
+  "large_flat_rectangle_count": 0.0,
+  "centre_edge_density": 0.0,
+  "perimeter_edge_density": 0.00011837121212121212,
+  "centre_flat_ratio": 0.6358309659090909,
+  "bilateral_symmetry": 0.9932359457015991,
+  "irregular_frame_score": 0.0005189293919316972,
+  "lower_centre_edge_density": 0.0,
+  "quiet_centre_evidence": 0.6358309659090909,
+  "scene_density": {
+    "requested_density": "moderate",
+    "overall_edge_density": 0.0566,
+    "tile_edge_fractions": [
+      0.0278,
+      0.0496,
+      0.0522,
+      0.0562,
+      0.0706,
+      0.0618,
+      0.0747,
+      0.0493,
+      0.0315,
+      0.0737,
+      0.0481,
+      0.0793,
+      0.0764,
+      0.0439,
+      0.0549,
+      0.0557
+    ],
+    "occupied_tile_fraction": 0.0,
+    "quiet_tile_fraction": 0.125,
+    "safe_region_density": 0.0646,
+    "edge_distribution_balance": 0.0149,
+    "macro_form_balance": 1.0,
+    "normalized_measurements": {
+      "density_pressure": 0.3432
+    },
+    "thresholds_used": {
+      "density_pressure": 0.85,
+      "max_quiet_tile_fraction": 0.0625,
+      "occupied_tile_edge_fraction": 0.1,
+      "quiet_tile_edge_fraction": 0.04
+    },
+    "density_rule_triggered": null,
+    "decision": "PASS"
+  },
+  "global_density_decision": "PASS",
+  "macro_form_balance": 1.0,
+  "explicit_safe_regions": {
+    "decision": "PASS",
+    "regions": {}
+  },
+  "explicit_safe_region_decision": "PASS",
+  "palette_checked": false,
+  "off_palette_ratio": 0.9944513494318182,
+  "perceptual_in_family_ratio": 0.005548650568181768,
+  "unrelated_hue_ratio": 0.9944513494318182,
+  "requested_chromatic_ratio": 0.005548650568181818,
+  "structural_neutral_ratio": 0.0,
+  "unrequested_chromatic_ratio": 0.9944513494318182,
+  "largest_unrequested_region_ratio": 0.9944513494318182,
+  "primary_ratio": 0.005104758522727273,
+  "secondary_ratio": 0.00044389204545454544,
+  "requested_palette_mode": "dominant",
+  "tonal_derivative_ratio": 0.005548650568181818,
+  "primary_presence_ratio": 0.005104758522727273,
+  "secondary_presence_ratio": 0.00044389204545454544,
+  "requested_colour_family_counts": {
+    "green": 115,
+    "cream": 10
+  },
+  "accepted_tonal_breakdown": {
+    "green": 0.005104758522727273,
+    "cream": 0.00044389204545454544
+  },
+  "unrequested_colour_breakdown": {
+    "forest green": 0.8366033380681818,
+    "brown": 0.15758167613636365,
+    "charcoal": 0.00026633522727272725
+  },
+  "validation": {
+    "decision": "rejected",
+    "failure_category": "OCR_TIMEOUT",
+    "diagnostic_findings": [],
+    "palette": {
+      "mode": "dominant",
+      "palette_match_ratio": null,
+      "off_palette_ratio": 0.9944513494318182,
+      "primary_ratio": 0.005104758522727273,
+      "secondary_ratio": 0.00044389204545454544,
+      "requested_chromatic_ratio": 0.005548650568181818,
+      "neutral_ratio": 0.0,
+      "unrequested_chromatic_ratio": 0.9944513494318182,
+      "largest_unrequested_region_ratio": 0.9944513494318182,
+      "primary_secondary_ratio": null,
+      "secondary_presence": null,
+      "dominance_relationship": null,
+      "dominance_relationship_passed": null
+    },
+    "text": {
+      "ocr_diagnostics": {
+        "attempted": [
+          "original",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "completed_variants": [],
+        "timed_out_variants": [
+          "original",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "failed_variants": [],
+        "failure_reasons": {
+          "original": "RuntimeError: Tesseract process timeout",
+          "contrast": "RuntimeError: Tesseract process timeout",
+          "threshold": "RuntimeError: Tesseract process timeout",
+          "inverted": "RuntimeError: Tesseract process timeout"
+        },
+        "completed_variant_count": 0,
+        "required_variant_count": 2,
+        "enhancement_variant_failures": [
+          "threshold",
+          "inverted"
+        ],
+        "evidence_sufficiency": false,
+        "decision": "OCR_UNAVAILABLE"
+      },
+      "detected": false,
+      "tokens": [],
+      "confirmed_tokens": [],
+      "text_lines": [],
+      "text_area_ratio": 0
+    },
+    "human": {
+      "detected": false,
+      "strong_signals": [],
+      "weak_signals": [],
+      "decision_reason": "no human evidence"
+    },
+    "quality": {
+      "structural_edge_density": 0.09737881747159091,
+      "macro_structure_score": 0.4857142857142857,
+      "coarse_edge_density": 0.1597222222222222,
+      "high_pass_mean": 2.018265962600708,
+      "boilerplate_score": 0.0005189293919316972,
+      "title_panel_score": 0.0,
+      "fine_line_pair_ratio": 0.21899441340782122,
+      "macro_form_balance": 1.0,
+      "scene_density": {
+        "requested_density": "moderate",
+        "overall_edge_density": 0.0566,
+        "tile_edge_fractions": [
+          0.0278,
+          0.0496,
+          0.0522,
+          0.0562,
+          0.0706,
+          0.0618,
+          0.0747,
+          0.0493,
+          0.0315,
+          0.0737,
+          0.0481,
+          0.0793,
+          0.0764,
+          0.0439,
+          0.0549,
+          0.0557
+        ],
+        "occupied_tile_fraction": 0.0,
+        "quiet_tile_fraction": 0.125,
+        "safe_region_density": 0.0646,
+        "edge_distribution_balance": 0.0149,
+        "macro_form_balance": 1.0,
+        "normalized_measurements": {
+          "density_pressure": 0.3432
+        },
+        "thresholds_used": {
+          "density_pressure": 0.85,
+          "max_quiet_tile_fraction": 0.0625,
+          "occupied_tile_edge_fraction": 0.1,
+          "quiet_tile_edge_fraction": 0.04
+        },
+        "density_rule_triggered": null,
+        "decision": "PASS"
+      },
+      "global_density_decision": "PASS",
+      "explicit_safe_regions": {
+        "decision": "PASS",
+        "regions": {}
+      },
+      "explicit_safe_region_decision": "PASS",
+      "raster_score": 0.21899441340782122
+    },
+    "brief_fidelity": {
+      "checked": true,
+      "subject_score": 0.7,
+      "atmosphere_score": 0.8,
+      "motif_score": 1.0,
+      "treatment_score": 0.8,
+      "audience_fit_score": 0.8,
+      "thresholds": {
+        "subject_score": 0.55,
+        "atmosphere_score": 0.55,
+        "motif_score": 0.55,
+        "audience_fit_score": 0.55
+      },
+      "decision": "pass",
+      "reason": "The background successfully evokes a botanical garden through a consistent motif of lush foliage (supporting motif prominence). The atmosphere is peaceful and elegant, fitting the requested warm and elegant, peaceful mood. The motif topology is coherent, with botanical elements as the primary motif.",
+      "observed_evidence": [
+        "repeated leaf motifs (maple-like or similar botanical)",
+        "solid dark green background"
+      ],
+      "model": "minicpm-v4.5:latest",
+      "failure_category": null,
+      "dimension_availability": {
+        "subject_score": "PASS",
+        "atmosphere_score": "PASS",
+        "motif_score": "PASS",
+        "audience_fit_score": "PASS"
+      },
+      "failed_dimensions": [],
+      "background_usability_score": 0.7,
+      "vision_human_signal": false,
+      "vision_debug": {
+        "endpoint": "/api/chat",
+        "model": "minicpm-v4.5:latest",
+        "score_parsing": [
+          {
+            "dimension_name": "subject_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.7,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "atmosphere_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.8,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "motif_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 1.0,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "treatment_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.8,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "audience_fit_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.8,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "background_usability_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.7,
+            "parse_failure_reason": null
+          }
+        ],
+        "thinking_present": false,
+        "thinking_preview_length": 0,
+        "response_length": 1188,
+        "final_source": "message.content",
+        "raw_text_preview": "<omitted>",
+        "assessment_attempts": 1,
+        "http_status": 200,
+        "response_content_type": "application/json; charset=utf-8",
+        "response_shape": [
+          "created_at",
+          "done",
+          "done_reason",
+          "eval_count",
+          "eval_duration",
+          "load_duration",
+          "message",
+          "model",
+          "prompt_eval_count",
+          "prompt_eval_duration",
+          "total_duration"
+        ],
+        "unconfirmed_human_report": false
+      },
+      "hard_dimensions": [
+        "subject_score"
+      ],
+      "hard_failed_dimensions": [],
+      "compound_fidelity_failure": false,
+      "human_description": "",
+      "vision_text_signal": false,
+      "vision_text_evidence": "",
+      "unrequested_literal_object_visible": false
+    }
+  },
+  "primary_failure_category": "OCR_TIMEOUT",
+  "all_failure_categories": [
+    "OCR_TIMEOUT",
+    "PALETTE_OFF"
+  ],
+  "safe_region_retry": {
+    "previous_score": null,
+    "current_score": null,
+    "improved": null
+  },
+  "rejection_reason": "OCR_TIMEOUT: text validation did not complete",
+  "outcome_category": "OCR_TIMEOUT",
+  "error": null,
+  "remote_image": {
+    "filename": "c_00002_.png",
+    "subfolder": "programme-studio/0BB686-825578/sd-3-5-medium",
+    "type": "output"
+  },
+  "rejected_image_path": "/home/ntlhari/NerdCode/programme-studio/data/programmes/0BB686-825578/backgrounds/sd-3-5-medium/image-c.attempt-02.rejected.png",
+  "secondary_failure_categories": [
+    "PALETTE_OFF"
+  ],
+  "retry_failure_category": "PALETTE_OFF",
+  "decision": "rejected",
+  "final_validation": {
+    "decision": "rejected",
+    "failure_category": "OCR_TIMEOUT",
+    "diagnostic_findings": [],
+    "palette": {
+      "mode": "dominant",
+      "palette_match_ratio": null,
+      "off_palette_ratio": 0.9944513494318182,
+      "primary_ratio": 0.005104758522727273,
+      "secondary_ratio": 0.00044389204545454544,
+      "requested_chromatic_ratio": 0.005548650568181818,
+      "neutral_ratio": 0.0,
+      "unrequested_chromatic_ratio": 0.9944513494318182,
+      "largest_unrequested_region_ratio": 0.9944513494318182,
+      "primary_secondary_ratio": null,
+      "secondary_presence": null,
+      "dominance_relationship": null,
+      "dominance_relationship_passed": null
+    },
+    "text": {
+      "ocr_diagnostics": {
+        "attempted": [
+          "original",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "completed_variants": [],
+        "timed_out_variants": [
+          "original",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "failed_variants": [],
+        "failure_reasons": {
+          "original": "RuntimeError: Tesseract process timeout",
+          "contrast": "RuntimeError: Tesseract process timeout",
+          "threshold": "RuntimeError: Tesseract process timeout",
+          "inverted": "RuntimeError: Tesseract process timeout"
+        },
+        "completed_variant_count": 0,
+        "required_variant_count": 2,
+        "enhancement_variant_failures": [
+          "threshold",
+          "inverted"
+        ],
+        "evidence_sufficiency": false,
+        "decision": "OCR_UNAVAILABLE"
+      },
+      "detected": false,
+      "tokens": [],
+      "confirmed_tokens": [],
+      "text_lines": [],
+      "text_area_ratio": 0
+    },
+    "human": {
+      "detected": false,
+      "strong_signals": [],
+      "weak_signals": [],
+      "decision_reason": "no human evidence"
+    },
+    "quality": {
+      "structural_edge_density": 0.09737881747159091,
+      "macro_structure_score": 0.4857142857142857,
+      "coarse_edge_density": 0.1597222222222222,
+      "high_pass_mean": 2.018265962600708,
+      "boilerplate_score": 0.0005189293919316972,
+      "title_panel_score": 0.0,
+      "fine_line_pair_ratio": 0.21899441340782122,
+      "macro_form_balance": 1.0,
+      "scene_density": {
+        "requested_density": "moderate",
+        "overall_edge_density": 0.0566,
+        "tile_edge_fractions": [
+          0.0278,
+          0.0496,
+          0.0522,
+          0.0562,
+          0.0706,
+          0.0618,
+          0.0747,
+          0.0493,
+          0.0315,
+          0.0737,
+          0.0481,
+          0.0793,
+          0.0764,
+          0.0439,
+          0.0549,
+          0.0557
+        ],
+        "occupied_tile_fraction": 0.0,
+        "quiet_tile_fraction": 0.125,
+        "safe_region_density": 0.0646,
+        "edge_distribution_balance": 0.0149,
+        "macro_form_balance": 1.0,
+        "normalized_measurements": {
+          "density_pressure": 0.3432
+        },
+        "thresholds_used": {
+          "density_pressure": 0.85,
+          "max_quiet_tile_fraction": 0.0625,
+          "occupied_tile_edge_fraction": 0.1,
+          "quiet_tile_edge_fraction": 0.04
+        },
+        "density_rule_triggered": null,
+        "decision": "PASS"
+      },
+      "global_density_decision": "PASS",
+      "explicit_safe_regions": {
+        "decision": "PASS",
+        "regions": {}
+      },
+      "explicit_safe_region_decision": "PASS",
+      "raster_score": 0.21899441340782122
+    },
+    "brief_fidelity": {
+      "checked": true,
+      "subject_score": 0.7,
+      "atmosphere_score": 0.8,
+      "motif_score": 1.0,
+      "treatment_score": 0.8,
+      "audience_fit_score": 0.8,
+      "thresholds": {
+        "subject_score": 0.55,
+        "atmosphere_score": 0.55,
+        "motif_score": 0.55,
+        "audience_fit_score": 0.55
+      },
+      "decision": "pass",
+      "reason": "The background successfully evokes a botanical garden through a consistent motif of lush foliage (supporting motif prominence). The atmosphere is peaceful and elegant, fitting the requested warm and elegant, peaceful mood. The motif topology is coherent, with botanical elements as the primary motif.",
+      "observed_evidence": [
+        "repeated leaf motifs (maple-like or similar botanical)",
+        "solid dark green background"
+      ],
+      "model": "minicpm-v4.5:latest",
+      "failure_category": null,
+      "dimension_availability": {
+        "subject_score": "PASS",
+        "atmosphere_score": "PASS",
+        "motif_score": "PASS",
+        "audience_fit_score": "PASS"
+      },
+      "failed_dimensions": [],
+      "background_usability_score": 0.7,
+      "vision_human_signal": false,
+      "vision_debug": {
+        "endpoint": "/api/chat",
+        "model": "minicpm-v4.5:latest",
+        "score_parsing": [
+          {
+            "dimension_name": "subject_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.7,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "atmosphere_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.8,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "motif_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 1.0,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "treatment_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.8,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "audience_fit_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.8,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "background_usability_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.7,
+            "parse_failure_reason": null
+          }
+        ],
+        "thinking_present": false,
+        "thinking_preview_length": 0,
+        "response_length": 1188,
+        "final_source": "message.content",
+        "raw_text_preview": "<omitted>",
+        "assessment_attempts": 1,
+        "http_status": 200,
+        "response_content_type": "application/json; charset=utf-8",
+        "response_shape": [
+          "created_at",
+          "done",
+          "done_reason",
+          "eval_count",
+          "eval_duration",
+          "load_duration",
+          "message",
+          "model",
+          "prompt_eval_count",
+          "prompt_eval_duration",
+          "total_duration"
+        ],
+        "unconfirmed_human_report": false
+      },
+      "hard_dimensions": [
+        "subject_score"
+      ],
+      "hard_failed_dimensions": [],
+      "compound_fidelity_failure": false,
+      "human_description": "",
+      "vision_text_signal": false,
+      "vision_text_evidence": "",
+      "unrequested_literal_object_visible": false
+    }
+  },
+  "attempt_history": [
+    {
+      "attempt_count": 1,
+      "seed": 20261009,
+      "prompt_id": "1f7d238e-c80f-4d55-9fed-98e6c63d0dff",
+      "sha256": "2f82ac6f1f23dcc3261565017e04cb937d4aa5765b1c3c737e1d8b3fc049c9ba",
+      "rejection_reason": "Generated background contains colours that were not requested (off-palette ratio 0.08; strongest matches: brown=0.12, charcoal=0.11, grey=0.02, rose gold=0.00; neutral ratio 0.17; largest unrelated region 0.01).",
+      "failure_category": "PALETTE_OFF",
+      "primary_failure_category": "PALETTE_OFF",
+      "all_failure_categories": [],
+      "validation": {
+        "decision": "rejected",
+        "failure_category": "PALETTE_OFF",
+        "diagnostic_findings": [
+          "DENSITY_DRIFT"
+        ],
+        "palette": {
+          "mode": "dominant",
+          "palette_match_ratio": null,
+          "off_palette_ratio": 0.08327414772727272,
+          "primary_ratio": 0.006702769886363636,
+          "secondary_ratio": 0.7367720170454546,
+          "requested_chromatic_ratio": 0.7434747869318182,
+          "neutral_ratio": 0.1732510653409091,
+          "unrequested_chromatic_ratio": 0.08327414772727272,
+          "largest_unrequested_region_ratio": 0.013405539772727272,
+          "primary_secondary_ratio": null,
+          "secondary_presence": null,
+          "dominance_relationship": null,
+          "dominance_relationship_passed": null
+        },
+        "text": {
+          "ocr_diagnostics": {
+            "attempted": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "completed_variants": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "timed_out_variants": [],
+            "failed_variants": [],
+            "failure_reasons": {},
+            "completed_variant_count": 4,
+            "required_variant_count": 2,
+            "enhancement_variant_failures": [],
+            "evidence_sufficiency": true,
+            "decision": "complete"
+          },
+          "detected": false,
+          "tokens": [],
+          "confirmed_tokens": [],
+          "text_lines": [],
+          "text_area_ratio": 0
+        },
+        "human": {
+          "detected": false,
+          "strong_signals": [],
+          "weak_signals": [],
+          "decision_reason": "no human evidence"
+        },
+        "quality": {
+          "structural_edge_density": 0.40089000355113635,
+          "macro_structure_score": 1.0,
+          "coarse_edge_density": 0.20707070707070707,
+          "high_pass_mean": 6.151154041290283,
+          "boilerplate_score": 0.0,
+          "title_panel_score": 0.0,
+          "fine_line_pair_ratio": 0.0,
+          "macro_form_balance": 1.0,
+          "scene_density": {
+            "requested_density": "moderate",
+            "overall_edge_density": 0.2274,
+            "tile_edge_fractions": [
+              0.2595,
+              0.2266,
+              0.2429,
+              0.2688,
+              0.2759,
+              0.1238,
+              0.1025,
+              0.2886,
+              0.2905,
+              0.2383,
+              0.0808,
+              0.292,
+              0.2451,
+              0.2461,
+              0.1926,
+              0.2642
+            ],
+            "occupied_tile_fraction": 0.9375,
+            "quiet_tile_fraction": 0.0,
+            "safe_region_density": 0.1364,
+            "edge_distribution_balance": 0.0654,
+            "macro_form_balance": 1.0,
+            "normalized_measurements": {
+              "density_pressure": 0.8719
+            },
+            "thresholds_used": {
+              "density_pressure": 0.85,
+              "max_quiet_tile_fraction": 0.0625,
+              "occupied_tile_edge_fraction": 0.1,
+              "quiet_tile_edge_fraction": 0.04
+            },
+            "density_rule_triggered": "spatial_crowding",
+            "decision": "DENSITY_DRIFT"
+          },
+          "global_density_decision": "DENSITY_DRIFT",
+          "explicit_safe_regions": {
+            "decision": "PASS",
+            "regions": {}
+          },
+          "explicit_safe_region_decision": "PASS",
+          "raster_score": 0.0
+        },
+        "brief_fidelity": {
+          "checked": true,
+          "subject_score": 0.95,
+          "atmosphere_score": 0.85,
+          "motif_score": 0.95,
+          "treatment_score": 0.85,
+          "audience_fit_score": 0.7,
+          "thresholds": {
+            "subject_score": 0.55,
+            "atmosphere_score": 0.55,
+            "motif_score": 0.55,
+            "audience_fit_score": 0.55
+          },
+          "decision": "pass",
+          "reason": "Subject: Lush foliage and botanical elements dominate the frame, consistent with requested 'Botanical garden' subject. Atmosphere: Warm and elegant, with soft, muted colors creating a peaceful feel. Motif: Strong, cohesive motif of foliage and flowers, supporting the requested 'lush foliage, botanic",
+          "observed_evidence": [
+            "Border of dense green foliage with white flowers",
+            "Central open space with soft gradient background",
+            "Consistent botanical motif (branches, leaves, flowers) throughout frame",
+            "No visible literal objects (buildings, people, text)"
+          ],
+          "model": "minicpm-v4.5:latest",
+          "failure_category": null,
+          "dimension_availability": {
+            "subject_score": "PASS",
+            "atmosphere_score": "PASS",
+            "motif_score": "PASS",
+            "audience_fit_score": "PASS"
+          },
+          "failed_dimensions": [],
+          "background_usability_score": 0.9,
+          "vision_human_signal": false,
+          "vision_debug": {
+            "endpoint": "/api/chat",
+            "model": "minicpm-v4.5:latest",
+            "score_parsing": [
+              {
+                "dimension_name": "subject_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.95,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "atmosphere_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "motif_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.95,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "treatment_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "audience_fit_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.7,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "background_usability_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.9,
+                "parse_failure_reason": null
+              }
+            ],
+            "thinking_present": false,
+            "thinking_preview_length": 0,
+            "response_length": 1625,
+            "final_source": "message.content",
+            "raw_text_preview": "<omitted>",
+            "assessment_attempts": 1,
+            "http_status": 200,
+            "response_content_type": "application/json; charset=utf-8",
+            "response_shape": [
+              "created_at",
+              "done",
+              "done_reason",
+              "eval_count",
+              "eval_duration",
+              "load_duration",
+              "message",
+              "model",
+              "prompt_eval_count",
+              "prompt_eval_duration",
+              "total_duration"
+            ],
+            "unconfirmed_human_report": false
+          },
+          "hard_dimensions": [
+            "subject_score"
+          ],
+          "hard_failed_dimensions": [],
+          "compound_fidelity_failure": false,
+          "human_description": "",
+          "vision_text_signal": false,
+          "vision_text_evidence": "",
+          "unrequested_literal_object_visible": false
+        }
+      },
+      "subject_adherence": {
+        "checked": true,
+        "score": 0.95,
+        "threshold": 0.55,
+        "subject": "Botanical garden",
+        "anchors": [],
+        "model": "minicpm-v4.5:latest",
+        "decision": "pass",
+        "reason": "Subject: Lush foliage and botanical elements dominate the frame, consistent with requested 'Botanical garden' subject. Atmosphere: Warm and elegant, with soft, muted colors creating a peaceful feel. Motif: Strong, cohesive motif of foliage and flowers, supporting the requested 'lush foliage, botanic",
+        "subject_score": 0.95,
+        "atmosphere_score": 0.85,
+        "motif_score": 0.95,
+        "treatment_score": 0.85,
+        "audience_fit_score": 0.7,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "observed_evidence": [
+          "Border of dense green foliage with white flowers",
+          "Central open space with soft gradient background",
+          "Consistent botanical motif (branches, leaves, flowers) throughout frame",
+          "No visible literal objects (buildings, people, text)"
+        ],
+        "background_usability_score": 0.9,
+        "vision_human_signal": false,
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false,
+        "failure_category": null,
+        "compound_fidelity_failure": false,
+        "hard_dimensions": [
+          "subject_score"
+        ],
+        "hard_failed_dimensions": [],
+        "failed_dimensions": [],
+        "human_description": "",
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.95,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.95,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.7,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1625,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        }
+      },
+      "direction_similarity_diagnostics": {
+        "similarity": 0.0,
+        "closest_peer": null,
+        "peer_comparisons": []
+      },
+      "palette_metrics": null,
+      "text_detection": {
+        "text_detected": false,
+        "pseudo_text": {
+          "detected": false,
+          "aligned_rows": 0,
+          "glyph_components": 91,
+          "structured_components": 87,
+          "geometry_suppressed": false
+        },
+        "tokens": [],
+        "confirmed_tokens": [],
+        "text_lines": [],
+        "max_confidence": 0,
+        "confirmation_passes": [],
+        "text_area_ratio": 0,
+        "evidence": [],
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 4,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        }
+      },
+      "human_detection": {
+        "people": [],
+        "evidence": [],
+        "strong_signals": [],
+        "weak_signals": [],
+        "overlaps": [],
+        "people_weights": [],
+        "faces": [],
+        "profiles": [],
+        "upper_bodies": [],
+        "strong_upper_body_signal": false,
+        "ambiguous_face_signal": false,
+        "detected": false,
+        "human_detection_confidence": "low",
+        "human_detection_reason": "isolated detector patterns without independent confirmation",
+        "largest_detection_area_ratio": 0.0,
+        "classical_human_signal": false,
+        "vision_human_signal": false,
+        "combined_human_decision": false,
+        "decision_reason": "no human evidence"
+      },
+      "quality_metrics": null,
+      "retry_stage": "normal",
+      "spec_sha256": "21d679b3bed57f69d6ed9083546e2593701abfe9459711d879dffbf690d01d15",
+      "direction_role": "Creative Director",
+      "compiled_prompt": {
+        "positive": "Background inspiration: Botanical garden. Visual motif: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere. Motif as abstract pattern structure; no unrequested literal objects. Brief anchors: . Composition: Use an asymmetric-cluster composition to balance a dominant motif in the right lower area with quieter regions, emphasizing visual interest.. Focal strategy: Place the focal point in the right lower quadrant to draw the viewer's attention to that area, creating a sense of depth and intrigue.. Depth strategy: Employ a shallow depth plan to keep the scene coherent and uncluttered, with minimal layered elements.. Perimeter strategy: Use an open perimeter to create a sense of space and continuity, avoiding a framed look.. Preserve intentional negative space as integrated low-detail visual breathing room according to Position the visual calm in the upper portion of the scene to maintain clarity and avoid overlapping with the focal point.; Place the visual calm visual calm in the lower portion, ensuring it is easily accessible and does not interfere with the main visual elements.. Use natural visual hierarchy, breathing room and spatial balance with controlled subject concentration. Design language: Materials: organic materials. Texture: natural textures. Lighting: soft and natural. Palette: green, cream; dominant palette; green clearly visible in substantial design elements; cream clearly visible in substantial design elements; requested colour families own principal surfaces and visual mass; both requested families remain substantial; neutrals support only fine linework, shading and highlights; natural tonal variation within requested families; no large unrequested chromatic region. Visual hierarchy: the subject is present without saturating the frame; coherent large forms, limited mid-size forms and concentrated small detail. Large forms establish the subject, medium forms carry motif topology, small details support texture. Preserve integrated low-detail breathing room and readable depth; avoid uniformly distributed micro-detail. Motif prominence is supporting. Lighting, contrast and edge character should express the requested atmosphere and audience without changing the subject. Keep the result usable as background artwork rather than a crowded standalone illustration. Event atmosphere: warm and elegant, peaceful. Audience fit: adults. environment-only composition. Desired lighting: soft and natural. Supporting motif topology visibly follows: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere.. Use only brief-grounded subject and motif content with this direction's spatial strategies. Pure visual background artwork with a clear subject and natural low-detail breathing room. Continuous scene surfaces and integrated calm areas.",
+        "negative": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, urban or industrial settings, bright or harsh lighting",
+        "clip_l": "Background artwork. Visual subject: Botanical garden. Event context: . Audience: adults.",
+        "clip_g": "Background artwork. Visual subject: Botanical garden. Event context: . Audience: adults. Visual motif: The motif of lush foliage and botanical elements should be consistent throughout the background. Event atmosphere: warm and elegant, peaceful. Desired lighting: soft and natural. Composition: Use an asymmetric-cluster composition to balance a dominant motif in. Focal: Place the focal point in the right lower. Depth: Employ a shallow depth plan to keep the. Palette: green, cream; green clearly visible in substantial design elements; cream clearly visible.",
+        "t5": "Visual subject and environment: Botanical garden. Visual anchors: . Event context: . Audience: adults. Event atmosphere: warm and elegant, peaceful. environment-only composition. Desired lighting: soft and natural. Composition and spatial depth: Use an asymmetric-cluster composition to balance a dominant motif in the right lower area with quieter regions, emphasizing visual interest.. Focal strategy: Place the focal point in the right lower quadrant to draw the viewer's attention to that area, creating a sense of depth and intrigue.. Depth strategy: Employ a shallow depth plan to keep the scene coherent and uncluttered, with minimal layered elements.. Perimeter strategy: Use an open perimeter to create a sense of space and continuity, avoiding a framed look.. Preserve intentional negative space as integrated low-detail visual breathing room according to Position the visual calm in the upper portion of the scene to maintain clarity and avoid overlapping with the focal point.; Place the visual calm visual calm in the lower portion, ensuring it is easily accessible and does not interfere with the main visual elements.. Use natural visual hierarchy, breathing room and spatial balance with controlled subject concentration. Supporting motif topology visibly follows: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere.. Palette: green, cream; dominant palette; green clearly visible in substantial design elements; cream clearly visible in substantial design elements; requested colour families own principal surfaces and visual mass; both requested families remain substantial; neutrals support only fine linework, shading and highlights; natural tonal variation within requested families; no large unrequested chromatic region. moderate density; large subject forms, readable motif, concentrated detail, calm visual space. Decorative background artwork with continuous image surfaces. Design language: Materials: organic materials. Texture: natural textures. Lighting: soft and natural.",
+        "negative_prompt_channel_active": true,
+        "negative_semantics_preserved": true,
+        "incompatible_treatments": [
+          "urban or industrial settings",
+          "bright or harsh lighting"
+        ],
+        "semantic_contract_sha256": "5aa859662f73aa9944a2c5847676dc96d61f8c78f668cb057da595e6195d1bad",
+        "conditioning_coverage": {
+          "subject": [
+            "positive",
+            "clip_l",
+            "clip_g",
+            "t5"
+          ],
+          "atmosphere": [
+            "positive",
+            "clip_g",
+            "t5"
+          ],
+          "audience": [
+            "positive",
+            "clip_l",
+            "clip_g",
+            "t5"
+          ],
+          "motif": [
+            "positive",
+            "t5"
+          ],
+          "treatment": [],
+          "palette": [
+            "positive",
+            "clip_g",
+            "t5"
+          ],
+          "scene_family": [],
+          "event_context": [],
+          "incompatible_treatments": [
+            "negative"
+          ]
+        },
+        "engine_capabilities": {
+          "negative_prompt_channel": true,
+          "multi_encoder": true,
+          "long_context_encoder": true,
+          "supports_shift": true
+        },
+        "prompt_budget": {
+          "positive": {
+            "characters": 2973,
+            "approx_tokens": 409,
+            "budget_risk": false
+          },
+          "negative": {
+            "characters": 161,
+            "approx_tokens": 21,
+            "budget_risk": false
+          },
+          "clip_l": {
+            "characters": 88,
+            "approx_tokens": 11,
+            "budget_risk": false
+          },
+          "clip_g": {
+            "characters": 561,
+            "approx_tokens": 80,
+            "budget_risk": true
+          },
+          "t5": {
+            "characters": 2100,
+            "approx_tokens": 292,
+            "budget_risk": true
+          }
+        },
+        "truncated": false,
+        "retry_strength_level": "BASE"
+      },
+      "sampling_profile": {
+        "name": "alternate_sampler",
+        "steps": 28,
+        "cfg": 4.0,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "sgm_uniform",
+        "shift": null,
+        "shift_mode": "checkpoint_default"
+      },
+      "selection_reason": "INITIAL: alternate_sampler",
+      "failure_history": {
+        "counts": {},
+        "consecutive_category": "INITIAL",
+        "consecutive_count": 0
+      },
+      "renderer_recovery_type": "baseline",
+      "outcome_category": "PALETTE_OFF",
+      "template_conditioning": {
+        "enabled": false,
+        "masked_denoising_enabled": false
+      },
+      "template_adherence": null,
+      "quality_evaluation": null,
+      "validator_availability": null,
+      "reproducibility_manifest": {
+        "reference": "0BB686-825578",
+        "source_reference": "4D50E8-667425",
+        "semantic_contract_version": "1.0",
+        "semantic_contract_sha256": "5aa859662f73aa9944a2c5847676dc96d61f8c78f668cb057da595e6195d1bad",
+        "candidate_spec_sha256": "21d679b3bed57f69d6ed9083546e2593701abfe9459711d879dffbf690d01d15",
+        "engine": "sd-3-5-medium",
+        "engine_models": [
+          "clip_g.safetensors",
+          "clip_l.safetensors",
+          "sd3.5_medium.safetensors",
+          "t5xxl_fp8_e4m3fn.safetensors"
+        ],
+        "workflow_sha256": "0c3c86b0c558c1a5df1c7b14506378cce08a44508ee190082383682548fbe1ce",
+        "effective_workflow_values": {
+          "workflow_sha256": "0c3c86b0c558c1a5df1c7b14506378cce08a44508ee190082383682548fbe1ce",
+          "checkpoint": "sd3.5_medium.safetensors",
+          "clip_l": "clip_l.safetensors",
+          "clip_g": "clip_g.safetensors",
+          "t5": "t5xxl_fp8_e4m3fn.safetensors",
+          "vae": [
+            "4",
+            2
+          ],
+          "sampler": "dpmpp_2m",
+          "scheduler": "sgm_uniform",
+          "cfg": 4.0,
+          "steps": 28,
+          "shift": null,
+          "width": 896,
+          "height": 1280,
+          "seed": 20261009,
+          "positive_route": [
+            "16",
+            0
+          ],
+          "negative_route": [
+            "40",
+            0
+          ],
+          "model_route": [
+            "4",
+            0
+          ]
+        },
+        "direction": "C",
+        "sampling_profile": "alternate_sampler",
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "sgm_uniform",
+        "cfg": 4.0,
+        "steps": 28,
+        "shift": null,
+        "width": 896,
+        "height": 1280,
+        "seed": 20261009,
+        "compiled_prompt_sha256": {
+          "positive": "0773d2507d0a9ac88768a62b234d63fad53f9513f30badae800be9fec57db5cf",
+          "negative": "0d85877dc3aebf891bf4f516c811dfc0af8a8f9a10440e4302f47217f3a30e67",
+          "clip_l": "b03f39f358c7152e1ed91915193f4dbcb9abda08602fd9d4ef8b8d988549715c",
+          "clip_g": "ed0a988d97d63290945e45eee156b1b1da11c0bb848df852e12346c78d592cc4",
+          "t5": "c8174d905912529b492dc826be48520e4614a12535cd320a41f6a519727bf16d"
+        },
+        "conditioning_lengths": {
+          "positive": {
+            "characters": 2973,
+            "approx_tokens": 409,
+            "budget_risk": false
+          },
+          "negative": {
+            "characters": 161,
+            "approx_tokens": 21,
+            "budget_risk": false
+          },
+          "clip_l": {
+            "characters": 88,
+            "approx_tokens": 11,
+            "budget_risk": false
+          },
+          "clip_g": {
+            "characters": 561,
+            "approx_tokens": 80,
+            "budget_risk": true
+          },
+          "t5": {
+            "characters": 2100,
+            "approx_tokens": 292,
+            "budget_risk": true
+          }
+        },
+        "vision_model": "minicpm-v4.5:latest",
+        "ocr_config": {
+          "timeout_seconds": 7.0
+        },
+        "validator_version": null,
+        "retry_attempt": 1,
+        "retry_stage": "normal",
+        "failure_history": {
+          "counts": {},
+          "consecutive_category": "INITIAL",
+          "consecutive_count": 0
+        },
+        "image_sha256": null
+      }
+    },
+    {
+      "attempt_count": 2,
+      "status": "rejected",
+      "seed": 20261010,
+      "failure_category": "OCR_TIMEOUT",
+      "primary_failure_category": "OCR_TIMEOUT",
+      "retry_failure_category": "PALETTE_OFF",
+      "rejection_reason": "OCR_TIMEOUT: text validation did not complete",
+      "error": null,
+      "final_validation": {
+        "decision": "rejected",
+        "failure_category": "OCR_TIMEOUT",
+        "diagnostic_findings": [],
+        "palette": {
+          "mode": "dominant",
+          "palette_match_ratio": null,
+          "off_palette_ratio": 0.9944513494318182,
+          "primary_ratio": 0.005104758522727273,
+          "secondary_ratio": 0.00044389204545454544,
+          "requested_chromatic_ratio": 0.005548650568181818,
+          "neutral_ratio": 0.0,
+          "unrequested_chromatic_ratio": 0.9944513494318182,
+          "largest_unrequested_region_ratio": 0.9944513494318182,
+          "primary_secondary_ratio": null,
+          "secondary_presence": null,
+          "dominance_relationship": null,
+          "dominance_relationship_passed": null
+        },
+        "text": {
+          "ocr_diagnostics": {
+            "attempted": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "completed_variants": [],
+            "timed_out_variants": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "failed_variants": [],
+            "failure_reasons": {
+              "original": "RuntimeError: Tesseract process timeout",
+              "contrast": "RuntimeError: Tesseract process timeout",
+              "threshold": "RuntimeError: Tesseract process timeout",
+              "inverted": "RuntimeError: Tesseract process timeout"
+            },
+            "completed_variant_count": 0,
+            "required_variant_count": 2,
+            "enhancement_variant_failures": [
+              "threshold",
+              "inverted"
+            ],
+            "evidence_sufficiency": false,
+            "decision": "OCR_UNAVAILABLE"
+          },
+          "detected": false,
+          "tokens": [],
+          "confirmed_tokens": [],
+          "text_lines": [],
+          "text_area_ratio": 0
+        },
+        "human": {
+          "detected": false,
+          "strong_signals": [],
+          "weak_signals": [],
+          "decision_reason": "no human evidence"
+        },
+        "quality": {
+          "structural_edge_density": 0.09737881747159091,
+          "macro_structure_score": 0.4857142857142857,
+          "coarse_edge_density": 0.1597222222222222,
+          "high_pass_mean": 2.018265962600708,
+          "boilerplate_score": 0.0005189293919316972,
+          "title_panel_score": 0.0,
+          "fine_line_pair_ratio": 0.21899441340782122,
+          "macro_form_balance": 1.0,
+          "scene_density": {
+            "requested_density": "moderate",
+            "overall_edge_density": 0.0566,
+            "tile_edge_fractions": [
+              0.0278,
+              0.0496,
+              0.0522,
+              0.0562,
+              0.0706,
+              0.0618,
+              0.0747,
+              0.0493,
+              0.0315,
+              0.0737,
+              0.0481,
+              0.0793,
+              0.0764,
+              0.0439,
+              0.0549,
+              0.0557
+            ],
+            "occupied_tile_fraction": 0.0,
+            "quiet_tile_fraction": 0.125,
+            "safe_region_density": 0.0646,
+            "edge_distribution_balance": 0.0149,
+            "macro_form_balance": 1.0,
+            "normalized_measurements": {
+              "density_pressure": 0.3432
+            },
+            "thresholds_used": {
+              "density_pressure": 0.85,
+              "max_quiet_tile_fraction": 0.0625,
+              "occupied_tile_edge_fraction": 0.1,
+              "quiet_tile_edge_fraction": 0.04
+            },
+            "density_rule_triggered": null,
+            "decision": "PASS"
+          },
+          "global_density_decision": "PASS",
+          "explicit_safe_regions": {
+            "decision": "PASS",
+            "regions": {}
+          },
+          "explicit_safe_region_decision": "PASS",
+          "raster_score": 0.21899441340782122
+        },
+        "brief_fidelity": {
+          "checked": true,
+          "subject_score": 0.7,
+          "atmosphere_score": 0.8,
+          "motif_score": 1.0,
+          "treatment_score": 0.8,
+          "audience_fit_score": 0.8,
+          "thresholds": {
+            "subject_score": 0.55,
+            "atmosphere_score": 0.55,
+            "motif_score": 0.55,
+            "audience_fit_score": 0.55
+          },
+          "decision": "pass",
+          "reason": "The background successfully evokes a botanical garden through a consistent motif of lush foliage (supporting motif prominence). The atmosphere is peaceful and elegant, fitting the requested warm and elegant, peaceful mood. The motif topology is coherent, with botanical elements as the primary motif.",
+          "observed_evidence": [
+            "repeated leaf motifs (maple-like or similar botanical)",
+            "solid dark green background"
+          ],
+          "model": "minicpm-v4.5:latest",
+          "failure_category": null,
+          "dimension_availability": {
+            "subject_score": "PASS",
+            "atmosphere_score": "PASS",
+            "motif_score": "PASS",
+            "audience_fit_score": "PASS"
+          },
+          "failed_dimensions": [],
+          "background_usability_score": 0.7,
+          "vision_human_signal": false,
+          "vision_debug": {
+            "endpoint": "/api/chat",
+            "model": "minicpm-v4.5:latest",
+            "score_parsing": [
+              {
+                "dimension_name": "subject_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.7,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "atmosphere_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.8,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "motif_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 1.0,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "treatment_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.8,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "audience_fit_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.8,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "background_usability_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.7,
+                "parse_failure_reason": null
+              }
+            ],
+            "thinking_present": false,
+            "thinking_preview_length": 0,
+            "response_length": 1188,
+            "final_source": "message.content",
+            "raw_text_preview": "<omitted>",
+            "assessment_attempts": 1,
+            "http_status": 200,
+            "response_content_type": "application/json; charset=utf-8",
+            "response_shape": [
+              "created_at",
+              "done",
+              "done_reason",
+              "eval_count",
+              "eval_duration",
+              "load_duration",
+              "message",
+              "model",
+              "prompt_eval_count",
+              "prompt_eval_duration",
+              "total_duration"
+            ],
+            "unconfirmed_human_report": false
+          },
+          "hard_dimensions": [
+            "subject_score"
+          ],
+          "hard_failed_dimensions": [],
+          "compound_fidelity_failure": false,
+          "human_description": "",
+          "vision_text_signal": false,
+          "vision_text_evidence": "",
+          "unrequested_literal_object_visible": false
+        }
+      },
+      "subject_adherence": {
+        "checked": true,
+        "score": 0.7,
+        "threshold": 0.55,
+        "subject": "Botanical garden",
+        "anchors": [],
+        "model": "minicpm-v4.5:latest",
+        "decision": "pass",
+        "reason": "The background successfully evokes a botanical garden through a consistent motif of lush foliage (supporting motif prominence). The atmosphere is peaceful and elegant, fitting the requested warm and elegant, peaceful mood. The motif topology is coherent, with botanical elements as the primary motif.",
+        "subject_score": 0.7,
+        "atmosphere_score": 0.8,
+        "motif_score": 1.0,
+        "treatment_score": 0.8,
+        "audience_fit_score": 0.8,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "observed_evidence": [
+          "repeated leaf motifs (maple-like or similar botanical)",
+          "solid dark green background"
+        ],
+        "background_usability_score": 0.7,
+        "vision_human_signal": false,
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false,
+        "failure_category": null,
+        "compound_fidelity_failure": false,
+        "hard_dimensions": [
+          "subject_score"
+        ],
+        "hard_failed_dimensions": [],
+        "failed_dimensions": [],
+        "human_description": "",
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.7,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 1.0,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.7,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1188,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        }
+      },
+      "brief_fidelity": {
+        "checked": true,
+        "subject_score": 0.7,
+        "atmosphere_score": 0.8,
+        "motif_score": 1.0,
+        "treatment_score": 0.8,
+        "audience_fit_score": 0.8,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "decision": "pass",
+        "reason": "The background successfully evokes a botanical garden through a consistent motif of lush foliage (supporting motif prominence). The atmosphere is peaceful and elegant, fitting the requested warm and elegant, peaceful mood. The motif topology is coherent, with botanical elements as the primary motif.",
+        "observed_evidence": [
+          "repeated leaf motifs (maple-like or similar botanical)",
+          "solid dark green background"
+        ],
+        "model": "minicpm-v4.5:latest",
+        "failure_category": null,
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "failed_dimensions": [],
+        "background_usability_score": 0.7,
+        "vision_human_signal": false,
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.7,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 1.0,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.7,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1188,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        },
+        "hard_dimensions": [
+          "subject_score"
+        ],
+        "hard_failed_dimensions": [],
+        "compound_fidelity_failure": false,
+        "human_description": "",
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false
+      },
+      "raw_palette_error": null,
+      "raw_validation": null,
+      "raw_subject_adherence": null,
+      "palette_recovery": {
+        "eligible": false,
+        "attempted": false,
+        "source_off_palette_ratio": 0.9944513494318182,
+        "result": "not_attempted",
+        "failure_reason": "Palette-only recovery conditions were not met",
+        "normalized_off_palette_ratio": null,
+        "edge_geometry_similarity": null,
+        "structural_detail_preserved": null
+      }
+    }
+  ],
+  "probe_mode": true,
+  "probe_raw_validation": null,
+  "probe_raw_validation_error": null,
+  "probe_full_validation_error": null,
+  "full_validation": {
+    "decision": "rejected",
+    "failure_category": "OCR_TIMEOUT",
+    "diagnostic_findings": [],
+    "palette": {
+      "mode": "dominant",
+      "palette_match_ratio": null,
+      "off_palette_ratio": 0.9944513494318182,
+      "primary_ratio": 0.005104758522727273,
+      "secondary_ratio": 0.00044389204545454544,
+      "requested_chromatic_ratio": 0.005548650568181818,
+      "neutral_ratio": 0.0,
+      "unrequested_chromatic_ratio": 0.9944513494318182,
+      "largest_unrequested_region_ratio": 0.9944513494318182,
+      "primary_secondary_ratio": null,
+      "secondary_presence": null,
+      "dominance_relationship": null,
+      "dominance_relationship_passed": null
+    },
+    "text": {
+      "ocr_diagnostics": {
+        "attempted": [
+          "original",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "completed_variants": [],
+        "timed_out_variants": [
+          "original",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "failed_variants": [],
+        "failure_reasons": {
+          "original": "RuntimeError: Tesseract process timeout",
+          "contrast": "RuntimeError: Tesseract process timeout",
+          "threshold": "RuntimeError: Tesseract process timeout",
+          "inverted": "RuntimeError: Tesseract process timeout"
+        },
+        "completed_variant_count": 0,
+        "required_variant_count": 2,
+        "enhancement_variant_failures": [
+          "threshold",
+          "inverted"
+        ],
+        "evidence_sufficiency": false,
+        "decision": "OCR_UNAVAILABLE"
+      },
+      "detected": false,
+      "tokens": [],
+      "confirmed_tokens": [],
+      "text_lines": [],
+      "text_area_ratio": 0
+    },
+    "human": {
+      "detected": false,
+      "strong_signals": [],
+      "weak_signals": [],
+      "decision_reason": "no human evidence"
+    },
+    "quality": {
+      "structural_edge_density": 0.09737881747159091,
+      "macro_structure_score": 0.4857142857142857,
+      "coarse_edge_density": 0.1597222222222222,
+      "high_pass_mean": 2.018265962600708,
+      "boilerplate_score": 0.0005189293919316972,
+      "title_panel_score": 0.0,
+      "fine_line_pair_ratio": 0.21899441340782122,
+      "macro_form_balance": 1.0,
+      "scene_density": {
+        "requested_density": "moderate",
+        "overall_edge_density": 0.0566,
+        "tile_edge_fractions": [
+          0.0278,
+          0.0496,
+          0.0522,
+          0.0562,
+          0.0706,
+          0.0618,
+          0.0747,
+          0.0493,
+          0.0315,
+          0.0737,
+          0.0481,
+          0.0793,
+          0.0764,
+          0.0439,
+          0.0549,
+          0.0557
+        ],
+        "occupied_tile_fraction": 0.0,
+        "quiet_tile_fraction": 0.125,
+        "safe_region_density": 0.0646,
+        "edge_distribution_balance": 0.0149,
+        "macro_form_balance": 1.0,
+        "normalized_measurements": {
+          "density_pressure": 0.3432
+        },
+        "thresholds_used": {
+          "density_pressure": 0.85,
+          "max_quiet_tile_fraction": 0.0625,
+          "occupied_tile_edge_fraction": 0.1,
+          "quiet_tile_edge_fraction": 0.04
+        },
+        "density_rule_triggered": null,
+        "decision": "PASS"
+      },
+      "global_density_decision": "PASS",
+      "explicit_safe_regions": {
+        "decision": "PASS",
+        "regions": {}
+      },
+      "explicit_safe_region_decision": "PASS",
+      "raster_score": 0.21899441340782122
+    },
+    "brief_fidelity": {
+      "checked": true,
+      "subject_score": 0.7,
+      "atmosphere_score": 0.8,
+      "motif_score": 1.0,
+      "treatment_score": 0.8,
+      "audience_fit_score": 0.8,
+      "thresholds": {
+        "subject_score": 0.55,
+        "atmosphere_score": 0.55,
+        "motif_score": 0.55,
+        "audience_fit_score": 0.55
+      },
+      "decision": "pass",
+      "reason": "The background successfully evokes a botanical garden through a consistent motif of lush foliage (supporting motif prominence). The atmosphere is peaceful and elegant, fitting the requested warm and elegant, peaceful mood. The motif topology is coherent, with botanical elements as the primary motif.",
+      "observed_evidence": [
+        "repeated leaf motifs (maple-like or similar botanical)",
+        "solid dark green background"
+      ],
+      "model": "minicpm-v4.5:latest",
+      "failure_category": null,
+      "dimension_availability": {
+        "subject_score": "PASS",
+        "atmosphere_score": "PASS",
+        "motif_score": "PASS",
+        "audience_fit_score": "PASS"
+      },
+      "failed_dimensions": [],
+      "background_usability_score": 0.7,
+      "vision_human_signal": false,
+      "vision_debug": {
+        "endpoint": "/api/chat",
+        "model": "minicpm-v4.5:latest",
+        "score_parsing": [
+          {
+            "dimension_name": "subject_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.7,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "atmosphere_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.8,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "motif_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 1.0,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "treatment_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.8,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "audience_fit_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.8,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "background_usability_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.7,
+            "parse_failure_reason": null
+          }
+        ],
+        "thinking_present": false,
+        "thinking_preview_length": 0,
+        "response_length": 1188,
+        "final_source": "message.content",
+        "raw_text_preview": "<omitted>",
+        "assessment_attempts": 1,
+        "http_status": 200,
+        "response_content_type": "application/json; charset=utf-8",
+        "response_shape": [
+          "created_at",
+          "done",
+          "done_reason",
+          "eval_count",
+          "eval_duration",
+          "load_duration",
+          "message",
+          "model",
+          "prompt_eval_count",
+          "prompt_eval_duration",
+          "total_duration"
+        ],
+        "unconfirmed_human_report": false
+      },
+      "hard_dimensions": [
+        "subject_score"
+      ],
+      "hard_failed_dimensions": [],
+      "compound_fidelity_failure": false,
+      "human_description": "",
+      "vision_text_signal": false,
+      "vision_text_evidence": "",
+      "unrequested_literal_object_visible": false
+    },
+    "recovery_attempted": false
+  },
+  "rejected_image_preserved": false
+}

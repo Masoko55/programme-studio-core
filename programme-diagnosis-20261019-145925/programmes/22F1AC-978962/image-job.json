@@ -1,0 +1,118 @@
+{
+  "reference_number": "22F1AC-978962",
+  "status": "awaiting_selection",
+  "current_stage": "backgrounds_complete_with_failures",
+  "total_outputs": 9,
+  "completed_outputs": 3,
+  "outputs": [
+    {
+      "engine_id": "flux-2",
+      "engine_label": "FLUX.2",
+      "direction_id": "A",
+      "status": "failed",
+      "output_path": null,
+      "sha256": null,
+      "error": "DENSE_SAFE_REGION: high-contrast visual interference in title, programme region",
+      "seed": null,
+      "prompt_id": null,
+      "workflow_sha256": null
+    },
+    {
+      "engine_id": "sdxl-1-0",
+      "engine_label": "SDXL 1.0",
+      "direction_id": "A",
+      "status": "failed",
+      "output_path": null,
+      "sha256": null,
+      "error": "DENSE_SAFE_REGION: high-contrast visual interference in title, programme region",
+      "seed": null,
+      "prompt_id": null,
+      "workflow_sha256": null
+    },
+    {
+      "engine_id": "sd-3-5-medium",
+      "engine_label": "Stable Diffusion 3.5 Medium",
+      "direction_id": "A",
+      "status": "complete",
+      "output_path": "/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-a.png",
+      "sha256": "9e276c0dc725d07aca099083d0aec2e078412faf831fe2b8a159c2de736e37cb",
+      "error": null,
+      "seed": 947498070363761005,
+      "prompt_id": "aa2356de-1615-4e4c-97ea-d5e4d6ea4b33",
+      "workflow_sha256": "6a4f96ef17ec87d62d554c1fc4d9eeb74b90d7d584bc3cca5454f3bda864a9d9"
+    },
+    {
+      "engine_id": "flux-2",
+      "engine_label": "FLUX.2",
+      "direction_id": "B",
+      "status": "failed",
+      "output_path": null,
+      "sha256": null,
+      "error": "DENSE_SAFE_REGION: high-contrast visual interference in title, programme region",
+      "seed": null,
+      "prompt_id": null,
+      "workflow_sha256": null
+    },
+    {
+      "engine_id": "sdxl-1-0",
+      "engine_label": "SDXL 1.0",
+      "direction_id": "B",
+      "status": "failed",
+      "output_path": null,
+      "sha256": null,
+      "error": "DENSE_SAFE_REGION: high-contrast visual interference in title, programme region",
+      "seed": null,
+      "prompt_id": null,
+      "workflow_sha256": null
+    },
+    {
+      "engine_id": "sd-3-5-medium",
+      "engine_label": "Stable Diffusion 3.5 Medium",
+      "direction_id": "B",
+      "status": "complete",
+      "output_path": "/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-b.png",
+      "sha256": "47b9b18e36ec68aa200b06388f4890a8372a79056c223873cd769d57474b3668",
+      "error": null,
+      "seed": 5780472595417964473,
+      "prompt_id": "0f129276-bbb8-49fa-b500-88effcd0d4c6",
+      "workflow_sha256": "6e4b7d5af4c35ddc4f218e97e73fdf01c7db701e62944bde1748ace0250dcb05"
+    },
+    {
+      "engine_id": "flux-2",
+      "engine_label": "FLUX.2",
+      "direction_id": "C",
+      "status": "failed",
+      "output_path": null,
+      "sha256": null,
+      "error": "DENSE_SAFE_REGION: high-contrast visual interference in title, programme region",
+      "seed": null,
+      "prompt_id": null,
+      "workflow_sha256": null
+    },
+    {
+      "engine_id": "sdxl-1-0",
+      "engine_label": "SDXL 1.0",
+      "direction_id": "C",
+      "status": "failed",
+      "output_path": null,
+      "sha256": null,
+      "error": "DENSE_SAFE_REGION: high-contrast visual interference in title, programme region",
+      "seed": null,
+      "prompt_id": null,
+      "workflow_sha256": null
+    },
+    {
+      "engine_id": "sd-3-5-medium",
+      "engine_label": "Stable Diffusion 3.5 Medium",
+      "direction_id": "C",
+      "status": "complete",
+      "output_path": "/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-c.png",
+      "sha256": "4a975339f283316d1d29e2fdf0701211fab06b6f03eea87c76a4761f17eaeac0",
+      "error": null,
+      "seed": 6266901684196696781,
+      "prompt_id": "521be1f0-6895-4ddb-b6a2-ffec300229c9",
+      "workflow_sha256": "a3c303b1efbe92ffaefe6505c2822f454ca705735fcad2bcb913c0e2df2bea08"
+    }
+  ],
+  "error": "3/9 background candidates completed; 6 failed; 0 remain pending."
+}

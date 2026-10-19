@@ -1,0 +1,118 @@
+{
+  "session_id": "def2cc185a2d4c929aac6814cda2dc96",
+  "status": "clarification_required",
+  "answers": {
+    "event_type": "Children birthday party",
+    "theme": "Superhero city adventure inspired by Spider-Man",
+    "age_group": "Children aged 7 to 10",
+    "primary_colour": "royal blue",
+    "secondary_colour": "red",
+    "creative_description": "A joyful, playful and high-energy superhero-inspired birthday environment for children.",
+    "background_inspiration": null,
+    "theme_reference_treatment": null,
+    "event_date": "2026-12-05",
+    "start_time": "14:00",
+    "title_preference": "Kabelo's Superhero Birthday",
+    "venue": "Sunrise Family Hall",
+    "timezone": "Africa/Johannesburg",
+    "programme": [
+      {
+        "time": "14:00",
+        "title": "Welcome",
+        "description": null
+      },
+      {
+        "time": "15:00",
+        "title": "Games",
+        "description": null
+      },
+      {
+        "time": "16:00",
+        "title": "Cake",
+        "description": null
+      }
+    ],
+    "output_language": "en",
+    "accessibility_preferences": [
+      "high contrast",
+      "clear readable programme text"
+    ],
+    "asset_type": "none",
+    "asset_placement": null,
+    "headshot_shape": null,
+    "rights_and_consent_confirmed": null
+  },
+  "clarification_questions": [
+    {
+      "field": "theme_reference_treatment",
+      "question": "Which visual traits from Spider-Man should influence the background? For example colours, abstract patterns, geometry, textures, architecture or atmosphere.",
+      "reason": "The theme uses a recognizable reference. Grill-Me needs to know which visual traits should be translated into abstract background design without depicting the character or subject."
+    }
+  ],
+  "creative_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "Children birthday party",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "decorations, balloons, party hats, themed activities"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Superhero city adventure inspired by Spider-Man",
+    "reference_detected": true,
+    "reference_name": "Spider-Man",
+    "reference_type": "character",
+    "reference_needs_clarification": true,
+    "background_generation_summary": "Use only the supplied visual motifs and treatment; do not invent an environment.",
+    "scene_family_evidence": "superhero city adventure inspired by Spider-Man",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "joyful, playful, high-energy"
+      ],
+      "audience_descriptors": [
+        "children aged 7 to 10"
+      ],
+      "motif_descriptors": [
+        "web patterns, urban architecture"
+      ],
+      "motif_structure_description": "Web patterns should be integrated into the urban architecture, creating a cohesive visual theme.",
+      "lighting_descriptors": [],
+      "material_descriptors": [],
+      "texture_descriptors": [],
+      "incompatible_treatments": [],
+      "scene_family": "general",
+      "composition_affinities": []
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SAFE_FALLBACK",
+      "material_descriptors": "SAFE_FALLBACK",
+      "texture_descriptors": "SAFE_FALLBACK",
+      "incompatible_treatments": "SAFE_FALLBACK",
+      "scene_family": "SAFE_FALLBACK",
+      "composition_affinities": "SAFE_FALLBACK"
+    },
+    "semantic_confidence": {},
+    "generation_constraints": [
+      "no readable programme/title text",
+      "no logos",
+      "no people or characters",
+      "background only",
+      "no people",
+      "no characters",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": [
+      {
+        "field": "theme_reference_treatment",
+        "question": "Which visual traits from Spider-Man should influence the background? For example colours, abstract patterns, geometry, textures, architecture or atmosphere.",
+        "reason": "The theme uses a recognizable reference. Grill-Me needs to know which visual traits should be translated into abstract background design without depicting the character or subject."
+      }
+    ]
+  },
+  "assets": {},
+  "reference_number": null
+}

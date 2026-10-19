@@ -1,0 +1,125 @@
+{
+  "session_id": "34528d6f92d441838cd1d4163745ffcd",
+  "reference_number": "766C26-216262",
+  "event_type": "Children birthday party",
+  "theme": "Superhero city adventure inspired by Spider-Man",
+  "age_group": "Children aged 7 to 10",
+  "primary_colour": "royal blue",
+  "secondary_colour": "red",
+  "creative_description": "A kids birthday party for a kid who is into superheroes, most especially spiderman.",
+  "background_inspiration": null,
+  "theme_reference_treatment": "spiderman colours must influence the visual traits but do not add any buildings and just add webs but not a lot.",
+  "grill_me_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "Children birthday party",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "Decorations and activities tailored for children",
+      "Bright and vibrant colors"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Superhero city adventure inspired by Spider-Man",
+    "reference_detected": true,
+    "reference_name": "Spider-Man",
+    "reference_type": "character",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "Use only the supplied visual motifs and treatment; do not invent an environment.",
+    "scene_family_evidence": "Superhero city adventure inspired by Spider-Man",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "Exciting and adventurous"
+      ],
+      "audience_descriptors": [
+        "Children aged 7 to 10"
+      ],
+      "motif_descriptors": [
+        "Webs"
+      ],
+      "motif_structure_description": "Webs should be subtly integrated into the background without dominating the scene.",
+      "lighting_descriptors": [],
+      "material_descriptors": [],
+      "texture_descriptors": [],
+      "incompatible_treatments": [],
+      "scene_family": "general",
+      "composition_affinities": []
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SAFE_FALLBACK",
+      "material_descriptors": "SAFE_FALLBACK",
+      "texture_descriptors": "SAFE_FALLBACK",
+      "incompatible_treatments": "SAFE_FALLBACK",
+      "scene_family": "SAFE_FALLBACK",
+      "composition_affinities": "SAFE_FALLBACK"
+    },
+    "semantic_confidence": {
+      "atmosphere_descriptors": 0.9,
+      "audience_descriptors": 0.9,
+      "motif_descriptors": 0.8
+    },
+    "generation_constraints": [
+      "No readable programme/title text",
+      "No logos",
+      "No people or characters",
+      "background only",
+      "no people",
+      "no characters",
+      "no logos",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "title": "Kabelo's Superhero Birthday",
+  "event_date": "2026-12-05",
+  "start_time": "14:00",
+  "timezone": "Africa/Johannesburg",
+  "venue": "Sunrise Family Hall",
+  "programme": [
+    {
+      "time": "14:00",
+      "title": "Welcome",
+      "description": null
+    },
+    {
+      "time": "15:00",
+      "title": "Games",
+      "description": null
+    },
+    {
+      "time": "16:00",
+      "title": "Cake",
+      "description": null
+    }
+  ],
+  "output_language": "en",
+  "accessibility_preferences": [
+    "high contrast",
+    "clear readable programme text"
+  ],
+  "asset_type": "none",
+  "asset_placement": null,
+  "asset_vertical_position": null,
+  "text_flow": "standard",
+  "headshot_path": null,
+  "logo_path": null,
+  "headshot_shape": null,
+  "headshot_placement": null,
+  "logo_placement": null,
+  "layout_contract": {
+    "asset": {
+      "enabled": false,
+      "type": "none",
+      "vertical_position": null,
+      "horizontal_position": null
+    },
+    "text": {
+      "flow": "standard",
+      "must_begin_below_asset": false
+    }
+  },
+  "rights_and_consent_confirmed": true
+}

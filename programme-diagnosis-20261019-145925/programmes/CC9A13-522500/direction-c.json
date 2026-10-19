@@ -1,0 +1,34 @@
+{
+  "composition_strategy": "A central-focal composition with a diagonal flow to guide the viewer's eye through the scene, creating a sense of movement and balance. The design features a subtle accent with a quiet right region paired with a quiet left region, maintaining a calm visual region.",
+  "focal_strategy": "The focal point is positioned in the right lower vertical band, ensuring it stands out distinctly against the calm right region. This placement aligns with the central-focal composition family, emphasizing a clear and dominant subject.",
+  "depth_strategy": "A shallow depth plan is employed to keep the scene unified and to maintain focus on the central subject. This strategy avoids distractions and ensures the main elements are well-defined.",
+  "border_or_perimeter_strategy": "The perimeter remains open, allowing the focal point to naturally extend into the background, thereby creating a sense of continuity and space.",
+  "title_safe_region_strategy": "The title is placed in a title-safe region at the top of the composition, ensuring legibility and prominence.",
+  "programme_safe_region_strategy": "The programme information is situated in a programme-safe region in the lower part of the composition, ensuring it does not interfere with the focal point or overall composition.",
+  "direction_id": "C",
+  "role": "Creative Director",
+  "positive_prompt": "Create a central-focal composition with diagonal flow, a dominant motif in the lower-right focal zone, and an open perimeter with calm left and right regions, A pink, cream palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: Use only the supplied visual motifs and treatment, Clarified visual language: motifs: Floral patterns, motif structure: Floral patterns should be integrated throughout the background, creating a cohesive and visually appealing environment, atmosphere: Soft, elegant, feminine, celebratory, composition: Symmetrical, balanced compositions, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+  "negative_prompt": "Avoid unnecessary scene-defining objects, excessive micro-details, and a complex depth plan., person, people, human, human figure, man, woman, child, face, portrait, silhouette, body, head, hands, arms, legs, clothing, mannequin, character, fictional character, hero, superhero, masked character, mascot, costume, costumed figure, humanoid, text, typography, lettering, words, letters, numbers, writing, calligraphy, signature, logo, watermark, signage, unrequested chromatic design colours, colour drift, unrelated hues, large neutral areas that displace the requested colours, unrelated generic imagery, crowded centre, readable text, characters",
+  "title_suggestions": [
+    "Diagonal Harmony",
+    "Calm Centrality",
+    "Focal Balance"
+  ],
+  "short_design_rationale": "This design emphasizes a clear central focal point with diagonal movement to guide the viewer's eye. The shallow depth plan and open perimeter contribute to a sense of unity and calm, while the placement of the title and programme information ensures legibility and prominence.",
+  "layout_guidance": {
+    "title_zone": {
+      "x": 0.1,
+      "y": 0.08,
+      "width": 0.8,
+      "height": 0.12
+    },
+    "programme_zone": {
+      "x": 0.1,
+      "y": 0.47,
+      "width": 0.8,
+      "height": 0.4
+    },
+    "headshot_zone": null,
+    "logo_zone": null
+  }
+}

@@ -1,0 +1,7 @@
+2026-10-19T12:36:30.530369000+02:00 INFO:     Started server process [1]
+2026-10-19T12:36:30.531092000+02:00 INFO:     Waiting for application startup.
+2026-10-19T12:36:30.531154000+02:00 INFO:     Application startup complete.
+2026-10-19T12:36:30.531180000+02:00 INFO:     Uvicorn running on http://0.0.0.0:8002 (Press CTRL+C to quit)
+2026-10-19T12:37:35.739625000+02:00 INFO:     10.89.0.59:58606 - "GET /ready HTTP/1.1" 200 OK
+2026-10-19T12:38:04.025450000+02:00 INFO:     10.89.0.59:45168 - "GET /ready HTTP/1.1" 200 OK
+2026-10-19T15:00:26.355171000+02:00 INFO:     10.89.0.59:42920 - "GET /ready HTTP/1.1" 503 Service Unavailable

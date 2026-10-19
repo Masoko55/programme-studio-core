@@ -1,0 +1,7 @@
+HTTP/1.1 503 Service Unavailable
+date: Mon, 19 Oct 2026 13:16:42 GMT
+server: uvicorn
+content-length: 252
+content-type: application/json
+
+{"status":"not_ready","service":"image-service","comfyui":{"status":"unavailable","error":"ComfyUI GET /system_stats failed (HTTP unavailable)."},"repository_service":{"status":"available","details":{"service":"repository-service","status":"healthy"}}}

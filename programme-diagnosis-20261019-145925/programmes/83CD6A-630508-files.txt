@@ -1,0 +1,7 @@
+REFERENCE=83CD6A-630508
+
+2026-10-19 13:51:58.2631437920 19064 /home/ntlhari/NerdCode/programme-studio/data/programmes/83CD6A-630508/prompts.json
+2026-10-19 13:51:58.2691437900 6538 /home/ntlhari/NerdCode/programme-studio/data/programmes/83CD6A-630508/brief.json
+2026-10-19 13:51:58.2721437890 141 /home/ntlhari/NerdCode/programme-studio/data/programmes/83CD6A-630508/probe-source.json
+2026-10-19 13:52:14.0601377890 1487203 /home/ntlhari/NerdCode/programme-studio/data/programmes/83CD6A-630508/backgrounds/sdxl-1-0/image-a.png
+2026-10-19 13:52:23.8401346460 109586 /home/ntlhari/NerdCode/programme-studio/data/programmes/83CD6A-630508/backgrounds/sdxl-1-0/image-a.json

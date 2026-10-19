@@ -1,0 +1,214 @@
+{
+  "event_type": "Corporate conference",
+  "theme": "Modern technology forum",
+  "age_group": "Adults",
+  "primary_colour": "navy",
+  "secondary_colour": "white",
+  "creative_description": "A professional, confident and modern technology conference with a clean premium atmosphere.",
+  "background_inspiration": "A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth.",
+  "theme_reference_treatment": null,
+  "grill_me_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "Corporate conference",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "Professional setting",
+      "Formal attire",
+      "Stage and presentation area"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Modern technology forum",
+    "reference_detected": false,
+    "reference_name": null,
+    "reference_type": "none",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "Generate a clean, contemporary technology hall with layered architectural panels, subtle connected geometry, and professional spatial depth. Ensure the background reflects a premium atmosphere with a modern technology theme.",
+    "scene_family_evidence": "A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth.",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "Professional",
+        "Confident",
+        "Modern"
+      ],
+      "audience_descriptors": [
+        "Adults"
+      ],
+      "motif_descriptors": [
+        "Layered architectural panels",
+        "Subtle connected geometry"
+      ],
+      "motif_structure_description": "The layered architectural panels and subtle connected geometry should create a cohesive and visually appealing environment that emphasizes the modern technology theme.",
+      "lighting_descriptors": [
+        "Bright and clear"
+      ],
+      "material_descriptors": [
+        "High-quality materials"
+      ],
+      "texture_descriptors": [
+        "Smooth and sleek"
+      ],
+      "incompatible_treatments": [
+        "Retro or outdated technology",
+        "Informal or casual settings"
+      ],
+      "scene_family": "architectural-interior",
+      "composition_affinities": [
+        "Symmetrical balance",
+        "Clean lines"
+      ]
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SEMANTIC_INFERENCE",
+      "material_descriptors": "SEMANTIC_INFERENCE",
+      "texture_descriptors": "SEMANTIC_INFERENCE",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SEMANTIC_INFERENCE",
+      "composition_affinities": "SEMANTIC_INFERENCE"
+    },
+    "semantic_confidence": {},
+    "generation_constraints": [
+      "No readable programme/title text",
+      "No logos",
+      "No people or characters",
+      "background only",
+      "no people",
+      "no characters",
+      "no logos",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "visual_semantics": {
+    "atmosphere_descriptors": [
+      "Professional",
+      "Confident",
+      "Modern"
+    ],
+    "audience_descriptors": [
+      "Adults"
+    ],
+    "motif_descriptors": [
+      "Layered architectural panels",
+      "Subtle connected geometry"
+    ],
+    "motif_structure_description": "The layered architectural panels and subtle connected geometry should create a cohesive and visually appealing environment that emphasizes the modern technology theme.",
+    "lighting_descriptors": [
+      "Bright and clear"
+    ],
+    "material_descriptors": [
+      "High-quality materials"
+    ],
+    "texture_descriptors": [
+      "Smooth and sleek"
+    ],
+    "incompatible_treatments": [
+      "Retro or outdated technology",
+      "Informal or casual settings"
+    ],
+    "scene_family": "architectural-interior",
+    "composition_affinities": [
+      "Symmetrical balance",
+      "Clean lines"
+    ]
+  },
+  "title_preference": "Technology Forum",
+  "event_date": "2026-12-21",
+  "start_time": "09:00",
+  "timezone": "Africa/Johannesburg",
+  "output_language": "en",
+  "asset_type": "none",
+  "asset_placement": null,
+  "asset_vertical_position": null,
+  "text_flow": "standard",
+  "palette_mode": "dominant",
+  "palette_relationship": "requested colours dominate with natural tonal variation",
+  "palette_relationship_source": "default",
+  "semantic_contract": {
+    "semantic_contract_version": "1.0",
+    "primary_visual_subject": "A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth.",
+    "visual_anchors": [
+      "A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth."
+    ],
+    "atmosphere_descriptors": [
+      "Professional",
+      "Confident",
+      "Modern"
+    ],
+    "audience_descriptors": [
+      "Adults"
+    ],
+    "motif_descriptors": [
+      "Layered architectural panels",
+      "Subtle connected geometry"
+    ],
+    "motif_structure_description": "The layered architectural panels and subtle connected geometry should create a cohesive and visually appealing environment that emphasizes the modern technology theme.",
+    "lighting_descriptors": [
+      "Bright and clear"
+    ],
+    "material_descriptors": [
+      "High-quality materials"
+    ],
+    "texture_descriptors": [
+      "Smooth and sleek"
+    ],
+    "incompatible_treatments": [
+      "Retro or outdated technology",
+      "Informal or casual settings"
+    ],
+    "scene_family": "architectural-interior",
+    "composition_affinities": [
+      "Symmetrical balance",
+      "Clean lines"
+    ],
+    "palette": [
+      {
+        "colour": "navy",
+        "role": "primary"
+      },
+      {
+        "colour": "white",
+        "role": "secondary"
+      }
+    ],
+    "palette_mode": "dominant",
+    "palette_relationship": "requested colours dominate with natural tonal variation",
+    "abstraction_level": "",
+    "realism_level": "",
+    "energy_level": "",
+    "symmetry_preference": "",
+    "density_preference": "",
+    "theme_reference_treatment": "",
+    "hard_dimensions": [],
+    "semantic_provenance": {
+      "primary_visual_subject": "USER_EXPLICIT",
+      "visual_anchors": "USER_EXPLICIT",
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SEMANTIC_INFERENCE",
+      "material_descriptors": "SEMANTIC_INFERENCE",
+      "texture_descriptors": "SEMANTIC_INFERENCE",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SEMANTIC_INFERENCE",
+      "composition_affinities": "SEMANTIC_INFERENCE",
+      "palette": "SAFE_FALLBACK",
+      "palette_mode": "USER_EXPLICIT",
+      "palette_relationship": "SAFE_FALLBACK",
+      "abstraction_level": "SAFE_FALLBACK",
+      "realism_level": "SAFE_FALLBACK",
+      "energy_level": "SAFE_FALLBACK",
+      "symmetry_preference": "SAFE_FALLBACK",
+      "density_preference": "SAFE_FALLBACK",
+      "theme_reference_treatment": "SAFE_FALLBACK"
+    },
+    "semantic_confidence": {}
+  },
+  "semantic_contract_version": "1.0",
+  "semantic_contract_sha256": "2d489af4a6b59259af4326bad882b1ac9a65ff48145b3c3923d2fb6228fc0504"
+}

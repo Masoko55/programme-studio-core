@@ -1,0 +1,34 @@
+{
+  "composition_strategy": "A central-focal composition with an oblique viewpoint, emphasizing a right-centric focus to create a sense of dynamic tension.",
+  "focal_strategy": "The focal point is strategically placed to the right and in the middle of the frame, drawing the viewer's attention to the central subject while maintaining visual balance.",
+  "depth_strategy": "The shallow depth plan is used to keep the scene from appearing overly cluttered, maintaining a clean and focused visual experience.",
+  "border_or_perimeter_strategy": "The open perimeter plan ensures that the scene appears unconstrained and allows for a natural flow of visual elements.",
+  "title_safe_region_strategy": "The title-safe region is positioned at the upper part of the frame to avoid overlapping with the main focal point, ensuring readability.",
+  "programme_safe_region_strategy": "The programme-safe region is strategically placed at the lower part of the frame, ensuring that it does not interfere with the primary visual elements of the scene.",
+  "direction_id": "C",
+  "role": "Design Director",
+  "positive_prompt": "Design a scene that uses an oblique viewpoint with a central-focal composition, incorporating a shallow depth plan and an open perimeter, A green, cream palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: Use only the supplied visual motifs and treatment, Clarified visual language: motifs: lush natural foliage, motif structure: The motif of lush natural foliage should be consistent throughout the scene, creating a cohesive and immersive botanical garden atmosphere, atmosphere: warm, elegant, peaceful, composition: natural landscape, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+  "negative_prompt": "Avoid symmetrical compositions and overly complex depth plans. Do not include extraneous details that detract from the focal point., person, people, human, human figure, man, woman, child, face, portrait, silhouette, body, head, hands, arms, legs, clothing, mannequin, character, fictional character, hero, superhero, masked character, mascot, costume, costumed figure, humanoid, text, typography, lettering, words, letters, numbers, writing, calligraphy, signature, logo, watermark, signage, unrequested chromatic design colours, colour drift, unrelated hues, large neutral areas that displace the requested colours, unrelated generic imagery, crowded centre, readable text, characters",
+  "title_suggestions": [
+    "Dynamic Oblique Focus",
+    "Central Tension",
+    "Right-Centric Harmony"
+  ],
+  "short_design_rationale": "By placing the focal point to the right and middle of the frame with an oblique viewpoint, the design creates a sense of dynamic tension while maintaining visual balance. The shallow depth plan ensures clarity, and the open perimeter plan allows for natural visual flow.",
+  "layout_guidance": {
+    "title_zone": {
+      "x": 0.1,
+      "y": 0.08,
+      "width": 0.8,
+      "height": 0.12
+    },
+    "programme_zone": {
+      "x": 0.1,
+      "y": 0.47,
+      "width": 0.8,
+      "height": 0.4
+    },
+    "headshot_zone": null,
+    "logo_zone": null
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "composition_strategy": "A panoramic composition with the focal band near the center, creating a sense of depth and adventure through a series of webs woven through the scene, guiding the viewer's eye across the image.",
+  "focal_strategy": "The focal point is a subtle yet dynamic web formation that lies slightly off-center to the left, drawing attention while maintaining an adventurous atmosphere.",
+  "depth_strategy": "Depth is achieved through the use of tonal gradation and the placement of webs at different distances from the viewer, with lighter and more intricate webs in the foreground and darker, more expansive webs receding into the background.",
+  "border_or_perimeter_strategy": "The border is treated with a gentle gradient, transitioning from a lighter shade of the primary color to a darker tone, blending seamlessly with the background while providing a clear visual frame.",
+  "title_safe_region_strategy": "A calm, rectangular region is reserved at the top center of the frame, designed to be slightly elevated from the main action, offering a clear space for text.",
+  "programme_safe_region_strategy": "A safe zone for additional text is placed below the title area, maintaining a vertical layout that aligns with the flow of the composition.",
+  "direction_id": "A",
+  "role": "Adventure and excitement through subtle and dynamic web formations in a superhero city theme.",
+  "positive_prompt": "Use only webs as the visual motif and maintain an exciting and adventurous atmosphere, A royal blue, red palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: Webs, Exciting and adventurous, Clarified visual language: motifs: Webs, atmosphere: Exciting and adventurous, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+  "negative_prompt": "Do not include generic imagery, crowded center, readable text, people, characters, logos, or buildings. The background should be free from any unrequested chromatic design colors, and the layout must follow the standard zones., person, human, human figure, man, woman, child, face, portrait, silhouette, body, head, hands, arms, legs, clothing, mannequin, character, fictional character, hero, superhero, masked character, mascot, costume, costumed figure, humanoid, text, typography, lettering, words, letters, numbers, writing, calligraphy, signature, logo, watermark, signage, unrequested chromatic design colours, colour drift, unrelated hues, large neutral areas that displace the requested colours, unrelated generic imagery, crowded centre",
+  "title_suggestions": [
+    "Kabelo's Superhero Adventure",
+    "Spider-Man's Web-Wonderland",
+    "Web-Wilderness Celebration"
+  ],
+  "short_design_rationale": "This design offers a dynamic and adventurous background that captures the essence of a superhero city adventure inspired by Spider-Man, tailored specifically for children aged 7 to 10. The use of webs woven through the scene subtly enhances the theme without overwhelming the viewer, providing a visually engaging and imaginative space.",
+  "layout_guidance": {
+    "title_zone": {
+      "x": 0.1,
+      "y": 0.08,
+      "width": 0.8,
+      "height": 0.12
+    },
+    "programme_zone": {
+      "x": 0.1,
+      "y": 0.47,
+      "width": 0.8,
+      "height": 0.4
+    },
+    "headshot_zone": null,
+    "logo_zone": null
+  }
+}

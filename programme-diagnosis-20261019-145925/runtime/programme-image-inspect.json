@@ -1,0 +1,337 @@
+[
+     {
+          "Id": "518044b908a6ee51676efac42d3c37a8972171975994f9b8b7a9b0c2fac78e00",
+          "Created": "2026-10-19T12:36:28.599011795+02:00",
+          "Path": "uvicorn",
+          "Args": [
+               "app.main:app",
+               "--host",
+               "0.0.0.0",
+               "--port",
+               "8002"
+          ],
+          "State": {
+               "OciVersion": "1.0.2-dev",
+               "Status": "running",
+               "Running": true,
+               "Paused": false,
+               "Restarting": false,
+               "OOMKilled": false,
+               "Dead": false,
+               "Pid": 1714567,
+               "ConmonPid": 1714564,
+               "ExitCode": 0,
+               "Error": "",
+               "StartedAt": "2026-10-19T12:36:29.614124938+02:00",
+               "FinishedAt": "0001-01-01T00:00:00Z",
+               "Health": {
+                    "Status": "",
+                    "FailingStreak": 0,
+                    "Log": null
+               },
+               "CgroupPath": "/user.slice/user-1000.slice/user@1000.service/user.slice/libpod-518044b908a6ee51676efac42d3c37a8972171975994f9b8b7a9b0c2fac78e00.scope",
+               "CheckpointedAt": "0001-01-01T00:00:00Z",
+               "RestoredAt": "0001-01-01T00:00:00Z"
+          },
+          "Image": "12bb8dfdda54cc7979de4a1ec4c98f165f794ed0b63e7ef0f1f221ff06c6d132",
+          "ImageDigest": "sha256:ee51fff06bda7821d0ad8ba0ad05df45d5f1df88df50af1b63c8f77e76f320ac",
+          "ImageName": "localhost/programme-image-service:1.0",
+          "Rootfs": "",
+          "Pod": "",
+          "ResolvConfPath": "/run/user/1000/containers/vfs-containers/518044b908a6ee51676efac42d3c37a8972171975994f9b8b7a9b0c2fac78e00/userdata/resolv.conf",
+          "HostnamePath": "/run/user/1000/containers/vfs-containers/518044b908a6ee51676efac42d3c37a8972171975994f9b8b7a9b0c2fac78e00/userdata/hostname",
+          "HostsPath": "/run/user/1000/containers/vfs-containers/518044b908a6ee51676efac42d3c37a8972171975994f9b8b7a9b0c2fac78e00/userdata/hosts",
+          "StaticDir": "/home/ntlhari/.local/share/containers/storage/vfs-containers/518044b908a6ee51676efac42d3c37a8972171975994f9b8b7a9b0c2fac78e00/userdata",
+          "OCIConfigPath": "/home/ntlhari/.local/share/containers/storage/vfs-containers/518044b908a6ee51676efac42d3c37a8972171975994f9b8b7a9b0c2fac78e00/userdata/config.json",
+          "OCIRuntime": "crun",
+          "ConmonPidFile": "/run/user/1000/containers/vfs-containers/518044b908a6ee51676efac42d3c37a8972171975994f9b8b7a9b0c2fac78e00/userdata/conmon.pid",
+          "PidFile": "/run/user/1000/containers/vfs-containers/518044b908a6ee51676efac42d3c37a8972171975994f9b8b7a9b0c2fac78e00/userdata/pidfile",
+          "Name": "programme-image",
+          "RestartCount": 0,
+          "Driver": "vfs",
+          "MountLabel": "",
+          "ProcessLabel": "",
+          "AppArmorProfile": "",
+          "EffectiveCaps": [
+               "CAP_CHOWN",
+               "CAP_DAC_OVERRIDE",
+               "CAP_FOWNER",
+               "CAP_FSETID",
+               "CAP_KILL",
+               "CAP_NET_BIND_SERVICE",
+               "CAP_SETFCAP",
+               "CAP_SETGID",
+               "CAP_SETPCAP",
+               "CAP_SETUID",
+               "CAP_SYS_CHROOT"
+          ],
+          "BoundingCaps": [
+               "CAP_CHOWN",
+               "CAP_DAC_OVERRIDE",
+               "CAP_FOWNER",
+               "CAP_FSETID",
+               "CAP_KILL",
+               "CAP_NET_BIND_SERVICE",
+               "CAP_SETFCAP",
+               "CAP_SETGID",
+               "CAP_SETPCAP",
+               "CAP_SETUID",
+               "CAP_SYS_CHROOT"
+          ],
+          "ExecIDs": [],
+          "GraphDriver": {
+               "Name": "vfs",
+               "Data": null
+          },
+          "Mounts": [
+               {
+                    "Type": "bind",
+                    "Source": "/home/ntlhari/NerdCode/programme-studio/data/programmes",
+                    "Destination": "/data/programmes",
+                    "Driver": "",
+                    "Mode": "",
+                    "Options": [
+                         "rbind"
+                    ],
+                    "RW": true,
+                    "Propagation": "rprivate"
+               }
+          ],
+          "Dependencies": [],
+          "NetworkSettings": {
+               "EndpointID": "",
+               "Gateway": "",
+               "IPAddress": "",
+               "IPPrefixLen": 0,
+               "IPv6Gateway": "",
+               "GlobalIPv6Address": "",
+               "GlobalIPv6PrefixLen": 0,
+               "MacAddress": "",
+               "Bridge": "",
+               "SandboxID": "",
+               "HairpinMode": false,
+               "LinkLocalIPv6Address": "",
+               "LinkLocalIPv6PrefixLen": 0,
+               "Ports": {
+                    "8002/tcp": [
+                         {
+                              "HostIp": "",
+                              "HostPort": "8002"
+                         }
+                    ]
+               },
+               "SandboxKey": "/run/user/1000/netns/netns-f742dca6-1de0-78c9-2094-4313e24e59db",
+               "Networks": {
+                    "programme-studio": {
+                         "EndpointID": "",
+                         "Gateway": "10.89.0.1",
+                         "IPAddress": "10.89.0.59",
+                         "IPPrefixLen": 24,
+                         "IPv6Gateway": "",
+                         "GlobalIPv6Address": "",
+                         "GlobalIPv6PrefixLen": 0,
+                         "MacAddress": "76:9a:36:51:64:37",
+                         "NetworkID": "programme-studio",
+                         "DriverOpts": null,
+                         "IPAMConfig": null,
+                         "Links": null,
+                         "Aliases": [
+                              "518044b908a6"
+                         ]
+                    }
+               }
+          },
+          "Namespace": "",
+          "IsInfra": false,
+          "IsService": false,
+          "Config": {
+               "Hostname": "518044b908a6",
+               "Domainname": "",
+               "User": "",
+               "AttachStdin": false,
+               "AttachStdout": false,
+               "AttachStderr": false,
+               "Tty": false,
+               "OpenStdin": false,
+               "StdinOnce": false,
+               "Env": [
+                    "DEBIAN_FRONTEND=noninteractive",
+                    "OLLAMA_BASE_URL=http://192.168.68.115:11434",
+                    "TERM=xterm",
+                    "container=podman",
+                    "PIP_NO_CACHE_DIR=1",
+                    "COMFYUI_BASE_URL=http://192.168.68.115:8188",
+                    "PIP_DISABLE_PIP_VERSION_CHECK=1",
+                    "GPG_KEY=A035C8C19219BA821ECEA86B64E628F8D684696D",
+                    "PROGRAMME_DATA_PATH=/data/programmes",
+                    "PYTHONUNBUFFERED=1",
+                    "PYTHONDONTWRITEBYTECODE=1",
+                    "REPOSITORY_SERVICE_BASE_URL=http://programme-repository:8003",
+                    "PYTHON_VERSION=3.11.16",
+                    "PATH=/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                    "PYTHON_SHA256=91bcdebfdde239a003ae93738a7fce0f9230fee5c4bc2b86f6e6e8c6f98aabe8",
+                    "LANG=C.UTF-8",
+                    "HOME=/root",
+                    "HOSTNAME=518044b908a6"
+               ],
+               "Cmd": [
+                    "uvicorn",
+                    "app.main:app",
+                    "--host",
+                    "0.0.0.0",
+                    "--port",
+                    "8002"
+               ],
+               "Image": "localhost/programme-image-service:1.0",
+               "Volumes": null,
+               "WorkingDir": "/app",
+               "Entrypoint": "",
+               "OnBuild": null,
+               "Labels": {
+                    "io.buildah.version": "1.28.2"
+               },
+               "Annotations": {
+                    "com.docker.official-images.bashbrew.arch": "amd64",
+                    "io.container.manager": "libpod",
+                    "io.kubernetes.cri-o.Created": "2026-10-19T12:36:28.599011795+02:00",
+                    "io.kubernetes.cri-o.TTY": "false",
+                    "io.podman.annotations.autoremove": "FALSE",
+                    "io.podman.annotations.init": "FALSE",
+                    "io.podman.annotations.privileged": "FALSE",
+                    "io.podman.annotations.publish-all": "FALSE",
+                    "org.opencontainers.image.base.digest": "sha256:b2f048fcd99dfe5166d6f4a384bafd96b10eecdd62fb3b6e348cf065049bb0b5",
+                    "org.opencontainers.image.base.name": "docker.io/library/python:3.11-slim",
+                    "org.opencontainers.image.created": "2026-09-19T00:59:13Z",
+                    "org.opencontainers.image.revision": "688a0b86bb44289df16a363e9f41d90514c1a5f9",
+                    "org.opencontainers.image.source": "https://github.com/docker-library/python.git#688a0b86bb44289df16a363e9f41d90514c1a5f9:3.11/slim-trixie",
+                    "org.opencontainers.image.stopSignal": "15",
+                    "org.opencontainers.image.url": "https://hub.docker.com/_/python",
+                    "org.opencontainers.image.version": "3.11.16-slim-trixie"
+               },
+               "StopSignal": 15,
+               "HealthcheckOnFailureAction": "none",
+               "CreateCommand": [
+                    "podman",
+                    "run",
+                    "-d",
+                    "--replace",
+                    "--restart",
+                    "unless-stopped",
+                    "--name",
+                    "programme-image",
+                    "--network",
+                    "programme-studio",
+                    "-p",
+                    "8002:8002",
+                    "-v",
+                    "/home/ntlhari/NerdCode/programme-studio/data/programmes:/data/programmes:rw",
+                    "-e",
+                    "PROGRAMME_DATA_PATH=/data/programmes",
+                    "-e",
+                    "COMFYUI_BASE_URL=http://192.168.68.115:8188",
+                    "-e",
+                    "OLLAMA_BASE_URL=http://192.168.68.115:11434",
+                    "-e",
+                    "REPOSITORY_SERVICE_BASE_URL=http://programme-repository:8003",
+                    "localhost/programme-image-service:1.0"
+               ],
+               "Umask": "0022",
+               "Timeout": 0,
+               "StopTimeout": 10,
+               "Passwd": true,
+               "sdNotifyMode": "container"
+          },
+          "HostConfig": {
+               "Binds": [
+                    "/home/ntlhari/NerdCode/programme-studio/data/programmes:/data/programmes:rw,rprivate,rbind"
+               ],
+               "CgroupManager": "systemd",
+               "CgroupMode": "private",
+               "ContainerIDFile": "",
+               "LogConfig": {
+                    "Type": "journald",
+                    "Config": null,
+                    "Path": "",
+                    "Tag": "",
+                    "Size": "0B"
+               },
+               "NetworkMode": "bridge",
+               "PortBindings": {
+                    "8002/tcp": [
+                         {
+                              "HostIp": "",
+                              "HostPort": "8002"
+                         }
+                    ]
+               },
+               "RestartPolicy": {
+                    "Name": "unless-stopped",
+                    "MaximumRetryCount": 0
+               },
+               "AutoRemove": false,
+               "VolumeDriver": "",
+               "VolumesFrom": null,
+               "CapAdd": [],
+               "CapDrop": [
+                    "CAP_AUDIT_WRITE",
+                    "CAP_MKNOD",
+                    "CAP_NET_RAW"
+               ],
+               "Dns": [],
+               "DnsOptions": [],
+               "DnsSearch": [],
+               "ExtraHosts": [],
+               "GroupAdd": [],
+               "IpcMode": "shareable",
+               "Cgroup": "",
+               "Cgroups": "default",
+               "Links": null,
+               "OomScoreAdj": 0,
+               "PidMode": "private",
+               "Privileged": false,
+               "PublishAllPorts": false,
+               "ReadonlyRootfs": false,
+               "SecurityOpt": [],
+               "Tmpfs": {},
+               "UTSMode": "private",
+               "UsernsMode": "",
+               "ShmSize": 65536000,
+               "Runtime": "oci",
+               "ConsoleSize": [
+                    0,
+                    0
+               ],
+               "Isolation": "",
+               "CpuShares": 0,
+               "Memory": 0,
+               "NanoCpus": 0,
+               "CgroupParent": "user.slice",
+               "BlkioWeight": 0,
+               "BlkioWeightDevice": null,
+               "BlkioDeviceReadBps": null,
+               "BlkioDeviceWriteBps": null,
+               "BlkioDeviceReadIOps": null,
+               "BlkioDeviceWriteIOps": null,
+               "CpuPeriod": 0,
+               "CpuQuota": 0,
+               "CpuRealtimePeriod": 0,
+               "CpuRealtimeRuntime": 0,
+               "CpusetCpus": "",
+               "CpusetMems": "",
+               "Devices": [],
+               "DiskQuota": 0,
+               "KernelMemory": 0,
+               "MemoryReservation": 0,
+               "MemorySwap": 0,
+               "MemorySwappiness": 0,
+               "OomKillDisable": false,
+               "PidsLimit": 2048,
+               "Ulimits": [],
+               "CpuCount": 0,
+               "CpuPercent": 0,
+               "IOMaximumIOps": 0,
+               "IOMaximumBandwidth": 0,
+               "CgroupConf": null
+          }
+     }
+]

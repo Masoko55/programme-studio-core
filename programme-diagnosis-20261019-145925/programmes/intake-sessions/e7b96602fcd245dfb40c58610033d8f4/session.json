@@ -1,0 +1,124 @@
+{
+  "session_id": "e7b96602fcd245dfb40c58610033d8f4",
+  "status": "generated",
+  "answers": {
+    "event_type": "Corporate conference",
+    "theme": "Modern technology forum",
+    "age_group": "Adults",
+    "primary_colour": "navy",
+    "secondary_colour": "white",
+    "creative_description": "A professional, confident and modern technology conference with a clean premium atmosphere.",
+    "background_inspiration": "A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth.",
+    "theme_reference_treatment": null,
+    "event_date": "2026-12-21",
+    "start_time": "09:00",
+    "title_preference": "Technology Forum",
+    "venue": "Innovation Centre",
+    "timezone": "Africa/Johannesburg",
+    "programme": [
+      {
+        "time": "09:00",
+        "title": "Opening",
+        "description": null
+      },
+      {
+        "time": "10:00",
+        "title": "Keynote",
+        "description": null
+      },
+      {
+        "time": "11:30",
+        "title": "Panel",
+        "description": null
+      }
+    ],
+    "output_language": "en",
+    "accessibility_preferences": [
+      "high contrast",
+      "clear readable programme text"
+    ],
+    "asset_type": "none",
+    "asset_placement": null,
+    "headshot_shape": null,
+    "rights_and_consent_confirmed": null
+  },
+  "clarification_questions": [],
+  "creative_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "Corporate conference",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "Professional setting",
+      "Formal attire",
+      "Stage and presentation area"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Modern technology forum",
+    "reference_detected": false,
+    "reference_name": null,
+    "reference_type": "none",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "Generate a clean, contemporary technology hall with layered architectural panels, subtle connected geometry, and professional spatial depth. Ensure the background reflects a premium atmosphere with a modern technology theme.",
+    "scene_family_evidence": "A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth.",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "Professional",
+        "Confident",
+        "Modern"
+      ],
+      "audience_descriptors": [
+        "Adults"
+      ],
+      "motif_descriptors": [
+        "Layered architectural panels",
+        "Subtle connected geometry"
+      ],
+      "motif_structure_description": "The layered architectural panels and subtle connected geometry should create a cohesive and visually appealing environment that emphasizes the modern technology theme.",
+      "lighting_descriptors": [
+        "Bright and clear"
+      ],
+      "material_descriptors": [
+        "High-quality materials"
+      ],
+      "texture_descriptors": [
+        "Smooth and sleek"
+      ],
+      "incompatible_treatments": [
+        "Retro or outdated technology",
+        "Informal or casual settings"
+      ],
+      "scene_family": "architectural-interior",
+      "composition_affinities": [
+        "Symmetrical balance",
+        "Clean lines"
+      ]
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SEMANTIC_INFERENCE",
+      "material_descriptors": "SEMANTIC_INFERENCE",
+      "texture_descriptors": "SEMANTIC_INFERENCE",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SEMANTIC_INFERENCE",
+      "composition_affinities": "SEMANTIC_INFERENCE"
+    },
+    "semantic_confidence": {},
+    "generation_constraints": [
+      "No readable programme/title text",
+      "No logos",
+      "No people or characters",
+      "background only",
+      "no people",
+      "no characters",
+      "no logos",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "assets": {},
+  "reference_number": "6F77C9-622111"
+}

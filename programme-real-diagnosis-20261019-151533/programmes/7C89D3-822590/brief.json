@@ -1,0 +1,174 @@
+{
+  "event_type": "Children birthday party",
+  "theme": "Superhero city adventure inspired by Spider-Man",
+  "age_group": "Children aged 7 to 10",
+  "primary_colour": "royal blue",
+  "secondary_colour": "red",
+  "creative_description": "A kids birthday party for a kid who is into superheroes, most especially spiderman.",
+  "background_inspiration": null,
+  "theme_reference_treatment": "spiderman colours must influence the visual traits but do not add any buildings and just add webs but not a lot.",
+  "grill_me_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "Children birthday party",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "Decorations and activities tailored for children",
+      "Bright and vibrant colors"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Superhero city adventure inspired by Spider-Man",
+    "reference_detected": true,
+    "reference_name": "Spider-Man",
+    "reference_type": "character",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "Use only the supplied visual motifs and treatment; do not invent an environment.",
+    "scene_family_evidence": "Superhero city adventure inspired by Spider-Man",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "Exciting and adventurous"
+      ],
+      "audience_descriptors": [
+        "Children aged 7 to 10"
+      ],
+      "motif_descriptors": [
+        "Webs"
+      ],
+      "motif_structure_description": "Webs should be subtly integrated into the background without dominating the scene.",
+      "lighting_descriptors": [],
+      "material_descriptors": [],
+      "texture_descriptors": [],
+      "incompatible_treatments": [],
+      "scene_family": "general",
+      "composition_affinities": []
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SAFE_FALLBACK",
+      "material_descriptors": "SAFE_FALLBACK",
+      "texture_descriptors": "SAFE_FALLBACK",
+      "incompatible_treatments": "SAFE_FALLBACK",
+      "scene_family": "SAFE_FALLBACK",
+      "composition_affinities": "SAFE_FALLBACK"
+    },
+    "semantic_confidence": {
+      "atmosphere_descriptors": 0.9,
+      "audience_descriptors": 0.9,
+      "motif_descriptors": 0.8
+    },
+    "generation_constraints": [
+      "No readable programme/title text",
+      "No logos",
+      "No people or characters",
+      "background only",
+      "no people",
+      "no characters",
+      "no logos",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "visual_semantics": {
+    "atmosphere_descriptors": [
+      "Exciting and adventurous"
+    ],
+    "audience_descriptors": [
+      "Children aged 7 to 10"
+    ],
+    "motif_descriptors": [
+      "Webs"
+    ],
+    "motif_structure_description": "Webs should be subtly integrated into the background without dominating the scene.",
+    "lighting_descriptors": [],
+    "material_descriptors": [],
+    "texture_descriptors": [],
+    "incompatible_treatments": [],
+    "scene_family": "general",
+    "composition_affinities": []
+  },
+  "title_preference": "Kabelo's Superhero Birthday",
+  "event_date": "2026-12-05",
+  "start_time": "14:00",
+  "timezone": "Africa/Johannesburg",
+  "output_language": "en",
+  "asset_type": "none",
+  "asset_placement": null,
+  "asset_vertical_position": null,
+  "text_flow": "standard",
+  "palette_mode": "dominant",
+  "palette_relationship": "requested colours dominate with natural tonal variation",
+  "palette_relationship_source": "default",
+  "semantic_contract": {
+    "semantic_contract_version": "1.0",
+    "primary_visual_subject": "Superhero city adventure inspired by Spider-Man",
+    "visual_anchors": [],
+    "atmosphere_descriptors": [
+      "Exciting and adventurous"
+    ],
+    "audience_descriptors": [
+      "Children aged 7 to 10"
+    ],
+    "motif_descriptors": [
+      "Webs"
+    ],
+    "motif_structure_description": "Webs should be subtly integrated into the background without dominating the scene.",
+    "lighting_descriptors": [],
+    "material_descriptors": [],
+    "texture_descriptors": [],
+    "incompatible_treatments": [],
+    "scene_family": "general",
+    "composition_affinities": [],
+    "palette": [
+      {
+        "colour": "royal blue",
+        "role": "primary"
+      },
+      {
+        "colour": "red",
+        "role": "secondary"
+      }
+    ],
+    "palette_mode": "dominant",
+    "palette_relationship": "requested colours dominate with natural tonal variation",
+    "abstraction_level": "",
+    "realism_level": "",
+    "energy_level": "",
+    "symmetry_preference": "",
+    "density_preference": "",
+    "theme_reference_treatment": "spiderman colours must influence the visual traits but do not add any buildings and just add webs but not a lot.",
+    "hard_dimensions": [],
+    "semantic_provenance": {
+      "primary_visual_subject": "SAFE_FALLBACK",
+      "visual_anchors": "SAFE_FALLBACK",
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SAFE_FALLBACK",
+      "material_descriptors": "SAFE_FALLBACK",
+      "texture_descriptors": "SAFE_FALLBACK",
+      "incompatible_treatments": "SAFE_FALLBACK",
+      "scene_family": "SAFE_FALLBACK",
+      "composition_affinities": "SAFE_FALLBACK",
+      "palette": "SAFE_FALLBACK",
+      "palette_mode": "USER_EXPLICIT",
+      "palette_relationship": "SAFE_FALLBACK",
+      "abstraction_level": "SAFE_FALLBACK",
+      "realism_level": "SAFE_FALLBACK",
+      "energy_level": "SAFE_FALLBACK",
+      "symmetry_preference": "SAFE_FALLBACK",
+      "density_preference": "SAFE_FALLBACK",
+      "theme_reference_treatment": "USER_EXPLICIT"
+    },
+    "semantic_confidence": {
+      "atmosphere_descriptors": 0.9,
+      "audience_descriptors": 0.9,
+      "motif_descriptors": 0.8
+    }
+  },
+  "semantic_contract_version": "1.0",
+  "semantic_contract_sha256": "ce97753570e569ad9267a39cdf8605fe11dc69cf5aa016b90d859af90c523730"
+}

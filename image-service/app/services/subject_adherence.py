@@ -42,6 +42,31 @@ def _confirmed_human_answer(visible: object, description: str) -> bool | None:
     return True if anatomy and detail and location else None
 
 
+def _supported_literal_object_claim(answer: dict, visual_design: dict) -> bool:
+    """A hard literal-object claim needs an object, location and contract reason."""
+    evidence = answer.get("unrequested_literal_object_evidence")
+    if not isinstance(evidence, dict) or any(
+        not isinstance(evidence.get(key), str) or not evidence[key].strip()
+        for key in ("object", "location", "why_unrequested")
+    ):
+        return False
+    if (not re.search(r"\b(?:left|right|top|bottom|upper|lower|center|centre|"
+                      r"foreground|background|middle|near|beside|behind)\b", evidence["location"], re.I)
+            or not re.search(r"\b(?:motif|pattern|texture)\b", evidence["why_unrequested"], re.I)
+            or not re.search(r"\b(?:subject|brief|requested)\b", evidence["why_unrequested"], re.I)):
+        return False
+
+    def words(value: str) -> set[str]:
+        tokens = re.findall(r"[a-z0-9]+", value.casefold())
+        return {token[:-3] + "y" if token.endswith("ies") else
+                token[:-1] if token.endswith("s") and not token.endswith("ss") else token
+                for token in tokens}
+
+    object_words = words(evidence["object"])
+    authorized_words = words(str(visual_design.get("authorized_literal_subject") or ""))
+    return bool(object_words and not object_words.issubset(authorized_words))
+
+
 def select_vision_endpoint(model_name: str) -> str:
     """Use the endpoint verified for the installed MiniCPM vision model."""
     return "/api/chat" if model_name.strip().casefold().startswith("minicpm-v4.5") else "/api/generate"
@@ -463,6 +488,7 @@ def assess_subject_adherence(
         "vision_text_signal": None,
         "vision_text_evidence": "",
         "unrequested_literal_object_visible": None,
+        "literal_object_dimension_availability": "UNAVAILABLE",
     }
 
     if not chosen_model or not subject:
@@ -524,6 +550,8 @@ def assess_subject_adherence(
         "Return one JSON object with numeric subject_score, atmosphere_score, motif_score, "
         "audience_fit_score, treatment_score, background_usability_score (0 to 1); "
         "boolean human_visible and unrequested_literal_object_visible; "
+        "when unrequested_literal_object_visible is true, include unrequested_literal_object_evidence "
+        "with object, location, and why_unrequested relative to the requested subject and motif; "
         "boolean unrequested_text_visible and text_evidence describing any visible words, letters, "
         "numbers, logos, signage or grouped pseudo-glyphs and their location; "
         "observed_evidence as a list of visible forms; and a short reason. "
@@ -624,6 +652,7 @@ def assess_subject_adherence(
                 ],
             )
 
+        literal_evidence_unavailable = False
         for assessment_attempt in range(2):
             response = httpx.post(
                 settings.ollama_base_url.rstrip("/") + endpoint,
@@ -659,6 +688,19 @@ def assess_subject_adherence(
                                            field, [])
                 if not isinstance(answer.get("observed_evidence", answer.get("matched_anchors", [])), list):
                     raise ValueError("Vision response lacks observed evidence")
+                if (visual_design.get("motif_literalization_policy") == "motif_only" and
+                        answer.get("unrequested_literal_object_visible") is True and
+                        not _supported_literal_object_claim(answer, visual_design)):
+                    if not assessment_attempt:
+                        clarification = (" Recheck unrequested_literal_object_visible. If true, identify "
+                                         "the visible object, its location, and why it comes only from a motif "
+                                         "rather than the requested subject. If no such object is visible, return false.")
+                        if endpoint == "/api/chat":
+                            request["messages"][0]["content"] += clarification
+                        else:
+                            request["prompt"] += clarification
+                        raise ValueError("Unsupported literal-object claim")
+                    literal_evidence_unavailable = True
                 break
             except (ValueError, TypeError):
                 if assessment_attempt:
@@ -920,7 +962,8 @@ def assess_subject_adherence(
             },
         }
 
-    unauthorized_literal = (visual_design.get("motif_literalization_policy") == "motif_only"
+    unauthorized_literal = (not literal_evidence_unavailable and
+                            visual_design.get("motif_literalization_policy") == "motif_only"
                             and answer.get("unrequested_literal_object_visible") is True)
     if unauthorized_literal:
         debug["unrequested_literal_object_visible"] = True
@@ -1064,7 +1107,7 @@ def assess_subject_adherence(
     elif "treatment_score" in hard_failed:
         decision = "TREATMENT_DRIFT"
 
-    elif failed:
+    elif failed or literal_evidence_unavailable:
         decision = (
             "BRIEF_FIDELITY_DRIFT"
         )
@@ -1107,7 +1150,10 @@ def assess_subject_adherence(
         "failure_category": ("TEXT_OR_LOGO" if text_signal else
                              "UNREQUESTED_LITERAL_OBJECT" if unauthorized_literal else
                              SEMANTIC_FAILURE_CATEGORIES[worst] if worst else None),
-        "unrequested_literal_object_visible": unauthorized_literal,
+        "unrequested_literal_object_visible": None if literal_evidence_unavailable else unauthorized_literal,
+        "literal_object_dimension_availability": ("NOT_REQUIRED" if visual_design.get("motif_literalization_policy") != "motif_only" else
+                                                  "UNAVAILABLE" if literal_evidence_unavailable else
+                                                  "FAIL" if unauthorized_literal else "PASS"),
         "vision_text_signal": text_signal,
         "vision_text_evidence": text_evidence if text_signal else "",
         "compound_fidelity_failure": (
@@ -1147,7 +1193,9 @@ def assess_subject_adherence(
             )
             for field
             in required
-        },
+        } | ({"unrequested_literal_object_visible": "UNAVAILABLE" if literal_evidence_unavailable else
+              "FAIL" if unauthorized_literal else "PASS"}
+             if visual_design.get("motif_literalization_policy") == "motif_only" else {}),
         "reason": str(
             answer.get(
                 "reason"

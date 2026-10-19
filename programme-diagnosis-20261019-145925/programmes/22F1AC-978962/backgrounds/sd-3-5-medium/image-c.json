@@ -1,0 +1,4923 @@
+{
+  "reference_number": "22F1AC-978962",
+  "source_reference": "22F1AC-978962",
+  "source_prompt_manifest": {
+    "prompt_schema_version": "1.0",
+    "semantic_contract_version": "1.0",
+    "creative_direction_version": "2.0",
+    "prompt_generation_sha256": "52b069134619df54c5a1e4a0a881fd4514f316cdca286423891c5a0226e513e3",
+    "hash_verified": true,
+    "freshness_status": "CURRENT",
+    "created_at": "2026-10-19T08:05:39.515853Z"
+  },
+  "engine_id": "sd-3-5-medium",
+  "direction_id": "C",
+  "seed": 6266901684196696781,
+  "workflow_sha256": "a3c303b1efbe92ffaefe6505c2822f454ca705735fcad2bcb913c0e2df2bea08",
+  "effective_workflow": {
+    "workflow_sha256": "a3c303b1efbe92ffaefe6505c2822f454ca705735fcad2bcb913c0e2df2bea08",
+    "checkpoint": "sd3.5_medium.safetensors",
+    "clip_l": "clip_l.safetensors",
+    "clip_g": "clip_g.safetensors",
+    "t5": "t5xxl_fp8_e4m3fn.safetensors",
+    "vae": [
+      "4",
+      2
+    ],
+    "sampler": "dpmpp_2m",
+    "scheduler": "sgm_uniform",
+    "cfg": 4.0,
+    "steps": 28,
+    "shift": null,
+    "width": 896,
+    "height": 1280,
+    "seed": 6266901684196696781,
+    "positive_fields": {
+      "clip_l": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms,. Anchors: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes. Event context: . Audience: adults.",
+      "clip_g": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms,. Event context: . Audience: adults. Event atmosphere: elegant, sophisticated, celebratory. Composition: off-centre focal placement, diagonal flow, shallow depth. Palette: black, white; black clearly visible in design elements; primary visual mass, secondary accents; neutrals support. normal: Move detail away from integrated calm regions while retaining this direction",
+      "t5xxl": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.. Anchors: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes. Event context: . Audience: adults. Event atmosphere: elegant, sophisticated, celebratory. Motif: Motifs should be repeated in a structured and symmetrical manner,. Motif as abstract pattern structure; no unrequested literal objects Palette: black, white; black clearly visible in substantial design elements; white clearly visible; primary visual mass, secondary accents; neutrals support. Composition: off-centre focal placement, diagonal flow, shallow depth. Lighting: polished evening lighting. normal: Move detail away from integrated calm regions while retaining this direction"
+    },
+    "negative_fields": {
+      "clip_l": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and colorful, casual or informal",
+      "clip_g": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and colorful, casual or informal",
+      "t5xxl": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and colorful, casual or informal"
+    },
+    "positive_route": [
+      "16",
+      0
+    ],
+    "negative_route": [
+      "40",
+      0
+    ],
+    "model_route": [
+      "4",
+      0
+    ]
+  },
+  "request_id": "3b139d51-04d3-4f5f-b38f-0c6600b97969",
+  "status": "complete",
+  "attempt_count": 2,
+  "positive_prompt": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.. Event context: . Audience: adults. Event atmosphere: elegant, sophisticated, celebratory. Composition: off-centre focal placement, diagonal flow, shallow depth. Palette: black, white; black clearly visible in design elements; primary visual mass, secondary accents; neutrals support. Motif: Motifs should be repeated in a structured and symmetrical manner,. Correct the failed dimension conservatively: Move detail away from integrated calm regions while retaining this direction. Preserve all original requested semantics and every unaffected visual dimension. Continuous background artwork with integrated calm visual space.",
+  "workflow": {
+    "4": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": {
+        "ckpt_name": "sd3.5_medium.safetensors"
+      }
+    },
+    "54": {
+      "class_type": "TripleCLIPLoader",
+      "inputs": {
+        "clip_name1": "clip_l.safetensors",
+        "clip_name2": "clip_g.safetensors",
+        "clip_name3": "t5xxl_fp8_e4m3fn.safetensors"
+      }
+    },
+    "16": {
+      "class_type": "CLIPTextEncodeSD3",
+      "inputs": {
+        "clip": [
+          "54",
+          0
+        ],
+        "clip_l": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms,. Anchors: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes. Event context: . Audience: adults.",
+        "clip_g": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms,. Event context: . Audience: adults. Event atmosphere: elegant, sophisticated, celebratory. Composition: off-centre focal placement, diagonal flow, shallow depth. Palette: black, white; black clearly visible in design elements; primary visual mass, secondary accents; neutrals support. normal: Move detail away from integrated calm regions while retaining this direction",
+        "t5xxl": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.. Anchors: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes. Event context: . Audience: adults. Event atmosphere: elegant, sophisticated, celebratory. Motif: Motifs should be repeated in a structured and symmetrical manner,. Motif as abstract pattern structure; no unrequested literal objects Palette: black, white; black clearly visible in substantial design elements; white clearly visible; primary visual mass, secondary accents; neutrals support. Composition: off-centre focal placement, diagonal flow, shallow depth. Lighting: polished evening lighting. normal: Move detail away from integrated calm regions while retaining this direction",
+        "empty_padding": "none"
+      }
+    },
+    "40": {
+      "class_type": "CLIPTextEncodeSD3",
+      "inputs": {
+        "clip": [
+          "54",
+          0
+        ],
+        "clip_l": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and colorful, casual or informal",
+        "clip_g": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and colorful, casual or informal",
+        "t5xxl": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and colorful, casual or informal",
+        "empty_padding": "none"
+      }
+    },
+    "53": {
+      "class_type": "EmptySD3LatentImage",
+      "inputs": {
+        "width": 896,
+        "height": 1280,
+        "batch_size": 1
+      }
+    },
+    "3": {
+      "class_type": "KSampler",
+      "inputs": {
+        "seed": 6266901684196696781,
+        "steps": 28,
+        "cfg": 4.0,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "sgm_uniform",
+        "denoise": 1.0,
+        "model": [
+          "4",
+          0
+        ],
+        "positive": [
+          "16",
+          0
+        ],
+        "negative": [
+          "40",
+          0
+        ],
+        "latent_image": [
+          "53",
+          0
+        ]
+      }
+    },
+    "8": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "3",
+          0
+        ],
+        "vae": [
+          "4",
+          2
+        ]
+      }
+    },
+    "9": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "filename_prefix": "programme-studio/22F1AC-978962/sd-3-5-medium/c",
+        "images": [
+          "8",
+          0
+        ]
+      }
+    }
+  },
+  "spec_sha256": "a1f30a71c16e49aed22e1b7eeef0f41ec757752ebe98815bda3e69edf7411ef2",
+  "SPEC_SHA256": "a1f30a71c16e49aed22e1b7eeef0f41ec757752ebe98815bda3e69edf7411ef2",
+  "ENGINE": "sd-3-5-medium",
+  "DIRECTION": "C",
+  "DIRECTION_ROLE": "Architectural scene",
+  "ATTEMPT": 2,
+  "RETRY_STAGE": "normal",
+  "SEED": 6266901684196696781,
+  "candidate_spec_sha256": "a1f30a71c16e49aed22e1b7eeef0f41ec757752ebe98815bda3e69edf7411ef2",
+  "semantic_contract_version": "1.0",
+  "semantic_contract_sha256": "3066afcea462a19aa7770c92033d97c4bf739d37a195e0c71c6b5e1d96ebe5dc",
+  "semantic_consistency": {
+    "conflicts": [],
+    "requires_clarification": false,
+    "valid": true
+  },
+  "semantic_completeness": {
+    "fields": {
+      "atmosphere_descriptors": "PRESENT",
+      "audience_descriptors": "PRESENT",
+      "composition_affinities": "PRESENT",
+      "material_descriptors": "PRESENT",
+      "motif_descriptors": "PRESENT",
+      "motif_structure_description": "PRESENT",
+      "palette": "PRESENT",
+      "primary_visual_subject": "PRESENT"
+    },
+    "ready": true,
+    "score": 1.0
+  },
+  "vision_model": "minicpm-v4.5:latest",
+  "ocr_config": {
+    "timeout_seconds": 7.0
+  },
+  "direction_role": "Architectural scene",
+  "creative_concept": "Create a panoramic architectural interior scene with a focal point in the centre and lower vertical band, A strictly achromatic palette of black and white, with tonal variation inside those requested neutral colours, Visual subject: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting, Clarified visual language: motifs: refined architectural forms, formal drapery-inspired shapes, motif structure: Motifs should be repeated in a structured and symmetrical manner, reflecting the formality of the event, atmosphere: elegant, sophisticated, celebratory, composition: symmetrical, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+  "visual_anchors": [
+    "An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting."
+  ],
+  "composition_strategy": "diagonal-depth composition",
+  "resolved_palette": [
+    {
+      "colour": "black",
+      "role": "primary"
+    },
+    {
+      "colour": "white",
+      "role": "secondary"
+    }
+  ],
+  "palette_mode": "dominant",
+  "requested_primary": "black",
+  "requested_secondary": "white",
+  "palette_roles": [
+    "primary",
+    "secondary"
+  ],
+  "safe_region_strategy": {
+    "title": "quiet region pair: right/lower",
+    "programme": "quiet region pair: right/lower"
+  },
+  "sampling_profile": {
+    "name": "alternate_sampler",
+    "steps": 28,
+    "cfg": 4.0,
+    "sampler_name": "dpmpp_2m",
+    "scheduler": "sgm_uniform",
+    "shift": null,
+    "shift_mode": "checkpoint_default"
+  },
+  "sampling_profile_name": "alternate_sampler",
+  "sampling_profile_stage": "normal",
+  "sampling_profile_failure_history": {
+    "counts": {
+      "DENSE_SAFE_REGION": 1
+    },
+    "consecutive_category": "DENSE_SAFE_REGION",
+    "consecutive_count": 1
+  },
+  "selection_reason": "DENSE_SAFE_REGION: alternate_sampler",
+  "failure_history": {
+    "counts": {
+      "DENSE_SAFE_REGION": 1
+    },
+    "consecutive_category": "DENSE_SAFE_REGION",
+    "consecutive_count": 1
+  },
+  "renderer_recovery_type": "baseline",
+  "generation_mode": "native_text_to_image",
+  "GENERATION_MODE": "native_text_to_image",
+  "TEMPLATE_CONDITIONING_ENABLED": false,
+  "MASKED_DENOISING_ENABLED": false,
+  "TEMPLATE_PATH": null,
+  "template_conditioning": {
+    "enabled": false,
+    "masked_denoising_enabled": false
+  },
+  "negative_prompt": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and colorful, casual or informal",
+  "adaptations": [],
+  "retry_stage": "normal",
+  "failure_category": null,
+  "compiled_prompt": {
+    "positive": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.. Event context: . Audience: adults. Event atmosphere: elegant, sophisticated, celebratory. Composition: off-centre focal placement, diagonal flow, shallow depth. Palette: black, white; black clearly visible in design elements; primary visual mass, secondary accents; neutrals support. Motif: Motifs should be repeated in a structured and symmetrical manner,. Correct the failed dimension conservatively: Move detail away from integrated calm regions while retaining this direction. Preserve all original requested semantics and every unaffected visual dimension. Continuous background artwork with integrated calm visual space.",
+    "negative": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and colorful, casual or informal",
+    "clip_l": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms,. Anchors: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes. Event context: . Audience: adults.",
+    "clip_g": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms,. Event context: . Audience: adults. Event atmosphere: elegant, sophisticated, celebratory. Composition: off-centre focal placement, diagonal flow, shallow depth. Palette: black, white; black clearly visible in design elements; primary visual mass, secondary accents; neutrals support. normal: Move detail away from integrated calm regions while retaining this direction",
+    "t5": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.. Anchors: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes. Event context: . Audience: adults. Event atmosphere: elegant, sophisticated, celebratory. Motif: Motifs should be repeated in a structured and symmetrical manner,. Motif as abstract pattern structure; no unrequested literal objects Palette: black, white; black clearly visible in substantial design elements; white clearly visible; primary visual mass, secondary accents; neutrals support. Composition: off-centre focal placement, diagonal flow, shallow depth. Lighting: polished evening lighting. normal: Move detail away from integrated calm regions while retaining this direction",
+    "negative_prompt_channel_active": true,
+    "negative_semantics_preserved": true,
+    "incompatible_treatments": [
+      "bright and colorful",
+      "casual or informal"
+    ],
+    "semantic_contract_sha256": "3066afcea462a19aa7770c92033d97c4bf739d37a195e0c71c6b5e1d96ebe5dc",
+    "conditioning_coverage": {
+      "subject": [
+        "positive",
+        "clip_l",
+        "clip_g",
+        "t5"
+      ],
+      "atmosphere": [
+        "positive",
+        "clip_g",
+        "t5"
+      ],
+      "audience": [
+        "clip_l",
+        "clip_g",
+        "t5"
+      ],
+      "motif": [
+        "positive",
+        "t5"
+      ],
+      "treatment": [],
+      "palette": [
+        "positive",
+        "clip_g",
+        "t5"
+      ],
+      "scene_family": [
+        "positive"
+      ],
+      "event_context": [],
+      "incompatible_treatments": [
+        "negative"
+      ]
+    },
+    "engine_capabilities": {
+      "negative_prompt_channel": true,
+      "multi_encoder": true,
+      "long_context_encoder": true,
+      "supports_shift": true
+    },
+    "prompt_budget": {
+      "positive": {
+        "characters": 796,
+        "approx_tokens": 99,
+        "budget_risk": false
+      },
+      "negative": {
+        "characters": 146,
+        "approx_tokens": 19,
+        "budget_risk": false
+      },
+      "clip_l": {
+        "characters": 259,
+        "approx_tokens": 31,
+        "budget_risk": false
+      },
+      "clip_g": {
+        "characters": 461,
+        "approx_tokens": 57,
+        "budget_risk": false
+      },
+      "t5": {
+        "characters": 884,
+        "approx_tokens": 109,
+        "budget_risk": false
+      }
+    },
+    "truncated": false,
+    "retry_strength_level": "CORRECTION"
+  },
+  "conditioning_coverage": {
+    "subject": [
+      "positive",
+      "clip_l",
+      "clip_g",
+      "t5"
+    ],
+    "atmosphere": [
+      "positive",
+      "clip_g",
+      "t5"
+    ],
+    "audience": [
+      "clip_l",
+      "clip_g",
+      "t5"
+    ],
+    "motif": [
+      "positive",
+      "t5"
+    ],
+    "treatment": [],
+    "palette": [
+      "positive",
+      "clip_g",
+      "t5"
+    ],
+    "scene_family": [
+      "positive"
+    ],
+    "event_context": [],
+    "incompatible_treatments": [
+      "negative"
+    ]
+  },
+  "prompt_budget": {
+    "positive": {
+      "characters": 796,
+      "approx_tokens": 99,
+      "budget_risk": false
+    },
+    "negative": {
+      "characters": 146,
+      "approx_tokens": 19,
+      "budget_risk": false
+    },
+    "clip_l": {
+      "characters": 259,
+      "approx_tokens": 31,
+      "budget_risk": false
+    },
+    "clip_g": {
+      "characters": 461,
+      "approx_tokens": 57,
+      "budget_risk": false
+    },
+    "t5": {
+      "characters": 884,
+      "approx_tokens": 109,
+      "budget_risk": false
+    }
+  },
+  "engine_capabilities": {
+    "negative_prompt_channel": true,
+    "multi_encoder": true,
+    "long_context_encoder": true,
+    "supports_shift": true
+  },
+  "reproducibility_manifest": {
+    "reference": "22F1AC-978962",
+    "source_reference": "22F1AC-978962",
+    "semantic_contract_version": "1.0",
+    "semantic_contract_sha256": "3066afcea462a19aa7770c92033d97c4bf739d37a195e0c71c6b5e1d96ebe5dc",
+    "candidate_spec_sha256": "a1f30a71c16e49aed22e1b7eeef0f41ec757752ebe98815bda3e69edf7411ef2",
+    "engine": "sd-3-5-medium",
+    "engine_models": [
+      "clip_g.safetensors",
+      "clip_l.safetensors",
+      "sd3.5_medium.safetensors",
+      "t5xxl_fp8_e4m3fn.safetensors"
+    ],
+    "workflow_sha256": "a3c303b1efbe92ffaefe6505c2822f454ca705735fcad2bcb913c0e2df2bea08",
+    "effective_workflow_values": {
+      "workflow_sha256": "a3c303b1efbe92ffaefe6505c2822f454ca705735fcad2bcb913c0e2df2bea08",
+      "checkpoint": "sd3.5_medium.safetensors",
+      "clip_l": "clip_l.safetensors",
+      "clip_g": "clip_g.safetensors",
+      "t5": "t5xxl_fp8_e4m3fn.safetensors",
+      "vae": [
+        "4",
+        2
+      ],
+      "sampler": "dpmpp_2m",
+      "scheduler": "sgm_uniform",
+      "cfg": 4.0,
+      "steps": 28,
+      "shift": null,
+      "width": 896,
+      "height": 1280,
+      "seed": 6266901684196696781,
+      "positive_route": [
+        "16",
+        0
+      ],
+      "negative_route": [
+        "40",
+        0
+      ],
+      "model_route": [
+        "4",
+        0
+      ]
+    },
+    "direction": "C",
+    "sampling_profile": "alternate_sampler",
+    "sampler_name": "dpmpp_2m",
+    "scheduler": "sgm_uniform",
+    "cfg": 4.0,
+    "steps": 28,
+    "shift": null,
+    "width": 896,
+    "height": 1280,
+    "seed": 6266901684196696781,
+    "compiled_prompt_sha256": {
+      "positive": "e1c0f66749a98d29032024d457a694aace12097e5863c5e4918317bb8a336ea7",
+      "negative": "b231059f9b1deec91626175b2018d68fbc252f99ef1c4ba66b174e03491d2c54",
+      "clip_l": "5e50f234e93bb2b00d2ddf8ef17e5c1d6deb16e74579095e46ea8163f880ff6d",
+      "clip_g": "f82ff12bf5855f1c0772d21c9b3a65b37b61622fbd031ef99234be121684d7b5",
+      "t5": "8b5d20aa272d82bebfce9b6cdd2b133f7f4382e2ce76239247b98ca06a522c15"
+    },
+    "conditioning_lengths": {
+      "positive": {
+        "characters": 796,
+        "approx_tokens": 99,
+        "budget_risk": false
+      },
+      "negative": {
+        "characters": 146,
+        "approx_tokens": 19,
+        "budget_risk": false
+      },
+      "clip_l": {
+        "characters": 259,
+        "approx_tokens": 31,
+        "budget_risk": false
+      },
+      "clip_g": {
+        "characters": 461,
+        "approx_tokens": 57,
+        "budget_risk": false
+      },
+      "t5": {
+        "characters": 884,
+        "approx_tokens": 109,
+        "budget_risk": false
+      }
+    },
+    "vision_model": "minicpm-v4.5:latest",
+    "ocr_config": {
+      "timeout_seconds": 7.0
+    },
+    "validator_version": null,
+    "retry_attempt": 2,
+    "retry_stage": "normal",
+    "failure_history": {
+      "counts": {
+        "DENSE_SAFE_REGION": 1
+      },
+      "consecutive_category": "DENSE_SAFE_REGION",
+      "consecutive_count": 1
+    },
+    "image_sha256": "4a975339f283316d1d29e2fdf0701211fab06b6f03eea87c76a4761f17eaeac0"
+  },
+  "rejected_attempts": [
+    {
+      "attempt_count": 1,
+      "seed": 744822100768248484,
+      "prompt_id": "42ac72b2-584b-472d-844c-395d9eaf00da",
+      "sha256": null,
+      "rejection_reason": "DENSE_SAFE_REGION: high-contrast visual interference in title, programme region",
+      "failure_category": "DENSE_SAFE_REGION",
+      "primary_failure_category": "DENSE_SAFE_REGION",
+      "all_failure_categories": [
+        "DENSE_SAFE_REGION"
+      ],
+      "validation": {
+        "decision": "rejected",
+        "failure_category": "DENSE_SAFE_REGION",
+        "diagnostic_findings": [],
+        "palette": {
+          "mode": "black-white",
+          "palette_match_ratio": 1.0,
+          "off_palette_ratio": 0.0,
+          "primary_ratio": 0.43004261363636365,
+          "secondary_ratio": 0.30677379261363635,
+          "requested_chromatic_ratio": null,
+          "neutral_ratio": null,
+          "unrequested_chromatic_ratio": null,
+          "largest_unrequested_region_ratio": null,
+          "primary_secondary_ratio": 1.4018231804369845,
+          "secondary_presence": true,
+          "dominance_relationship": "FLEXIBLE",
+          "dominance_relationship_passed": true
+        },
+        "text": {
+          "ocr_diagnostics": {
+            "attempted": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "completed_variants": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "timed_out_variants": [],
+            "failed_variants": [],
+            "failure_reasons": {},
+            "completed_variant_count": 4,
+            "required_variant_count": 2,
+            "enhancement_variant_failures": [],
+            "evidence_sufficiency": true,
+            "decision": "complete"
+          },
+          "detected": false,
+          "tokens": [
+            "FECT"
+          ],
+          "confirmed_tokens": [],
+          "text_lines": [],
+          "text_area_ratio": 0
+        },
+        "human": {
+          "detected": false,
+          "strong_signals": [],
+          "weak_signals": [
+            {
+              "source": "hog",
+              "bbox": [
+                21,
+                699,
+                76,
+                151
+              ],
+              "weight": 0.5927018788643181,
+              "area_ratio": 0.010006277901785715,
+              "confirmed": false,
+              "confirmation": "insufficient shape or confidence"
+            },
+            {
+              "source": "hog",
+              "bbox": [
+                610,
+                628,
+                140,
+                279
+              ],
+              "weight": 0.14880122360773385,
+              "area_ratio": 0.0340576171875,
+              "confirmed": false,
+              "confirmation": "insufficient shape or confidence"
+            }
+          ],
+          "decision_reason": "no human evidence"
+        },
+        "quality": {
+          "structural_edge_density": 0.42003284801136365,
+          "macro_structure_score": 1.0,
+          "coarse_edge_density": 0.22664141414141414,
+          "high_pass_mean": 10.755270004272461,
+          "boilerplate_score": 0.0,
+          "title_panel_score": 0.0,
+          "fine_line_pair_ratio": 0.0,
+          "macro_form_balance": 1.0,
+          "scene_density": {
+            "requested_density": "moderate",
+            "overall_edge_density": 0.1364,
+            "tile_edge_fractions": [
+              0.1077,
+              0.0991,
+              0.1443,
+              0.144,
+              0.0847,
+              0.0811,
+              0.1025,
+              0.0247,
+              0.2495,
+              0.3018,
+              0.229,
+              0.2649,
+              0.074,
+              0.0762,
+              0.0813,
+              0.1184
+            ],
+            "occupied_tile_fraction": 0.5625,
+            "quiet_tile_fraction": 0.0625,
+            "safe_region_density": 0.1786,
+            "edge_distribution_balance": 0.0782,
+            "macro_form_balance": 1.0,
+            "normalized_measurements": {
+              "density_pressure": 0.6844
+            },
+            "thresholds_used": {
+              "density_pressure": 0.85,
+              "max_quiet_tile_fraction": 0.0625,
+              "occupied_tile_edge_fraction": 0.1,
+              "quiet_tile_edge_fraction": 0.04
+            },
+            "density_rule_triggered": null,
+            "decision": "PASS"
+          },
+          "global_density_decision": "PASS",
+          "explicit_safe_regions": {
+            "decision": "FAIL",
+            "regions": {
+              "title": {
+                "decision": "FAIL",
+                "reason": "dense_high_contrast_detail",
+                "local_edge_density": 0.1779,
+                "local_contrast": 220.0,
+                "high_frequency_fraction": 0.5407,
+                "calm_tile_fraction": 0.0,
+                "usability_score": 0.0,
+                "broad_contrast": 145.0,
+                "broad_edge_density": 0.0144,
+                "tile_indexes": [
+                  10,
+                  11,
+                  14,
+                  15
+                ],
+                "occupied_tile_fraction": 0.75,
+                "quiet_tile_fraction": 0.0
+              },
+              "programme": {
+                "decision": "FAIL",
+                "reason": "dense_high_contrast_detail",
+                "local_edge_density": 0.1779,
+                "local_contrast": 220.0,
+                "high_frequency_fraction": 0.5407,
+                "calm_tile_fraction": 0.0,
+                "usability_score": 0.0,
+                "broad_contrast": 145.0,
+                "broad_edge_density": 0.0144,
+                "tile_indexes": [
+                  10,
+                  11,
+                  14,
+                  15
+                ],
+                "occupied_tile_fraction": 0.75,
+                "quiet_tile_fraction": 0.0
+              }
+            }
+          },
+          "explicit_safe_region_decision": "FAIL",
+          "raster_score": 0.0
+        },
+        "brief_fidelity": {
+          "checked": true,
+          "subject_score": 0.85,
+          "atmosphere_score": 0.85,
+          "motif_score": 0.85,
+          "treatment_score": 0.75,
+          "audience_fit_score": 0.85,
+          "thresholds": {
+            "subject_score": 0.55,
+            "atmosphere_score": 0.55,
+            "motif_score": 0.55,
+            "audience_fit_score": 0.55
+          },
+          "decision": "pass",
+          "reason": "The scene strongly matches the requested elegant black-tie ballroom environment with refined architectural forms, layered depth, and formal drapery-inspired shapes. The atmosphere is sophisticated and celebratory, suitable for an adult audience. Motifs of refined architecture and drapery-inspired sh",
+          "observed_evidence": [
+            "Round tables with white tablecloths and floral centerpieces.",
+            "Black and white abstract floor pattern.",
+            "Black drapery on the walls.",
+            "White ceiling with recessed lighting panels.",
+            "Dining chairs around tables.",
+            "Symmetrical arrangement of tables and decor."
+          ],
+          "model": "minicpm-v4.5:latest",
+          "failure_category": null,
+          "dimension_availability": {
+            "subject_score": "PASS",
+            "atmosphere_score": "PASS",
+            "motif_score": "PASS",
+            "audience_fit_score": "PASS"
+          },
+          "failed_dimensions": [],
+          "background_usability_score": 0.85,
+          "vision_human_signal": false,
+          "vision_debug": {
+            "endpoint": "/api/chat",
+            "model": "minicpm-v4.5:latest",
+            "score_parsing": [
+              {
+                "dimension_name": "subject_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "atmosphere_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "motif_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "treatment_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.75,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "audience_fit_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "background_usability_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              }
+            ],
+            "thinking_present": false,
+            "thinking_preview_length": 0,
+            "response_length": 1267,
+            "final_source": "message.content",
+            "raw_text_preview": "<omitted>",
+            "assessment_attempts": 1,
+            "http_status": 200,
+            "response_content_type": "application/json; charset=utf-8",
+            "response_shape": [
+              "created_at",
+              "done",
+              "done_reason",
+              "eval_count",
+              "eval_duration",
+              "load_duration",
+              "message",
+              "model",
+              "prompt_eval_count",
+              "prompt_eval_duration",
+              "total_duration"
+            ],
+            "unconfirmed_human_report": false
+          },
+          "hard_dimensions": [
+            "subject_score",
+            "audience_fit_score"
+          ],
+          "hard_failed_dimensions": [],
+          "compound_fidelity_failure": false,
+          "human_description": "",
+          "vision_text_signal": false,
+          "vision_text_evidence": "",
+          "unrequested_literal_object_visible": false
+        }
+      },
+      "subject_adherence": {
+        "checked": true,
+        "score": 0.85,
+        "threshold": 0.55,
+        "subject": "An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.",
+        "anchors": [
+          "An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting."
+        ],
+        "model": "minicpm-v4.5:latest",
+        "decision": "pass",
+        "reason": "The scene strongly matches the requested elegant black-tie ballroom environment with refined architectural forms, layered depth, and formal drapery-inspired shapes. The atmosphere is sophisticated and celebratory, suitable for an adult audience. Motifs of refined architecture and drapery-inspired sh",
+        "subject_score": 0.85,
+        "atmosphere_score": 0.85,
+        "motif_score": 0.85,
+        "treatment_score": 0.75,
+        "audience_fit_score": 0.85,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "observed_evidence": [
+          "Round tables with white tablecloths and floral centerpieces.",
+          "Black and white abstract floor pattern.",
+          "Black drapery on the walls.",
+          "White ceiling with recessed lighting panels.",
+          "Dining chairs around tables.",
+          "Symmetrical arrangement of tables and decor."
+        ],
+        "background_usability_score": 0.85,
+        "vision_human_signal": false,
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false,
+        "failure_category": null,
+        "compound_fidelity_failure": false,
+        "hard_dimensions": [
+          "subject_score",
+          "audience_fit_score"
+        ],
+        "hard_failed_dimensions": [],
+        "failed_dimensions": [],
+        "human_description": "",
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.75,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1267,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        }
+      },
+      "direction_similarity_diagnostics": {
+        "similarity": 0.25095127610208817,
+        "closest_peer": {
+          "peer": "/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-a.png",
+          "similarity": 0.25095127610208817,
+          "edge_similarity": 0.7419135987758636,
+          "coarse_mass_iou": 0.09095127610208817,
+          "fine_edge_iou": 0.3955042147986263,
+          "regional_edge_similarity": 0.9288750886917114
+        },
+        "peer_comparisons": [
+          {
+            "peer": "/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-a.png",
+            "similarity": 0.25095127610208817,
+            "edge_similarity": 0.7419135987758636,
+            "coarse_mass_iou": 0.09095127610208817,
+            "fine_edge_iou": 0.3955042147986263,
+            "regional_edge_similarity": 0.9288750886917114
+          },
+          {
+            "peer": "/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-b.png",
+            "similarity": 0.20972129319955407,
+            "edge_similarity": 0.5430523619055748,
+            "coarse_mass_iou": 0.04972129319955407,
+            "fine_edge_iou": 0.23478260869565218,
+            "regional_edge_similarity": 0.6279920339584351
+          }
+        ]
+      },
+      "palette_metrics": null,
+      "text_detection": {
+        "text_detected": false,
+        "pseudo_text": {
+          "detected": false,
+          "aligned_rows": 0,
+          "glyph_components": 22,
+          "structured_components": 21,
+          "geometry_suppressed": false
+        },
+        "tokens": [
+          "FECT"
+        ],
+        "confirmed_tokens": [],
+        "text_lines": [],
+        "max_confidence": 57.0,
+        "confirmation_passes": [],
+        "text_area_ratio": 0,
+        "evidence": [
+          {
+            "token": "FECT",
+            "confidence": 57.0,
+            "bbox": [
+              285,
+              762,
+              78,
+              29
+            ],
+            "area_ratio": 0.0019723074776785716,
+            "passes": [
+              "threshold"
+            ],
+            "crop_confirmed": false
+          }
+        ],
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 4,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        }
+      },
+      "human_detection": {
+        "people": [],
+        "evidence": [
+          {
+            "source": "hog",
+            "bbox": [
+              21,
+              699,
+              76,
+              151
+            ],
+            "weight": 0.5927018788643181,
+            "area_ratio": 0.010006277901785715,
+            "confirmed": false,
+            "confirmation": "insufficient shape or confidence"
+          },
+          {
+            "source": "hog",
+            "bbox": [
+              610,
+              628,
+              140,
+              279
+            ],
+            "weight": 0.14880122360773385,
+            "area_ratio": 0.0340576171875,
+            "confirmed": false,
+            "confirmation": "insufficient shape or confidence"
+          }
+        ],
+        "strong_signals": [],
+        "weak_signals": [
+          {
+            "source": "hog",
+            "bbox": [
+              21,
+              699,
+              76,
+              151
+            ],
+            "weight": 0.5927018788643181,
+            "area_ratio": 0.010006277901785715,
+            "confirmed": false,
+            "confirmation": "insufficient shape or confidence"
+          },
+          {
+            "source": "hog",
+            "bbox": [
+              610,
+              628,
+              140,
+              279
+            ],
+            "weight": 0.14880122360773385,
+            "area_ratio": 0.0340576171875,
+            "confirmed": false,
+            "confirmation": "insufficient shape or confidence"
+          }
+        ],
+        "overlaps": [],
+        "people_weights": [],
+        "faces": [],
+        "profiles": [],
+        "upper_bodies": [],
+        "strong_upper_body_signal": false,
+        "ambiguous_face_signal": false,
+        "detected": false,
+        "human_detection_confidence": "low",
+        "human_detection_reason": "isolated detector patterns without independent confirmation",
+        "largest_detection_area_ratio": 0.0340576171875,
+        "classical_human_signal": false,
+        "vision_human_signal": false,
+        "combined_human_decision": false,
+        "decision_reason": "no human evidence"
+      },
+      "quality_metrics": null,
+      "retry_stage": "normal",
+      "spec_sha256": "a1f30a71c16e49aed22e1b7eeef0f41ec757752ebe98815bda3e69edf7411ef2",
+      "direction_role": "Architectural scene",
+      "compiled_prompt": {
+        "positive": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.. Event context: . Audience: adults. Event atmosphere: elegant, sophisticated, celebratory. Composition: off-centre focal placement, diagonal flow, shallow depth. Palette: black, white; black clearly visible in design elements; primary visual mass, secondary accents; neutrals support. Motif: Motifs should be repeated in a structured and symmetrical manner,. Continuous background artwork with integrated calm visual space.",
+        "negative": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and colorful, casual or informal",
+        "clip_l": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms,. Anchors: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes. Event context: . Audience: adults.",
+        "clip_g": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms,. Event context: . Audience: adults. Event atmosphere: elegant, sophisticated, celebratory. Composition: off-centre focal placement, diagonal flow, shallow depth. Palette: black, white; black clearly visible in design elements; primary visual mass, secondary accents; neutrals support.",
+        "t5": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.. Anchors: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes. Event context: . Audience: adults. Event atmosphere: elegant, sophisticated, celebratory. Motif: Motifs should be repeated in a structured and symmetrical manner,. Motif as abstract pattern structure; no unrequested literal objects Palette: black, white; black clearly visible in substantial design elements; white clearly visible; primary visual mass, secondary accents; neutrals support. Composition: off-centre focal placement, diagonal flow, shallow depth. Lighting: polished evening lighting.",
+        "negative_prompt_channel_active": true,
+        "negative_semantics_preserved": true,
+        "incompatible_treatments": [
+          "bright and colorful",
+          "casual or informal"
+        ],
+        "semantic_contract_sha256": "3066afcea462a19aa7770c92033d97c4bf739d37a195e0c71c6b5e1d96ebe5dc",
+        "conditioning_coverage": {
+          "subject": [
+            "positive",
+            "clip_l",
+            "clip_g",
+            "t5"
+          ],
+          "atmosphere": [
+            "positive",
+            "clip_g",
+            "t5"
+          ],
+          "audience": [
+            "clip_l",
+            "clip_g",
+            "t5"
+          ],
+          "motif": [
+            "positive",
+            "t5"
+          ],
+          "treatment": [],
+          "palette": [
+            "positive",
+            "clip_g",
+            "t5"
+          ],
+          "scene_family": [
+            "positive"
+          ],
+          "event_context": [],
+          "incompatible_treatments": [
+            "negative"
+          ]
+        },
+        "engine_capabilities": {
+          "negative_prompt_channel": true,
+          "multi_encoder": true,
+          "long_context_encoder": true,
+          "supports_shift": true
+        },
+        "prompt_budget": {
+          "positive": {
+            "characters": 592,
+            "approx_tokens": 73,
+            "budget_risk": false
+          },
+          "negative": {
+            "characters": 146,
+            "approx_tokens": 19,
+            "budget_risk": false
+          },
+          "clip_l": {
+            "characters": 259,
+            "approx_tokens": 31,
+            "budget_risk": false
+          },
+          "clip_g": {
+            "characters": 376,
+            "approx_tokens": 45,
+            "budget_risk": false
+          },
+          "t5": {
+            "characters": 799,
+            "approx_tokens": 97,
+            "budget_risk": false
+          }
+        },
+        "truncated": false,
+        "retry_strength_level": "BASE"
+      },
+      "sampling_profile": {
+        "name": "alternate_sampler",
+        "steps": 28,
+        "cfg": 4.0,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "sgm_uniform",
+        "shift": null,
+        "shift_mode": "checkpoint_default"
+      },
+      "selection_reason": "INITIAL: alternate_sampler",
+      "failure_history": {
+        "counts": {},
+        "consecutive_category": "INITIAL",
+        "consecutive_count": 0
+      },
+      "renderer_recovery_type": "baseline",
+      "outcome_category": "DENSE_SAFE_REGION",
+      "template_conditioning": {
+        "enabled": false,
+        "masked_denoising_enabled": false
+      },
+      "template_adherence": null,
+      "quality_evaluation": null,
+      "validator_availability": null,
+      "reproducibility_manifest": {
+        "reference": "22F1AC-978962",
+        "source_reference": "22F1AC-978962",
+        "semantic_contract_version": "1.0",
+        "semantic_contract_sha256": "3066afcea462a19aa7770c92033d97c4bf739d37a195e0c71c6b5e1d96ebe5dc",
+        "candidate_spec_sha256": "a1f30a71c16e49aed22e1b7eeef0f41ec757752ebe98815bda3e69edf7411ef2",
+        "engine": "sd-3-5-medium",
+        "engine_models": [
+          "clip_g.safetensors",
+          "clip_l.safetensors",
+          "sd3.5_medium.safetensors",
+          "t5xxl_fp8_e4m3fn.safetensors"
+        ],
+        "workflow_sha256": "2860bcbf554d246620238991bb08547c95563441365b2fc7ade804179ef44b4d",
+        "effective_workflow_values": {
+          "workflow_sha256": "2860bcbf554d246620238991bb08547c95563441365b2fc7ade804179ef44b4d",
+          "checkpoint": "sd3.5_medium.safetensors",
+          "clip_l": "clip_l.safetensors",
+          "clip_g": "clip_g.safetensors",
+          "t5": "t5xxl_fp8_e4m3fn.safetensors",
+          "vae": [
+            "4",
+            2
+          ],
+          "sampler": "dpmpp_2m",
+          "scheduler": "sgm_uniform",
+          "cfg": 4.0,
+          "steps": 28,
+          "shift": null,
+          "width": 896,
+          "height": 1280,
+          "seed": 744822100768248484,
+          "positive_route": [
+            "16",
+            0
+          ],
+          "negative_route": [
+            "40",
+            0
+          ],
+          "model_route": [
+            "4",
+            0
+          ]
+        },
+        "direction": "C",
+        "sampling_profile": "alternate_sampler",
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "sgm_uniform",
+        "cfg": 4.0,
+        "steps": 28,
+        "shift": null,
+        "width": 896,
+        "height": 1280,
+        "seed": 744822100768248484,
+        "compiled_prompt_sha256": {
+          "positive": "c7f009507769e37c2cbc43f5ee70e9cb66ebb94b0f587ed6847c286342a33d6b",
+          "negative": "b231059f9b1deec91626175b2018d68fbc252f99ef1c4ba66b174e03491d2c54",
+          "clip_l": "5e50f234e93bb2b00d2ddf8ef17e5c1d6deb16e74579095e46ea8163f880ff6d",
+          "clip_g": "3635fd64a8e744f7c2851bb6d12e8abe2e59077b3f163e1a526087a0b6c1ae2a",
+          "t5": "9a841a276562240c48ef26d82031feae8b18a6b11fe5819229ba0d60c6583fd8"
+        },
+        "conditioning_lengths": {
+          "positive": {
+            "characters": 592,
+            "approx_tokens": 73,
+            "budget_risk": false
+          },
+          "negative": {
+            "characters": 146,
+            "approx_tokens": 19,
+            "budget_risk": false
+          },
+          "clip_l": {
+            "characters": 259,
+            "approx_tokens": 31,
+            "budget_risk": false
+          },
+          "clip_g": {
+            "characters": 376,
+            "approx_tokens": 45,
+            "budget_risk": false
+          },
+          "t5": {
+            "characters": 799,
+            "approx_tokens": 97,
+            "budget_risk": false
+          }
+        },
+        "vision_model": "minicpm-v4.5:latest",
+        "ocr_config": {
+          "timeout_seconds": 7.0
+        },
+        "validator_version": null,
+        "retry_attempt": 1,
+        "retry_stage": "normal",
+        "failure_history": {
+          "counts": {},
+          "consecutive_category": "INITIAL",
+          "consecutive_count": 0
+        },
+        "image_sha256": null
+      }
+    }
+  ],
+  "prompt_id": "521be1f0-6895-4ddb-b6a2-ffec300229c9",
+  "palette_recovery": {
+    "eligible": false,
+    "attempted": false,
+    "source_off_palette_ratio": null,
+    "result": "not_attempted",
+    "failure_reason": null,
+    "normalized_off_palette_ratio": null,
+    "edge_geometry_similarity": null,
+    "structural_detail_preserved": null
+  },
+  "direction_similarity_score": 0.42177024482109227,
+  "direction_similarity": 0.42177024482109227,
+  "direction_similarity_diagnostics": {
+    "similarity": 0.42177024482109227,
+    "closest_peer": {
+      "peer": "/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-a.png",
+      "similarity": 0.42177024482109227,
+      "edge_similarity": 0.6801381170749665,
+      "coarse_mass_iou": 0.2617702448210923,
+      "fine_edge_iou": 0.37593232672366744,
+      "regional_edge_similarity": 0.8642366528511047
+    },
+    "peer_comparisons": [
+      {
+        "peer": "/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-a.png",
+        "similarity": 0.42177024482109227,
+        "edge_similarity": 0.6801381170749665,
+        "coarse_mass_iou": 0.2617702448210923,
+        "fine_edge_iou": 0.37593232672366744,
+        "regional_edge_similarity": 0.8642366528511047
+      },
+      {
+        "peer": "/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-b.png",
+        "similarity": 0.3980023950338364,
+        "edge_similarity": 0.3980023950338364,
+        "coarse_mass_iou": 0.407673860911271,
+        "fine_edge_iou": 0.1712707182320442,
+        "regional_edge_similarity": 0.49848082661628723
+      }
+    ]
+  },
+  "subject_adherence": {
+    "checked": true,
+    "score": 0.9,
+    "threshold": 0.55,
+    "subject": "An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.",
+    "anchors": [
+      "An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting."
+    ],
+    "model": "minicpm-v4.5:latest",
+    "decision": "pass",
+    "reason": "The background aligns closely with the requested elegant black-tie ballroom environment. The refined architectural forms (moldings, chandeliers), layered depth, formal drapery-inspired shapes, and polished lighting (chandeliers) are all present. The atmosphere is sophisticated and celebratory, suita",
+    "subject_score": 0.9,
+    "atmosphere_score": 0.9,
+    "motif_score": 0.95,
+    "treatment_score": 0.95,
+    "audience_fit_score": 1.0,
+    "thresholds": {
+      "subject_score": 0.55,
+      "atmosphere_score": 0.55,
+      "motif_score": 0.55,
+      "audience_fit_score": 0.55
+    },
+    "observed_evidence": [
+      "White round tables with white tablecloths and white chairs",
+      "Crystal chandeliers hanging from the ceiling",
+      "Floor-length, formal drapery with swags and pleats",
+      "Large windows with white curtains",
+      "Layered depth with multiple rows of tables",
+      "Polished white walls and ceiling with detailed moldings"
+    ],
+    "background_usability_score": 0.95,
+    "vision_human_signal": false,
+    "vision_text_signal": false,
+    "vision_text_evidence": "",
+    "unrequested_literal_object_visible": false,
+    "failure_category": null,
+    "compound_fidelity_failure": false,
+    "hard_dimensions": [
+      "subject_score",
+      "audience_fit_score"
+    ],
+    "hard_failed_dimensions": [],
+    "failed_dimensions": [],
+    "human_description": "",
+    "dimension_availability": {
+      "subject_score": "PASS",
+      "atmosphere_score": "PASS",
+      "motif_score": "PASS",
+      "audience_fit_score": "PASS"
+    },
+    "vision_debug": {
+      "endpoint": "/api/chat",
+      "model": "minicpm-v4.5:latest",
+      "score_parsing": [
+        {
+          "dimension_name": "subject_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.9,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "atmosphere_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.9,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "motif_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.95,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "treatment_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.95,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "audience_fit_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 1.0,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "background_usability_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.95,
+          "parse_failure_reason": null
+        }
+      ],
+      "thinking_present": false,
+      "thinking_preview_length": 0,
+      "response_length": 1262,
+      "final_source": "message.content",
+      "raw_text_preview": "<omitted>",
+      "assessment_attempts": 1,
+      "http_status": 200,
+      "response_content_type": "application/json; charset=utf-8",
+      "response_shape": [
+        "created_at",
+        "done",
+        "done_reason",
+        "eval_count",
+        "eval_duration",
+        "load_duration",
+        "message",
+        "model",
+        "prompt_eval_count",
+        "prompt_eval_duration",
+        "total_duration"
+      ],
+      "unconfirmed_human_report": false
+    }
+  },
+  "brief_fidelity": {
+    "checked": true,
+    "subject_score": 0.9,
+    "atmosphere_score": 0.9,
+    "motif_score": 0.95,
+    "treatment_score": 0.95,
+    "audience_fit_score": 1.0,
+    "thresholds": {
+      "subject_score": 0.55,
+      "atmosphere_score": 0.55,
+      "motif_score": 0.55,
+      "audience_fit_score": 0.55
+    },
+    "decision": "pass",
+    "reason": "The background aligns closely with the requested elegant black-tie ballroom environment. The refined architectural forms (moldings, chandeliers), layered depth, formal drapery-inspired shapes, and polished lighting (chandeliers) are all present. The atmosphere is sophisticated and celebratory, suita",
+    "observed_evidence": [
+      "White round tables with white tablecloths and white chairs",
+      "Crystal chandeliers hanging from the ceiling",
+      "Floor-length, formal drapery with swags and pleats",
+      "Large windows with white curtains",
+      "Layered depth with multiple rows of tables",
+      "Polished white walls and ceiling with detailed moldings"
+    ],
+    "model": "minicpm-v4.5:latest",
+    "failure_category": null,
+    "dimension_availability": {
+      "subject_score": "PASS",
+      "atmosphere_score": "PASS",
+      "motif_score": "PASS",
+      "audience_fit_score": "PASS"
+    },
+    "failed_dimensions": [],
+    "background_usability_score": 0.95,
+    "vision_human_signal": false,
+    "vision_debug": {
+      "endpoint": "/api/chat",
+      "model": "minicpm-v4.5:latest",
+      "score_parsing": [
+        {
+          "dimension_name": "subject_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.9,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "atmosphere_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.9,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "motif_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.95,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "treatment_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.95,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "audience_fit_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 1.0,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "background_usability_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.95,
+          "parse_failure_reason": null
+        }
+      ],
+      "thinking_present": false,
+      "thinking_preview_length": 0,
+      "response_length": 1262,
+      "final_source": "message.content",
+      "raw_text_preview": "<omitted>",
+      "assessment_attempts": 1,
+      "http_status": 200,
+      "response_content_type": "application/json; charset=utf-8",
+      "response_shape": [
+        "created_at",
+        "done",
+        "done_reason",
+        "eval_count",
+        "eval_duration",
+        "load_duration",
+        "message",
+        "model",
+        "prompt_eval_count",
+        "prompt_eval_duration",
+        "total_duration"
+      ],
+      "unconfirmed_human_report": false
+    },
+    "hard_dimensions": [
+      "subject_score",
+      "audience_fit_score"
+    ],
+    "hard_failed_dimensions": [],
+    "compound_fidelity_failure": false,
+    "human_description": "",
+    "vision_text_signal": false,
+    "vision_text_evidence": "",
+    "unrequested_literal_object_visible": false
+  },
+  "semantic_dimension_scores": {
+    "subject_score": 0.9,
+    "atmosphere_score": 0.9,
+    "motif_score": 0.95,
+    "treatment_score": 0.95,
+    "audience_fit_score": 1.0,
+    "unrequested_literal_object_visible": false,
+    "unrequested_text_visible": null
+  },
+  "semantic_failed_dimensions": [],
+  "safe_region_retry": {
+    "previous_score": 0.0,
+    "current_score": 0.0,
+    "improved": false
+  },
+  "validation": {
+    "validation": {
+      "decision": "accepted",
+      "failure_category": null,
+      "diagnostic_findings": [
+        "SAFE_REGION_BORDERLINE",
+        "UNKNOWN"
+      ],
+      "palette": {
+        "mode": "dominant",
+        "palette_match_ratio": null,
+        "off_palette_ratio": 0.0,
+        "primary_ratio": null,
+        "secondary_ratio": null,
+        "requested_chromatic_ratio": null,
+        "neutral_ratio": null,
+        "unrequested_chromatic_ratio": null,
+        "largest_unrequested_region_ratio": null,
+        "primary_secondary_ratio": null,
+        "secondary_presence": null,
+        "dominance_relationship": null,
+        "dominance_relationship_passed": null
+      },
+      "text": {
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 4,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        },
+        "detected": false,
+        "tokens": [
+          "leat"
+        ],
+        "confirmed_tokens": [],
+        "text_lines": [],
+        "text_area_ratio": 0
+      },
+      "human": {
+        "detected": false,
+        "strong_signals": [],
+        "weak_signals": [
+          {
+            "source": "hog",
+            "bbox": [
+              157,
+              532,
+              144,
+              287
+            ],
+            "weight": 0.7465853309258819,
+            "area_ratio": 0.03603515625,
+            "confirmed": false,
+            "confirmation": "insufficient shape or confidence"
+          },
+          {
+            "source": "hog",
+            "bbox": [
+              150,
+              966,
+              69,
+              138
+            ],
+            "weight": 0.1441732975654304,
+            "area_ratio": 0.008302525111607144,
+            "confirmed": false,
+            "confirmation": "insufficient shape or confidence"
+          }
+        ],
+        "decision_reason": "no human evidence"
+      },
+      "quality": {
+        "structural_edge_density": 0.20441228693181818,
+        "macro_structure_score": 1.0,
+        "coarse_edge_density": 0.13257575757575757,
+        "high_pass_mean": 3.554466962814331,
+        "boilerplate_score": 0.0,
+        "title_panel_score": 0.0,
+        "fine_line_pair_ratio": 0.0,
+        "macro_form_balance": 1.0,
+        "scene_density": {
+          "requested_density": "moderate",
+          "overall_edge_density": 0.1044,
+          "tile_edge_fractions": [
+            0.0,
+            0.0,
+            0.0,
+            0.0034,
+            0.0068,
+            0.0039,
+            0.0269,
+            0.0305,
+            0.1794,
+            0.1306,
+            0.1841,
+            0.1575,
+            0.3057,
+            0.1572,
+            0.1875,
+            0.2974
+          ],
+          "occupied_tile_fraction": 0.5,
+          "quiet_tile_fraction": 0.5,
+          "safe_region_density": 0.0864,
+          "edge_distribution_balance": 0.1052,
+          "macro_form_balance": 1.0,
+          "normalized_measurements": {
+            "density_pressure": 0.483
+          },
+          "thresholds_used": {
+            "density_pressure": 0.85,
+            "max_quiet_tile_fraction": 0.0625,
+            "occupied_tile_edge_fraction": 0.1,
+            "quiet_tile_edge_fraction": 0.04
+          },
+          "density_rule_triggered": null,
+          "decision": "PASS"
+        },
+        "global_density_decision": "PASS",
+        "explicit_safe_regions": {
+          "decision": "BORDERLINE",
+          "regions": {
+            "title": {
+              "decision": "BORDERLINE",
+              "reason": "detail_with_calm_area",
+              "local_edge_density": 0.2265,
+              "local_contrast": 87.0,
+              "high_frequency_fraction": 0.1199,
+              "calm_tile_fraction": 0.0,
+              "usability_score": 0.0,
+              "broad_contrast": 60.0,
+              "broad_edge_density": 0.0,
+              "tile_indexes": [
+                10,
+                11,
+                14,
+                15
+              ],
+              "occupied_tile_fraction": 1.0,
+              "quiet_tile_fraction": 0.0
+            },
+            "programme": {
+              "decision": "BORDERLINE",
+              "reason": "detail_with_calm_area",
+              "local_edge_density": 0.2265,
+              "local_contrast": 87.0,
+              "high_frequency_fraction": 0.1199,
+              "calm_tile_fraction": 0.0,
+              "usability_score": 0.0,
+              "broad_contrast": 60.0,
+              "broad_edge_density": 0.0,
+              "tile_indexes": [
+                10,
+                11,
+                14,
+                15
+              ],
+              "occupied_tile_fraction": 1.0,
+              "quiet_tile_fraction": 0.0
+            }
+          }
+        },
+        "explicit_safe_region_decision": "BORDERLINE",
+        "raster_score": 0.0
+      },
+      "brief_fidelity": {
+        "checked": true,
+        "subject_score": 0.9,
+        "atmosphere_score": 0.9,
+        "motif_score": 0.95,
+        "treatment_score": 0.95,
+        "audience_fit_score": 1.0,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "decision": "pass",
+        "reason": "The background aligns closely with the requested elegant black-tie ballroom environment. The refined architectural forms (moldings, chandeliers), layered depth, formal drapery-inspired shapes, and polished lighting (chandeliers) are all present. The atmosphere is sophisticated and celebratory, suita",
+        "observed_evidence": [
+          "White round tables with white tablecloths and white chairs",
+          "Crystal chandeliers hanging from the ceiling",
+          "Floor-length, formal drapery with swags and pleats",
+          "Large windows with white curtains",
+          "Layered depth with multiple rows of tables",
+          "Polished white walls and ceiling with detailed moldings"
+        ],
+        "model": "minicpm-v4.5:latest",
+        "failure_category": null,
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "failed_dimensions": [],
+        "background_usability_score": 0.95,
+        "vision_human_signal": false,
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.95,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.95,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 1.0,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.95,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1262,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        },
+        "hard_dimensions": [
+          "subject_score",
+          "audience_fit_score"
+        ],
+        "hard_failed_dimensions": [],
+        "compound_fidelity_failure": false,
+        "human_description": "",
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false
+      }
+    },
+    "output_path": "/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-c.download.part",
+    "sha256": "4a975339f283316d1d29e2fdf0701211fab06b6f03eea87c76a4761f17eaeac0",
+    "width": 896,
+    "height": 1280,
+    "person_detection_count": 0,
+    "face_detection_count": 0,
+    "profile_detection_count": 0,
+    "upper_body_detection_count": 0,
+    "visual_quality_checked": true,
+    "visual_quality_passed": true,
+    "macro_structure_score": 1.0,
+    "coarse_edge_density": 0.13257575757575757,
+    "edge_density": 0.3139426491477273,
+    "structural_edge_density": 0.20441228693181818,
+    "horizontal_edge_density": 0.08067737926136363,
+    "vertical_edge_density": 0.11888538707386363,
+    "directional_edge_dominance": 0.37868504772004236,
+    "full_span_line_ratio": 0.0,
+    "fine_horizontal_pair_ratio": 0.0,
+    "fine_vertical_pair_ratio": 0.0,
+    "fine_line_pair_ratio": 0.0,
+    "fine_line_mean_delta": 3.5302796363830566,
+    "image_entropy": 6.679075241088867,
+    "largest_quantised_colour_ratio": 0.25731312144886365,
+    "laplacian_variance": 460.0340881347656,
+    "highpass_mean": 3.554466962814331,
+    "coherent_edge_ratio": 0.8883720930232558,
+    "center_structural_edge_density": 0.16442216569404958,
+    "outer_structural_edge_density": 0.23647378733954494,
+    "center_local_contrast": 21.305553436279297,
+    "title_structural_edge_density": 0.0,
+    "title_local_contrast": 6.531208038330078,
+    "programme_structural_edge_density": 0.35506813616374394,
+    "programme_local_contrast": 30.496479034423828,
+    "center_to_outer_edge_ratio": 0.6953082096070174,
+    "center_safe_region_passed": false,
+    "title_panel_score": 0.0,
+    "boilerplate_score": 0.0,
+    "largest_flat_rectangle_ratio": 0.0,
+    "flat_rectangular_coverage_ratio": 0.0,
+    "flat_coverage_ratio": 0.5684037642045454,
+    "long_axis_separator_ratio": 0.0,
+    "large_flat_rectangle_count": 0.0,
+    "centre_edge_density": 0.06303267045454546,
+    "perimeter_edge_density": 0.10984848484848485,
+    "centre_flat_ratio": 0.5797230113636364,
+    "bilateral_symmetry": 0.7127025127410889,
+    "irregular_frame_score": 0.0,
+    "lower_centre_edge_density": 0.15015889830508475,
+    "quiet_centre_evidence": 0.24706945150249804,
+    "scene_density": {
+      "requested_density": "moderate",
+      "overall_edge_density": 0.1044,
+      "tile_edge_fractions": [
+        0.0,
+        0.0,
+        0.0,
+        0.0034,
+        0.0068,
+        0.0039,
+        0.0269,
+        0.0305,
+        0.1794,
+        0.1306,
+        0.1841,
+        0.1575,
+        0.3057,
+        0.1572,
+        0.1875,
+        0.2974
+      ],
+      "occupied_tile_fraction": 0.5,
+      "quiet_tile_fraction": 0.5,
+      "safe_region_density": 0.0864,
+      "edge_distribution_balance": 0.1052,
+      "macro_form_balance": 1.0,
+      "normalized_measurements": {
+        "density_pressure": 0.483
+      },
+      "thresholds_used": {
+        "density_pressure": 0.85,
+        "max_quiet_tile_fraction": 0.0625,
+        "occupied_tile_edge_fraction": 0.1,
+        "quiet_tile_edge_fraction": 0.04
+      },
+      "density_rule_triggered": null,
+      "decision": "PASS"
+    },
+    "global_density_decision": "PASS",
+    "macro_form_balance": 1.0,
+    "explicit_safe_regions": {
+      "decision": "BORDERLINE",
+      "regions": {
+        "title": {
+          "decision": "BORDERLINE",
+          "reason": "detail_with_calm_area",
+          "local_edge_density": 0.2265,
+          "local_contrast": 87.0,
+          "high_frequency_fraction": 0.1199,
+          "calm_tile_fraction": 0.0,
+          "usability_score": 0.0,
+          "broad_contrast": 60.0,
+          "broad_edge_density": 0.0,
+          "tile_indexes": [
+            10,
+            11,
+            14,
+            15
+          ],
+          "occupied_tile_fraction": 1.0,
+          "quiet_tile_fraction": 0.0
+        },
+        "programme": {
+          "decision": "BORDERLINE",
+          "reason": "detail_with_calm_area",
+          "local_edge_density": 0.2265,
+          "local_contrast": 87.0,
+          "high_frequency_fraction": 0.1199,
+          "calm_tile_fraction": 0.0,
+          "usability_score": 0.0,
+          "broad_contrast": 60.0,
+          "broad_edge_density": 0.0,
+          "tile_indexes": [
+            10,
+            11,
+            14,
+            15
+          ],
+          "occupied_tile_fraction": 1.0,
+          "quiet_tile_fraction": 0.0
+        }
+      }
+    },
+    "explicit_safe_region_decision": "BORDERLINE",
+    "palette_checked": false,
+    "achromatic_ratio": 1.0,
+    "chromatic_contamination_ratio": 0.0,
+    "dark_tone_ratio": 0.009721235795454546,
+    "light_tone_ratio": 0.46235795454545453,
+    "luminance_dynamic_range": 23.137252807617188,
+    "off_palette_ratio": 0.0,
+    "palette_mode": "dominant",
+    "ocr_tokens": [],
+    "ocr_diagnostics": {
+      "attempted": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "completed_variants": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "timed_out_variants": [],
+      "failed_variants": [],
+      "failure_reasons": {},
+      "completed_variant_count": 4,
+      "required_variant_count": 2,
+      "enhancement_variant_failures": [],
+      "evidence_sufficiency": true,
+      "decision": "complete"
+    },
+    "ocr_validation_attempts": 1,
+    "ocr_validation_sha256": "4a975339f283316d1d29e2fdf0701211fab06b6f03eea87c76a4761f17eaeac0",
+    "human_detection": {
+      "people": [],
+      "evidence": [
+        {
+          "source": "hog",
+          "bbox": [
+            157,
+            532,
+            144,
+            287
+          ],
+          "weight": 0.7465853309258819,
+          "area_ratio": 0.03603515625,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        },
+        {
+          "source": "hog",
+          "bbox": [
+            150,
+            966,
+            69,
+            138
+          ],
+          "weight": 0.1441732975654304,
+          "area_ratio": 0.008302525111607144,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        }
+      ],
+      "strong_signals": [],
+      "weak_signals": [
+        {
+          "source": "hog",
+          "bbox": [
+            157,
+            532,
+            144,
+            287
+          ],
+          "weight": 0.7465853309258819,
+          "area_ratio": 0.03603515625,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        },
+        {
+          "source": "hog",
+          "bbox": [
+            150,
+            966,
+            69,
+            138
+          ],
+          "weight": 0.1441732975654304,
+          "area_ratio": 0.008302525111607144,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        }
+      ],
+      "overlaps": [],
+      "people_weights": [],
+      "faces": [],
+      "profiles": [],
+      "upper_bodies": [],
+      "strong_upper_body_signal": false,
+      "ambiguous_face_signal": false,
+      "detected": false,
+      "human_detection_confidence": "low",
+      "human_detection_reason": "isolated detector patterns without independent confirmation",
+      "largest_detection_area_ratio": 0.03603515625,
+      "classical_human_signal": false,
+      "vision_human_signal": false,
+      "combined_human_decision": false,
+      "decision_reason": "no human evidence"
+    },
+    "all_failure_categories": []
+  },
+  "output_path": "/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-c.png",
+  "sha256": "4a975339f283316d1d29e2fdf0701211fab06b6f03eea87c76a4761f17eaeac0",
+  "width": 896,
+  "height": 1280,
+  "person_detection_count": 0,
+  "face_detection_count": 0,
+  "profile_detection_count": 0,
+  "upper_body_detection_count": 0,
+  "visual_quality_checked": true,
+  "visual_quality_passed": true,
+  "macro_structure_score": 1.0,
+  "coarse_edge_density": 0.13257575757575757,
+  "edge_density": 0.3139426491477273,
+  "structural_edge_density": 0.20441228693181818,
+  "horizontal_edge_density": 0.08067737926136363,
+  "vertical_edge_density": 0.11888538707386363,
+  "directional_edge_dominance": 0.37868504772004236,
+  "full_span_line_ratio": 0.0,
+  "fine_horizontal_pair_ratio": 0.0,
+  "fine_vertical_pair_ratio": 0.0,
+  "fine_line_pair_ratio": 0.0,
+  "fine_line_mean_delta": 3.5302796363830566,
+  "image_entropy": 6.679075241088867,
+  "largest_quantised_colour_ratio": 0.25731312144886365,
+  "laplacian_variance": 460.0340881347656,
+  "highpass_mean": 3.554466962814331,
+  "coherent_edge_ratio": 0.8883720930232558,
+  "center_structural_edge_density": 0.16442216569404958,
+  "outer_structural_edge_density": 0.23647378733954494,
+  "center_local_contrast": 21.305553436279297,
+  "title_structural_edge_density": 0.0,
+  "title_local_contrast": 6.531208038330078,
+  "programme_structural_edge_density": 0.35506813616374394,
+  "programme_local_contrast": 30.496479034423828,
+  "center_to_outer_edge_ratio": 0.6953082096070174,
+  "center_safe_region_passed": false,
+  "title_panel_score": 0.0,
+  "boilerplate_score": 0.0,
+  "largest_flat_rectangle_ratio": 0.0,
+  "flat_rectangular_coverage_ratio": 0.0,
+  "flat_coverage_ratio": 0.5684037642045454,
+  "long_axis_separator_ratio": 0.0,
+  "large_flat_rectangle_count": 0.0,
+  "centre_edge_density": 0.06303267045454546,
+  "perimeter_edge_density": 0.10984848484848485,
+  "centre_flat_ratio": 0.5797230113636364,
+  "bilateral_symmetry": 0.7127025127410889,
+  "irregular_frame_score": 0.0,
+  "lower_centre_edge_density": 0.15015889830508475,
+  "quiet_centre_evidence": 0.24706945150249804,
+  "scene_density": {
+    "requested_density": "moderate",
+    "overall_edge_density": 0.1044,
+    "tile_edge_fractions": [
+      0.0,
+      0.0,
+      0.0,
+      0.0034,
+      0.0068,
+      0.0039,
+      0.0269,
+      0.0305,
+      0.1794,
+      0.1306,
+      0.1841,
+      0.1575,
+      0.3057,
+      0.1572,
+      0.1875,
+      0.2974
+    ],
+    "occupied_tile_fraction": 0.5,
+    "quiet_tile_fraction": 0.5,
+    "safe_region_density": 0.0864,
+    "edge_distribution_balance": 0.1052,
+    "macro_form_balance": 1.0,
+    "normalized_measurements": {
+      "density_pressure": 0.483
+    },
+    "thresholds_used": {
+      "density_pressure": 0.85,
+      "max_quiet_tile_fraction": 0.0625,
+      "occupied_tile_edge_fraction": 0.1,
+      "quiet_tile_edge_fraction": 0.04
+    },
+    "density_rule_triggered": null,
+    "decision": "PASS"
+  },
+  "global_density_decision": "PASS",
+  "macro_form_balance": 1.0,
+  "explicit_safe_regions": {
+    "decision": "BORDERLINE",
+    "regions": {
+      "title": {
+        "decision": "BORDERLINE",
+        "reason": "detail_with_calm_area",
+        "local_edge_density": 0.2265,
+        "local_contrast": 87.0,
+        "high_frequency_fraction": 0.1199,
+        "calm_tile_fraction": 0.0,
+        "usability_score": 0.0,
+        "broad_contrast": 60.0,
+        "broad_edge_density": 0.0,
+        "tile_indexes": [
+          10,
+          11,
+          14,
+          15
+        ],
+        "occupied_tile_fraction": 1.0,
+        "quiet_tile_fraction": 0.0
+      },
+      "programme": {
+        "decision": "BORDERLINE",
+        "reason": "detail_with_calm_area",
+        "local_edge_density": 0.2265,
+        "local_contrast": 87.0,
+        "high_frequency_fraction": 0.1199,
+        "calm_tile_fraction": 0.0,
+        "usability_score": 0.0,
+        "broad_contrast": 60.0,
+        "broad_edge_density": 0.0,
+        "tile_indexes": [
+          10,
+          11,
+          14,
+          15
+        ],
+        "occupied_tile_fraction": 1.0,
+        "quiet_tile_fraction": 0.0
+      }
+    }
+  },
+  "explicit_safe_region_decision": "BORDERLINE",
+  "palette_checked": false,
+  "achromatic_ratio": 1.0,
+  "chromatic_contamination_ratio": 0.0,
+  "dark_tone_ratio": 0.009721235795454546,
+  "light_tone_ratio": 0.46235795454545453,
+  "luminance_dynamic_range": 23.137252807617188,
+  "off_palette_ratio": 0.0,
+  "ocr_tokens": [],
+  "ocr_diagnostics": {
+    "attempted": [
+      "original",
+      "contrast",
+      "threshold",
+      "inverted"
+    ],
+    "completed_variants": [
+      "original",
+      "contrast",
+      "threshold",
+      "inverted"
+    ],
+    "timed_out_variants": [],
+    "failed_variants": [],
+    "failure_reasons": {},
+    "completed_variant_count": 4,
+    "required_variant_count": 2,
+    "enhancement_variant_failures": [],
+    "evidence_sufficiency": true,
+    "decision": "complete"
+  },
+  "ocr_validation_attempts": 1,
+  "ocr_validation_sha256": "4a975339f283316d1d29e2fdf0701211fab06b6f03eea87c76a4761f17eaeac0",
+  "human_detection": {
+    "people": [],
+    "evidence": [
+      {
+        "source": "hog",
+        "bbox": [
+          157,
+          532,
+          144,
+          287
+        ],
+        "weight": 0.7465853309258819,
+        "area_ratio": 0.03603515625,
+        "confirmed": false,
+        "confirmation": "insufficient shape or confidence"
+      },
+      {
+        "source": "hog",
+        "bbox": [
+          150,
+          966,
+          69,
+          138
+        ],
+        "weight": 0.1441732975654304,
+        "area_ratio": 0.008302525111607144,
+        "confirmed": false,
+        "confirmation": "insufficient shape or confidence"
+      }
+    ],
+    "strong_signals": [],
+    "weak_signals": [
+      {
+        "source": "hog",
+        "bbox": [
+          157,
+          532,
+          144,
+          287
+        ],
+        "weight": 0.7465853309258819,
+        "area_ratio": 0.03603515625,
+        "confirmed": false,
+        "confirmation": "insufficient shape or confidence"
+      },
+      {
+        "source": "hog",
+        "bbox": [
+          150,
+          966,
+          69,
+          138
+        ],
+        "weight": 0.1441732975654304,
+        "area_ratio": 0.008302525111607144,
+        "confirmed": false,
+        "confirmation": "insufficient shape or confidence"
+      }
+    ],
+    "overlaps": [],
+    "people_weights": [],
+    "faces": [],
+    "profiles": [],
+    "upper_bodies": [],
+    "strong_upper_body_signal": false,
+    "ambiguous_face_signal": false,
+    "detected": false,
+    "human_detection_confidence": "low",
+    "human_detection_reason": "isolated detector patterns without independent confirmation",
+    "largest_detection_area_ratio": 0.03603515625,
+    "classical_human_signal": false,
+    "vision_human_signal": false,
+    "combined_human_decision": false,
+    "decision_reason": "no human evidence"
+  },
+  "all_failure_categories": [],
+  "raw_validation": {
+    "validation": {
+      "decision": "accepted",
+      "failure_category": null,
+      "diagnostic_findings": [
+        "SAFE_REGION_BORDERLINE",
+        "UNKNOWN"
+      ],
+      "palette": {
+        "mode": "dominant",
+        "palette_match_ratio": null,
+        "off_palette_ratio": 0.0,
+        "primary_ratio": null,
+        "secondary_ratio": null,
+        "requested_chromatic_ratio": null,
+        "neutral_ratio": null,
+        "unrequested_chromatic_ratio": null,
+        "largest_unrequested_region_ratio": null,
+        "primary_secondary_ratio": null,
+        "secondary_presence": null,
+        "dominance_relationship": null,
+        "dominance_relationship_passed": null
+      },
+      "text": {
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 4,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        },
+        "detected": false,
+        "tokens": [
+          "leat"
+        ],
+        "confirmed_tokens": [],
+        "text_lines": [],
+        "text_area_ratio": 0
+      },
+      "human": {
+        "detected": false,
+        "strong_signals": [],
+        "weak_signals": [
+          {
+            "source": "hog",
+            "bbox": [
+              157,
+              532,
+              144,
+              287
+            ],
+            "weight": 0.7465853309258819,
+            "area_ratio": 0.03603515625,
+            "confirmed": false,
+            "confirmation": "insufficient shape or confidence"
+          },
+          {
+            "source": "hog",
+            "bbox": [
+              150,
+              966,
+              69,
+              138
+            ],
+            "weight": 0.1441732975654304,
+            "area_ratio": 0.008302525111607144,
+            "confirmed": false,
+            "confirmation": "insufficient shape or confidence"
+          }
+        ],
+        "decision_reason": "no human evidence"
+      },
+      "quality": {
+        "structural_edge_density": 0.20441228693181818,
+        "macro_structure_score": 1.0,
+        "coarse_edge_density": 0.13257575757575757,
+        "high_pass_mean": 3.554466962814331,
+        "boilerplate_score": 0.0,
+        "title_panel_score": 0.0,
+        "fine_line_pair_ratio": 0.0,
+        "macro_form_balance": 1.0,
+        "scene_density": {
+          "requested_density": "moderate",
+          "overall_edge_density": 0.1044,
+          "tile_edge_fractions": [
+            0.0,
+            0.0,
+            0.0,
+            0.0034,
+            0.0068,
+            0.0039,
+            0.0269,
+            0.0305,
+            0.1794,
+            0.1306,
+            0.1841,
+            0.1575,
+            0.3057,
+            0.1572,
+            0.1875,
+            0.2974
+          ],
+          "occupied_tile_fraction": 0.5,
+          "quiet_tile_fraction": 0.5,
+          "safe_region_density": 0.0864,
+          "edge_distribution_balance": 0.1052,
+          "macro_form_balance": 1.0,
+          "normalized_measurements": {
+            "density_pressure": 0.483
+          },
+          "thresholds_used": {
+            "density_pressure": 0.85,
+            "max_quiet_tile_fraction": 0.0625,
+            "occupied_tile_edge_fraction": 0.1,
+            "quiet_tile_edge_fraction": 0.04
+          },
+          "density_rule_triggered": null,
+          "decision": "PASS"
+        },
+        "global_density_decision": "PASS",
+        "explicit_safe_regions": {
+          "decision": "BORDERLINE",
+          "regions": {
+            "title": {
+              "decision": "BORDERLINE",
+              "reason": "detail_with_calm_area",
+              "local_edge_density": 0.2265,
+              "local_contrast": 87.0,
+              "high_frequency_fraction": 0.1199,
+              "calm_tile_fraction": 0.0,
+              "usability_score": 0.0,
+              "broad_contrast": 60.0,
+              "broad_edge_density": 0.0,
+              "tile_indexes": [
+                10,
+                11,
+                14,
+                15
+              ],
+              "occupied_tile_fraction": 1.0,
+              "quiet_tile_fraction": 0.0
+            },
+            "programme": {
+              "decision": "BORDERLINE",
+              "reason": "detail_with_calm_area",
+              "local_edge_density": 0.2265,
+              "local_contrast": 87.0,
+              "high_frequency_fraction": 0.1199,
+              "calm_tile_fraction": 0.0,
+              "usability_score": 0.0,
+              "broad_contrast": 60.0,
+              "broad_edge_density": 0.0,
+              "tile_indexes": [
+                10,
+                11,
+                14,
+                15
+              ],
+              "occupied_tile_fraction": 1.0,
+              "quiet_tile_fraction": 0.0
+            }
+          }
+        },
+        "explicit_safe_region_decision": "BORDERLINE",
+        "raster_score": 0.0
+      }
+    },
+    "output_path": "/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-c.download.part",
+    "sha256": "4a975339f283316d1d29e2fdf0701211fab06b6f03eea87c76a4761f17eaeac0",
+    "width": 896,
+    "height": 1280,
+    "person_detection_count": 0,
+    "face_detection_count": 0,
+    "profile_detection_count": 0,
+    "upper_body_detection_count": 0,
+    "visual_quality_checked": true,
+    "visual_quality_passed": true,
+    "macro_structure_score": 1.0,
+    "coarse_edge_density": 0.13257575757575757,
+    "edge_density": 0.3139426491477273,
+    "structural_edge_density": 0.20441228693181818,
+    "horizontal_edge_density": 0.08067737926136363,
+    "vertical_edge_density": 0.11888538707386363,
+    "directional_edge_dominance": 0.37868504772004236,
+    "full_span_line_ratio": 0.0,
+    "fine_horizontal_pair_ratio": 0.0,
+    "fine_vertical_pair_ratio": 0.0,
+    "fine_line_pair_ratio": 0.0,
+    "fine_line_mean_delta": 3.5302796363830566,
+    "image_entropy": 6.679075241088867,
+    "largest_quantised_colour_ratio": 0.25731312144886365,
+    "laplacian_variance": 460.0340881347656,
+    "highpass_mean": 3.554466962814331,
+    "coherent_edge_ratio": 0.8883720930232558,
+    "center_structural_edge_density": 0.16442216569404958,
+    "outer_structural_edge_density": 0.23647378733954494,
+    "center_local_contrast": 21.305553436279297,
+    "title_structural_edge_density": 0.0,
+    "title_local_contrast": 6.531208038330078,
+    "programme_structural_edge_density": 0.35506813616374394,
+    "programme_local_contrast": 30.496479034423828,
+    "center_to_outer_edge_ratio": 0.6953082096070174,
+    "center_safe_region_passed": false,
+    "title_panel_score": 0.0,
+    "boilerplate_score": 0.0,
+    "largest_flat_rectangle_ratio": 0.0,
+    "flat_rectangular_coverage_ratio": 0.0,
+    "flat_coverage_ratio": 0.5684037642045454,
+    "long_axis_separator_ratio": 0.0,
+    "large_flat_rectangle_count": 0.0,
+    "centre_edge_density": 0.06303267045454546,
+    "perimeter_edge_density": 0.10984848484848485,
+    "centre_flat_ratio": 0.5797230113636364,
+    "bilateral_symmetry": 0.7127025127410889,
+    "irregular_frame_score": 0.0,
+    "lower_centre_edge_density": 0.15015889830508475,
+    "quiet_centre_evidence": 0.24706945150249804,
+    "scene_density": {
+      "requested_density": "moderate",
+      "overall_edge_density": 0.1044,
+      "tile_edge_fractions": [
+        0.0,
+        0.0,
+        0.0,
+        0.0034,
+        0.0068,
+        0.0039,
+        0.0269,
+        0.0305,
+        0.1794,
+        0.1306,
+        0.1841,
+        0.1575,
+        0.3057,
+        0.1572,
+        0.1875,
+        0.2974
+      ],
+      "occupied_tile_fraction": 0.5,
+      "quiet_tile_fraction": 0.5,
+      "safe_region_density": 0.0864,
+      "edge_distribution_balance": 0.1052,
+      "macro_form_balance": 1.0,
+      "normalized_measurements": {
+        "density_pressure": 0.483
+      },
+      "thresholds_used": {
+        "density_pressure": 0.85,
+        "max_quiet_tile_fraction": 0.0625,
+        "occupied_tile_edge_fraction": 0.1,
+        "quiet_tile_edge_fraction": 0.04
+      },
+      "density_rule_triggered": null,
+      "decision": "PASS"
+    },
+    "global_density_decision": "PASS",
+    "macro_form_balance": 1.0,
+    "explicit_safe_regions": {
+      "decision": "BORDERLINE",
+      "regions": {
+        "title": {
+          "decision": "BORDERLINE",
+          "reason": "detail_with_calm_area",
+          "local_edge_density": 0.2265,
+          "local_contrast": 87.0,
+          "high_frequency_fraction": 0.1199,
+          "calm_tile_fraction": 0.0,
+          "usability_score": 0.0,
+          "broad_contrast": 60.0,
+          "broad_edge_density": 0.0,
+          "tile_indexes": [
+            10,
+            11,
+            14,
+            15
+          ],
+          "occupied_tile_fraction": 1.0,
+          "quiet_tile_fraction": 0.0
+        },
+        "programme": {
+          "decision": "BORDERLINE",
+          "reason": "detail_with_calm_area",
+          "local_edge_density": 0.2265,
+          "local_contrast": 87.0,
+          "high_frequency_fraction": 0.1199,
+          "calm_tile_fraction": 0.0,
+          "usability_score": 0.0,
+          "broad_contrast": 60.0,
+          "broad_edge_density": 0.0,
+          "tile_indexes": [
+            10,
+            11,
+            14,
+            15
+          ],
+          "occupied_tile_fraction": 1.0,
+          "quiet_tile_fraction": 0.0
+        }
+      }
+    },
+    "explicit_safe_region_decision": "BORDERLINE",
+    "palette_checked": false,
+    "achromatic_ratio": 1.0,
+    "chromatic_contamination_ratio": 0.0,
+    "dark_tone_ratio": 0.009721235795454546,
+    "light_tone_ratio": 0.46235795454545453,
+    "luminance_dynamic_range": 23.137252807617188,
+    "off_palette_ratio": 0.0,
+    "palette_mode": "dominant",
+    "ocr_tokens": [],
+    "ocr_diagnostics": {
+      "attempted": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "completed_variants": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "timed_out_variants": [],
+      "failed_variants": [],
+      "failure_reasons": {},
+      "completed_variant_count": 4,
+      "required_variant_count": 2,
+      "enhancement_variant_failures": [],
+      "evidence_sufficiency": true,
+      "decision": "complete"
+    },
+    "ocr_validation_attempts": 1,
+    "ocr_validation_sha256": "4a975339f283316d1d29e2fdf0701211fab06b6f03eea87c76a4761f17eaeac0",
+    "human_detection": {
+      "people": [],
+      "evidence": [
+        {
+          "source": "hog",
+          "bbox": [
+            157,
+            532,
+            144,
+            287
+          ],
+          "weight": 0.7465853309258819,
+          "area_ratio": 0.03603515625,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        },
+        {
+          "source": "hog",
+          "bbox": [
+            150,
+            966,
+            69,
+            138
+          ],
+          "weight": 0.1441732975654304,
+          "area_ratio": 0.008302525111607144,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        }
+      ],
+      "strong_signals": [],
+      "weak_signals": [
+        {
+          "source": "hog",
+          "bbox": [
+            157,
+            532,
+            144,
+            287
+          ],
+          "weight": 0.7465853309258819,
+          "area_ratio": 0.03603515625,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        },
+        {
+          "source": "hog",
+          "bbox": [
+            150,
+            966,
+            69,
+            138
+          ],
+          "weight": 0.1441732975654304,
+          "area_ratio": 0.008302525111607144,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        }
+      ],
+      "overlaps": [],
+      "people_weights": [],
+      "faces": [],
+      "profiles": [],
+      "upper_bodies": [],
+      "strong_upper_body_signal": false,
+      "ambiguous_face_signal": false,
+      "detected": false,
+      "human_detection_confidence": "low",
+      "human_detection_reason": "isolated detector patterns without independent confirmation",
+      "largest_detection_area_ratio": 0.03603515625,
+      "classical_human_signal": false,
+      "vision_human_signal": false,
+      "combined_human_decision": false,
+      "decision_reason": "no human evidence"
+    },
+    "all_failure_categories": []
+  },
+  "final_validation": {
+    "decision": "accepted",
+    "failure_category": null,
+    "diagnostic_findings": [
+      "SAFE_REGION_BORDERLINE",
+      "UNKNOWN"
+    ],
+    "palette": {
+      "mode": "dominant",
+      "palette_match_ratio": null,
+      "off_palette_ratio": 0.0,
+      "primary_ratio": null,
+      "secondary_ratio": null,
+      "requested_chromatic_ratio": null,
+      "neutral_ratio": null,
+      "unrequested_chromatic_ratio": null,
+      "largest_unrequested_region_ratio": null,
+      "primary_secondary_ratio": null,
+      "secondary_presence": null,
+      "dominance_relationship": null,
+      "dominance_relationship_passed": null
+    },
+    "text": {
+      "ocr_diagnostics": {
+        "attempted": [
+          "original",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "completed_variants": [
+          "original",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "timed_out_variants": [],
+        "failed_variants": [],
+        "failure_reasons": {},
+        "completed_variant_count": 4,
+        "required_variant_count": 2,
+        "enhancement_variant_failures": [],
+        "evidence_sufficiency": true,
+        "decision": "complete"
+      },
+      "detected": false,
+      "tokens": [
+        "leat"
+      ],
+      "confirmed_tokens": [],
+      "text_lines": [],
+      "text_area_ratio": 0
+    },
+    "human": {
+      "detected": false,
+      "strong_signals": [],
+      "weak_signals": [
+        {
+          "source": "hog",
+          "bbox": [
+            157,
+            532,
+            144,
+            287
+          ],
+          "weight": 0.7465853309258819,
+          "area_ratio": 0.03603515625,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        },
+        {
+          "source": "hog",
+          "bbox": [
+            150,
+            966,
+            69,
+            138
+          ],
+          "weight": 0.1441732975654304,
+          "area_ratio": 0.008302525111607144,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        }
+      ],
+      "decision_reason": "no human evidence"
+    },
+    "quality": {
+      "structural_edge_density": 0.20441228693181818,
+      "macro_structure_score": 1.0,
+      "coarse_edge_density": 0.13257575757575757,
+      "high_pass_mean": 3.554466962814331,
+      "boilerplate_score": 0.0,
+      "title_panel_score": 0.0,
+      "fine_line_pair_ratio": 0.0,
+      "macro_form_balance": 1.0,
+      "scene_density": {
+        "requested_density": "moderate",
+        "overall_edge_density": 0.1044,
+        "tile_edge_fractions": [
+          0.0,
+          0.0,
+          0.0,
+          0.0034,
+          0.0068,
+          0.0039,
+          0.0269,
+          0.0305,
+          0.1794,
+          0.1306,
+          0.1841,
+          0.1575,
+          0.3057,
+          0.1572,
+          0.1875,
+          0.2974
+        ],
+        "occupied_tile_fraction": 0.5,
+        "quiet_tile_fraction": 0.5,
+        "safe_region_density": 0.0864,
+        "edge_distribution_balance": 0.1052,
+        "macro_form_balance": 1.0,
+        "normalized_measurements": {
+          "density_pressure": 0.483
+        },
+        "thresholds_used": {
+          "density_pressure": 0.85,
+          "max_quiet_tile_fraction": 0.0625,
+          "occupied_tile_edge_fraction": 0.1,
+          "quiet_tile_edge_fraction": 0.04
+        },
+        "density_rule_triggered": null,
+        "decision": "PASS"
+      },
+      "global_density_decision": "PASS",
+      "explicit_safe_regions": {
+        "decision": "BORDERLINE",
+        "regions": {
+          "title": {
+            "decision": "BORDERLINE",
+            "reason": "detail_with_calm_area",
+            "local_edge_density": 0.2265,
+            "local_contrast": 87.0,
+            "high_frequency_fraction": 0.1199,
+            "calm_tile_fraction": 0.0,
+            "usability_score": 0.0,
+            "broad_contrast": 60.0,
+            "broad_edge_density": 0.0,
+            "tile_indexes": [
+              10,
+              11,
+              14,
+              15
+            ],
+            "occupied_tile_fraction": 1.0,
+            "quiet_tile_fraction": 0.0
+          },
+          "programme": {
+            "decision": "BORDERLINE",
+            "reason": "detail_with_calm_area",
+            "local_edge_density": 0.2265,
+            "local_contrast": 87.0,
+            "high_frequency_fraction": 0.1199,
+            "calm_tile_fraction": 0.0,
+            "usability_score": 0.0,
+            "broad_contrast": 60.0,
+            "broad_edge_density": 0.0,
+            "tile_indexes": [
+              10,
+              11,
+              14,
+              15
+            ],
+            "occupied_tile_fraction": 1.0,
+            "quiet_tile_fraction": 0.0
+          }
+        }
+      },
+      "explicit_safe_region_decision": "BORDERLINE",
+      "raster_score": 0.0
+    },
+    "brief_fidelity": {
+      "checked": true,
+      "subject_score": 0.9,
+      "atmosphere_score": 0.9,
+      "motif_score": 0.95,
+      "treatment_score": 0.95,
+      "audience_fit_score": 1.0,
+      "thresholds": {
+        "subject_score": 0.55,
+        "atmosphere_score": 0.55,
+        "motif_score": 0.55,
+        "audience_fit_score": 0.55
+      },
+      "decision": "pass",
+      "reason": "The background aligns closely with the requested elegant black-tie ballroom environment. The refined architectural forms (moldings, chandeliers), layered depth, formal drapery-inspired shapes, and polished lighting (chandeliers) are all present. The atmosphere is sophisticated and celebratory, suita",
+      "observed_evidence": [
+        "White round tables with white tablecloths and white chairs",
+        "Crystal chandeliers hanging from the ceiling",
+        "Floor-length, formal drapery with swags and pleats",
+        "Large windows with white curtains",
+        "Layered depth with multiple rows of tables",
+        "Polished white walls and ceiling with detailed moldings"
+      ],
+      "model": "minicpm-v4.5:latest",
+      "failure_category": null,
+      "dimension_availability": {
+        "subject_score": "PASS",
+        "atmosphere_score": "PASS",
+        "motif_score": "PASS",
+        "audience_fit_score": "PASS"
+      },
+      "failed_dimensions": [],
+      "background_usability_score": 0.95,
+      "vision_human_signal": false,
+      "vision_debug": {
+        "endpoint": "/api/chat",
+        "model": "minicpm-v4.5:latest",
+        "score_parsing": [
+          {
+            "dimension_name": "subject_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.9,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "atmosphere_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.9,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "motif_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.95,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "treatment_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.95,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "audience_fit_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 1.0,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "background_usability_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.95,
+            "parse_failure_reason": null
+          }
+        ],
+        "thinking_present": false,
+        "thinking_preview_length": 0,
+        "response_length": 1262,
+        "final_source": "message.content",
+        "raw_text_preview": "<omitted>",
+        "assessment_attempts": 1,
+        "http_status": 200,
+        "response_content_type": "application/json; charset=utf-8",
+        "response_shape": [
+          "created_at",
+          "done",
+          "done_reason",
+          "eval_count",
+          "eval_duration",
+          "load_duration",
+          "message",
+          "model",
+          "prompt_eval_count",
+          "prompt_eval_duration",
+          "total_duration"
+        ],
+        "unconfirmed_human_report": false
+      },
+      "hard_dimensions": [
+        "subject_score",
+        "audience_fit_score"
+      ],
+      "hard_failed_dimensions": [],
+      "compound_fidelity_failure": false,
+      "human_description": "",
+      "vision_text_signal": false,
+      "vision_text_evidence": "",
+      "unrequested_literal_object_visible": false
+    }
+  },
+  "palette_normalized": false,
+  "raw_palette_error": null,
+  "outcome_category": "PASS",
+  "raw_image_path": null,
+  "error": null,
+  "rejection_reason": null,
+  "remote_image": {
+    "filename": "c_00002_.png",
+    "subfolder": "programme-studio/22F1AC-978962/sd-3-5-medium",
+    "type": "output"
+  },
+  "secondary_failure_categories": [],
+  "retry_failure_category": "DENSE_SAFE_REGION",
+  "decision": "accepted",
+  "primary_failure_category": null,
+  "attempt_history": [
+    {
+      "attempt_count": 1,
+      "seed": 744822100768248484,
+      "prompt_id": "42ac72b2-584b-472d-844c-395d9eaf00da",
+      "sha256": null,
+      "rejection_reason": "DENSE_SAFE_REGION: high-contrast visual interference in title, programme region",
+      "failure_category": "DENSE_SAFE_REGION",
+      "primary_failure_category": "DENSE_SAFE_REGION",
+      "all_failure_categories": [
+        "DENSE_SAFE_REGION"
+      ],
+      "validation": {
+        "decision": "rejected",
+        "failure_category": "DENSE_SAFE_REGION",
+        "diagnostic_findings": [],
+        "palette": {
+          "mode": "black-white",
+          "palette_match_ratio": 1.0,
+          "off_palette_ratio": 0.0,
+          "primary_ratio": 0.43004261363636365,
+          "secondary_ratio": 0.30677379261363635,
+          "requested_chromatic_ratio": null,
+          "neutral_ratio": null,
+          "unrequested_chromatic_ratio": null,
+          "largest_unrequested_region_ratio": null,
+          "primary_secondary_ratio": 1.4018231804369845,
+          "secondary_presence": true,
+          "dominance_relationship": "FLEXIBLE",
+          "dominance_relationship_passed": true
+        },
+        "text": {
+          "ocr_diagnostics": {
+            "attempted": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "completed_variants": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "timed_out_variants": [],
+            "failed_variants": [],
+            "failure_reasons": {},
+            "completed_variant_count": 4,
+            "required_variant_count": 2,
+            "enhancement_variant_failures": [],
+            "evidence_sufficiency": true,
+            "decision": "complete"
+          },
+          "detected": false,
+          "tokens": [
+            "FECT"
+          ],
+          "confirmed_tokens": [],
+          "text_lines": [],
+          "text_area_ratio": 0
+        },
+        "human": {
+          "detected": false,
+          "strong_signals": [],
+          "weak_signals": [
+            {
+              "source": "hog",
+              "bbox": [
+                21,
+                699,
+                76,
+                151
+              ],
+              "weight": 0.5927018788643181,
+              "area_ratio": 0.010006277901785715,
+              "confirmed": false,
+              "confirmation": "insufficient shape or confidence"
+            },
+            {
+              "source": "hog",
+              "bbox": [
+                610,
+                628,
+                140,
+                279
+              ],
+              "weight": 0.14880122360773385,
+              "area_ratio": 0.0340576171875,
+              "confirmed": false,
+              "confirmation": "insufficient shape or confidence"
+            }
+          ],
+          "decision_reason": "no human evidence"
+        },
+        "quality": {
+          "structural_edge_density": 0.42003284801136365,
+          "macro_structure_score": 1.0,
+          "coarse_edge_density": 0.22664141414141414,
+          "high_pass_mean": 10.755270004272461,
+          "boilerplate_score": 0.0,
+          "title_panel_score": 0.0,
+          "fine_line_pair_ratio": 0.0,
+          "macro_form_balance": 1.0,
+          "scene_density": {
+            "requested_density": "moderate",
+            "overall_edge_density": 0.1364,
+            "tile_edge_fractions": [
+              0.1077,
+              0.0991,
+              0.1443,
+              0.144,
+              0.0847,
+              0.0811,
+              0.1025,
+              0.0247,
+              0.2495,
+              0.3018,
+              0.229,
+              0.2649,
+              0.074,
+              0.0762,
+              0.0813,
+              0.1184
+            ],
+            "occupied_tile_fraction": 0.5625,
+            "quiet_tile_fraction": 0.0625,
+            "safe_region_density": 0.1786,
+            "edge_distribution_balance": 0.0782,
+            "macro_form_balance": 1.0,
+            "normalized_measurements": {
+              "density_pressure": 0.6844
+            },
+            "thresholds_used": {
+              "density_pressure": 0.85,
+              "max_quiet_tile_fraction": 0.0625,
+              "occupied_tile_edge_fraction": 0.1,
+              "quiet_tile_edge_fraction": 0.04
+            },
+            "density_rule_triggered": null,
+            "decision": "PASS"
+          },
+          "global_density_decision": "PASS",
+          "explicit_safe_regions": {
+            "decision": "FAIL",
+            "regions": {
+              "title": {
+                "decision": "FAIL",
+                "reason": "dense_high_contrast_detail",
+                "local_edge_density": 0.1779,
+                "local_contrast": 220.0,
+                "high_frequency_fraction": 0.5407,
+                "calm_tile_fraction": 0.0,
+                "usability_score": 0.0,
+                "broad_contrast": 145.0,
+                "broad_edge_density": 0.0144,
+                "tile_indexes": [
+                  10,
+                  11,
+                  14,
+                  15
+                ],
+                "occupied_tile_fraction": 0.75,
+                "quiet_tile_fraction": 0.0
+              },
+              "programme": {
+                "decision": "FAIL",
+                "reason": "dense_high_contrast_detail",
+                "local_edge_density": 0.1779,
+                "local_contrast": 220.0,
+                "high_frequency_fraction": 0.5407,
+                "calm_tile_fraction": 0.0,
+                "usability_score": 0.0,
+                "broad_contrast": 145.0,
+                "broad_edge_density": 0.0144,
+                "tile_indexes": [
+                  10,
+                  11,
+                  14,
+                  15
+                ],
+                "occupied_tile_fraction": 0.75,
+                "quiet_tile_fraction": 0.0
+              }
+            }
+          },
+          "explicit_safe_region_decision": "FAIL",
+          "raster_score": 0.0
+        },
+        "brief_fidelity": {
+          "checked": true,
+          "subject_score": 0.85,
+          "atmosphere_score": 0.85,
+          "motif_score": 0.85,
+          "treatment_score": 0.75,
+          "audience_fit_score": 0.85,
+          "thresholds": {
+            "subject_score": 0.55,
+            "atmosphere_score": 0.55,
+            "motif_score": 0.55,
+            "audience_fit_score": 0.55
+          },
+          "decision": "pass",
+          "reason": "The scene strongly matches the requested elegant black-tie ballroom environment with refined architectural forms, layered depth, and formal drapery-inspired shapes. The atmosphere is sophisticated and celebratory, suitable for an adult audience. Motifs of refined architecture and drapery-inspired sh",
+          "observed_evidence": [
+            "Round tables with white tablecloths and floral centerpieces.",
+            "Black and white abstract floor pattern.",
+            "Black drapery on the walls.",
+            "White ceiling with recessed lighting panels.",
+            "Dining chairs around tables.",
+            "Symmetrical arrangement of tables and decor."
+          ],
+          "model": "minicpm-v4.5:latest",
+          "failure_category": null,
+          "dimension_availability": {
+            "subject_score": "PASS",
+            "atmosphere_score": "PASS",
+            "motif_score": "PASS",
+            "audience_fit_score": "PASS"
+          },
+          "failed_dimensions": [],
+          "background_usability_score": 0.85,
+          "vision_human_signal": false,
+          "vision_debug": {
+            "endpoint": "/api/chat",
+            "model": "minicpm-v4.5:latest",
+            "score_parsing": [
+              {
+                "dimension_name": "subject_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "atmosphere_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "motif_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "treatment_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.75,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "audience_fit_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "background_usability_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              }
+            ],
+            "thinking_present": false,
+            "thinking_preview_length": 0,
+            "response_length": 1267,
+            "final_source": "message.content",
+            "raw_text_preview": "<omitted>",
+            "assessment_attempts": 1,
+            "http_status": 200,
+            "response_content_type": "application/json; charset=utf-8",
+            "response_shape": [
+              "created_at",
+              "done",
+              "done_reason",
+              "eval_count",
+              "eval_duration",
+              "load_duration",
+              "message",
+              "model",
+              "prompt_eval_count",
+              "prompt_eval_duration",
+              "total_duration"
+            ],
+            "unconfirmed_human_report": false
+          },
+          "hard_dimensions": [
+            "subject_score",
+            "audience_fit_score"
+          ],
+          "hard_failed_dimensions": [],
+          "compound_fidelity_failure": false,
+          "human_description": "",
+          "vision_text_signal": false,
+          "vision_text_evidence": "",
+          "unrequested_literal_object_visible": false
+        }
+      },
+      "subject_adherence": {
+        "checked": true,
+        "score": 0.85,
+        "threshold": 0.55,
+        "subject": "An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.",
+        "anchors": [
+          "An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting."
+        ],
+        "model": "minicpm-v4.5:latest",
+        "decision": "pass",
+        "reason": "The scene strongly matches the requested elegant black-tie ballroom environment with refined architectural forms, layered depth, and formal drapery-inspired shapes. The atmosphere is sophisticated and celebratory, suitable for an adult audience. Motifs of refined architecture and drapery-inspired sh",
+        "subject_score": 0.85,
+        "atmosphere_score": 0.85,
+        "motif_score": 0.85,
+        "treatment_score": 0.75,
+        "audience_fit_score": 0.85,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "observed_evidence": [
+          "Round tables with white tablecloths and floral centerpieces.",
+          "Black and white abstract floor pattern.",
+          "Black drapery on the walls.",
+          "White ceiling with recessed lighting panels.",
+          "Dining chairs around tables.",
+          "Symmetrical arrangement of tables and decor."
+        ],
+        "background_usability_score": 0.85,
+        "vision_human_signal": false,
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false,
+        "failure_category": null,
+        "compound_fidelity_failure": false,
+        "hard_dimensions": [
+          "subject_score",
+          "audience_fit_score"
+        ],
+        "hard_failed_dimensions": [],
+        "failed_dimensions": [],
+        "human_description": "",
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.75,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1267,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        }
+      },
+      "direction_similarity_diagnostics": {
+        "similarity": 0.25095127610208817,
+        "closest_peer": {
+          "peer": "/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-a.png",
+          "similarity": 0.25095127610208817,
+          "edge_similarity": 0.7419135987758636,
+          "coarse_mass_iou": 0.09095127610208817,
+          "fine_edge_iou": 0.3955042147986263,
+          "regional_edge_similarity": 0.9288750886917114
+        },
+        "peer_comparisons": [
+          {
+            "peer": "/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-a.png",
+            "similarity": 0.25095127610208817,
+            "edge_similarity": 0.7419135987758636,
+            "coarse_mass_iou": 0.09095127610208817,
+            "fine_edge_iou": 0.3955042147986263,
+            "regional_edge_similarity": 0.9288750886917114
+          },
+          {
+            "peer": "/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-b.png",
+            "similarity": 0.20972129319955407,
+            "edge_similarity": 0.5430523619055748,
+            "coarse_mass_iou": 0.04972129319955407,
+            "fine_edge_iou": 0.23478260869565218,
+            "regional_edge_similarity": 0.6279920339584351
+          }
+        ]
+      },
+      "palette_metrics": null,
+      "text_detection": {
+        "text_detected": false,
+        "pseudo_text": {
+          "detected": false,
+          "aligned_rows": 0,
+          "glyph_components": 22,
+          "structured_components": 21,
+          "geometry_suppressed": false
+        },
+        "tokens": [
+          "FECT"
+        ],
+        "confirmed_tokens": [],
+        "text_lines": [],
+        "max_confidence": 57.0,
+        "confirmation_passes": [],
+        "text_area_ratio": 0,
+        "evidence": [
+          {
+            "token": "FECT",
+            "confidence": 57.0,
+            "bbox": [
+              285,
+              762,
+              78,
+              29
+            ],
+            "area_ratio": 0.0019723074776785716,
+            "passes": [
+              "threshold"
+            ],
+            "crop_confirmed": false
+          }
+        ],
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 4,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        }
+      },
+      "human_detection": {
+        "people": [],
+        "evidence": [
+          {
+            "source": "hog",
+            "bbox": [
+              21,
+              699,
+              76,
+              151
+            ],
+            "weight": 0.5927018788643181,
+            "area_ratio": 0.010006277901785715,
+            "confirmed": false,
+            "confirmation": "insufficient shape or confidence"
+          },
+          {
+            "source": "hog",
+            "bbox": [
+              610,
+              628,
+              140,
+              279
+            ],
+            "weight": 0.14880122360773385,
+            "area_ratio": 0.0340576171875,
+            "confirmed": false,
+            "confirmation": "insufficient shape or confidence"
+          }
+        ],
+        "strong_signals": [],
+        "weak_signals": [
+          {
+            "source": "hog",
+            "bbox": [
+              21,
+              699,
+              76,
+              151
+            ],
+            "weight": 0.5927018788643181,
+            "area_ratio": 0.010006277901785715,
+            "confirmed": false,
+            "confirmation": "insufficient shape or confidence"
+          },
+          {
+            "source": "hog",
+            "bbox": [
+              610,
+              628,
+              140,
+              279
+            ],
+            "weight": 0.14880122360773385,
+            "area_ratio": 0.0340576171875,
+            "confirmed": false,
+            "confirmation": "insufficient shape or confidence"
+          }
+        ],
+        "overlaps": [],
+        "people_weights": [],
+        "faces": [],
+        "profiles": [],
+        "upper_bodies": [],
+        "strong_upper_body_signal": false,
+        "ambiguous_face_signal": false,
+        "detected": false,
+        "human_detection_confidence": "low",
+        "human_detection_reason": "isolated detector patterns without independent confirmation",
+        "largest_detection_area_ratio": 0.0340576171875,
+        "classical_human_signal": false,
+        "vision_human_signal": false,
+        "combined_human_decision": false,
+        "decision_reason": "no human evidence"
+      },
+      "quality_metrics": null,
+      "retry_stage": "normal",
+      "spec_sha256": "a1f30a71c16e49aed22e1b7eeef0f41ec757752ebe98815bda3e69edf7411ef2",
+      "direction_role": "Architectural scene",
+      "compiled_prompt": {
+        "positive": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.. Event context: . Audience: adults. Event atmosphere: elegant, sophisticated, celebratory. Composition: off-centre focal placement, diagonal flow, shallow depth. Palette: black, white; black clearly visible in design elements; primary visual mass, secondary accents; neutrals support. Motif: Motifs should be repeated in a structured and symmetrical manner,. Continuous background artwork with integrated calm visual space.",
+        "negative": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and colorful, casual or informal",
+        "clip_l": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms,. Anchors: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes. Event context: . Audience: adults.",
+        "clip_g": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms,. Event context: . Audience: adults. Event atmosphere: elegant, sophisticated, celebratory. Composition: off-centre focal placement, diagonal flow, shallow depth. Palette: black, white; black clearly visible in design elements; primary visual mass, secondary accents; neutrals support.",
+        "t5": "Visual subject: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.. Anchors: An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes. Event context: . Audience: adults. Event atmosphere: elegant, sophisticated, celebratory. Motif: Motifs should be repeated in a structured and symmetrical manner,. Motif as abstract pattern structure; no unrequested literal objects Palette: black, white; black clearly visible in substantial design elements; white clearly visible; primary visual mass, secondary accents; neutrals support. Composition: off-centre focal placement, diagonal flow, shallow depth. Lighting: polished evening lighting.",
+        "negative_prompt_channel_active": true,
+        "negative_semantics_preserved": true,
+        "incompatible_treatments": [
+          "bright and colorful",
+          "casual or informal"
+        ],
+        "semantic_contract_sha256": "3066afcea462a19aa7770c92033d97c4bf739d37a195e0c71c6b5e1d96ebe5dc",
+        "conditioning_coverage": {
+          "subject": [
+            "positive",
+            "clip_l",
+            "clip_g",
+            "t5"
+          ],
+          "atmosphere": [
+            "positive",
+            "clip_g",
+            "t5"
+          ],
+          "audience": [
+            "clip_l",
+            "clip_g",
+            "t5"
+          ],
+          "motif": [
+            "positive",
+            "t5"
+          ],
+          "treatment": [],
+          "palette": [
+            "positive",
+            "clip_g",
+            "t5"
+          ],
+          "scene_family": [
+            "positive"
+          ],
+          "event_context": [],
+          "incompatible_treatments": [
+            "negative"
+          ]
+        },
+        "engine_capabilities": {
+          "negative_prompt_channel": true,
+          "multi_encoder": true,
+          "long_context_encoder": true,
+          "supports_shift": true
+        },
+        "prompt_budget": {
+          "positive": {
+            "characters": 592,
+            "approx_tokens": 73,
+            "budget_risk": false
+          },
+          "negative": {
+            "characters": 146,
+            "approx_tokens": 19,
+            "budget_risk": false
+          },
+          "clip_l": {
+            "characters": 259,
+            "approx_tokens": 31,
+            "budget_risk": false
+          },
+          "clip_g": {
+            "characters": 376,
+            "approx_tokens": 45,
+            "budget_risk": false
+          },
+          "t5": {
+            "characters": 799,
+            "approx_tokens": 97,
+            "budget_risk": false
+          }
+        },
+        "truncated": false,
+        "retry_strength_level": "BASE"
+      },
+      "sampling_profile": {
+        "name": "alternate_sampler",
+        "steps": 28,
+        "cfg": 4.0,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "sgm_uniform",
+        "shift": null,
+        "shift_mode": "checkpoint_default"
+      },
+      "selection_reason": "INITIAL: alternate_sampler",
+      "failure_history": {
+        "counts": {},
+        "consecutive_category": "INITIAL",
+        "consecutive_count": 0
+      },
+      "renderer_recovery_type": "baseline",
+      "outcome_category": "DENSE_SAFE_REGION",
+      "template_conditioning": {
+        "enabled": false,
+        "masked_denoising_enabled": false
+      },
+      "template_adherence": null,
+      "quality_evaluation": null,
+      "validator_availability": null,
+      "reproducibility_manifest": {
+        "reference": "22F1AC-978962",
+        "source_reference": "22F1AC-978962",
+        "semantic_contract_version": "1.0",
+        "semantic_contract_sha256": "3066afcea462a19aa7770c92033d97c4bf739d37a195e0c71c6b5e1d96ebe5dc",
+        "candidate_spec_sha256": "a1f30a71c16e49aed22e1b7eeef0f41ec757752ebe98815bda3e69edf7411ef2",
+        "engine": "sd-3-5-medium",
+        "engine_models": [
+          "clip_g.safetensors",
+          "clip_l.safetensors",
+          "sd3.5_medium.safetensors",
+          "t5xxl_fp8_e4m3fn.safetensors"
+        ],
+        "workflow_sha256": "2860bcbf554d246620238991bb08547c95563441365b2fc7ade804179ef44b4d",
+        "effective_workflow_values": {
+          "workflow_sha256": "2860bcbf554d246620238991bb08547c95563441365b2fc7ade804179ef44b4d",
+          "checkpoint": "sd3.5_medium.safetensors",
+          "clip_l": "clip_l.safetensors",
+          "clip_g": "clip_g.safetensors",
+          "t5": "t5xxl_fp8_e4m3fn.safetensors",
+          "vae": [
+            "4",
+            2
+          ],
+          "sampler": "dpmpp_2m",
+          "scheduler": "sgm_uniform",
+          "cfg": 4.0,
+          "steps": 28,
+          "shift": null,
+          "width": 896,
+          "height": 1280,
+          "seed": 744822100768248484,
+          "positive_route": [
+            "16",
+            0
+          ],
+          "negative_route": [
+            "40",
+            0
+          ],
+          "model_route": [
+            "4",
+            0
+          ]
+        },
+        "direction": "C",
+        "sampling_profile": "alternate_sampler",
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "sgm_uniform",
+        "cfg": 4.0,
+        "steps": 28,
+        "shift": null,
+        "width": 896,
+        "height": 1280,
+        "seed": 744822100768248484,
+        "compiled_prompt_sha256": {
+          "positive": "c7f009507769e37c2cbc43f5ee70e9cb66ebb94b0f587ed6847c286342a33d6b",
+          "negative": "b231059f9b1deec91626175b2018d68fbc252f99ef1c4ba66b174e03491d2c54",
+          "clip_l": "5e50f234e93bb2b00d2ddf8ef17e5c1d6deb16e74579095e46ea8163f880ff6d",
+          "clip_g": "3635fd64a8e744f7c2851bb6d12e8abe2e59077b3f163e1a526087a0b6c1ae2a",
+          "t5": "9a841a276562240c48ef26d82031feae8b18a6b11fe5819229ba0d60c6583fd8"
+        },
+        "conditioning_lengths": {
+          "positive": {
+            "characters": 592,
+            "approx_tokens": 73,
+            "budget_risk": false
+          },
+          "negative": {
+            "characters": 146,
+            "approx_tokens": 19,
+            "budget_risk": false
+          },
+          "clip_l": {
+            "characters": 259,
+            "approx_tokens": 31,
+            "budget_risk": false
+          },
+          "clip_g": {
+            "characters": 376,
+            "approx_tokens": 45,
+            "budget_risk": false
+          },
+          "t5": {
+            "characters": 799,
+            "approx_tokens": 97,
+            "budget_risk": false
+          }
+        },
+        "vision_model": "minicpm-v4.5:latest",
+        "ocr_config": {
+          "timeout_seconds": 7.0
+        },
+        "validator_version": null,
+        "retry_attempt": 1,
+        "retry_stage": "normal",
+        "failure_history": {
+          "counts": {},
+          "consecutive_category": "INITIAL",
+          "consecutive_count": 0
+        },
+        "image_sha256": null
+      }
+    },
+    {
+      "attempt_count": 2,
+      "status": "complete",
+      "seed": 6266901684196696781,
+      "failure_category": null,
+      "primary_failure_category": null,
+      "retry_failure_category": "DENSE_SAFE_REGION",
+      "rejection_reason": null,
+      "error": null,
+      "final_validation": {
+        "decision": "accepted",
+        "failure_category": null,
+        "diagnostic_findings": [
+          "SAFE_REGION_BORDERLINE",
+          "UNKNOWN"
+        ],
+        "palette": {
+          "mode": "dominant",
+          "palette_match_ratio": null,
+          "off_palette_ratio": 0.0,
+          "primary_ratio": null,
+          "secondary_ratio": null,
+          "requested_chromatic_ratio": null,
+          "neutral_ratio": null,
+          "unrequested_chromatic_ratio": null,
+          "largest_unrequested_region_ratio": null,
+          "primary_secondary_ratio": null,
+          "secondary_presence": null,
+          "dominance_relationship": null,
+          "dominance_relationship_passed": null
+        },
+        "text": {
+          "ocr_diagnostics": {
+            "attempted": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "completed_variants": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "timed_out_variants": [],
+            "failed_variants": [],
+            "failure_reasons": {},
+            "completed_variant_count": 4,
+            "required_variant_count": 2,
+            "enhancement_variant_failures": [],
+            "evidence_sufficiency": true,
+            "decision": "complete"
+          },
+          "detected": false,
+          "tokens": [
+            "leat"
+          ],
+          "confirmed_tokens": [],
+          "text_lines": [],
+          "text_area_ratio": 0
+        },
+        "human": {
+          "detected": false,
+          "strong_signals": [],
+          "weak_signals": [
+            {
+              "source": "hog",
+              "bbox": [
+                157,
+                532,
+                144,
+                287
+              ],
+              "weight": 0.7465853309258819,
+              "area_ratio": 0.03603515625,
+              "confirmed": false,
+              "confirmation": "insufficient shape or confidence"
+            },
+            {
+              "source": "hog",
+              "bbox": [
+                150,
+                966,
+                69,
+                138
+              ],
+              "weight": 0.1441732975654304,
+              "area_ratio": 0.008302525111607144,
+              "confirmed": false,
+              "confirmation": "insufficient shape or confidence"
+            }
+          ],
+          "decision_reason": "no human evidence"
+        },
+        "quality": {
+          "structural_edge_density": 0.20441228693181818,
+          "macro_structure_score": 1.0,
+          "coarse_edge_density": 0.13257575757575757,
+          "high_pass_mean": 3.554466962814331,
+          "boilerplate_score": 0.0,
+          "title_panel_score": 0.0,
+          "fine_line_pair_ratio": 0.0,
+          "macro_form_balance": 1.0,
+          "scene_density": {
+            "requested_density": "moderate",
+            "overall_edge_density": 0.1044,
+            "tile_edge_fractions": [
+              0.0,
+              0.0,
+              0.0,
+              0.0034,
+              0.0068,
+              0.0039,
+              0.0269,
+              0.0305,
+              0.1794,
+              0.1306,
+              0.1841,
+              0.1575,
+              0.3057,
+              0.1572,
+              0.1875,
+              0.2974
+            ],
+            "occupied_tile_fraction": 0.5,
+            "quiet_tile_fraction": 0.5,
+            "safe_region_density": 0.0864,
+            "edge_distribution_balance": 0.1052,
+            "macro_form_balance": 1.0,
+            "normalized_measurements": {
+              "density_pressure": 0.483
+            },
+            "thresholds_used": {
+              "density_pressure": 0.85,
+              "max_quiet_tile_fraction": 0.0625,
+              "occupied_tile_edge_fraction": 0.1,
+              "quiet_tile_edge_fraction": 0.04
+            },
+            "density_rule_triggered": null,
+            "decision": "PASS"
+          },
+          "global_density_decision": "PASS",
+          "explicit_safe_regions": {
+            "decision": "BORDERLINE",
+            "regions": {
+              "title": {
+                "decision": "BORDERLINE",
+                "reason": "detail_with_calm_area",
+                "local_edge_density": 0.2265,
+                "local_contrast": 87.0,
+                "high_frequency_fraction": 0.1199,
+                "calm_tile_fraction": 0.0,
+                "usability_score": 0.0,
+                "broad_contrast": 60.0,
+                "broad_edge_density": 0.0,
+                "tile_indexes": [
+                  10,
+                  11,
+                  14,
+                  15
+                ],
+                "occupied_tile_fraction": 1.0,
+                "quiet_tile_fraction": 0.0
+              },
+              "programme": {
+                "decision": "BORDERLINE",
+                "reason": "detail_with_calm_area",
+                "local_edge_density": 0.2265,
+                "local_contrast": 87.0,
+                "high_frequency_fraction": 0.1199,
+                "calm_tile_fraction": 0.0,
+                "usability_score": 0.0,
+                "broad_contrast": 60.0,
+                "broad_edge_density": 0.0,
+                "tile_indexes": [
+                  10,
+                  11,
+                  14,
+                  15
+                ],
+                "occupied_tile_fraction": 1.0,
+                "quiet_tile_fraction": 0.0
+              }
+            }
+          },
+          "explicit_safe_region_decision": "BORDERLINE",
+          "raster_score": 0.0
+        },
+        "brief_fidelity": {
+          "checked": true,
+          "subject_score": 0.9,
+          "atmosphere_score": 0.9,
+          "motif_score": 0.95,
+          "treatment_score": 0.95,
+          "audience_fit_score": 1.0,
+          "thresholds": {
+            "subject_score": 0.55,
+            "atmosphere_score": 0.55,
+            "motif_score": 0.55,
+            "audience_fit_score": 0.55
+          },
+          "decision": "pass",
+          "reason": "The background aligns closely with the requested elegant black-tie ballroom environment. The refined architectural forms (moldings, chandeliers), layered depth, formal drapery-inspired shapes, and polished lighting (chandeliers) are all present. The atmosphere is sophisticated and celebratory, suita",
+          "observed_evidence": [
+            "White round tables with white tablecloths and white chairs",
+            "Crystal chandeliers hanging from the ceiling",
+            "Floor-length, formal drapery with swags and pleats",
+            "Large windows with white curtains",
+            "Layered depth with multiple rows of tables",
+            "Polished white walls and ceiling with detailed moldings"
+          ],
+          "model": "minicpm-v4.5:latest",
+          "failure_category": null,
+          "dimension_availability": {
+            "subject_score": "PASS",
+            "atmosphere_score": "PASS",
+            "motif_score": "PASS",
+            "audience_fit_score": "PASS"
+          },
+          "failed_dimensions": [],
+          "background_usability_score": 0.95,
+          "vision_human_signal": false,
+          "vision_debug": {
+            "endpoint": "/api/chat",
+            "model": "minicpm-v4.5:latest",
+            "score_parsing": [
+              {
+                "dimension_name": "subject_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.9,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "atmosphere_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.9,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "motif_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.95,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "treatment_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.95,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "audience_fit_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 1.0,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "background_usability_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.95,
+                "parse_failure_reason": null
+              }
+            ],
+            "thinking_present": false,
+            "thinking_preview_length": 0,
+            "response_length": 1262,
+            "final_source": "message.content",
+            "raw_text_preview": "<omitted>",
+            "assessment_attempts": 1,
+            "http_status": 200,
+            "response_content_type": "application/json; charset=utf-8",
+            "response_shape": [
+              "created_at",
+              "done",
+              "done_reason",
+              "eval_count",
+              "eval_duration",
+              "load_duration",
+              "message",
+              "model",
+              "prompt_eval_count",
+              "prompt_eval_duration",
+              "total_duration"
+            ],
+            "unconfirmed_human_report": false
+          },
+          "hard_dimensions": [
+            "subject_score",
+            "audience_fit_score"
+          ],
+          "hard_failed_dimensions": [],
+          "compound_fidelity_failure": false,
+          "human_description": "",
+          "vision_text_signal": false,
+          "vision_text_evidence": "",
+          "unrequested_literal_object_visible": false
+        }
+      },
+      "subject_adherence": {
+        "checked": true,
+        "score": 0.9,
+        "threshold": 0.55,
+        "subject": "An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.",
+        "anchors": [
+          "An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting."
+        ],
+        "model": "minicpm-v4.5:latest",
+        "decision": "pass",
+        "reason": "The background aligns closely with the requested elegant black-tie ballroom environment. The refined architectural forms (moldings, chandeliers), layered depth, formal drapery-inspired shapes, and polished lighting (chandeliers) are all present. The atmosphere is sophisticated and celebratory, suita",
+        "subject_score": 0.9,
+        "atmosphere_score": 0.9,
+        "motif_score": 0.95,
+        "treatment_score": 0.95,
+        "audience_fit_score": 1.0,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "observed_evidence": [
+          "White round tables with white tablecloths and white chairs",
+          "Crystal chandeliers hanging from the ceiling",
+          "Floor-length, formal drapery with swags and pleats",
+          "Large windows with white curtains",
+          "Layered depth with multiple rows of tables",
+          "Polished white walls and ceiling with detailed moldings"
+        ],
+        "background_usability_score": 0.95,
+        "vision_human_signal": false,
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false,
+        "failure_category": null,
+        "compound_fidelity_failure": false,
+        "hard_dimensions": [
+          "subject_score",
+          "audience_fit_score"
+        ],
+        "hard_failed_dimensions": [],
+        "failed_dimensions": [],
+        "human_description": "",
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.95,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.95,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 1.0,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.95,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1262,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        }
+      },
+      "brief_fidelity": {
+        "checked": true,
+        "subject_score": 0.9,
+        "atmosphere_score": 0.9,
+        "motif_score": 0.95,
+        "treatment_score": 0.95,
+        "audience_fit_score": 1.0,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "decision": "pass",
+        "reason": "The background aligns closely with the requested elegant black-tie ballroom environment. The refined architectural forms (moldings, chandeliers), layered depth, formal drapery-inspired shapes, and polished lighting (chandeliers) are all present. The atmosphere is sophisticated and celebratory, suita",
+        "observed_evidence": [
+          "White round tables with white tablecloths and white chairs",
+          "Crystal chandeliers hanging from the ceiling",
+          "Floor-length, formal drapery with swags and pleats",
+          "Large windows with white curtains",
+          "Layered depth with multiple rows of tables",
+          "Polished white walls and ceiling with detailed moldings"
+        ],
+        "model": "minicpm-v4.5:latest",
+        "failure_category": null,
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "failed_dimensions": [],
+        "background_usability_score": 0.95,
+        "vision_human_signal": false,
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.95,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.95,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 1.0,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.95,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1262,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        },
+        "hard_dimensions": [
+          "subject_score",
+          "audience_fit_score"
+        ],
+        "hard_failed_dimensions": [],
+        "compound_fidelity_failure": false,
+        "human_description": "",
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false
+      },
+      "raw_palette_error": null,
+      "raw_validation": {
+        "validation": {
+          "decision": "accepted",
+          "failure_category": null,
+          "diagnostic_findings": [
+            "SAFE_REGION_BORDERLINE",
+            "UNKNOWN"
+          ],
+          "palette": {
+            "mode": "dominant",
+            "palette_match_ratio": null,
+            "off_palette_ratio": 0.0,
+            "primary_ratio": null,
+            "secondary_ratio": null,
+            "requested_chromatic_ratio": null,
+            "neutral_ratio": null,
+            "unrequested_chromatic_ratio": null,
+            "largest_unrequested_region_ratio": null,
+            "primary_secondary_ratio": null,
+            "secondary_presence": null,
+            "dominance_relationship": null,
+            "dominance_relationship_passed": null
+          },
+          "text": {
+            "ocr_diagnostics": {
+              "attempted": [
+                "original",
+                "contrast",
+                "threshold",
+                "inverted"
+              ],
+              "completed_variants": [
+                "original",
+                "contrast",
+                "threshold",
+                "inverted"
+              ],
+              "timed_out_variants": [],
+              "failed_variants": [],
+              "failure_reasons": {},
+              "completed_variant_count": 4,
+              "required_variant_count": 2,
+              "enhancement_variant_failures": [],
+              "evidence_sufficiency": true,
+              "decision": "complete"
+            },
+            "detected": false,
+            "tokens": [
+              "leat"
+            ],
+            "confirmed_tokens": [],
+            "text_lines": [],
+            "text_area_ratio": 0
+          },
+          "human": {
+            "detected": false,
+            "strong_signals": [],
+            "weak_signals": [
+              {
+                "source": "hog",
+                "bbox": [
+                  157,
+                  532,
+                  144,
+                  287
+                ],
+                "weight": 0.7465853309258819,
+                "area_ratio": 0.03603515625,
+                "confirmed": false,
+                "confirmation": "insufficient shape or confidence"
+              },
+              {
+                "source": "hog",
+                "bbox": [
+                  150,
+                  966,
+                  69,
+                  138
+                ],
+                "weight": 0.1441732975654304,
+                "area_ratio": 0.008302525111607144,
+                "confirmed": false,
+                "confirmation": "insufficient shape or confidence"
+              }
+            ],
+            "decision_reason": "no human evidence"
+          },
+          "quality": {
+            "structural_edge_density": 0.20441228693181818,
+            "macro_structure_score": 1.0,
+            "coarse_edge_density": 0.13257575757575757,
+            "high_pass_mean": 3.554466962814331,
+            "boilerplate_score": 0.0,
+            "title_panel_score": 0.0,
+            "fine_line_pair_ratio": 0.0,
+            "macro_form_balance": 1.0,
+            "scene_density": {
+              "requested_density": "moderate",
+              "overall_edge_density": 0.1044,
+              "tile_edge_fractions": [
+                0.0,
+                0.0,
+                0.0,
+                0.0034,
+                0.0068,
+                0.0039,
+                0.0269,
+                0.0305,
+                0.1794,
+                0.1306,
+                0.1841,
+                0.1575,
+                0.3057,
+                0.1572,
+                0.1875,
+                0.2974
+              ],
+              "occupied_tile_fraction": 0.5,
+              "quiet_tile_fraction": 0.5,
+              "safe_region_density": 0.0864,
+              "edge_distribution_balance": 0.1052,
+              "macro_form_balance": 1.0,
+              "normalized_measurements": {
+                "density_pressure": 0.483
+              },
+              "thresholds_used": {
+                "density_pressure": 0.85,
+                "max_quiet_tile_fraction": 0.0625,
+                "occupied_tile_edge_fraction": 0.1,
+                "quiet_tile_edge_fraction": 0.04
+              },
+              "density_rule_triggered": null,
+              "decision": "PASS"
+            },
+            "global_density_decision": "PASS",
+            "explicit_safe_regions": {
+              "decision": "BORDERLINE",
+              "regions": {
+                "title": {
+                  "decision": "BORDERLINE",
+                  "reason": "detail_with_calm_area",
+                  "local_edge_density": 0.2265,
+                  "local_contrast": 87.0,
+                  "high_frequency_fraction": 0.1199,
+                  "calm_tile_fraction": 0.0,
+                  "usability_score": 0.0,
+                  "broad_contrast": 60.0,
+                  "broad_edge_density": 0.0,
+                  "tile_indexes": [
+                    10,
+                    11,
+                    14,
+                    15
+                  ],
+                  "occupied_tile_fraction": 1.0,
+                  "quiet_tile_fraction": 0.0
+                },
+                "programme": {
+                  "decision": "BORDERLINE",
+                  "reason": "detail_with_calm_area",
+                  "local_edge_density": 0.2265,
+                  "local_contrast": 87.0,
+                  "high_frequency_fraction": 0.1199,
+                  "calm_tile_fraction": 0.0,
+                  "usability_score": 0.0,
+                  "broad_contrast": 60.0,
+                  "broad_edge_density": 0.0,
+                  "tile_indexes": [
+                    10,
+                    11,
+                    14,
+                    15
+                  ],
+                  "occupied_tile_fraction": 1.0,
+                  "quiet_tile_fraction": 0.0
+                }
+              }
+            },
+            "explicit_safe_region_decision": "BORDERLINE",
+            "raster_score": 0.0
+          }
+        },
+        "output_path": "/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-c.download.part",
+        "sha256": "4a975339f283316d1d29e2fdf0701211fab06b6f03eea87c76a4761f17eaeac0",
+        "width": 896,
+        "height": 1280,
+        "person_detection_count": 0,
+        "face_detection_count": 0,
+        "profile_detection_count": 0,
+        "upper_body_detection_count": 0,
+        "visual_quality_checked": true,
+        "visual_quality_passed": true,
+        "macro_structure_score": 1.0,
+        "coarse_edge_density": 0.13257575757575757,
+        "edge_density": 0.3139426491477273,
+        "structural_edge_density": 0.20441228693181818,
+        "horizontal_edge_density": 0.08067737926136363,
+        "vertical_edge_density": 0.11888538707386363,
+        "directional_edge_dominance": 0.37868504772004236,
+        "full_span_line_ratio": 0.0,
+        "fine_horizontal_pair_ratio": 0.0,
+        "fine_vertical_pair_ratio": 0.0,
+        "fine_line_pair_ratio": 0.0,
+        "fine_line_mean_delta": 3.5302796363830566,
+        "image_entropy": 6.679075241088867,
+        "largest_quantised_colour_ratio": 0.25731312144886365,
+        "laplacian_variance": 460.0340881347656,
+        "highpass_mean": 3.554466962814331,
+        "coherent_edge_ratio": 0.8883720930232558,
+        "center_structural_edge_density": 0.16442216569404958,
+        "outer_structural_edge_density": 0.23647378733954494,
+        "center_local_contrast": 21.305553436279297,
+        "title_structural_edge_density": 0.0,
+        "title_local_contrast": 6.531208038330078,
+        "programme_structural_edge_density": 0.35506813616374394,
+        "programme_local_contrast": 30.496479034423828,
+        "center_to_outer_edge_ratio": 0.6953082096070174,
+        "center_safe_region_passed": false,
+        "title_panel_score": 0.0,
+        "boilerplate_score": 0.0,
+        "largest_flat_rectangle_ratio": 0.0,
+        "flat_rectangular_coverage_ratio": 0.0,
+        "flat_coverage_ratio": 0.5684037642045454,
+        "long_axis_separator_ratio": 0.0,
+        "large_flat_rectangle_count": 0.0,
+        "centre_edge_density": 0.06303267045454546,
+        "perimeter_edge_density": 0.10984848484848485,
+        "centre_flat_ratio": 0.5797230113636364,
+        "bilateral_symmetry": 0.7127025127410889,
+        "irregular_frame_score": 0.0,
+        "lower_centre_edge_density": 0.15015889830508475,
+        "quiet_centre_evidence": 0.24706945150249804,
+        "scene_density": {
+          "requested_density": "moderate",
+          "overall_edge_density": 0.1044,
+          "tile_edge_fractions": [
+            0.0,
+            0.0,
+            0.0,
+            0.0034,
+            0.0068,
+            0.0039,
+            0.0269,
+            0.0305,
+            0.1794,
+            0.1306,
+            0.1841,
+            0.1575,
+            0.3057,
+            0.1572,
+            0.1875,
+            0.2974
+          ],
+          "occupied_tile_fraction": 0.5,
+          "quiet_tile_fraction": 0.5,
+          "safe_region_density": 0.0864,
+          "edge_distribution_balance": 0.1052,
+          "macro_form_balance": 1.0,
+          "normalized_measurements": {
+            "density_pressure": 0.483
+          },
+          "thresholds_used": {
+            "density_pressure": 0.85,
+            "max_quiet_tile_fraction": 0.0625,
+            "occupied_tile_edge_fraction": 0.1,
+            "quiet_tile_edge_fraction": 0.04
+          },
+          "density_rule_triggered": null,
+          "decision": "PASS"
+        },
+        "global_density_decision": "PASS",
+        "macro_form_balance": 1.0,
+        "explicit_safe_regions": {
+          "decision": "BORDERLINE",
+          "regions": {
+            "title": {
+              "decision": "BORDERLINE",
+              "reason": "detail_with_calm_area",
+              "local_edge_density": 0.2265,
+              "local_contrast": 87.0,
+              "high_frequency_fraction": 0.1199,
+              "calm_tile_fraction": 0.0,
+              "usability_score": 0.0,
+              "broad_contrast": 60.0,
+              "broad_edge_density": 0.0,
+              "tile_indexes": [
+                10,
+                11,
+                14,
+                15
+              ],
+              "occupied_tile_fraction": 1.0,
+              "quiet_tile_fraction": 0.0
+            },
+            "programme": {
+              "decision": "BORDERLINE",
+              "reason": "detail_with_calm_area",
+              "local_edge_density": 0.2265,
+              "local_contrast": 87.0,
+              "high_frequency_fraction": 0.1199,
+              "calm_tile_fraction": 0.0,
+              "usability_score": 0.0,
+              "broad_contrast": 60.0,
+              "broad_edge_density": 0.0,
+              "tile_indexes": [
+                10,
+                11,
+                14,
+                15
+              ],
+              "occupied_tile_fraction": 1.0,
+              "quiet_tile_fraction": 0.0
+            }
+          }
+        },
+        "explicit_safe_region_decision": "BORDERLINE",
+        "palette_checked": false,
+        "achromatic_ratio": 1.0,
+        "chromatic_contamination_ratio": 0.0,
+        "dark_tone_ratio": 0.009721235795454546,
+        "light_tone_ratio": 0.46235795454545453,
+        "luminance_dynamic_range": 23.137252807617188,
+        "off_palette_ratio": 0.0,
+        "palette_mode": "dominant",
+        "ocr_tokens": [],
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 4,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        },
+        "ocr_validation_attempts": 1,
+        "ocr_validation_sha256": "4a975339f283316d1d29e2fdf0701211fab06b6f03eea87c76a4761f17eaeac0",
+        "human_detection": {
+          "people": [],
+          "evidence": [
+            {
+              "source": "hog",
+              "bbox": [
+                157,
+                532,
+                144,
+                287
+              ],
+              "weight": 0.7465853309258819,
+              "area_ratio": 0.03603515625,
+              "confirmed": false,
+              "confirmation": "insufficient shape or confidence"
+            },
+            {
+              "source": "hog",
+              "bbox": [
+                150,
+                966,
+                69,
+                138
+              ],
+              "weight": 0.1441732975654304,
+              "area_ratio": 0.008302525111607144,
+              "confirmed": false,
+              "confirmation": "insufficient shape or confidence"
+            }
+          ],
+          "strong_signals": [],
+          "weak_signals": [
+            {
+              "source": "hog",
+              "bbox": [
+                157,
+                532,
+                144,
+                287
+              ],
+              "weight": 0.7465853309258819,
+              "area_ratio": 0.03603515625,
+              "confirmed": false,
+              "confirmation": "insufficient shape or confidence"
+            },
+            {
+              "source": "hog",
+              "bbox": [
+                150,
+                966,
+                69,
+                138
+              ],
+              "weight": 0.1441732975654304,
+              "area_ratio": 0.008302525111607144,
+              "confirmed": false,
+              "confirmation": "insufficient shape or confidence"
+            }
+          ],
+          "overlaps": [],
+          "people_weights": [],
+          "faces": [],
+          "profiles": [],
+          "upper_bodies": [],
+          "strong_upper_body_signal": false,
+          "ambiguous_face_signal": false,
+          "detected": false,
+          "human_detection_confidence": "low",
+          "human_detection_reason": "isolated detector patterns without independent confirmation",
+          "largest_detection_area_ratio": 0.03603515625,
+          "classical_human_signal": false,
+          "vision_human_signal": false,
+          "combined_human_decision": false,
+          "decision_reason": "no human evidence"
+        },
+        "all_failure_categories": []
+      },
+      "raw_subject_adherence": null,
+      "palette_recovery": {
+        "eligible": false,
+        "attempted": false,
+        "source_off_palette_ratio": null,
+        "result": "not_attempted",
+        "failure_reason": null,
+        "normalized_off_palette_ratio": null,
+        "edge_geometry_similarity": null,
+        "structural_detail_preserved": null
+      }
+    }
+  ]
+}

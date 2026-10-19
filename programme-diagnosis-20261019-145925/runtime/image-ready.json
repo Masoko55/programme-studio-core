@@ -1,0 +1,15 @@
+{
+  "status": "not_ready",
+  "service": "image-service",
+  "comfyui": {
+    "status": "unavailable",
+    "error": "ComfyUI GET /system_stats failed (HTTP unavailable)."
+  },
+  "repository_service": {
+    "status": "available",
+    "details": {
+      "service": "repository-service",
+      "status": "healthy"
+    }
+  }
+}

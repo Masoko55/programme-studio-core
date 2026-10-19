@@ -1,0 +1,156 @@
+
+--- 766C26-216262 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-b.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-b.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-c.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-b.png
+
+--- 22F1AC-978962 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-a.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-b.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-c.png
+
+--- CC9A13-522500 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/flux-2/image-a.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/flux-2/image-b.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/flux-2/image-c.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sd-3-5-medium/image-a.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sd-3-5-medium/image-b.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sd-3-5-medium/image-c.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-b.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-c.png
+
+--- 28D53E-994610 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/flux-2/image-a.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/flux-2/image-b.png
+
+--- intake-sessions ---
+
+--- D37C33-644795 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/D37C33-644795/backgrounds/flux-2/image-a.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/D37C33-644795/backgrounds/flux-2/image-b.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/D37C33-644795/backgrounds/flux-2/image-c.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/D37C33-644795/backgrounds/sd-3-5-medium/image-a.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/D37C33-644795/backgrounds/sd-3-5-medium/image-b.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/D37C33-644795/backgrounds/sd-3-5-medium/image-c.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/D37C33-644795/backgrounds/sdxl-1-0/image-a.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/D37C33-644795/backgrounds/sdxl-1-0/image-b.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/D37C33-644795/backgrounds/sdxl-1-0/image-c.png
+
+--- 222DE9-982440 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/222DE9-982440/backgrounds/flux-2/image-a.png
+
+--- 913935-763095 ---
+
+--- EAF1F1-598752 ---
+
+--- 789921-536003 ---
+
+--- 382724-021090 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/382724-021090/backgrounds/sdxl-1-0/image-b.png
+
+--- 570F03-722937 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/570F03-722937/backgrounds/sdxl-1-0/image-c.png
+
+--- 9FD906-587838 ---
+
+--- 7C89D3-822590 ---
+
+--- 77C725-048219 ---
+
+--- CC6E9C-144420 ---
+
+--- 3D7C17-768444 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/3D7C17-768444/backgrounds/flux-2/image-b.png
+
+--- C8A5F5-195433 ---
+
+--- 8A0449-439194 ---
+
+--- FB4270-721556 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/FB4270-721556/backgrounds/sdxl-1-0/image-b.png
+
+--- A0D728-525342 ---
+
+--- 22F008-377097 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F008-377097/backgrounds/sd-3-5-medium/image-a.png
+
+--- A2687A-316851 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/A2687A-316851/backgrounds/sd-3-5-medium/image-b.png
+
+--- EFDF69-194931 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/EFDF69-194931/backgrounds/sd-3-5-medium/image-c.png
+
+--- 0A416C-627468 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/0A416C-627468/backgrounds/flux-2/image-a.png
+
+--- 0336F3-428644 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/0336F3-428644/backgrounds/flux-2/image-b.png
+
+--- D6130F-897219 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/D6130F-897219/backgrounds/flux-2/image-c.png
+
+--- 83CD6A-630508 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/83CD6A-630508/backgrounds/sdxl-1-0/image-a.png
+
+--- D4A480-192318 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/D4A480-192318/backgrounds/sdxl-1-0/image-b.png
+
+--- 275405-132127 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/275405-132127/backgrounds/sdxl-1-0/image-c.png
+
+--- C10F3C-936996 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C10F3C-936996/backgrounds/sd-3-5-medium/image-a.png
+
+--- B2EA56-388940 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/B2EA56-388940/backgrounds/sd-3-5-medium/image-b.png
+
+--- 7BD8A5-324350 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/7BD8A5-324350/backgrounds/sd-3-5-medium/image-c.png
+
+--- 5B9165-153627 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5B9165-153627/backgrounds/flux-2/image-a.png
+
+--- 5F7453-745686 ---
+
+--- FD98E8-138845 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/FD98E8-138845/backgrounds/flux-2/image-c.png
+
+--- DEDE55-288221 ---
+
+--- C7622A-004223 ---
+
+--- 384F5F-724618 ---
+
+--- 5F32CF-302859 ---
+
+--- A28273-263407 ---
+
+--- 0BB686-825578 ---
+
+--- 501566-162774 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/501566-162774/backgrounds/flux-2/image-a.png
+
+--- BCF887-815168 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/BCF887-815168/backgrounds/flux-2/image-b.png
+
+--- 6798D3-857086 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/6798D3-857086/backgrounds/flux-2/image-c.png
+
+--- 521982-575200 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/521982-575200/backgrounds/sdxl-1-0/image-a.png
+
+--- 87F7B5-472084 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/87F7B5-472084/backgrounds/sdxl-1-0/image-b.png
+
+--- 311AC2-030933 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/311AC2-030933/backgrounds/sdxl-1-0/image-c.png
+
+--- A409E1-608032 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/A409E1-608032/backgrounds/sd-3-5-medium/image-a.png
+
+--- CE608F-358065 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CE608F-358065/backgrounds/sd-3-5-medium/image-b.png
+
+--- AD4300-850261 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/AD4300-850261/backgrounds/sd-3-5-medium/image-c.png

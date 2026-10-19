@@ -1,0 +1,3754 @@
+"""ComfyUI HTTP adapter and deterministic candidate validation."""
+
+from __future__ import annotations
+
+import asyncio
+import hashlib
+import io
+import json
+import logging
+import re
+import secrets
+import time
+import uuid
+from collections import OrderedDict
+
+from pathlib import Path
+from typing import Any
+
+import httpx
+import pytesseract
+import cv2
+import numpy as np
+
+from PIL import Image
+
+from app.config.settings import settings
+
+from app.services.atomic import (
+    write_bytes,
+    write_json as atomic_write_json,
+)
+
+from app.services.background_policy import (
+    BACKGROUND_ONLY_NEGATIVE,
+    build_engine_prompt,
+    constrain_to_requested_palette,
+    detect_human_signals,
+    palette_negative_contract,
+    validate_palette,
+    validate_visual_quality,
+)
+
+from app.services.job_persistence import (
+    get_job_directory,
+)
+
+from app.services.prompt_repository import (
+    load_prompts_document,
+)
+from app.services.sampling_profiles import SamplingProfile, select_sampling_profile, summarize_failures, profile_selection_diagnostics
+from app.services.reproducibility import build_reproducibility_manifest
+from app.services.prompt_compiler import failure_category as classify_failure
+from app.services.candidate_spec import build_candidate_spec
+from app.services.template_conditioning import (
+    persisted_conditioning_spec, verify_conditioning_artifacts,
+)
+from app.services.template_adherence import assess_template_adherence
+from app.services.composition_diversity import boilerplate_metrics, boilerplate_score, compare_directions_metrics
+from app.services.subject_adherence import (
+    SEMANTIC_FAILURE_CATEGORIES, assess_subject_adherence, brief_fidelity_record, hard_fidelity_failure,
+)
+from app.services.scene_density import assess_scene_density, assess_explicit_safe_regions
+from app.services.prompt_freshness import source_prompt_manifest
+
+
+logger = logging.getLogger(
+    "uvicorn.error"
+)
+
+
+def _finalize_validation_record(record: dict) -> None:
+    """Keep final decisions distinct from the reason that selected a retry."""
+
+    status = record.get(
+        "status"
+    )
+
+    if status not in {
+        "complete",
+        "rejected",
+        "failed",
+        "runtime_failed",
+    }:
+        return
+
+    complete = (
+        status
+        == "complete"
+    )
+
+    if (
+        complete
+        and hard_fidelity_failure(
+            record.get(
+                "subject_adherence"
+            )
+            or record.get(
+                "brief_fidelity"
+            )
+        )
+    ):
+        raise ComfyUIError(
+            "Cannot complete a candidate with a hard brief-fidelity failure"
+        )
+
+    category = (
+        None
+        if complete
+        else (
+            record.get(
+                "outcome_category"
+            )
+            or record.get(
+                "primary_failure_category"
+            )
+            or classify_failure(
+                record.get(
+                    "rejection_reason"
+                )
+                or record.get(
+                    "error"
+                )
+                or ""
+            )
+        )
+    )
+
+    # ========================================================
+    # Latest retry provenance
+    # ========================================================
+    #
+    # retry_failure_category represents the most recent
+    # rejected/failed attempt which caused the current retry.
+    #
+    # Example:
+    #
+    # attempt 1 -> PALETTE
+    # attempt 2 -> HUMAN
+    # attempt 3 -> MOTIF_DRIFT
+    # attempt 4 -> PASS
+    #
+    # Final retry_failure_category must be MOTIF_DRIFT.
+    #
+
+    current_attempt = (
+        record.get(
+            "attempt_count"
+        )
+    )
+
+    prior_attempts = [
+        item
+        for item in [
+            *record.get(
+                "attempt_history",
+                [],
+            ),
+            *record.get(
+                "rejected_attempts",
+                [],
+            ),
+            *record.get(
+                "failed_attempts",
+                [],
+            ),
+        ]
+        if (
+            isinstance(
+                item,
+                dict,
+            )
+            and item.get(
+                "attempt_count"
+            )
+            is not None
+            and item.get(
+                "attempt_count"
+            )
+            != current_attempt
+        )
+    ]
+
+    latest_prior = (
+        max(
+            prior_attempts,
+            key=lambda item: item.get(
+                "attempt_count",
+                0,
+            ),
+        )
+        if prior_attempts
+        else None
+    )
+
+    if latest_prior:
+        retry_failure_category = (
+            latest_prior.get(
+                "primary_failure_category"
+            )
+            or latest_prior.get(
+                "failure_category"
+            )
+            or classify_failure(
+                latest_prior.get(
+                    "rejection_reason"
+                )
+                or latest_prior.get(
+                    "error"
+                )
+                or ""
+            )
+        )
+    else:
+        retry_failure_category = None
+
+    record[
+        "retry_failure_category"
+    ] = retry_failure_category
+
+    # ========================================================
+    # Final candidate state
+    # ========================================================
+
+    record.update(
+        decision=(
+            "accepted"
+            if complete
+            else "rejected"
+        ),
+        failure_category=category,
+        primary_failure_category=category,
+    )
+
+    if complete:
+        record.update(
+            outcome_category="PASS",
+            all_failure_categories=[],
+            secondary_failure_categories=[],
+        )
+
+    validation = (
+        record.get(
+            "validation"
+        )
+        or {}
+    )
+
+    report = (
+        validation.get(
+            "validation",
+            validation,
+        )
+    )
+
+    record[
+        "final_validation"
+    ] = {
+        **report,
+        "decision": (
+            record[
+                "decision"
+            ]
+        ),
+        "failure_category": category,
+        "brief_fidelity": (
+            record.get(
+                "brief_fidelity"
+            )
+        ),
+    }
+
+    record[
+        "validation"
+    ] = (
+        {
+            **validation,
+            "validation": (
+                record[
+                    "final_validation"
+                ]
+            ),
+        }
+        if (
+            "validation"
+            in validation
+        )
+        else (
+            record[
+                "final_validation"
+            ]
+        )
+    )
+
+    # ========================================================
+    # Persist complete attempt history
+    # ========================================================
+
+    attempts = {}
+
+    for item in [
+        *record.get(
+            "attempt_history",
+            [],
+        ),
+        *record.get(
+            "rejected_attempts",
+            [],
+        ),
+        *record.get(
+            "failed_attempts",
+            [],
+        ),
+    ]:
+        if not isinstance(
+            item,
+            dict,
+        ):
+            continue
+
+        attempt_number = (
+            item.get(
+                "attempt_count"
+            )
+        )
+
+        if attempt_number is None:
+            continue
+
+        attempts[
+            attempt_number
+        ] = item
+
+    snapshot = {
+        key: record.get(
+            key
+        )
+        for key in (
+            "attempt_count",
+            "status",
+            "seed",
+            "failure_category",
+            "primary_failure_category",
+            "retry_failure_category",
+            "rejection_reason",
+            "error",
+            "final_validation",
+            "subject_adherence",
+            "brief_fidelity",
+            "raw_palette_error",
+            "raw_validation",
+            "raw_subject_adherence",
+            "palette_recovery",
+        )
+    }
+
+    if current_attempt is not None:
+        attempts[
+            current_attempt
+        ] = snapshot
+
+    record[
+        "attempt_history"
+    ] = [
+        attempts[
+            number
+        ]
+        for number
+        in sorted(
+            attempts
+        )
+    ]
+
+
+def _record_brief_fidelity(record: dict, assessment: dict) -> None:
+    record["subject_adherence"] = assessment
+    record["brief_fidelity"] = brief_fidelity_record(assessment)
+    record["semantic_dimension_scores"] = {
+        key: assessment.get(key) for key in
+        SEMANTIC_FAILURE_CATEGORIES}
+    record["semantic_failed_dimensions"] = assessment.get("failed_dimensions") or []
+
+
+def _semantic_failure_categories(record: dict) -> list[str]:
+    """Translate known failed dimensions and retain unknown ones for diagnosis."""
+    categories = []
+    unknown = []
+    assessment = record.get("subject_adherence") or {}
+    fields = (assessment.get("hard_failed_dimensions") if "hard_failed_dimensions" in assessment
+              else record.get("semantic_failed_dimensions")) or []
+    for field in fields:
+        category = SEMANTIC_FAILURE_CATEGORIES.get(field)
+        if category:
+            categories.append(category)
+        else:
+            unknown.append(field)
+    if unknown:
+        record["unknown_semantic_failed_dimensions"] = unknown
+    return list(dict.fromkeys(categories))
+
+
+def _record_safe_region_retry(record: dict, validation: dict) -> None:
+    """Compare the latest explicit-region usability with the previous attempt."""
+    def score(item: dict) -> float | None:
+        regions = ((item.get("quality") or {}).get("explicit_safe_regions") or {}).get("regions") or {}
+        values = [region.get("usability_score") for region in regions.values()]
+        return round(min(values), 4) if values and all(isinstance(value, (int, float)) for value in values) else None
+
+    current = score(validation)
+    previous_attempts = record.get("rejected_attempts") or []
+    previous = score(previous_attempts[-1].get("validation") or {}) if previous_attempts else None
+    record["safe_region_retry"] = {"previous_score": previous, "current_score": current,
+                                   "improved": current > previous if current is not None and previous is not None else None}
+
+
+def write_json(path: Path, record: dict) -> None:
+    """Persist one candidate with the same diagnostics at every outcome."""
+    if record.get("status") in {"rejected", "failed", "runtime_failed"} and not record.get("validation"):
+        record["validation"] = {
+            "decision": "rejected",
+            "failure_category": record.get("primary_failure_category") or record.get("outcome_category"),
+        }
+    _finalize_validation_record(record)
+    record["reproducibility_manifest"] = build_reproducibility_manifest(record)
+    atomic_write_json(path, record)
+QUEUE_ENDPOINT = "/queue"
+
+# A large third-colour area needs a new generation, not automatic recolouring.
+# ============================================================
+# Deterministic palette-only recovery limits
+# ============================================================
+#
+# Final palette validation remains unchanged.
+#
+# These values control only whether a structurally valid candidate is eligible
+# for deterministic palette normalization BEFORE the normal strict palette
+# validator is executed again.
+#
+# They are intentionally engine-specific.
+#
+# SDXL already had a broader recovery range because that engine frequently
+# generates otherwise-correct artwork with substantial neutral/metallic drift.
+#
+# SD3.5 uses a much narrower limit. Controlled programme-studio probes showed
+# structurally healthy SD3.5 outputs at approximately 0.09 off-palette, while
+# catastrophic historical drift was much larger. We therefore allow only mild
+# SD3.5 palette-only correction.
+#
+
+MAX_SDXL_RECOVERABLE_OFF_PALETTE_RATIO = 0.35
+MAX_SD35_RECOVERABLE_OFF_PALETTE_RATIO = 0.15
+_OCR_CACHE: OrderedDict[tuple[str, int], dict] = OrderedDict()
+_OCR_CACHE_LIMIT = 32
+MAX_OCR_VALIDATION_ATTEMPTS = 2
+
+
+def _palette_recovery_limit(
+    engine_id: str | None,
+) -> float:
+    """Return the maximum raw palette drift eligible for correction."""
+
+    if (
+        engine_id
+        == settings.engine_3_id
+    ):
+        return (
+            MAX_SD35_RECOVERABLE_OFF_PALETTE_RATIO
+        )
+
+    #
+    # Preserve the historical helper behaviour when tests/callers omit an
+    # engine ID. SDXL was the original consumer of palette-only recovery.
+    #
+    if (
+        engine_id is None
+        or engine_id
+        == settings.engine_2_id
+    ):
+        return (
+            MAX_SDXL_RECOVERABLE_OFF_PALETTE_RATIO
+        )
+
+    #
+    # FLUX and unknown engines are not eligible.
+    #
+    return 0.0
+
+
+def _recoverable_palette_error(
+    reason: str,
+    engine_id: str | None = None,
+) -> bool:
+    """Return True for supported palette-only validation failures.
+
+    Final palette validation is never relaxed. This function only determines
+    whether deterministic palette normalization may be attempted.
+
+    Recoverable palette failures include:
+
+    - bounded off-palette drift;
+    - missing requested primary family;
+    - missing requested secondary family;
+    - lost primary-over-secondary dominance;
+    - black/white chromatic contamination.
+
+    Structural, OCR, human and runtime failures remain ineligible.
+    """
+
+    reason = str(
+        reason
+        or ""
+    )
+
+    off_palette_match = re.search(
+        r"off-palette ratio ([0-9.]+)",
+        reason,
+    )
+
+    if off_palette_match:
+        ratio = float(
+            off_palette_match.group(1)
+        )
+        region_match = re.search(r"largest unrelated region ([0-9.]+)", reason)
+        if region_match and float(region_match.group(1).rstrip(".")) > 0.035:
+            return False
+
+        return (
+            ratio
+            <= _palette_recovery_limit(
+                engine_id
+            )
+        )
+
+    palette_only_markers = (
+        "does not visibly contain enough of the requested primary colour family",
+        "does not visibly contain enough of the requested secondary colour family",
+        "does not keep the requested primary colour family",
+        "left the requested black-and-white palette",
+    )
+
+    return any(
+        marker in reason
+        for marker in palette_only_markers
+    )
+
+
+def _palette_recovery_source_is_eligible(diagnostics: dict | None,
+                                         adherence: dict | None) -> bool:
+    """Only recolour a sound source with both requested pigments already visible."""
+    if not isinstance(diagnostics, dict):
+        return False
+    report = diagnostics.get("validation") or {}
+    if report.get("decision") == "rejected" or any(
+        finding != "SAFE_REGION_BORDERLINE"
+        for finding in report.get("diagnostic_findings") or []
+    ):
+        return False
+    if adherence is not None and adherence.get("decision") != "pass":
+        return False
+    if float(diagnostics.get("largest_unrequested_region_ratio") or 0) > 0.035:
+        return False
+    if "requested_chromatic_ratio" in diagnostics:
+        if (float(diagnostics.get("primary_ratio") or 0) < 0.05 or
+                float(diagnostics.get("secondary_ratio") or 0) < 0.008 or
+                float(diagnostics.get("requested_chromatic_ratio") or 0) < 0.35 or
+                float(diagnostics.get("structural_neutral_ratio") or 0) > 0.55):
+            return False
+    elif "achromatic_ratio" in diagnostics:
+        if (float(diagnostics.get("dark_tone_ratio") or 0) < 0.02 or
+                float(diagnostics.get("light_tone_ratio") or 0) < 0.02):
+            return False
+    else:
+        return False
+    return True
+
+def _edge_geometry_similarity(source: Path, target: Path) -> float:
+    """Compare edge locations after local contrast adjustment, not brightness."""
+    edge_maps = []
+    for path in (source, target):
+        with Image.open(path) as image:
+            grey = np.asarray(image.convert("L").resize((256, 352)), dtype=np.uint8)
+        grey = cv2.createCLAHE(clipLimit=2, tileGridSize=(8, 8)).apply(grey)
+        magnitude = np.hypot(
+            cv2.Sobel(grey, cv2.CV_32F, 1, 0, ksize=3),
+            cv2.Sobel(grey, cv2.CV_32F, 0, 1, ksize=3),
+        )
+        edge_maps.append(magnitude > np.quantile(magnitude, 0.85))
+    first, second = edge_maps
+    count = int(first.sum()) + int(second.sum())
+    return 2 * int((first & second).sum()) / count if count else 0.0
+
+
+def _preserves_structural_detail(raw: dict, recoloured: dict) -> bool:
+    """Reject palette recovery that erases a substantial part of the artwork."""
+    before = float(raw.get("structural_edge_density") or 0.0)
+    after = float(recoloured.get("structural_edge_density") or 0.0)
+    entropy_before = float(raw.get("image_entropy") or 0.0)
+    entropy_after = float(recoloured.get("image_entropy") or 0.0)
+    macro_before = float(raw.get("macro_structure_score") or 0.0)
+    macro_after = float(recoloured.get("macro_structure_score") or 0.0)
+    highpass_before = float(raw.get("high_pass_mean") or 0.0)
+    highpass_after = float(recoloured.get("high_pass_mean") or 0.0)
+    return (after >= before * 0.90 and
+            entropy_after >= entropy_before * 0.85 and
+            macro_after >= macro_before * 0.90 and
+            highpass_after >= highpass_before * 0.85)
+
+
+def _palette_only_recovery(
+    source: Path,
+    target: Path,
+    reference_number: str,
+    primary_colour: str | None,
+    secondary_colour: str | None,
+    visual_design: dict | None = None,
+    recovery_diagnostics: dict | None = None,
+    vision_human_signal: bool | None = None,
+) -> tuple[dict, dict]:
+    """Recolour only a raw candidate that passes every non-palette gate."""
+    structural = validate_background(source, reference_number=reference_number, enforce_palette=False,
+                                     visual_design=visual_design, vision_human_signal=vision_human_signal)
+    palette_mode = (visual_design or {}).get("palette_mode", "strict")
+    with Image.open(source) as image:
+        recoloured = constrain_to_requested_palette(image, primary_colour, secondary_colour,
+                                                    palette_mode=palette_mode)
+        recoloured.save(target, format="PNG")
+    try:
+        final = validate_background(target, reference_number=reference_number,
+                                    visual_design=visual_design, vision_human_signal=vision_human_signal)
+        geometry = _edge_geometry_similarity(source, target)
+        detail = _preserves_structural_detail(structural, final)
+        if recovery_diagnostics is not None:
+            recovery_diagnostics.update(
+                normalized_off_palette_ratio=final.get("off_palette_ratio"),
+                edge_geometry_similarity=geometry,
+                structural_detail_preserved=detail,
+                structural_edge_density_ratio=(float(final.get("structural_edge_density") or 0) /
+                                               max(float(structural.get("structural_edge_density") or 0), 1e-9)),
+                macro_structure_ratio=(float(final.get("macro_structure_score") or 0) /
+                                       max(float(structural.get("macro_structure_score") or 0), 1e-9)),
+                entropy_ratio=(float(final.get("image_entropy") or 0) /
+                               max(float(structural.get("image_entropy") or 0), 1e-9)),
+                highpass_ratio=(float(final.get("high_pass_mean") or 0) /
+                                max(float(structural.get("high_pass_mean") or 0), 1e-9)),
+            )
+        if geometry < 0.80:
+            raise ValueError("Palette normalization changed structural edge locations too much.")
+        if not detail:
+            raise ValueError("Palette normalization erased too much structural detail.")
+        if visual_design:
+            subject = assess_subject_adherence(target, visual_design)
+            if recovery_diagnostics is not None:
+                recovery_diagnostics["normalized_subject_adherence"] = subject
+                recovery_diagnostics["normalized_brief_fidelity"] = brief_fidelity_record(subject)
+            if subject.get("vision_human_signal") is True:
+                raise ValueError("HUMAN: vision confirmed a person in the normalized image")
+            if subject["decision"] == "unavailable" or hard_fidelity_failure(subject):
+                category = subject.get("failure_category") or "VISION_UNAVAILABLE"
+                raise ValueError(f"{category}: palette normalization failed brief fidelity: {subject['decision']}.")
+            final["subject_adherence"] = subject
+            final["brief_fidelity"] = brief_fidelity_record(subject)
+        return structural, final
+    except Exception as error:
+        if recovery_diagnostics is not None:
+            diagnostics = getattr(error, "diagnostics", None)
+            if isinstance(diagnostics, dict):
+                recovery_diagnostics["normalized_off_palette_ratio"] = diagnostics.get("off_palette_ratio")
+        target.unlink(missing_ok=True)
+        raise
+
+
+def _valid_background_dimensions() -> set[tuple[int, int]]:
+    """Return every native generation size accepted by the compositor."""
+    return {
+        (
+            settings.generation_width,
+            settings.generation_height,
+        ),
+        (
+            settings.sdxl_generation_width,
+            settings.sdxl_generation_height,
+        ),
+        (
+            settings.sd35_generation_width,
+            settings.sd35_generation_height,
+        ),
+    }
+
+
+def _attempt_budget_exhausted(
+    record: dict | None,
+) -> bool:
+    """Prevent a restarted job from exceeding its persisted retry budget."""
+    if not record:
+        return False
+
+    try:
+        attempt_count = int(record.get("attempt_count", 0))
+    except (TypeError, ValueError):
+        return False
+
+    return attempt_count >= settings.max_candidate_retries + 1
+
+
+def _engine_positive_prompt(
+    engine_id: str,
+    positive_prompt: str,
+    primary_colour: str | None,
+    secondary_colour: str | None,
+) -> str:
+    """Add safety guidance without burying SD3.5's compact scene brief."""
+    if engine_id == settings.engine_3_id:
+        # SD3.5's T5 field is intentionally capped in build_workflow. Its
+        # engine-specific subject and palette must therefore come first. The
+        # general background wrapper is useful for other engines but consumed
+        # the whole SD3.5 encoder budget before the actual creative direction.
+        return positive_prompt.rstrip(". ") + ". Background artwork with the requested visual subject."
+
+    return build_engine_prompt(
+        positive_prompt,
+        primary_colour,
+        secondary_colour,
+    )
+
+
+def _transport_prompts(
+    engine_id: str,
+    positive_prompt: str,
+    negative_prompt: str,
+    primary_colour: str | None,
+    secondary_colour: str | None,
+    compiled_prompt=None,
+) -> tuple[str, str]:
+    """Keep native compiled semantics unchanged at the ComfyUI boundary."""
+    if compiled_prompt is not None:
+        return compiled_prompt.positive, compiled_prompt.negative
+    positive = _engine_positive_prompt(engine_id, positive_prompt, primary_colour, secondary_colour)
+    negative = ", ".join(
+            value for value in (
+                BACKGROUND_ONLY_NEGATIVE,
+                negative_prompt,
+                palette_negative_contract(primary_colour, secondary_colour),
+            ) if value
+        )
+    if engine_id == settings.engine_1_id:
+        negative += ", words, letters, numbers, typography, signage, invitation text, labels, captions, calligraphy, writing"
+    return positive, negative
+
+
+class ComfyUIError(
+    RuntimeError
+):
+    """ComfyUI execution or validation failure."""
+
+
+class SubmissionUncertain(
+    ComfyUIError
+):
+    """The remote server may already have accepted the request."""
+
+
+def workflow_name(
+    engine_id: str,
+) -> str:
+    names = {
+        settings.engine_1_id: "flux2",
+        settings.engine_2_id: "sdxl",
+        settings.engine_3_id: "sd35-medium",
+    }
+
+    if engine_id not in names:
+        raise ValueError(
+            f"Unknown engine: {engine_id}"
+        )
+
+    return names[
+        engine_id
+    ]
+
+
+def _execution_error_detail(item: object) -> str | None:
+    if not isinstance(item, (list, tuple)) or len(item) < 2:
+        return None
+    if str(item[0]) not in {"execution_error", "execution_interrupted"}:
+        return None
+    payload = item[1] if isinstance(item[1], dict) else {}
+    parts = []
+    for key, label in (
+        ("node_id", "node"),
+        ("node_type", "type"),
+        ("exception_type", "exception"),
+        ("exception_message", "message"),
+    ):
+        if payload.get(key):
+            parts.append(f"{label}={payload[key]}")
+    traceback_lines = payload.get("traceback") or []
+    if traceback_lines:
+        tail = str(traceback_lines[-1]).strip()
+        if tail:
+            parts.append(f"trace={tail}")
+    return "; ".join(parts) if parts else None
+
+
+def _extract_comfyui_execution_error(
+    history: dict | None,
+) -> str:
+    """
+    Extract the useful exception emitted by ComfyUI.
+
+    ComfyUI normally places node execution failures inside
+    status.messages as execution_error records.
+    """
+
+    if not history:
+        return (
+            "ComfyUI execution failed without "
+            "remote history details."
+        )
+
+    status = (
+        history.get(
+            "status",
+            {},
+        )
+        or {}
+    )
+
+    messages = (
+        status.get(
+            "messages",
+            [],
+        )
+        or []
+    )
+
+    details = []
+    for item in messages:
+        try:
+            detail = _execution_error_detail(item)
+            if detail:
+                details.append(detail)
+        except Exception:
+            continue
+
+    if details:
+        return (
+            "ComfyUI execution failed: "
+            + " | ".join(
+                details
+            )
+        )
+
+    return (
+        "ComfyUI execution failed; remote history "
+        "did not contain a structured execution_error message."
+    )
+
+
+def _normalise_ocr_token(
+    value: str,
+) -> str:
+    """Return alphabetic OCR content suitable for text validation."""
+
+    return re.sub(
+        r"[^A-Za-z]",
+        "",
+        str(
+            value
+            or ""
+        ),
+    )
+
+
+def _ocr_confidence(
+    value: Any,
+) -> float:
+    try:
+        return float(
+            value
+        )
+
+    except (
+        TypeError,
+        ValueError,
+    ):
+        return -1.0
+
+
+def _similar_ocr_tokens(
+    first: str,
+    second: str,
+) -> bool:
+    """Return True when two meaningful OCR tokens substantially agree.
+
+    Short OCR fragments are intentionally rejected before any equality or
+    similarity checks because diffusion textures frequently generate tiny
+    letter-like patterns such as:
+
+        ti
+        ii
+        gl
+        ht
+
+    Only tokens with at least four alphabetic characters can participate in
+    OCR confirmation.
+    """
+
+    first = (
+        str(
+            first
+            or ""
+        )
+        .strip()
+        .lower()
+    )
+
+    second = (
+        str(
+            second
+            or ""
+        )
+        .strip()
+        .lower()
+    )
+
+    #
+    # The minimum-length guard MUST happen before exact equality.
+    #
+    # Without this:
+    #
+    #     _similar_ocr_tokens("ti", "ti")
+    #
+    # incorrectly returns True.
+    #
+    if (
+        len(
+            first
+        )
+        < 4
+        or len(
+            second
+        )
+        < 4
+    ):
+        return False
+
+    if (
+        first
+        == second
+    ):
+        return True
+
+    #
+    # OCR may add or remove a character around the edge of a crop.
+    #
+    if (
+        first in second
+        or second in first
+    ):
+        return True
+
+    #
+    # Allow one OCR substitution/insertion/deletion for otherwise similar
+    # tokens.
+    #
+    # Example:
+    #
+    #     title
+    #     titie
+    #
+    if (
+        abs(
+            len(
+                first
+            )
+            - len(
+                second
+            )
+        )
+        > 1
+    ):
+        return False
+
+    mismatches = sum(
+        1
+        for left, right
+        in zip(
+            first,
+            second,
+        )
+        if left
+        != right
+    )
+
+    mismatches += abs(
+        len(
+            first
+        )
+        - len(
+            second
+        )
+    )
+
+    return (
+        mismatches
+        <= 1
+    )
+
+
+def _confirm_ocr_candidate(
+    image: Image.Image,
+    *,
+    token: str,
+    left: int,
+    top: int,
+    width: int,
+    height: int,
+    diagnostics: dict | None = None,
+) -> bool:
+    """Confirm a first-pass OCR token using an enlarged local crop.
+
+    Diffusion artwork frequently produces architectural lines, windows and
+    decorative geometry that Tesseract interprets as short words.
+
+    A genuine text region should survive a second OCR pass after cropping and
+    enlargement. Random skyline geometry normally does not.
+    """
+
+    image_width, image_height = (
+        image.size
+    )
+
+    #
+    # Give the OCR engine context around the candidate.
+    #
+    # Padding scales with the candidate box but is always large enough to
+    # include nearby glyphs.
+    #
+    pad_x = max(
+        12,
+        int(
+            width
+            * 1.5
+        ),
+    )
+
+    pad_y = max(
+        12,
+        int(
+            height
+            * 1.0
+        ),
+    )
+
+    x1 = max(
+        0,
+        left
+        - pad_x,
+    )
+
+    y1 = max(
+        0,
+        top
+        - pad_y,
+    )
+
+    x2 = min(
+        image_width,
+        left
+        + width
+        + pad_x,
+    )
+
+    y2 = min(
+        image_height,
+        top
+        + height
+        + pad_y,
+    )
+
+    crop = (
+        image
+        .crop(
+            (
+                x1,
+                y1,
+                x2,
+                y2,
+            )
+        )
+        .convert(
+            "L"
+        )
+    )
+
+    #
+    # Enlargement makes real glyph edges easier to distinguish while noisy
+    # image texture usually remains inconsistent.
+    #
+    crop = crop.resize(
+        (
+            max(
+                1,
+                crop.width
+                * 3,
+            ),
+            max(
+                1,
+                crop.height
+                * 3,
+            ),
+        ),
+        Image.Resampling.LANCZOS,
+    )
+
+    #
+    # Test both:
+    #
+    # PSM 7 -> one expected text line
+    # PSM 6 -> compact text block
+    #
+    for psm in (
+        7,
+        6,
+    ):
+        data = _ocr_data(crop, f"--psm {psm}", f"crop-psm-{psm}", diagnostics)
+        if data is None:
+            continue
+
+        for (
+            confirmed_text,
+            confirmed_confidence,
+        ) in zip(
+            data[
+                "text"
+            ],
+            data[
+                "conf"
+            ],
+        ):
+            normalized = (
+                _normalise_ocr_token(
+                    confirmed_text
+                )
+            )
+
+            score = (
+                _ocr_confidence(
+                    confirmed_confidence
+                )
+            )
+
+            if (
+                len(
+                    normalized
+                )
+                < 4
+                or score
+                < 45
+            ):
+                continue
+
+            if (
+                _similar_ocr_tokens(
+                    token,
+                    normalized,
+                )
+            ):
+                return True
+
+    return False
+
+
+def _ocr_items(data: dict, image_size: tuple[int, int], scale: float = 1.0) -> list[dict]:
+    """Extract plausible word boxes with normalized coordinates."""
+    width, height = image_size
+    items = []
+    for index, (raw, confidence) in enumerate(zip(data.get("text", []), data.get("conf", []))):
+        token = _normalise_ocr_token(raw)
+        score = _ocr_confidence(confidence)
+        if len(token) < 4 or score < 45:
+            continue
+        box = tuple(int(data.get(key, [0] * len(data.get("text", [])))[index] / scale)
+                    for key in ("left", "top", "width", "height"))
+        x, y, w, h = box
+        items.append({"token": token, "confidence": score, "bbox": box,
+                      "area_ratio": w * h / max(1, width * height),
+                      "passes": set(), "crop_confirmed": False})
+    return items
+
+
+def _ocr_same_region(first: dict, second: dict) -> bool:
+    if not _similar_ocr_tokens(first["token"], second["token"]):
+        return False
+    x1, y1, w1, h1 = first["bbox"]
+    x2, y2, w2, h2 = second["bbox"]
+    if not all((w1, h1, w2, h2)):
+        return True  # OCR mocks without box coordinates.
+    return abs((x1 + w1 / 2) - (x2 + w2 / 2)) <= max(w1, w2) and abs(y1 - y2) <= max(h1, h2)
+
+
+def _ocr_data(image: Image.Image, config: str, variant: str, diagnostics: dict | None) -> dict | None:
+    """Bound every subprocess-backed Tesseract pass and retain failure evidence."""
+    if diagnostics is not None:
+        diagnostics["attempted"].append(variant)
+    remaining = ((diagnostics["_deadline"] - time.monotonic())
+                 if diagnostics is not None and "_deadline" in diagnostics else settings.ocr_timeout_seconds)
+    if remaining <= 0:
+        if diagnostics is not None:
+            diagnostics["timed_out_variants"].append(variant)
+            diagnostics["failure_reasons"][variant] = "OCR total time budget exhausted"
+        return None
+    try:
+        result = pytesseract.image_to_data(
+            image, config=config, output_type=pytesseract.Output.DICT,
+            timeout=min(diagnostics.get("_pass_timeout", settings.ocr_timeout_seconds)
+                        if diagnostics is not None else settings.ocr_timeout_seconds, remaining),
+        )
+    except (RuntimeError, pytesseract.TesseractError, OSError) as error:
+        if diagnostics is not None:
+            timed_out = isinstance(error, RuntimeError) and "timeout" in str(error).casefold()
+            key = "timed_out_variants" if timed_out else "failed_variants"
+            diagnostics[key].append(variant)
+            diagnostics["failure_reasons"][variant] = f"{type(error).__name__}: {str(error)[:120]}"
+        return None
+    if diagnostics is not None:
+        diagnostics["completed_variants"].append(variant)
+    return result
+
+
+def _pseudo_text_evidence(image: Image.Image) -> dict:
+    """Require multiple rows of varied, compact glyph-sized components."""
+    grey = cv2.resize(np.asarray(image.convert("L")), (512, 512), interpolation=cv2.INTER_AREA)
+    _, binary = cv2.threshold(grey, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)
+    def grouped_rows(mask: np.ndarray) -> dict:
+        count, _, stats, centroids = cv2.connectedComponentsWithStats(mask, 8)
+        glyphs = []
+        for index in range(1, count):
+            x, y, width, height, area = (int(value) for value in stats[index])
+            fill = area / max(1, width * height)
+            if 3 <= width <= 45 and 6 <= height <= 30 and .17 <= fill <= .72 and .2 <= width / height <= 2.2:
+                component = mask[y:y + height, x:x + width] > 0
+                # Letter-like components need strokes in both axes. A web arc
+                # or diagonal wire can have glyph-sized fragments and aligned
+                # rows without this independent shape evidence.
+                structured = (float(component.mean(axis=0).max()) >= .55 and
+                              float(component.mean(axis=1).max()) >= .55)
+                glyphs.append((x, y, width, height, float(centroids[index][1]), structured))
+        rows = []
+        for glyph in sorted(glyphs, key=lambda item: item[4]):
+            match = next((row for row in rows if abs(row[0][4] - glyph[4]) <= max(row[0][3], glyph[3]) * .4), None)
+            if match is None:
+                rows.append([glyph])
+            else:
+                match.append(glyph)
+        plausible = []
+        for row in rows:
+            row.sort()
+            if len(row) < 5:
+                continue
+            widths = np.array([item[2] for item in row], dtype=float)
+            gaps = [right[0] - (left[0] + left[2]) for left, right in zip(row, row[1:])]
+            median_height = float(np.median([item[3] for item in row]))
+            top_spread = float(np.std([item[1] for item in row]))
+            baseline_spread = float(np.std([item[1] + item[3] for item in row]))
+            structured_count = sum(item[5] for item in row)
+            if (float(np.std(widths) / max(np.mean(widths), 1)) >= .16 and
+                    top_spread <= .25 * median_height and
+                    baseline_spread <= .25 * median_height and
+                    structured_count >= max(3, len(row) * .45) and
+                    sum(0 <= gap <= max(20, 2 * np.median(widths)) for gap in gaps) >= 4):
+                plausible.append((min(item[0] for item in row), max(item[0] + item[2] for item in row),
+                                  float(np.mean([item[4] for item in row]))))
+        grouped = any(abs(first[2] - second[2]) >= 8 and
+                      max(0, min(first[1], second[1]) - max(first[0], second[0])) >=
+                      .35 * min(first[1] - first[0], second[1] - second[0])
+                      for index, first in enumerate(plausible) for second in plausible[index + 1:])
+        # A frame-wide lattice produces hundreds of fragments across many
+        # rows. Isolated word-like clusters do not occupy the entire frame.
+        geometry_suppressed = len(plausible) > 8 or len(glyphs) > 200
+        return {"detected": grouped and not geometry_suppressed,
+                "geometry_suppressed": geometry_suppressed,
+                "aligned_rows": len(plausible), "glyph_components": len(glyphs),
+                "structured_components": sum(item[5] for item in glyphs)}
+    dark = grouped_rows(binary)
+    light = grouped_rows(255 - binary)
+    return {"detected": dark["detected"] or light["detected"],
+            "aligned_rows": max(dark["aligned_rows"], light["aligned_rows"]),
+            "glyph_components": max(dark["glyph_components"], light["glyph_components"]),
+            "structured_components": max(dark["structured_components"], light["structured_components"]),
+            "geometry_suppressed": dark["geometry_suppressed"] and light["geometry_suppressed"]}
+
+
+def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = None) -> dict:
+    """Confirm typography with crop and preprocessing evidence, then group lines."""
+    pass_timeout = timeout_seconds or settings.ocr_timeout_seconds
+    diagnostics = {"attempted": [], "completed_variants": [], "timed_out_variants": [],
+                   "failed_variants": [], "failure_reasons": {},
+                   "_pass_timeout": pass_timeout,
+                   "_deadline": time.monotonic() + max(30.0, pass_timeout * 5)}
+    grey = image.convert("L")
+    raw = _ocr_data(grey, "--psm 11", "original", diagnostics)
+    items = _ocr_items(raw or {}, image.size)
+    for item in items:
+        x, y, w, h = item["bbox"]
+        item["passes"].add("original")
+        if w and h:
+            try:
+                item["crop_confirmed"] = _confirm_ocr_candidate(
+                    image, token=item["token"], left=x, top=y, width=w, height=h,
+                    diagnostics=diagnostics)
+            except StopIteration:
+                item["crop_confirmed"] = False
+            if item["crop_confirmed"]:
+                item["passes"].add("crop")
+
+    array = np.asarray(grey.resize((grey.width * 2, grey.height * 2)), dtype=np.uint8)
+    enhanced = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(array)
+    binary = cv2.adaptiveThreshold(enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                   cv2.THRESH_BINARY, 31, 9)
+    for pass_name, variant in (("contrast", enhanced), ("threshold", binary),
+                               ("inverted", 255 - binary)):
+        try:
+            result = _ocr_data(Image.fromarray(variant), "--psm 11", pass_name, diagnostics)
+        except StopIteration:  # Unit-test mocks may provide only the first passes.
+            break
+        if result is None:
+            continue
+        for candidate in _ocr_items(result, image.size, scale=2.0):
+            if candidate["confidence"] < 55:
+                continue
+            match = next((item for item in items if _ocr_same_region(item, candidate)), None)
+            if match is None:
+                candidate["passes"].add(pass_name)
+                items.append(candidate)
+            else:
+                match["passes"].add(pass_name)
+                match["confidence"] = max(match["confidence"], candidate["confidence"])
+
+    confirmed = [item for item in items if item["crop_confirmed"] or len(item["passes"]) >= 2]
+    lines = []
+    for index, first in enumerate(confirmed):
+        x1, y1, w1, h1 = first["bbox"]
+        for second in confirmed[index + 1:]:
+            x2, y2, w2, h2 = second["bbox"]
+            if h1 and h2 and abs((y1 + h1) - (y2 + h2)) <= max(h1, h2) * 0.6 and abs(x2 - x1) <= max(w1, w2) * 3:
+                lines.append([first["token"], second["token"]])
+    strong_single = [item for item in confirmed if len(item["token"]) >= 7 and
+                     (item["confidence"] >= 85 or len(item["passes"]) >= 2)]
+    strong_single.extend(item for item in confirmed if len(item["token"]) >= 5
+                         and item["area_ratio"] >= 0.01
+                         and (item["crop_confirmed"] or len(item["passes"]) >= 2))
+    pseudo_text = _pseudo_text_evidence(image)
+    detected = bool(lines or strong_single or pseudo_text["detected"])
+    selected = confirmed if detected else []
+    completed = set(diagnostics["completed_variants"])
+    sufficient = {"original", "contrast"}.issubset(completed)
+    partial = bool(diagnostics["timed_out_variants"] or diagnostics["failed_variants"])
+    diagnostics["completed_variant_count"] = len(completed)
+    diagnostics["required_variant_count"] = 2
+    diagnostics["enhancement_variant_failures"] = [
+        name for name in (*diagnostics["timed_out_variants"], *diagnostics["failed_variants"])
+        if name not in {"original", "contrast"}
+    ]
+    diagnostics["evidence_sufficiency"] = sufficient
+    diagnostics["decision"] = ("OCR_UNAVAILABLE" if not completed else
+                               "OCR_PARTIAL_SUFFICIENT" if partial and sufficient else
+                               "OCR_PARTIAL_INSUFFICIENT" if partial else "complete")
+    diagnostics.pop("_deadline")
+    diagnostics.pop("_pass_timeout")
+    return {
+        "text_detected": detected,
+        "pseudo_text": pseudo_text,
+        "tokens": [item["token"] for item in items],
+        "confirmed_tokens": list(dict.fromkeys(item["token"] for item in selected)),
+        "text_lines": lines,
+        "max_confidence": max((item["confidence"] for item in items), default=0),
+        "confirmation_passes": sorted({name for item in selected for name in item["passes"]}),
+        "text_area_ratio": sum(item["area_ratio"] for item in selected),
+        "evidence": [{**item, "passes": sorted(item["passes"])} for item in items],
+        "ocr_diagnostics": diagnostics,
+    }
+
+
+def _cached_text_evidence(image: Image.Image, digest: str, *,
+                          timeout_seconds: float | None = None) -> dict:
+    """Reuse OCR only for identical pixels and the same OCR implementation."""
+    key = (digest, id(pytesseract.image_to_data))
+    if key in _OCR_CACHE:
+        cached = _OCR_CACHE[key]
+        if cached.get("ocr_diagnostics", {}).get("decision") not in {
+            "OCR_UNAVAILABLE", "OCR_PARTIAL", "OCR_PARTIAL_INSUFFICIENT",
+        }:
+            _OCR_CACHE.move_to_end(key)
+            return cached
+        del _OCR_CACHE[key]
+    evidence = (detect_text_evidence(image, timeout_seconds=timeout_seconds)
+                if timeout_seconds is not None else detect_text_evidence(image))
+    if evidence.get("ocr_diagnostics", {}).get("decision") not in {
+        "OCR_UNAVAILABLE", "OCR_PARTIAL", "OCR_PARTIAL_INSUFFICIENT",
+    }:
+        _OCR_CACHE[key] = evidence
+        if len(_OCR_CACHE) > _OCR_CACHE_LIMIT:
+            _OCR_CACHE.popitem(last=False)
+    return evidence
+
+
+def detected_text_tokens(image: Image.Image) -> list[str]:
+    """Compatibility wrapper for the structured OCR decision."""
+    return detect_text_evidence(image)["confirmed_tokens"]
+
+
+def _inject_workflow_values(value: Any, values: dict) -> Any:
+    if isinstance(value, str) and value.startswith("${") and value.endswith("}"):
+        return values[value[2:-1]]
+    if isinstance(value, dict):
+        return {key: _inject_workflow_values(item, values) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_inject_workflow_values(item, values) for item in value]
+    return value
+
+
+def _compact_prompt(value: str, limit: int) -> str:
+    compact = " ".join(str(value or "").split())
+    return compact if len(compact) <= limit else compact[:limit].rsplit(" ", 1)[0]
+
+
+def _workflow_encoder_prompts(engine_id: str, positive_prompt: str, compiled_prompt) -> tuple[str, str, str, str]:
+    clip_l = (
+        compiled_prompt.clip_l if compiled_prompt and compiled_prompt.clip_l
+        else _compact_prompt(positive_prompt, 160)
+    )
+    clip_g = (
+        compiled_prompt.clip_g if compiled_prompt and compiled_prompt.clip_g
+        else _compact_prompt(positive_prompt, 220)
+    )
+    t5 = (
+        compiled_prompt.t5 if compiled_prompt and compiled_prompt.t5
+        else _compact_prompt(positive_prompt, 520)
+    )
+    negative = compiled_prompt.negative if compiled_prompt else ""
+    if engine_id == settings.engine_2_id and compiled_prompt is None:
+        clip_l = positive_prompt
+        clip_g = positive_prompt
+    return clip_l, clip_g, t5, negative
+
+
+def _workflow_dimensions(engine_id: str) -> tuple[int, int]:
+    if engine_id == settings.engine_2_id:
+        return settings.sdxl_generation_width, settings.sdxl_generation_height
+    if engine_id == settings.engine_3_id:
+        return settings.sd35_generation_width, settings.sd35_generation_height
+    return settings.generation_width, settings.generation_height
+
+
+def _sampling_parameters(profile: SamplingProfile | None) -> dict:
+    return {
+        "sd35_shift": profile.shift if profile and profile.shift is not None else 3.0,
+        "steps": profile.steps if profile else 28,
+        "cfg": profile.cfg if profile else 6.0,
+        "sampler_name": profile.sampler_name if profile else "dpmpp_2m",
+        "scheduler": profile.scheduler if profile else "karras",
+    }
+
+
+def _record_prompt_metadata(
+    engine_id: str,
+    positive_prompt: str,
+    negative_prompt: str,
+    compiled_prompt,
+    retry_stage: str | None,
+    failure_category: str | None,
+) -> dict:
+    flux = engine_id == settings.engine_1_id
+    compiled_record = compiled_prompt.record() if compiled_prompt else {
+        "positive": positive_prompt, "negative": negative_prompt,
+        "clip_l": None, "clip_g": None, "t5": None,
+    }
+    return {
+        "negative_prompt": None if flux else negative_prompt,
+        "adaptations": [
+            "Negative prompt omitted because the configured FLUX workflow "
+            "does not expose negative conditioning."
+        ] if flux else [],
+        "retry_stage": compiled_prompt.retry_stage if compiled_prompt else retry_stage,
+        "failure_category": (
+            compiled_prompt.failure_category if compiled_prompt else failure_category
+        ),
+        "compiled_prompt": compiled_record,
+        "conditioning_coverage": compiled_record.get("conditioning_coverage", {}),
+        "prompt_budget": compiled_record.get("prompt_budget", {}),
+        "engine_capabilities": compiled_record.get("engine_capabilities", {}),
+    }
+
+
+def _candidate_attempt_number(previous: dict | None, retrying_candidate: bool) -> int:
+    return previous.get("attempt_count", 1) + 1 if retrying_candidate and previous else 1
+
+
+def build_workflow(
+    engine_id: str,
+    positive_prompt: str,
+    negative_prompt: str,
+    seed: int,
+    output_prefix: str,
+    compiled_prompt=None,
+    sampling_profile: SamplingProfile | None = None,
+    template_image: str | None = None,
+    denoise: float | None = None,
+    generation_mask: str | None = None,
+) -> dict:
+    template_path = (
+        settings.comfyui_workflow_path
+        / (
+            f"{workflow_name(engine_id)}.json"
+        )
+    )
+
+    template = json.loads(
+        template_path.read_text(
+            encoding="utf-8"
+        )
+    )
+
+    values = (
+        settings.model_dump()
+    )
+
+    # SD3.5 has three encoders with different jobs. CLIP-L receives a short
+    # visual label, CLIP-G receives the composition contract, and T5 receives
+    # a compact creative description. Legacy calls leave negative conditioning
+    # empty; compiled prompts supply a short, case-specific exclusion contract.
+    clip_l_positive, clip_g_positive, sd35_positive, sd35_negative = (
+        _workflow_encoder_prompts(engine_id, positive_prompt, compiled_prompt)
+    )
+    width, height = _workflow_dimensions(engine_id)
+
+    profile = sampling_profile or select_sampling_profile(engine_id, 1, summarize_failures(None))
+    values.update(
+        positive_prompt=(
+            positive_prompt
+        ),
+        negative_prompt=(
+            negative_prompt
+        ),
+        clip_l_positive_prompt=clip_l_positive,
+        clip_g_positive_prompt=clip_g_positive,
+        t5_positive_prompt=sd35_positive,
+        clip_l_negative_prompt=sd35_negative,
+        clip_g_negative_prompt=sd35_negative,
+        t5_negative_prompt=sd35_negative,
+        seed=seed,
+        width=width,
+        height=height,
+        output_prefix=(
+            output_prefix
+        ),
+    )
+    values.update(_sampling_parameters(profile))
+
+    workflow = _inject_workflow_values(template, values)
+    if engine_id == settings.engine_3_id and profile and profile.shift is None:
+        # The checkpoint's native sampling configuration is the official
+        # SD3.5 path. Only recovery profiles explicitly override its shift.
+        workflow.pop("55")
+        workflow["3"]["inputs"]["model"] = ["4", 0]
+    if template_image is not None:
+        workflow = apply_template_img2img(workflow, engine_id, template_image, denoise, generation_mask)
+    return workflow
+
+
+def effective_workflow_summary(workflow: dict, engine_id: str) -> dict:
+    """Bounded renderer audit for the exact workflow sent to ComfyUI."""
+    digest = hashlib.sha256(json.dumps(workflow, sort_keys=True).encode("utf-8")).hexdigest()
+    summary = {"workflow_sha256": digest}
+    if engine_id != settings.engine_3_id:
+        return summary
+    loader = workflow["4"]["inputs"]
+    encoders = workflow["54"]["inputs"]
+    sampler = workflow["3"]["inputs"]
+    latent = workflow["53"]["inputs"]
+    sampling_node = workflow.get("55")
+    summary.update(
+        checkpoint=loader["ckpt_name"],
+        clip_l=encoders["clip_name1"], clip_g=encoders["clip_name2"],
+        t5=encoders["clip_name3"], vae=workflow["8"]["inputs"]["vae"],
+        sampler=sampler["sampler_name"], scheduler=sampler["scheduler"],
+        cfg=sampler["cfg"], steps=sampler["steps"],
+        shift=sampling_node["inputs"]["shift"] if sampling_node else None,
+        width=latent["width"], height=latent["height"], seed=sampler["seed"],
+        positive_fields={key: workflow["16"]["inputs"][key] for key in ("clip_l", "clip_g", "t5xxl")},
+        negative_fields={key: workflow["40"]["inputs"][key] for key in ("clip_l", "clip_g", "t5xxl")},
+        positive_route=sampler["positive"], negative_route=sampler["negative"],
+        model_route=sampler["model"],
+    )
+    return summary
+
+
+def apply_template_img2img(
+    workflow: dict, engine_id: str, template_image: str, denoise: float | None,
+    generation_mask: str | None = None,
+) -> dict:
+    """Encode the template and optionally restrict diffusion noise by mask."""
+    if not template_image or Path(template_image).name != template_image:
+        raise ValueError("Template image must be an uploaded ComfyUI input filename")
+    if denoise is None or not 0 < denoise < 1:
+        raise ValueError("Template img2img requires denoise between zero and one")
+    if engine_id == settings.engine_1_id:
+        vae = ["3", 0]
+    elif engine_id in {settings.engine_2_id, settings.engine_3_id}:
+        vae = ["4", 2]
+    else:
+        raise ValueError(f"Unsupported img2img engine: {engine_id}")
+    workflow["90"] = {"class_type": "LoadImage", "inputs": {"image": template_image}}
+    workflow["91"] = {"class_type": "VAEEncode", "inputs": {"pixels": ["90", 0], "vae": vae}}
+    latent = ["91", 0]
+    if generation_mask is not None:
+        if Path(generation_mask).name != generation_mask:
+            raise ValueError("Generation mask must be an uploaded ComfyUI input filename")
+        workflow["93"] = {"class_type": "LoadImageMask", "inputs": {
+            "image": generation_mask, "channel": "red",
+        }}
+        workflow["94"] = {"class_type": "SetLatentNoiseMask", "inputs": {
+            "samples": ["91", 0], "mask": ["93", 0],
+        }}
+        latent = ["94", 0]
+    if engine_id == settings.engine_1_id:
+        workflow["92"] = {
+            "class_type": "SplitSigmasDenoise",
+            "inputs": {"sigmas": ["9", 0], "denoise": denoise},
+        }
+        workflow["11"]["inputs"]["sigmas"] = ["92", 1]
+        workflow["11"]["inputs"]["latent_image"] = latent
+        workflow.pop("10")
+    else:
+        workflow["3"]["inputs"]["latent_image"] = latent
+        workflow["3"]["inputs"]["denoise"] = denoise
+        workflow.pop("53")
+    return workflow
+
+
+def _validate_workflow_node(node_id: str, node: dict, object_info: dict) -> None:
+    kind = node["class_type"]
+
+    if kind not in object_info:
+        raise ComfyUIError(
+            "ComfyUI node "
+            f"{kind} is unavailable "
+            f"(node {node_id})."
+        )
+
+    schema = (
+        object_info[
+            kind
+        ][
+            "input"
+        ]
+    )
+
+    inputs = (
+        node[
+            "inputs"
+        ]
+    )
+
+    missing = (
+        set(
+            schema.get(
+                "required",
+                {},
+            )
+        )
+        - inputs.keys()
+    )
+
+    if missing:
+        raise ComfyUIError(
+            f"Node {kind} missing "
+            "required inputs: "
+            f"{sorted(missing)}"
+        )
+
+    fields = {
+        **schema.get(
+            "required",
+            {},
+        ),
+        **schema.get(
+            "optional",
+            {},
+        ),
+    }
+
+    for (
+        key,
+        specification,
+    ) in fields.items():
+        if (
+            key not in inputs
+            or isinstance(
+                inputs[key],
+                list,
+            )
+        ):
+            continue
+
+        options = None
+        if isinstance(specification[0], list):
+            options = specification[0]
+        elif len(specification) > 1 and isinstance(specification[1], dict):
+            options = specification[1].get("options")
+
+        if (
+            options is not None
+            and inputs[key]
+            not in options
+        ):
+            raise ComfyUIError(
+                "Configured "
+                f"{kind}.{key}="
+                f"{inputs[key]!r} "
+                "is unavailable on ComfyUI."
+            )
+
+
+def validate_workflow(
+    workflow: dict,
+    object_info: dict,
+) -> None:
+    for node_id, node in workflow.items():
+        _validate_workflow_node(node_id, node, object_info)
+
+
+def validate_background(
+    path: Path,
+    *,
+    reference_number: str | None = None,
+    expected_sha256: str | None = None,
+    enforce_palette: bool = True,
+    visual_design: dict | None = None,
+    vision_human_signal: bool | None = None,
+) -> dict:
+    data = (
+        path.read_bytes()
+    )
+
+    if not data.startswith(
+        b"\x89PNG\r\n\x1a\n"
+    ):
+        raise ValueError(
+            "Generated background is not PNG."
+        )
+
+    digest = (
+        hashlib.sha256(
+            data
+        ).hexdigest()
+    )
+
+    if (
+        expected_sha256 is not None
+        and digest
+        != expected_sha256
+    ):
+        raise ValueError(
+            "Generated background SHA-256 mismatch."
+        )
+
+    with Image.open(
+        io.BytesIO(
+            data
+        )
+    ) as image:
+        image.verify()
+
+    with Image.open(
+        io.BytesIO(
+            data
+        )
+    ) as image:
+        image.load()
+
+        image = image.convert(
+            "RGB"
+        )
+
+        width, height = (
+            image.size
+        )
+
+        for ocr_validation_attempt in range(1, MAX_OCR_VALIDATION_ATTEMPTS + 1):
+            pass_timeout = min(settings.ocr_timeout_seconds * ocr_validation_attempt, 60.0)
+            text_evidence = _cached_text_evidence(image, digest, timeout_seconds=pass_timeout)
+            if text_evidence.get("ocr_diagnostics", {}).get("decision") not in {
+                "OCR_UNAVAILABLE", "OCR_PARTIAL", "OCR_PARTIAL_INSUFFICIENT",
+            }:
+                break
+            if ocr_validation_attempt < MAX_OCR_VALIDATION_ATTEMPTS:
+                logger.warning(
+                    "event=ocr_infrastructure_retry sha256=%s validation_attempt=%s/%s "
+                    "next_pass_timeout_seconds=%s decision=%s",
+                    digest, ocr_validation_attempt, MAX_OCR_VALIDATION_ATTEMPTS,
+                    min(settings.ocr_timeout_seconds * (ocr_validation_attempt + 1), 60.0),
+                    text_evidence.get("ocr_diagnostics", {}).get("decision"),
+                )
+        tokens = text_evidence["confirmed_tokens"]
+
+        human_signals = (
+            detect_human_signals(
+                image
+            )
+        )
+        classical_human_signal = bool(human_signals["detected"])
+        ambiguous_human_signal = bool(human_signals.get("ambiguous_face_signal"))
+        human_signals["classical_human_signal"] = classical_human_signal
+        human_signals["vision_human_signal"] = vision_human_signal
+        human_signals["detected"] = classical_human_signal or vision_human_signal is True
+        human_signals["combined_human_decision"] = human_signals["detected"]
+        human_signals["decision_reason"] = (
+            "vision confirmed visible human" if vision_human_signal is True else
+            human_signals.get("human_detection_reason") if classical_human_signal else
+            "isolated ambiguous detector evidence" if ambiguous_human_signal else
+            "no human evidence"
+        )
+
+        problems: list[tuple[str, str]] = []
+        ocr_diagnostics = text_evidence.get("ocr_diagnostics", {})
+        if ocr_diagnostics.get("decision") in {"OCR_UNAVAILABLE", "OCR_PARTIAL", "OCR_PARTIAL_INSUFFICIENT"}:
+            category = ("OCR_TIMEOUT" if ocr_diagnostics.get("timed_out_variants") else
+                        ocr_diagnostics["decision"])
+            problems.append((category, f"{category}: text validation did not complete"))
+        collapse_metrics = boilerplate_metrics(image)
+        collapse_score = collapse_metrics["boilerplate_score"]
+        if collapse_metrics.get("title_panel_score", 0.0) >= 0.65:
+            problems.append(("TITLE_PANEL", "TITLE_PANEL: a bordered blank card occupies the artwork"))
+        if collapse_score >= 0.40:
+            problems.append(("BOILERPLATE_COMPOSITION", f"BOILERPLATE_COMPOSITION: composition collapse {collapse_score:.2f}"))
+        try:
+            quality_result = validate_visual_quality(image, visual_design=visual_design)
+        except ValueError as error:
+            problems.append((classify_failure(str(error)), str(error)))
+            quality_result = {}
+        quality_result.update(collapse_metrics)
+        if visual_design:
+            density = assess_scene_density(image, visual_design.get("density_preference", ""))
+            quality_result["scene_density"] = density
+            quality_result["global_density_decision"] = density["decision"]
+            quality_result["macro_form_balance"] = density["macro_form_balance"]
+            if density["decision"] == "DENSITY_DRIFT":
+                problems.append(("DENSITY_DRIFT", "DENSITY_DRIFT: scene has no usable calm region for requested density"))
+            safe_regions = assess_explicit_safe_regions(density, {
+                "title": str(visual_design.get("title_safe_region_strategy") or ""),
+                "programme": str(visual_design.get("programme_safe_region_strategy") or ""),
+            }, image, visual_design.get("layout_guidance"))
+            quality_result["explicit_safe_regions"] = safe_regions
+            quality_result["explicit_safe_region_decision"] = safe_regions["decision"]
+            if safe_regions["decision"] == "FAIL":
+                failed_names = [name for name, region in safe_regions["regions"].items()
+                                if region["decision"] == "FAIL"]
+                problems.append(("DENSE_SAFE_REGION", "DENSE_SAFE_REGION: high-contrast visual interference in " +
+                                 ", ".join(failed_names) + " region"))
+            elif safe_regions["decision"] == "BORDERLINE":
+                problems.append(("SAFE_REGION_BORDERLINE", "Named text region has visual detail but usable calm area"))
+
+        palette_result = {
+            "palette_checked": False,
+        }
+
+        if reference_number and enforce_palette:
+            document = (
+                load_prompts_document(
+                    reference_number
+                )
+            )
+
+            brief = (
+                document.get(
+                    "brief",
+                    {},
+                )
+            )
+
+            try:
+                palette_result = validate_palette(
+                    image,
+                    brief.get(
+                        "primary_colour"
+                    ),
+                    brief.get(
+                        "secondary_colour"
+                    ),
+                    palette=brief.get("palette"),
+                    relationship=brief.get("palette_relationship"),
+                    relationship_source=brief.get("palette_relationship_source"),
+                    mode=brief.get("palette_mode"),
+                    quality_result={},
+                )
+            except ValueError as error:
+                palette_metrics = getattr(error, "palette_metrics", {})
+                palette_result.update(palette_metrics)
+                problems.append((classify_failure(str(error)), str(error)))
+
+    if (width, height) not in _valid_background_dimensions():
+        problems.append(("DIMENSIONS", f"Unexpected background dimensions: {width}x{height}."))
+
+    if tokens:
+        problems.append(("TEXT", "Generated background contains OCR text: " + ", ".join(tokens[:8])))
+    elif text_evidence.get("pseudo_text", {}).get("detected"):
+        problems.append(("TEXT_OR_LOGO", "Generated background contains grouped glyph-like rows"))
+
+    if (
+        human_signals[
+            "detected"
+        ]
+    ):
+        problems.append(("HUMAN", "Generated background appears to contain a human figure or face."))
+
+    metrics = {
+        "boilerplate_score": collapse_score,
+        "entropy": quality_result.get("image_entropy"),
+        "high_pass_mean": quality_result.get("highpass_mean"),
+        "ocr_tokens": tokens,
+        "text_detection": text_evidence,
+        "ocr_diagnostics": ocr_diagnostics,
+        "ocr_validation_attempts": ocr_validation_attempt,
+        "ocr_validation_sha256": digest,
+        "ocr_detected": bool(tokens),
+        "pseudo_text_evidence": text_evidence.get("pseudo_text", {}),
+        "ocr_region_count": len(tokens),
+        "human_detection": human_signals,
+        "human_detection_confidence": human_signals.get("human_detection_confidence", "low"),
+        "human_detection_evidence": human_signals.get("evidence", []),
+        "classical_human_signal": classical_human_signal,
+        "vision_human_signal": vision_human_signal,
+        "combined_human_decision": human_signals["detected"],
+        "decision_reason": human_signals["decision_reason"],
+        **quality_result,
+        **palette_result,
+    }
+    hard_categories = {"HUMAN", "TEXT", "TEXT_OR_LOGO", "OCR_TIMEOUT", "OCR_UNAVAILABLE",
+                       "OCR_PARTIAL_INSUFFICIENT", "DENSE_SAFE_REGION", "DIMENSIONS", "PALETTE_OFF",
+                       "PALETTE_ROLE_DRIFT"}
+    hard_problems = [item for item in problems if item[0] in hard_categories]
+    validation_report = {
+        "decision": "rejected" if hard_problems else "accepted",
+        "failure_category": None,
+        "diagnostic_findings": [item[0] for item in problems if item[0] not in hard_categories],
+        "palette": {
+            "mode": metrics.get("requested_palette_mode", metrics.get("palette_mode")),
+            "palette_match_ratio": metrics.get("palette_match_ratio"),
+            "off_palette_ratio": metrics.get("off_palette_ratio"),
+            "primary_ratio": metrics.get("primary_ratio", metrics.get("primary_presence_ratio")),
+            "secondary_ratio": metrics.get("secondary_ratio", metrics.get("secondary_presence_ratio")),
+            "requested_chromatic_ratio": metrics.get("requested_chromatic_ratio"),
+            "neutral_ratio": metrics.get("structural_neutral_ratio"),
+            "unrequested_chromatic_ratio": metrics.get("unrequested_chromatic_ratio"),
+            "largest_unrequested_region_ratio": metrics.get("largest_unrequested_region_ratio"),
+            "primary_secondary_ratio": metrics.get("primary_secondary_ratio"),
+            "secondary_presence": metrics.get("secondary_presence"),
+            "dominance_relationship": metrics.get("dominance_relationship"),
+            "dominance_relationship_passed": metrics.get("dominance_relationship_passed"),
+        },
+        "text": {
+            "ocr_diagnostics": ocr_diagnostics,
+            "detected": text_evidence["text_detected"],
+            "tokens": text_evidence["tokens"],
+            "confirmed_tokens": text_evidence["confirmed_tokens"],
+            "text_lines": text_evidence["text_lines"],
+            "text_area_ratio": text_evidence["text_area_ratio"],
+        },
+        "human": {
+            "detected": human_signals["detected"],
+            "strong_signals": human_signals.get("strong_signals", []),
+            "weak_signals": human_signals.get("weak_signals", []),
+            "decision_reason": human_signals["decision_reason"],
+        },
+        "quality": {
+            key: metrics.get(key) for key in (
+                "structural_edge_density", "macro_structure_score", "coarse_edge_density",
+                "high_pass_mean", "boilerplate_score", "title_panel_score",
+                "fine_line_pair_ratio",
+                "macro_form_balance", "scene_density", "global_density_decision",
+                "explicit_safe_regions", "explicit_safe_region_decision",
+            )
+        },
+    }
+    validation_report["quality"]["raster_score"] = metrics.get("fine_line_pair_ratio")
+    if hard_problems:
+        priority = {"HUMAN": 0, "TEXT": 0, "TEXT_OR_LOGO": 0, "OCR_TIMEOUT": 1, "OCR_UNAVAILABLE": 1,
+                    "OCR_PARTIAL": 1, "TITLE_PANEL": 2,
+                    "BOILERPLATE_COMPOSITION": 2,
+                    "DIRECTION_DUPLICATE": 3, "FLAT": 4, "DENSE_SAFE_REGION": 5,
+                    "DENSITY_DRIFT": 5, "WEAK_OUTER_STRUCTURE": 6,
+                    "PALETTE_OFF": 7, "PALETTE_ROLE_DRIFT": 7}
+        category, message = min(hard_problems, key=lambda item: priority.get(item[0], 8))
+        validation_report["failure_category"] = category
+        error = ValueError(message)
+        error.diagnostics = {**metrics, "validation": validation_report,
+                             "primary_failure_category": category,
+                             "all_failure_categories": [item[0] for item in hard_problems]}
+        raise error
+
+    return {
+        "validation": validation_report,
+        "output_path": (
+            str(path)
+        ),
+        "sha256": (
+            digest
+        ),
+        "width": (
+            width
+        ),
+        "height": (
+            height
+        ),
+        "person_detection_count": (
+            len(
+                human_signals[
+                    "people"
+                ]
+            )
+        ),
+        "face_detection_count": (
+            len(
+                human_signals[
+                    "faces"
+                ]
+            )
+        ),
+        "profile_detection_count": (
+            len(
+                human_signals[
+                    "profiles"
+                ]
+            )
+        ),
+        "upper_body_detection_count": (
+            len(
+                human_signals[
+                    "upper_bodies"
+                ]
+            )
+        ),
+        **quality_result,
+        **palette_result,
+        "ocr_tokens": tokens,
+        "ocr_diagnostics": ocr_diagnostics,
+        "ocr_validation_attempts": ocr_validation_attempt,
+        "ocr_validation_sha256": digest,
+        "human_detection": human_signals,
+        "all_failure_categories": [],
+    }
+
+
+class ComfyUIClient:
+    def __init__(
+        self,
+    ):
+        self.http = (
+            httpx.AsyncClient(
+                base_url=(
+                    settings
+                    .comfyui_base_url
+                    .rstrip(
+                        "/"
+                    )
+                ),
+                timeout=(
+                    httpx.Timeout(
+                        60,
+                        connect=(
+                            settings
+                            .comfyui_connect_timeout_seconds
+                        ),
+                    )
+                ),
+            )
+        )
+
+    async def __aenter__(
+        self,
+    ):
+        return self
+
+    async def __aexit__(
+        self,
+        *args,
+    ):
+        await (
+            self.http
+            .aclose()
+        )
+
+    async def request(
+        self,
+        method: str,
+        path: str,
+        **kwargs,
+    ) -> httpx.Response:
+        try:
+            response = (
+                await self.http.request(
+                    method,
+                    path,
+                    **kwargs,
+                )
+            )
+
+            response.raise_for_status()
+
+            return response
+
+        except httpx.HTTPError as error:
+            code = getattr(
+                getattr(
+                    error,
+                    "response",
+                    None,
+                ),
+                "status_code",
+                None,
+            )
+
+            raise ComfyUIError(
+                "ComfyUI "
+                f"{method} {path} failed "
+                f"(HTTP {code or 'unavailable'})."
+            ) from error
+
+    async def health(
+        self,
+    ) -> dict:
+        stats = (
+            await self.request(
+                "GET",
+                "/system_stats",
+            )
+        ).json()
+
+        object_info = (
+            await self.request(
+                "GET",
+                "/object_info",
+            )
+        ).json()
+
+        for engine_id in (
+            settings.engine_1_id,
+            settings.engine_2_id,
+            settings.engine_3_id,
+        ):
+            validate_workflow(
+                build_workflow(
+                    engine_id,
+                    "readiness",
+                    "",
+                    0,
+                    "readiness",
+                ),
+                object_info,
+            )
+
+        return {
+            "status": "available",
+            "version": (
+                stats.get(
+                    "system",
+                    {},
+                )
+                .get(
+                    "comfyui_version"
+                )
+            ),
+            "engines": [
+                settings.engine_1_id,
+                settings.engine_2_id,
+                settings.engine_3_id,
+            ],
+        }
+
+    async def release_models(
+        self,
+    ) -> None:
+        queue = (
+            await self.request(
+                "GET",
+                QUEUE_ENDPOINT,
+            )
+        ).json()
+
+        if (
+            queue.get(
+                "queue_running"
+            )
+            or queue.get(
+                "queue_pending"
+            )
+        ):
+            raise ComfyUIError(
+                "ComfyUI has active jobs; "
+                "cannot release models safely."
+            )
+
+        await self.request(
+            "POST",
+            "/free",
+            json={
+                "unload_models": True,
+                "free_memory": True,
+            },
+        )
+
+        deadline = (
+            time.monotonic()
+            + 60
+        )
+
+        while True:
+            stats = (
+                await self.request(
+                    "GET",
+                    "/system_stats",
+                )
+            ).json()
+
+            devices = (
+                stats.get(
+                    "devices",
+                    [],
+                )
+            )
+
+            if (
+                devices
+                and all(
+                    (
+                        device.get(
+                            "torch_vram_total",
+                            0,
+                        )
+                        <= (
+                            64
+                            * 1024
+                            * 1024
+                        )
+                        and (
+                            device.get(
+                                "vram_total",
+                                0,
+                            )
+                            - device.get(
+                                "vram_free",
+                                0,
+                            )
+                        )
+                        < (
+                            1024
+                            * 1024
+                            * 1024
+                        )
+                    )
+                    for device
+                    in devices
+                )
+            ):
+                logger.info(
+                    "event=comfyui_models_released"
+                )
+
+                return
+
+            if (
+                time.monotonic()
+                >= deadline
+            ):
+                raise ComfyUIError(
+                    "ComfyUI model unload was not "
+                    "confirmed within 60 seconds."
+                )
+
+            await asyncio.sleep(
+                1
+            )
+
+    async def recover_submission(
+        self,
+        request_id: str,
+    ) -> str | None:
+        queue = (
+            await self.request(
+                "GET",
+                QUEUE_ENDPOINT,
+            )
+        ).json()
+
+        history = (
+            await self.request(
+                "GET",
+                "/history",
+                params={
+                    "max_items": 1000,
+                },
+            )
+        ).json()
+
+        entries = (
+            queue.get(
+                "queue_running",
+                [],
+            )
+            + queue.get(
+                "queue_pending",
+                [],
+            )
+        )
+
+        entries += [
+            entry["prompt"]
+            for entry
+            in history.values()
+            if "prompt" in entry
+        ]
+
+        matches = {
+            item[1]
+            for item
+            in entries
+            if (
+                len(item) > 3
+                and item[3].get(
+                    "programme_request_id"
+                )
+                == request_id
+            )
+        }
+
+        if len(matches) > 1:
+            raise SubmissionUncertain(
+                "Multiple remote jobs match "
+                "the submission."
+            )
+
+        return next(
+            iter(matches),
+            None,
+        )
+
+    async def _wait_for_generation(self, prompt_id: str, record: dict, record_path: Path) -> dict:
+        reference_number = record["reference_number"]
+        engine_id = record["engine_id"]
+        direction_id = record["direction_id"]
+        seed = record["seed"]
+        deadline = (
+            time.monotonic()
+            + settings
+            .comfyui_generation_timeout_seconds
+        )
+
+        history = None
+
+        while True:
+            history = (
+                await self.request(
+                    "GET",
+                    (
+                        f"/history/"
+                        f"{prompt_id}"
+                    ),
+                )
+            ).json().get(
+                prompt_id
+            )
+
+            if history:
+                status = (
+                    history.get(
+                        "status",
+                        {},
+                    )
+                    or {}
+                )
+
+                if (
+                    status.get(
+                        "status_str"
+                    )
+                    == "error"
+                ):
+                    error_message = (
+                        _extract_comfyui_execution_error(
+                            history
+                        )
+                    )
+
+                    record.update(
+                        status=(
+                            "runtime_failed"
+                        ),
+                        error=(
+                            error_message
+                        ),
+                        rejection_reason=(
+                            error_message
+                        ),
+                        remote_status=(
+                            status
+                        ),
+                    )
+
+                    write_json(
+                        record_path,
+                        record,
+                    )
+
+                    logger.warning(
+                        "event=comfyui_execution_failed "
+                        "reference=%s "
+                        "engine=%s "
+                        "direction=%s "
+                        "attempt=%s "
+                        "seed=%s "
+                        "error=%s",
+                        reference_number,
+                        engine_id,
+                        direction_id,
+                        record.get(
+                            "attempt_count"
+                        ),
+                        seed,
+                        error_message,
+                    )
+
+                    raise ComfyUIError(
+                        error_message
+                    )
+
+                if (
+                    status.get(
+                        "completed"
+                    )
+                ):
+                    break
+
+            if (
+                time.monotonic()
+                >= deadline
+            ):
+                message = (
+                    "ComfyUI generation timed out."
+                )
+
+                record.update(
+                    status=(
+                        "runtime_failed"
+                    ),
+                    error=(
+                        message
+                    ),
+                    rejection_reason=(
+                        message
+                    ),
+                )
+
+                write_json(
+                    record_path,
+                    record,
+                )
+
+                raise ComfyUIError(
+                    message
+                )
+
+            await asyncio.sleep(
+                settings
+                .comfyui_poll_interval_seconds
+            )
+
+        return history
+
+    async def _submit_candidate(self, record: dict, previous: dict | None, retrying_candidate: bool, workflow: dict, record_path: Path) -> str:
+        prompt_id = (
+            record.get(
+                "prompt_id"
+            )
+        )
+
+        if (
+            not prompt_id
+            and previous
+            and not retrying_candidate
+        ):
+            prompt_id = (
+                await self.recover_submission(
+                    record[
+                        "request_id"
+                    ]
+                )
+            )
+
+            if (
+                prompt_id is None
+            ):
+                raise SubmissionUncertain(
+                    "Submission outcome is unknown; "
+                    "inspect ComfyUI history."
+                )
+
+        if not prompt_id:
+            object_info = (
+                await self.request(
+                    "GET",
+                    "/object_info",
+                )
+            ).json()
+
+            validate_workflow(
+                workflow,
+                object_info,
+            )
+
+            queue = (
+                await self.request(
+                    "GET",
+                    QUEUE_ENDPOINT,
+                )
+            ).json()
+
+            if (
+                queue.get(
+                    "queue_running"
+                )
+                or queue.get(
+                    "queue_pending"
+                )
+            ):
+                raise ComfyUIError(
+                    "ComfyUI is busy; retry after "
+                    "its current queue finishes."
+                )
+
+            write_json(
+                record_path,
+                record,
+            )
+
+            result = (
+                await self.request(
+                    "POST",
+                    "/prompt",
+                    json={
+                        "prompt": (
+                            workflow
+                        ),
+                        "client_id": (
+                            record[
+                                "request_id"
+                            ]
+                        ),
+                        "extra_data": {
+                            "programme_request_id": (
+                                record[
+                                    "request_id"
+                                ]
+                            )
+                        },
+                    },
+                )
+            ).json()
+
+            if (
+                result.get(
+                    "node_errors"
+                )
+                or not result.get(
+                    "prompt_id"
+                )
+            ):
+                node_errors = (
+                    result.get(
+                        "node_errors"
+                    )
+                    or {}
+                )
+
+                message = (
+                    "ComfyUI rejected the workflow."
+                )
+
+                if node_errors:
+                    message += (
+                        " "
+                        + json.dumps(
+                            node_errors,
+                            ensure_ascii=False,
+                        )[:1500]
+                    )
+
+                record.update(
+                    status=(
+                        "runtime_failed"
+                    ),
+                    error=(
+                        message
+                    ),
+                    rejection_reason=(
+                        message
+                    ),
+                )
+
+                write_json(
+                    record_path,
+                    record,
+                )
+
+                raise ComfyUIError(
+                    message
+                )
+
+            prompt_id = (
+                result[
+                    "prompt_id"
+                ]
+            )
+
+        return prompt_id
+
+    def _validate_downloaded_candidate(self, record: dict, retrying_candidate: bool, image_path: Path, candidate_path: Path, descriptor: dict, palette: tuple[str | None, str | None]) -> tuple[dict, dict | None, bool, str | None]:
+        reference_number = record["reference_number"]
+        engine_id = record["engine_id"]
+        direction_id = record["direction_id"]
+        try:
+            candidate_spec = build_candidate_spec(
+                load_prompts_document(reference_number), engine_id, direction_id
+            )
+            visual_design = {**candidate_spec.visual_design,
+                             "semantic_provenance": candidate_spec.semantic_contract.get("semantic_provenance", {}),
+                             "layout_guidance": candidate_spec.layout_guidance}
+        except FileNotFoundError:
+            # Legacy fixture records can be validated without a prompts file.
+            visual_design = None
+        record_path = image_path.with_suffix(".json")
+        primary_colour, secondary_colour = palette
+        raw_validation = None
+        normalized_path = image_path.with_suffix(".normalized.part.png")
+        palette_normalized = False
+        raw_palette_error = None
+        recovery = {"eligible": False, "attempted": False,
+                    "source_off_palette_ratio": None, "result": "not_attempted",
+                    "failure_reason": None, "normalized_off_palette_ratio": None,
+                    "edge_geometry_similarity": None, "structural_detail_preserved": None}
+        record["palette_recovery"] = recovery
+        conditioning = record.get("template_conditioning") or {}
+        adherence = None
+        peer_paths = [
+            image_path.with_name(f"image-{letter}.png")
+            for letter in "abc" if letter != direction_id.lower()
+        ]
+        peers = [path for path in peer_paths if path.is_file()]
+        similarity_metrics = compare_directions_metrics(candidate_path, peers)
+        similarity = similarity_metrics["similarity"]
+        record["direction_similarity_score"] = similarity
+        record["direction_similarity"] = similarity
+        record["direction_similarity_diagnostics"] = similarity_metrics
+        if conditioning.get("enabled"):
+            try:
+                spec = persisted_conditioning_spec(conditioning)
+                if (spec.candidate_sha256 != record.get("spec_sha256") or
+                    spec.reference_number != reference_number or
+                    spec.engine_id != engine_id or spec.direction_id != direction_id or
+                    spec.attempt != record["attempt_count"]):
+                    raise ValueError("Current attempt conditioning identity mismatch")
+                verify_conditioning_artifacts(conditioning)
+            except (OSError, ValueError) as error:
+                raise ComfyUIError(str(error)) from error
+            adherence = assess_template_adherence(candidate_path, spec)
+            record.update(adherence)
+            record["template_adherence"] = adherence
+            write_json(record_path, record)
+
+        adherence_result = None
+        if visual_design:
+            try:
+                with Image.open(candidate_path) as decoded:
+                    decoded.verify()
+                adherence_result = assess_subject_adherence(candidate_path, visual_design)
+            except (OSError, ValueError):
+                pass  # Structural validation below owns corrupt-image rejection.
+            if adherence_result:
+                _record_brief_fidelity(record, adherence_result)
+
+        try:
+            try:
+                # Template alignment is useful to inspect, but is not a reason
+                # to hide an otherwise usable background from the user.
+                raw_validation = validate_background(
+                    candidate_path,
+                    reference_number=reference_number,
+                    visual_design=visual_design,
+                    vision_human_signal=adherence_result.get("vision_human_signal") if adherence_result else None,
+                )
+                validation = raw_validation
+                _record_safe_region_retry(record, raw_validation.get("validation") or {})
+                if adherence_result:
+                    if hard_fidelity_failure(adherence_result):
+                        category = ("VISION_UNAVAILABLE" if adherence_result["decision"] == "unavailable"
+                                    else adherence_result.get("failure_category") or adherence_result["decision"])
+                        record["primary_failure_category"] = category
+                        record["all_failure_categories"] = list(dict.fromkeys([
+                            category, *_semantic_failure_categories(record),
+                        ]))
+                        record["validation"] = {**record.get("validation", {}),
+                                                "decision": "rejected", "failure_category": category,
+                                                "subject_adherence": adherence_result,
+                                                "brief_fidelity": record["brief_fidelity"]}
+                        raise ValueError(category + ": " + adherence_result["reason"])
+                # Similarity is a diagnostic; the user chooses among all valid outputs.
+
+            except ValueError as error:
+                raw_palette_error = (
+                    str(
+                        error
+                    )
+                )
+                diagnostics = getattr(error, "diagnostics", None)
+                if diagnostics:
+                    record.update(diagnostics)
+                    _record_safe_region_retry(record, diagnostics.get("validation") or {})
+                    recovery["source_off_palette_ratio"] = diagnostics.get("off_palette_ratio")
+                if adherence_result and adherence_result.get("decision") != "pass":
+                    combined = record.get("all_failure_categories") or [classify_failure(str(error))]
+                    record["all_failure_categories"] = list(dict.fromkeys([
+                        *combined, *_semantic_failure_categories(record),
+                        *(["VISION_UNAVAILABLE"] if adherence_result["decision"] == "unavailable" else []),
+                    ]))
+                    record["secondary_failure_categories"] = [
+                        item for item in record["all_failure_categories"]
+                        if item != record.get("primary_failure_category")
+                    ]
+                if similarity >= 0.88:
+                    record["direction_similarity_diagnostic"] = similarity
+
+                # ====================================================
+                # Engine-specific deterministic palette-only recovery
+                # ====================================================
+                #
+                # This path is eligible ONLY when:
+                #
+                # - the validator specifically reported bounded
+                #   off-palette drift;
+                # - a requested primary colour exists;
+                # - the engine is SDXL or SD3.5;
+                # - SDXL is eligible from the first attempt when the
+                #   measured drift is bounded;
+                # - SD3.5 is within its tighter 0.15 recovery ceiling.
+                #
+                # _palette_only_recovery() first executes complete
+                # non-palette validation on the raw candidate.
+                #
+                # Therefore raster-corrupt, human-containing,
+                # text-containing, flat, noisy or otherwise structurally
+                # invalid candidates cannot be rescued merely by recolouring.
+                #
+                # The recoloured result then goes through the normal FULL
+                # validate_background() path again, so final palette
+                # acceptance remains strict.
+                # ====================================================
+
+                palette_recovery_engine = bool(
+                    engine_id
+                    in {
+                        settings.engine_2_id,
+                        settings.engine_3_id,
+                    }
+                )
+
+                # Controlled one-shot probes and production candidates use the
+                # same bounded recovery path from their first attempt.
+                sdxl_recovery_ready = engine_id == settings.engine_2_id
+
+                sd35_recovery_ready = bool(
+                    engine_id
+                    == settings.engine_3_id
+                )
+
+                palette_recovery_ready = bool(
+                    palette_recovery_engine
+                    and (
+                        sdxl_recovery_ready
+                        or sd35_recovery_ready
+                    )
+                    and _recoverable_palette_error(
+                        raw_palette_error,
+                        engine_id,
+                    )
+                    and _palette_recovery_source_is_eligible(diagnostics, adherence_result)
+                    and primary_colour
+                    and not hard_fidelity_failure(adherence_result)
+                    and len((load_prompts_document(reference_number).get("brief") or {}).get("palette") or []) <= 2
+                )
+                recovery["eligible"] = palette_recovery_ready
+                if not palette_recovery_ready:
+                    recovery["failure_reason"] = (
+                        "Palette-only recovery conditions were not met"
+                    )
+
+                if (
+                    palette_recovery_ready
+                ):
+                    recovery["attempted"] = True
+                    try:
+                        (
+                            raw_validation,
+                            validation,
+                        ) = (
+                            _palette_only_recovery(
+                                candidate_path,
+                                normalized_path,
+                                reference_number,
+                                primary_colour,
+                                secondary_colour,
+                                visual_design,
+                                recovery,
+                                adherence_result.get("vision_human_signal") if adherence_result else None,
+                            )
+                        )
+
+                        palette_normalized = (
+                            True
+                        )
+                        if validation.get("subject_adherence"):
+                            record["raw_subject_adherence"] = adherence_result
+                            adherence_result = validation["subject_adherence"]
+                            _record_brief_fidelity(record, adherence_result)
+                        recovery.update(
+                            result="accepted",
+                            normalized_off_palette_ratio=validation.get("off_palette_ratio"),
+                            edge_geometry_similarity=_edge_geometry_similarity(candidate_path, normalized_path),
+                            structural_detail_preserved=_preserves_structural_detail(raw_validation, validation),
+                        )
+
+                        logger.info(
+                            "event=palette_normalization_succeeded "
+                            "reference=%s "
+                            "engine=%s "
+                            "direction=%s "
+                            "attempt=%s "
+                            "raw_error=%s",
+                            reference_number,
+                            engine_id,
+                            direction_id,
+                            record.get(
+                                "attempt_count"
+                            ),
+                            raw_palette_error,
+                        )
+
+                    except ValueError as recovery_error:
+                        recovery.update(result="rejected", failure_reason=str(recovery_error)[:240])
+                        logger.info(
+                            "event=palette_normalization_rejected "
+                            "reference=%s "
+                            "engine=%s "
+                            "direction=%s "
+                            "attempt=%s "
+                            "raw_error=%s "
+                            "recovery_error=%s",
+                            reference_number,
+                            engine_id,
+                            direction_id,
+                            record.get(
+                                "attempt_count"
+                            ),
+                            raw_palette_error,
+                            str(
+                                recovery_error
+                            ),
+                        )
+
+                if palette_normalized and hard_fidelity_failure(adherence_result):
+                    category = ("VISION_UNAVAILABLE" if adherence_result["decision"] == "unavailable"
+                                else adherence_result.get("failure_category") or "BRIEF_FIDELITY_DRIFT")
+                    palette_normalized = False
+                    recovery.update(result="rejected", failure_reason=category)
+                    error = ValueError(category + ": " + adherence_result.get("reason", ""))
+
+                if not (
+                    palette_normalized
+                ):
+                    rejected_path = image_path.with_name(
+                        f"{image_path.stem}.attempt-{record['attempt_count']:02d}.rejected.png"
+                    )
+                    write_bytes(rejected_path, candidate_path.read_bytes())
+                    record.update(
+                        status=(
+                            "rejected"
+                        ),
+                        rejection_reason=(
+                            str(
+                                error
+                            )
+                        ),
+                        outcome_category=classify_failure(str(error)),
+                        primary_failure_category=record.get("primary_failure_category", classify_failure(str(error))),
+                        all_failure_categories=record.get("all_failure_categories", [classify_failure(str(error))]),
+                        error=None,
+                        remote_image=(
+                            descriptor
+                        ),
+                        rejected_image_path=str(rejected_path),
+                    )
+                    record["secondary_failure_categories"] = [
+                        item for item in record["all_failure_categories"]
+                        if item != record["primary_failure_category"]
+                    ]
+                    record["reproducibility_manifest"] = build_reproducibility_manifest(record)
+
+                    write_json(
+                        record_path,
+                        record,
+                    )
+
+                    raise ComfyUIError(
+                        str(
+                            error
+                        )
+                    ) from error
+
+            if (
+                not retrying_candidate
+                and record.get(
+                    "sha256"
+                )
+                and validation[
+                    "sha256"
+                ]
+                != record[
+                    "sha256"
+                ]
+            ):
+                raise ComfyUIError(
+                    "Remote output changed since "
+                    "the original generation."
+                )
+
+            if palette_normalized:
+                raw_image_path = image_path.with_suffix(".raw.png")
+                candidate_path.replace(raw_image_path)
+                normalized_path.replace(candidate_path)
+            candidate_path.replace(
+                image_path
+            )
+
+        finally:
+            candidate_path.unlink(
+                missing_ok=True
+            )
+            normalized_path.unlink(missing_ok=True)
+
+        return validation, raw_validation, palette_normalized, raw_palette_error
+
+    async def _download_candidate(self, history: dict, workflow: dict, record: dict, record_path: Path, image_path: Path) -> tuple[dict, Path]:
+        save_nodes = [
+            node_id
+            for (
+                node_id,
+                item,
+            ) in workflow.items()
+            if (
+                item[
+                    "class_type"
+                ]
+                == "SaveImage"
+            )
+        ]
+
+        images = [
+            image
+            for node_id
+            in save_nodes
+            for image
+            in (
+                history.get(
+                    "outputs",
+                    {},
+                )
+                .get(
+                    node_id,
+                    {},
+                )
+                .get(
+                    "images",
+                    [],
+                )
+            )
+        ]
+
+        if (
+            len(images) != 1
+            or images[0].get(
+                "type"
+            )
+            != "output"
+        ):
+            message = (
+                "Expected exactly one persisted "
+                "ComfyUI output image."
+            )
+
+            record.update(
+                status=(
+                    "runtime_failed"
+                ),
+                error=(
+                    message
+                ),
+                rejection_reason=(
+                    message
+                ),
+            )
+
+            write_json(
+                record_path,
+                record,
+            )
+
+            raise ComfyUIError(
+                message
+            )
+
+        descriptor = (
+            images[0]
+        )
+
+        response = (
+            await self.request(
+                "GET",
+                "/view",
+                params={
+                    "filename": (
+                        descriptor[
+                            "filename"
+                        ]
+                    ),
+                    "subfolder": (
+                        descriptor.get(
+                            "subfolder",
+                            "",
+                        )
+                    ),
+                    "type": "output",
+                },
+            )
+        )
+
+        candidate_path = (
+            image_path.with_suffix(
+                ".download.part"
+            )
+        )
+
+        write_bytes(
+            candidate_path,
+            response.content,
+        )
+
+        return descriptor, candidate_path
+
+    def _load_existing_candidate(self, record_path: Path, image_path: Path, spec_sha256: str | None, reference_number: str, engine_id: str, direction_id: str) -> tuple[dict | None, dict | None]:
+        previous = (
+            json.loads(
+                record_path.read_text(
+                    encoding="utf-8"
+                )
+            )
+            if record_path.exists()
+            else None
+        )
+
+        if (
+            previous and spec_sha256 and previous.get("spec_sha256")
+            and previous["spec_sha256"] != spec_sha256
+        ):
+            raise ComfyUIError(
+                "Candidate specification changed across attempts; "
+                "preserve this job and use a new reference."
+            )
+
+        if (
+            previous
+            and previous.get("status") != "complete"
+            and _attempt_budget_exhausted(previous)
+        ):
+            raise ComfyUIError(
+                "Candidate attempt budget is exhausted; no additional "
+                "ComfyUI submission will be made."
+            )
+
+        #
+        # Reuse completed candidate only if it still validates.
+        #
+        if (
+            previous
+            and previous.get(
+                "status"
+            )
+            == "complete"
+        ):
+            try:
+                spec = build_candidate_spec(load_prompts_document(reference_number), engine_id, direction_id)
+                design = {**spec.visual_design, "semantic_provenance": spec.semantic_contract.get("semantic_provenance", {}),
+                          "layout_guidance": spec.layout_guidance}
+                subject = assess_subject_adherence(image_path, design)
+                previous_hard_failure = hard_fidelity_failure(previous.get("subject_adherence"))
+                if subject.get("decision") != "unavailable":
+                    _record_brief_fidelity(previous, subject)
+                verified = (
+                    validate_background(
+                        image_path,
+                        reference_number=(
+                            reference_number
+                        ),
+                        expected_sha256=(
+                            previous[
+                                "sha256"
+                            ]
+                        ),
+                        visual_design=design,
+                        vision_human_signal=subject.get("vision_human_signal"),
+                    )
+                )
+                if hard_fidelity_failure(subject):
+                    raise ValueError((subject.get("failure_category") or "SUBJECT_DRIFT") + ": " + subject.get("reason", ""))
+                if subject.get("decision") == "unavailable" and previous_hard_failure:
+                    raise ValueError("VISION_UNAVAILABLE: earlier hard semantic failure has no fresh successful assessment")
+                previous.update(verified, validation=verified, reused=True)
+                write_json(record_path, previous)
+                return previous, previous
+
+            except (
+                OSError,
+                ValueError,
+            ) as error:
+                previous.update(getattr(error, "diagnostics", {}))
+                previous.update(status="rejected", rejection_reason=str(error),
+                                outcome_category=classify_failure(str(error)))
+                write_json(record_path, previous)
+                if _attempt_budget_exhausted(previous):
+                    raise ComfyUIError("Candidate attempt budget is exhausted; no additional ComfyUI submission will be made.") from error
+                logger.warning(
+                    "event=background_invalid "
+                    "reference=%s "
+                    "engine=%s "
+                    "direction=%s",
+                    reference_number,
+                    engine_id,
+                    direction_id,
+                )
+
+        return previous, None
+
+    def _prior_attempts(self, previous: dict | None, retrying_rejected_candidate: bool, retrying_failed_execution: bool) -> tuple[list[dict], list[dict]]:
+        rejected_attempts = (
+            list(
+                previous.get(
+                    "rejected_attempts",
+                    [],
+                )
+            )
+            if previous
+            else []
+        )
+
+        failed_attempts = (
+            list(
+                previous.get(
+                    "failed_attempts",
+                    [],
+                )
+            )
+            if previous
+            else []
+        )
+
+        if (
+            retrying_rejected_candidate
+            and previous
+        ):
+            rejected_attempts.append(
+                {
+                    "attempt_count": (
+                        previous.get(
+                            "attempt_count",
+                            1,
+                        )
+                    ),
+                    "seed": (
+                        previous.get(
+                            "seed"
+                        )
+                    ),
+                    "prompt_id": (
+                        previous.get(
+                            "prompt_id"
+                        )
+                    ),
+                    "sha256": (
+                        previous.get(
+                            "sha256"
+                        )
+                    ),
+                    "rejection_reason": (
+                        previous.get(
+                            "rejection_reason"
+                        )
+                    ),
+                    "failure_category": previous.get("failure_category"),
+                    "primary_failure_category": previous.get("primary_failure_category"),
+                    "all_failure_categories": previous.get("all_failure_categories"),
+                    "validation": previous.get("validation"),
+                    "subject_adherence": previous.get("subject_adherence"),
+                    "direction_similarity_diagnostics": previous.get("direction_similarity_diagnostics"),
+                    "palette_metrics": previous.get("palette_metrics"),
+                    "text_detection": previous.get("text_detection"),
+                    "human_detection": previous.get("human_detection"),
+                    "quality_metrics": previous.get("quality_metrics"),
+                    "retry_stage": previous.get("retry_stage"),
+                    "spec_sha256": previous.get("spec_sha256"),
+                    "direction_role": previous.get("direction_role"),
+                    "compiled_prompt": previous.get("compiled_prompt"),
+                    "sampling_profile": previous.get("sampling_profile"),
+                    "selection_reason": previous.get("selection_reason"),
+                    "failure_history": previous.get("failure_history"),
+                    "renderer_recovery_type": previous.get("renderer_recovery_type"),
+                    "outcome_category": previous.get("outcome_category"),
+                    "template_conditioning": previous.get("template_conditioning"),
+                    "template_adherence": previous.get("template_adherence"),
+                    "quality_evaluation": previous.get("quality_evaluation"),
+                    "validator_availability": previous.get("validator_availability"),
+                    "reproducibility_manifest": previous.get("reproducibility_manifest"),
+                }
+            )
+
+        if (
+            retrying_failed_execution
+            and previous
+        ):
+            failed_attempts.append(
+                {
+                    "attempt_count": (
+                        previous.get(
+                            "attempt_count",
+                            1,
+                        )
+                    ),
+                    "seed": (
+                        previous.get(
+                            "seed"
+                        )
+                    ),
+                    "prompt_id": (
+                        previous.get(
+                            "prompt_id"
+                        )
+                    ),
+                    "error": (
+                        previous.get(
+                            "error"
+                        )
+                    ),
+                    "remote_status": (
+                        previous.get(
+                            "remote_status"
+                        )
+                    ),
+                    "failure_category": previous.get("failure_category"),
+                    "retry_stage": previous.get("retry_stage"),
+                    "spec_sha256": previous.get("spec_sha256"),
+                    "direction_role": previous.get("direction_role"),
+                    "compiled_prompt": previous.get("compiled_prompt"),
+                    "sampling_profile": previous.get("sampling_profile"),
+                    "outcome_category": previous.get("outcome_category"),
+                    "template_conditioning": previous.get("template_conditioning"),
+                    "template_adherence": previous.get("template_adherence"),
+                }
+            )
+
+        return rejected_attempts, failed_attempts
+
+    @staticmethod
+    def _candidate_seed(
+        previous: dict | None,
+        retrying_candidate: bool,
+        seed_override: int | None,
+    ) -> int:
+        if seed_override is not None:
+            if not 0 <= seed_override < 2**63:
+                raise ValueError("Probe seed must fit the supported signed 63-bit range")
+            return seed_override
+        if previous and not retrying_candidate:
+            return previous["seed"]
+        return secrets.randbits(63)
+
+    @staticmethod
+    def _retry_states(previous: dict | None) -> tuple[bool, bool]:
+        if not previous:
+            return False, False
+        rejected = bool(
+            previous.get("rejection_reason") and previous.get("status") == "rejected"
+        )
+        failed = previous.get("status") in {"failed", "runtime_failed"}
+        return rejected, failed
+
+    @staticmethod
+    def _verify_frozen_workflow(
+        previous: dict | None, retrying_candidate: bool, fingerprint: str,
+    ) -> None:
+        if (
+            previous and not retrying_candidate
+            and previous.get("workflow_sha256")
+            and previous["workflow_sha256"] != fingerprint
+        ):
+            raise ComfyUIError(
+                "Frozen workflow differs from stored candidate; use a new reference."
+            )
+
+    async def generate_image(
+        self,
+        reference_number: str,
+        engine_id: str,
+        direction_id: str,
+        positive_prompt: str,
+        negative_prompt: str,
+        compiled_prompt=None,
+        spec_sha256: str | None = None,
+        direction_role: str | None = None,
+        retry_stage: str | None = None,
+        failure_category: str | None = None,
+        sampling_profile: SamplingProfile | None = None,
+        seed_override: int | None = None,
+    ) -> dict:
+        workflow_name(
+            engine_id
+        )
+
+        if (
+            direction_id
+            not in {
+                "A",
+                "B",
+                "C",
+            }
+        ):
+            raise ValueError(
+                "Direction must be A, B or C."
+            )
+
+        directory = (
+            get_job_directory(
+                reference_number
+            )
+            / "backgrounds"
+            / engine_id
+        )
+
+        directory.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+
+        record_path = (
+            directory
+            / (
+                "image-"
+                f"{direction_id.lower()}"
+                ".json"
+            )
+        )
+
+        image_path = (
+            directory
+            / (
+                "image-"
+                f"{direction_id.lower()}"
+                ".png"
+            )
+        )
+
+        previous, reused = self._load_existing_candidate(
+            record_path, image_path, spec_sha256, reference_number, engine_id, direction_id,
+        )
+        if reused is not None:
+            return reused
+        if previous and previous.get("status") == "rejected" and str(
+            previous.get("primary_failure_category") or ""
+        ) in {"OCR_TIMEOUT", "OCR_UNAVAILABLE", "OCR_PARTIAL_INSUFFICIENT"}:
+            raise ComfyUIError("OCR validation remained unavailable for the existing candidate")
+
+        retrying_rejected_candidate, retrying_failed_execution = self._retry_states(previous)
+
+        retrying_candidate = (
+            retrying_rejected_candidate
+            or retrying_failed_execution
+        )
+
+        #
+        # Every rejected/runtime-failed attempt gets a fresh seed.
+        #
+        seed = self._candidate_seed(previous, retrying_candidate, seed_override)
+
+        document = (
+            load_prompts_document(
+                reference_number
+            )
+        )
+        candidate_spec = build_candidate_spec(document, engine_id, direction_id)
+        if spec_sha256 and candidate_spec.spec_sha256 != spec_sha256:
+            raise ComfyUIError("Candidate specification changed before native generation")
+
+        brief = (
+            document.get(
+                "brief",
+                {},
+            )
+        )
+
+        primary_colour = (
+            brief.get(
+                "primary_colour"
+            )
+        )
+
+        secondary_colour = (
+            brief.get(
+                "secondary_colour"
+            )
+        )
+
+        actual_positive_prompt, actual_negative_prompt = _transport_prompts(
+            engine_id, positive_prompt, negative_prompt,
+            primary_colour, secondary_colour, compiled_prompt,
+        )
+
+        failure_history = summarize_failures(previous)
+        selected_profile = sampling_profile or select_sampling_profile(
+            engine_id,
+            int(previous.get("attempt_count", 0)) + 1 if retrying_candidate else 1,
+            failure_history,
+        )
+        profile_diagnostics = profile_selection_diagnostics(selected_profile, failure_history)
+
+        resume_frozen = bool(previous and previous.get("status") in {"prepared", "submitted"}
+                             and not retrying_candidate and previous.get("workflow"))
+        if resume_frozen:
+            if any(node.get("class_type") in {"LoadImage", "VAEEncode", "SetLatentNoiseMask"}
+                   for node in previous["workflow"].values()):
+                raise ComfyUIError("Legacy conditioned attempt cannot resume in native generation mode")
+
+        workflow = previous["workflow"] if resume_frozen else (
+            build_workflow(
+                engine_id,
+                actual_positive_prompt,
+                actual_negative_prompt,
+                seed,
+                (
+                    "programme-studio/"
+                    f"{reference_number}/"
+                    f"{engine_id}/"
+                    f"{direction_id.lower()}"
+                ),
+                compiled_prompt=compiled_prompt,
+                sampling_profile=selected_profile,
+            )
+        )
+
+        fingerprint = (
+            hashlib.sha256(
+                json.dumps(
+                    workflow,
+                    sort_keys=True,
+                ).encode(
+                    "utf-8"
+                )
+            ).hexdigest()
+        )
+
+        self._verify_frozen_workflow(previous, retrying_candidate, fingerprint)
+
+        rejected_attempts, failed_attempts = self._prior_attempts(
+            previous, retrying_rejected_candidate, retrying_failed_execution,
+        )
+
+        source_marker = get_job_directory(reference_number) / "probe-source.json"
+        source_reference = reference_number
+        prompt_manifest = source_prompt_manifest(load_prompts_document(reference_number))
+        if source_marker.is_file():
+            try:
+                source_data = json.loads(source_marker.read_text(encoding="utf-8"))
+                source_reference = source_data.get("source_reference") or reference_number
+                prompt_manifest = source_data.get("source_prompt_manifest") or prompt_manifest
+            except (OSError, ValueError):
+                source_reference = reference_number
+
+        record = {
+            "reference_number": (
+                reference_number
+            ),
+            "source_reference": source_reference,
+            "source_prompt_manifest": prompt_manifest,
+            "engine_id": (
+                engine_id
+            ),
+            "direction_id": (
+                direction_id
+            ),
+            "seed": (
+                seed
+            ),
+            "workflow_sha256": (
+                fingerprint
+            ),
+            "effective_workflow": effective_workflow_summary(workflow, engine_id),
+            "request_id": (
+                str(
+                    uuid.uuid4()
+                )
+            ),
+            "status": (
+                "prepared"
+            ),
+            "attempt_count": _candidate_attempt_number(previous, retrying_candidate),
+            "positive_prompt": (
+                actual_positive_prompt
+            ),
+            "workflow": (
+                workflow
+            ),
+            "spec_sha256": spec_sha256,
+            "SPEC_SHA256": candidate_spec.spec_sha256,
+            "ENGINE": engine_id,
+            "DIRECTION": direction_id,
+            "DIRECTION_ROLE": direction_role,
+            "ATTEMPT": _candidate_attempt_number(previous, retrying_candidate),
+            "RETRY_STAGE": retry_stage,
+            "SEED": seed,
+            "candidate_spec_sha256": candidate_spec.spec_sha256,
+            "semantic_contract_version": candidate_spec.semantic_contract["semantic_contract_version"],
+            "semantic_contract_sha256": candidate_spec.semantic_contract_sha256,
+            "semantic_consistency": candidate_spec.visual_design["semantic_consistency"],
+            "semantic_completeness": candidate_spec.visual_design["semantic_completeness"],
+            "vision_model": settings.subject_vision_model,
+            "ocr_config": {"timeout_seconds": settings.ocr_timeout_seconds},
+            "direction_role": direction_role,
+            "creative_concept": candidate_spec.original_positive_prompt,
+            "visual_anchors": candidate_spec.visual_design["visual_anchors"],
+            "composition_strategy": candidate_spec.visual_design["composition_strategy"],
+            "resolved_palette": candidate_spec.visual_design["requested_palette"],
+            "palette_mode": candidate_spec.visual_design["palette_mode"],
+            "requested_primary": primary_colour,
+            "requested_secondary": secondary_colour,
+            "palette_roles": [item.get("role") for item in candidate_spec.visual_design["requested_palette"]],
+            "safe_region_strategy": {
+                "title": candidate_spec.visual_design["title_safe_region_strategy"],
+                "programme": candidate_spec.visual_design["programme_safe_region_strategy"],
+            },
+            "sampling_profile": selected_profile.record() if selected_profile else None,
+            "sampling_profile_name": selected_profile.name if selected_profile else None,
+            "sampling_profile_stage": retry_stage or (compiled_prompt.retry_stage if compiled_prompt else None),
+            "sampling_profile_failure_history": profile_diagnostics["failure_history"],
+            **profile_diagnostics,
+            "generation_mode": "native_text_to_image",
+            "GENERATION_MODE": "native_text_to_image",
+            "TEMPLATE_CONDITIONING_ENABLED": False,
+            "MASKED_DENOISING_ENABLED": False,
+            "TEMPLATE_PATH": None,
+            "template_conditioning": {"enabled": False, "masked_denoising_enabled": False},
+        }
+        record.update(_record_prompt_metadata(
+            engine_id, actual_positive_prompt, actual_negative_prompt,
+            compiled_prompt, retry_stage, failure_category,
+        ))
+        record["reproducibility_manifest"] = build_reproducibility_manifest(record)
+
+        if rejected_attempts:
+            record[
+                "rejected_attempts"
+            ] = (
+                rejected_attempts
+            )
+
+        if failed_attempts:
+            record[
+                "failed_attempts"
+            ] = (
+                failed_attempts
+            )
+
+        if (
+            previous
+            and not retrying_candidate
+        ):
+            record = previous
+
+        prompt_id = await self._submit_candidate(
+            record, previous, retrying_candidate, workflow, record_path,
+        )
+
+        record.update(
+            prompt_id=(
+                prompt_id
+            ),
+            status=(
+                "submitted"
+            ),
+        )
+
+        write_json(
+            record_path,
+            record,
+        )
+
+        logger.info(
+            "event=comfyui_submitted "
+            "reference=%s "
+            "engine=%s "
+            "direction=%s "
+            "attempt=%s "
+            "seed=%s "
+            "prompt_id=%s",
+            reference_number,
+            engine_id,
+            direction_id,
+            record.get(
+                "attempt_count"
+            ),
+            seed,
+            prompt_id,
+        )
+
+        history = await self._wait_for_generation(prompt_id, record, record_path)
+
+        descriptor, candidate_path = await self._download_candidate(
+            history, workflow, record, record_path, image_path,
+        )
+
+        validation, raw_validation, palette_normalized, raw_palette_error = (
+            self._validate_downloaded_candidate(
+                record, retrying_candidate, image_path, candidate_path, descriptor,
+                (primary_colour, secondary_colour),
+            )
+        )
+
+        record.update(
+            validation,
+            validation=validation,
+            raw_validation=raw_validation,
+            final_validation=validation,
+            palette_normalized=palette_normalized,
+            raw_palette_error=raw_palette_error if palette_normalized else None,
+            outcome_category="PASS",
+            raw_image_path=str(image_path.with_suffix(".raw.png")) if palette_normalized else None,
+            status=(
+                "complete"
+            ),
+            error=None,
+            rejection_reason=None,
+            output_path=(
+                str(image_path)
+            ),
+            remote_image=(
+                descriptor
+            ),
+        )
+        record["all_failure_categories"] = []
+        record["secondary_failure_categories"] = []
+        record["reproducibility_manifest"] = build_reproducibility_manifest(record)
+
+        write_json(
+            record_path,
+            record,
+        )
+
+        logger.info(
+            "event=background_verified "
+            "reference=%s "
+            "engine=%s "
+            "direction=%s "
+            "sha256=%s "
+            "palette_mode=%s "
+            "palette_checked=%s palette_ratio=%s off_palette_ratio=%s "
+            "primary_ratio=%s secondary_ratio=%s unrequested_chromatic_ratio=%s "
+            "largest_unrequested_region_ratio=%s structural_neutral_ratio=%s",
+            reference_number,
+            engine_id,
+            direction_id,
+            record[
+                "sha256"
+            ],
+            record.get(
+                "palette_mode"
+            ),
+            record.get("palette_checked"),
+            record.get(
+                "palette_match_ratio"
+            ),
+            record.get("off_palette_ratio"),
+            record.get("primary_ratio"),
+            record.get("secondary_ratio"),
+            record.get("unrequested_chromatic_ratio"),
+            record.get("largest_unrequested_region_ratio"),
+            record.get("structural_neutral_ratio"),
+        )
+
+        return {
+            **record,
+            "reused": False,
+        }
+
+
+async def get_runtime_health() -> dict:
+    async with ComfyUIClient() as client:
+        return (
+            await client.health()
+        )
+
+
+async def generate_remote_image(
+    reference_number: str,
+    engine_id: str,
+    direction_id: str,
+    positive_prompt: str,
+    negative_prompt: str,
+    compiled_prompt=None,
+    spec_sha256: str | None = None,
+    direction_role: str | None = None,
+    retry_stage: str | None = None,
+    failure_category: str | None = None,
+    sampling_profile: SamplingProfile | None = None,
+) -> dict:
+    async with ComfyUIClient() as client:
+        return (
+            await client.generate_image(
+                reference_number,
+                engine_id,
+                direction_id,
+                positive_prompt,
+                negative_prompt,
+                compiled_prompt=compiled_prompt,
+                spec_sha256=spec_sha256,
+                direction_role=direction_role,
+                retry_stage=retry_stage,
+                failure_category=failure_category,
+                sampling_profile=sampling_profile,
+            )
+        )

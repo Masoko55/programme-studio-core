@@ -1,0 +1,15 @@
+REFERENCE=7C89D3-822590
+
+2026-10-19 13:05:42.5869573250 19146 /home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/prompts.json
+2026-10-19 13:05:42.5909573520 6337 /home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/brief.json
+2026-10-19 13:05:42.5929573660 146 /home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/probe-source.json
+2026-10-19 13:06:10.5921475340 1434460 /home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-01.rejected.png
+2026-10-19 13:06:35.5173131180 994844 /home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-02.rejected.png
+2026-10-19 13:07:12.3355516950 1901113 /home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-03.rejected.png
+2026-10-19 13:07:38.2587156130 1306389 /home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-04.rejected.png
+2026-10-19 13:08:05.0988819750 1415816 /home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-05.rejected.png
+2026-10-19 13:08:46.4811322150 1742942 /home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-06.rejected.png
+2026-10-19 13:10:10.0236164160 1561314 /home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-07.rejected.png
+2026-10-19 13:11:35.4700862940 1820236 /home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-08.rejected.png
+2026-10-19 13:12:14.6142940860 1971342 /home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-09.rejected.png
+2026-10-19 13:12:14.6452942490 564401 /home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.json

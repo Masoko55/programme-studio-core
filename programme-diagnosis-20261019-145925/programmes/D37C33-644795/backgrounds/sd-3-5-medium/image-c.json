@@ -1,0 +1,3009 @@
+{
+  "reference_number": "D37C33-644795",
+  "source_reference": "D37C33-644795",
+  "source_prompt_manifest": {
+    "prompt_schema_version": "1.0",
+    "semantic_contract_version": "1.0",
+    "creative_direction_version": "2.0",
+    "prompt_generation_sha256": "f2d358ec2871a9cf4def2491d6ef8cf6f7aa9a738757e0cb70bc5690ba8959a9",
+    "hash_verified": true,
+    "freshness_status": "CURRENT",
+    "created_at": "2026-10-19T09:59:53.852311Z"
+  },
+  "engine_id": "sd-3-5-medium",
+  "direction_id": "C",
+  "seed": 7747822824721817734,
+  "workflow_sha256": "e6990a78f2b07b7d05ec447b54b5d39575791eb603ef78bce0cf6997ad463f17",
+  "effective_workflow": {
+    "workflow_sha256": "e6990a78f2b07b7d05ec447b54b5d39575791eb603ef78bce0cf6997ad463f17",
+    "checkpoint": "sd3.5_medium.safetensors",
+    "clip_l": "clip_l.safetensors",
+    "clip_g": "clip_g.safetensors",
+    "t5": "t5xxl_fp8_e4m3fn.safetensors",
+    "vae": [
+      "4",
+      2
+    ],
+    "sampler": "dpmpp_2m",
+    "scheduler": "sgm_uniform",
+    "cfg": 4.0,
+    "steps": 28,
+    "shift": null,
+    "width": 896,
+    "height": 1280,
+    "seed": 7747822824721817734,
+    "positive_fields": {
+      "clip_l": "Visual subject: A clean contemporary technology hall with layered architectural panels,. Anchors: A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional. Event context: Corporate conference. Audience: Adults.",
+      "clip_g": "Visual subject: A clean contemporary technology hall with layered architectural panels,. Event context: Corporate conference. Audience: Adults. Event atmosphere: Professional, Confident, Modern. Composition: off-centre focal placement, horizontal flow, layered depth. Palette: navy, white; navy clearly visible in design elements; primary visual mass, secondary accents; neutrals support.",
+      "t5xxl": "Visual subject: A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth.. Anchors: A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional. Event context: Corporate conference. Audience: Adults. Event atmosphere: Professional, Confident, Modern. Motif: The layered architectural panels and subtle connected geometry should create. Motif as abstract pattern structure; no unrequested literal objects Palette: navy, white; navy clearly visible in substantial design elements; white clearly visible; primary visual mass, secondary accents; neutrals support. Composition: off-centre focal placement, horizontal flow, layered depth. Lighting: Bright and clear."
+    },
+    "negative_fields": {
+      "clip_l": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and distracting lighting, cluttered and chaotic design",
+      "clip_g": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and distracting lighting, cluttered and chaotic design",
+      "t5xxl": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and distracting lighting, cluttered and chaotic design"
+    },
+    "positive_route": [
+      "16",
+      0
+    ],
+    "negative_route": [
+      "40",
+      0
+    ],
+    "model_route": [
+      "4",
+      0
+    ]
+  },
+  "request_id": "37e6d4cd-defb-4bcd-828d-07907a524a6f",
+  "status": "complete",
+  "attempt_count": 1,
+  "positive_prompt": "Visual subject: A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth.. Event context: Corporate conference. Audience: Adults. Event atmosphere: Professional, Confident, Modern. Composition: off-centre focal placement, horizontal flow, layered depth. Palette: navy, white; navy clearly visible in design elements; primary visual mass, secondary accents; neutrals support. Motif: The layered architectural panels and subtle connected geometry should create. Continuous background artwork with integrated calm visual space.",
+  "workflow": {
+    "4": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": {
+        "ckpt_name": "sd3.5_medium.safetensors"
+      }
+    },
+    "54": {
+      "class_type": "TripleCLIPLoader",
+      "inputs": {
+        "clip_name1": "clip_l.safetensors",
+        "clip_name2": "clip_g.safetensors",
+        "clip_name3": "t5xxl_fp8_e4m3fn.safetensors"
+      }
+    },
+    "16": {
+      "class_type": "CLIPTextEncodeSD3",
+      "inputs": {
+        "clip": [
+          "54",
+          0
+        ],
+        "clip_l": "Visual subject: A clean contemporary technology hall with layered architectural panels,. Anchors: A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional. Event context: Corporate conference. Audience: Adults.",
+        "clip_g": "Visual subject: A clean contemporary technology hall with layered architectural panels,. Event context: Corporate conference. Audience: Adults. Event atmosphere: Professional, Confident, Modern. Composition: off-centre focal placement, horizontal flow, layered depth. Palette: navy, white; navy clearly visible in design elements; primary visual mass, secondary accents; neutrals support.",
+        "t5xxl": "Visual subject: A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth.. Anchors: A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional. Event context: Corporate conference. Audience: Adults. Event atmosphere: Professional, Confident, Modern. Motif: The layered architectural panels and subtle connected geometry should create. Motif as abstract pattern structure; no unrequested literal objects Palette: navy, white; navy clearly visible in substantial design elements; white clearly visible; primary visual mass, secondary accents; neutrals support. Composition: off-centre focal placement, horizontal flow, layered depth. Lighting: Bright and clear.",
+        "empty_padding": "none"
+      }
+    },
+    "40": {
+      "class_type": "CLIPTextEncodeSD3",
+      "inputs": {
+        "clip": [
+          "54",
+          0
+        ],
+        "clip_l": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and distracting lighting, cluttered and chaotic design",
+        "clip_g": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and distracting lighting, cluttered and chaotic design",
+        "t5xxl": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and distracting lighting, cluttered and chaotic design",
+        "empty_padding": "none"
+      }
+    },
+    "53": {
+      "class_type": "EmptySD3LatentImage",
+      "inputs": {
+        "width": 896,
+        "height": 1280,
+        "batch_size": 1
+      }
+    },
+    "3": {
+      "class_type": "KSampler",
+      "inputs": {
+        "seed": 7747822824721817734,
+        "steps": 28,
+        "cfg": 4.0,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "sgm_uniform",
+        "denoise": 1.0,
+        "model": [
+          "4",
+          0
+        ],
+        "positive": [
+          "16",
+          0
+        ],
+        "negative": [
+          "40",
+          0
+        ],
+        "latent_image": [
+          "53",
+          0
+        ]
+      }
+    },
+    "8": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "3",
+          0
+        ],
+        "vae": [
+          "4",
+          2
+        ]
+      }
+    },
+    "9": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "filename_prefix": "programme-studio/D37C33-644795/sd-3-5-medium/c",
+        "images": [
+          "8",
+          0
+        ]
+      }
+    }
+  },
+  "spec_sha256": "047e707b09a44ee45e26dfcbc66c040847062289d49aabae9e9570eceb28022c",
+  "SPEC_SHA256": "047e707b09a44ee45e26dfcbc66c040847062289d49aabae9e9570eceb28022c",
+  "ENGINE": "sd-3-5-medium",
+  "DIRECTION": "C",
+  "DIRECTION_ROLE": "Art Director",
+  "ATTEMPT": 1,
+  "RETRY_STAGE": "normal",
+  "SEED": 7747822824721817734,
+  "candidate_spec_sha256": "047e707b09a44ee45e26dfcbc66c040847062289d49aabae9e9570eceb28022c",
+  "semantic_contract_version": "1.0",
+  "semantic_contract_sha256": "7ecb8355e584a295be4c9c9b5835d00931bff3b65c53f99146a4d30e78050c1e",
+  "semantic_consistency": {
+    "conflicts": [],
+    "requires_clarification": false,
+    "valid": true
+  },
+  "semantic_completeness": {
+    "fields": {
+      "atmosphere_descriptors": "PRESENT",
+      "audience_descriptors": "PRESENT",
+      "composition_affinities": "PRESENT",
+      "material_descriptors": "PRESENT",
+      "motif_descriptors": "PRESENT",
+      "motif_structure_description": "PRESENT",
+      "palette": "PRESENT",
+      "primary_visual_subject": "PRESENT"
+    },
+    "ready": true,
+    "score": 1.0
+  },
+  "vision_model": "minicpm-v4.5:latest",
+  "ocr_config": {
+    "timeout_seconds": 7.0
+  },
+  "direction_role": "Art Director",
+  "creative_concept": "Create an inviting architectural interior with a focal point in the lower right, horizontal flow, and an open perimeter, A navy, white palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth, Clarified visual language: motifs: Layered architectural panels, Subtle connected geometry, motif structure: The layered architectural panels and subtle connected geometry should create a sense of depth and professionalism, atmosphere: Professional, Confident, Modern, composition: Symmetrical balance, Clean lines, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+  "visual_anchors": [
+    "A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth."
+  ],
+  "composition_strategy": "Central-focal composition with an emphasis on horizontal flow, balanced with left-heavy mass distribution to maintain visual interest.",
+  "resolved_palette": [
+    {
+      "colour": "navy",
+      "role": "primary"
+    },
+    {
+      "colour": "white",
+      "role": "secondary"
+    }
+  ],
+  "palette_mode": "dominant-requested-colour-families",
+  "requested_primary": "navy",
+  "requested_secondary": "white",
+  "palette_roles": [
+    "primary",
+    "secondary"
+  ],
+  "safe_region_strategy": {
+    "title": "Title area positioned in the upper left to provide contrast and calm visual balance.",
+    "programme": "Programme area placed in the upper right, ensuring it does not compete with the focal point."
+  },
+  "sampling_profile": {
+    "name": "alternate_sampler",
+    "steps": 28,
+    "cfg": 4.0,
+    "sampler_name": "dpmpp_2m",
+    "scheduler": "sgm_uniform",
+    "shift": null,
+    "shift_mode": "checkpoint_default"
+  },
+  "sampling_profile_name": "alternate_sampler",
+  "sampling_profile_stage": "normal",
+  "sampling_profile_failure_history": {
+    "counts": {},
+    "consecutive_category": "INITIAL",
+    "consecutive_count": 0
+  },
+  "selection_reason": "INITIAL: alternate_sampler",
+  "failure_history": {
+    "counts": {},
+    "consecutive_category": "INITIAL",
+    "consecutive_count": 0
+  },
+  "renderer_recovery_type": "baseline",
+  "generation_mode": "native_text_to_image",
+  "GENERATION_MODE": "native_text_to_image",
+  "TEMPLATE_CONDITIONING_ENABLED": false,
+  "MASKED_DENOISING_ENABLED": false,
+  "TEMPLATE_PATH": null,
+  "template_conditioning": {
+    "enabled": false,
+    "masked_denoising_enabled": false
+  },
+  "negative_prompt": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and distracting lighting, cluttered and chaotic design",
+  "adaptations": [],
+  "retry_stage": "normal",
+  "failure_category": null,
+  "compiled_prompt": {
+    "positive": "Visual subject: A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth.. Event context: Corporate conference. Audience: Adults. Event atmosphere: Professional, Confident, Modern. Composition: off-centre focal placement, horizontal flow, layered depth. Palette: navy, white; navy clearly visible in design elements; primary visual mass, secondary accents; neutrals support. Motif: The layered architectural panels and subtle connected geometry should create. Continuous background artwork with integrated calm visual space.",
+    "negative": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels, bright and distracting lighting, cluttered and chaotic design",
+    "clip_l": "Visual subject: A clean contemporary technology hall with layered architectural panels,. Anchors: A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional. Event context: Corporate conference. Audience: Adults.",
+    "clip_g": "Visual subject: A clean contemporary technology hall with layered architectural panels,. Event context: Corporate conference. Audience: Adults. Event atmosphere: Professional, Confident, Modern. Composition: off-centre focal placement, horizontal flow, layered depth. Palette: navy, white; navy clearly visible in design elements; primary visual mass, secondary accents; neutrals support.",
+    "t5": "Visual subject: A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth.. Anchors: A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional. Event context: Corporate conference. Audience: Adults. Event atmosphere: Professional, Confident, Modern. Motif: The layered architectural panels and subtle connected geometry should create. Motif as abstract pattern structure; no unrequested literal objects Palette: navy, white; navy clearly visible in substantial design elements; white clearly visible; primary visual mass, secondary accents; neutrals support. Composition: off-centre focal placement, horizontal flow, layered depth. Lighting: Bright and clear.",
+    "negative_prompt_channel_active": true,
+    "negative_semantics_preserved": true,
+    "incompatible_treatments": [
+      "Bright and distracting lighting",
+      "Cluttered and chaotic design"
+    ],
+    "semantic_contract_sha256": "7ecb8355e584a295be4c9c9b5835d00931bff3b65c53f99146a4d30e78050c1e",
+    "conditioning_coverage": {
+      "subject": [
+        "positive",
+        "clip_l",
+        "clip_g",
+        "t5"
+      ],
+      "atmosphere": [
+        "positive",
+        "clip_g",
+        "t5"
+      ],
+      "audience": [
+        "clip_l",
+        "clip_g",
+        "t5"
+      ],
+      "motif": [
+        "positive",
+        "clip_g",
+        "t5"
+      ],
+      "treatment": [],
+      "palette": [
+        "positive",
+        "clip_g",
+        "t5"
+      ],
+      "scene_family": [
+        "positive"
+      ],
+      "event_context": [
+        "clip_l",
+        "clip_g",
+        "t5"
+      ],
+      "incompatible_treatments": [
+        "negative"
+      ]
+    },
+    "engine_capabilities": {
+      "negative_prompt_channel": true,
+      "multi_encoder": true,
+      "long_context_encoder": true,
+      "supports_shift": true
+    },
+    "prompt_budget": {
+      "positive": {
+        "characters": 596,
+        "approx_tokens": 72,
+        "budget_risk": false
+      },
+      "negative": {
+        "characters": 168,
+        "approx_tokens": 21,
+        "budget_risk": false
+      },
+      "clip_l": {
+        "characters": 268,
+        "approx_tokens": 32,
+        "budget_risk": false
+      },
+      "clip_g": {
+        "characters": 388,
+        "approx_tokens": 46,
+        "budget_risk": false
+      },
+      "t5": {
+        "characters": 787,
+        "approx_tokens": 96,
+        "budget_risk": false
+      }
+    },
+    "truncated": false,
+    "retry_strength_level": "BASE"
+  },
+  "conditioning_coverage": {
+    "subject": [
+      "positive",
+      "clip_l",
+      "clip_g",
+      "t5"
+    ],
+    "atmosphere": [
+      "positive",
+      "clip_g",
+      "t5"
+    ],
+    "audience": [
+      "clip_l",
+      "clip_g",
+      "t5"
+    ],
+    "motif": [
+      "positive",
+      "clip_g",
+      "t5"
+    ],
+    "treatment": [],
+    "palette": [
+      "positive",
+      "clip_g",
+      "t5"
+    ],
+    "scene_family": [
+      "positive"
+    ],
+    "event_context": [
+      "clip_l",
+      "clip_g",
+      "t5"
+    ],
+    "incompatible_treatments": [
+      "negative"
+    ]
+  },
+  "prompt_budget": {
+    "positive": {
+      "characters": 596,
+      "approx_tokens": 72,
+      "budget_risk": false
+    },
+    "negative": {
+      "characters": 168,
+      "approx_tokens": 21,
+      "budget_risk": false
+    },
+    "clip_l": {
+      "characters": 268,
+      "approx_tokens": 32,
+      "budget_risk": false
+    },
+    "clip_g": {
+      "characters": 388,
+      "approx_tokens": 46,
+      "budget_risk": false
+    },
+    "t5": {
+      "characters": 787,
+      "approx_tokens": 96,
+      "budget_risk": false
+    }
+  },
+  "engine_capabilities": {
+    "negative_prompt_channel": true,
+    "multi_encoder": true,
+    "long_context_encoder": true,
+    "supports_shift": true
+  },
+  "reproducibility_manifest": {
+    "reference": "D37C33-644795",
+    "source_reference": "D37C33-644795",
+    "semantic_contract_version": "1.0",
+    "semantic_contract_sha256": "7ecb8355e584a295be4c9c9b5835d00931bff3b65c53f99146a4d30e78050c1e",
+    "candidate_spec_sha256": "047e707b09a44ee45e26dfcbc66c040847062289d49aabae9e9570eceb28022c",
+    "engine": "sd-3-5-medium",
+    "engine_models": [
+      "clip_g.safetensors",
+      "clip_l.safetensors",
+      "sd3.5_medium.safetensors",
+      "t5xxl_fp8_e4m3fn.safetensors"
+    ],
+    "workflow_sha256": "e6990a78f2b07b7d05ec447b54b5d39575791eb603ef78bce0cf6997ad463f17",
+    "effective_workflow_values": {
+      "workflow_sha256": "e6990a78f2b07b7d05ec447b54b5d39575791eb603ef78bce0cf6997ad463f17",
+      "checkpoint": "sd3.5_medium.safetensors",
+      "clip_l": "clip_l.safetensors",
+      "clip_g": "clip_g.safetensors",
+      "t5": "t5xxl_fp8_e4m3fn.safetensors",
+      "vae": [
+        "4",
+        2
+      ],
+      "sampler": "dpmpp_2m",
+      "scheduler": "sgm_uniform",
+      "cfg": 4.0,
+      "steps": 28,
+      "shift": null,
+      "width": 896,
+      "height": 1280,
+      "seed": 7747822824721817734,
+      "positive_route": [
+        "16",
+        0
+      ],
+      "negative_route": [
+        "40",
+        0
+      ],
+      "model_route": [
+        "4",
+        0
+      ]
+    },
+    "direction": "C",
+    "sampling_profile": "alternate_sampler",
+    "sampler_name": "dpmpp_2m",
+    "scheduler": "sgm_uniform",
+    "cfg": 4.0,
+    "steps": 28,
+    "shift": null,
+    "width": 896,
+    "height": 1280,
+    "seed": 7747822824721817734,
+    "compiled_prompt_sha256": {
+      "positive": "6efef942874be28f88f8f6de596feb1cf39be48bf970ec8ced360b26993ea32e",
+      "negative": "df0b10414393b4696a99ba706bd5aa51953634b12e45f1fa1ba2494ace838713",
+      "clip_l": "8e5b76b97522e4b5bd9aa5eb6d63eefae3a580ccf80203b16650175b92a15416",
+      "clip_g": "04ed0f62fc7aacb4f9e9d1fcd14276a9c3f9e6c52215d770d72bfcb6a481e15f",
+      "t5": "741861e96feec5baac7ada1e767612563ccf24a9e8a3f5e6951898868d8b635b"
+    },
+    "conditioning_lengths": {
+      "positive": {
+        "characters": 596,
+        "approx_tokens": 72,
+        "budget_risk": false
+      },
+      "negative": {
+        "characters": 168,
+        "approx_tokens": 21,
+        "budget_risk": false
+      },
+      "clip_l": {
+        "characters": 268,
+        "approx_tokens": 32,
+        "budget_risk": false
+      },
+      "clip_g": {
+        "characters": 388,
+        "approx_tokens": 46,
+        "budget_risk": false
+      },
+      "t5": {
+        "characters": 787,
+        "approx_tokens": 96,
+        "budget_risk": false
+      }
+    },
+    "vision_model": "minicpm-v4.5:latest",
+    "ocr_config": {
+      "timeout_seconds": 7.0
+    },
+    "validator_version": null,
+    "retry_attempt": 1,
+    "retry_stage": "normal",
+    "failure_history": {
+      "counts": {},
+      "consecutive_category": "INITIAL",
+      "consecutive_count": 0
+    },
+    "image_sha256": "0deb845bc0590c3521f65b0f80ef166ed0a07ad4b3cb082fd260db6bb506ecc9"
+  },
+  "prompt_id": "51f8eddc-a2e3-4762-ac78-3011ba00126b",
+  "palette_recovery": {
+    "eligible": false,
+    "attempted": false,
+    "source_off_palette_ratio": null,
+    "result": "not_attempted",
+    "failure_reason": null,
+    "normalized_off_palette_ratio": null,
+    "edge_geometry_similarity": null,
+    "structural_detail_preserved": null
+  },
+  "direction_similarity_score": 0.5156839922070503,
+  "direction_similarity": 0.5156839922070503,
+  "direction_similarity_diagnostics": {
+    "similarity": 0.5156839922070503,
+    "closest_peer": {
+      "peer": "/data/programmes/D37C33-644795/backgrounds/sd-3-5-medium/image-a.png",
+      "similarity": 0.5156839922070503,
+      "edge_similarity": 0.5156839922070503,
+      "coarse_mass_iou": 0.4064574532287266,
+      "fine_edge_iou": 0.19400086318515322,
+      "regional_edge_similarity": 0.7468404769897461
+    },
+    "peer_comparisons": [
+      {
+        "peer": "/data/programmes/D37C33-644795/backgrounds/sd-3-5-medium/image-a.png",
+        "similarity": 0.5156839922070503,
+        "edge_similarity": 0.5156839922070503,
+        "coarse_mass_iou": 0.4064574532287266,
+        "fine_edge_iou": 0.19400086318515322,
+        "regional_edge_similarity": 0.7468404769897461
+      },
+      {
+        "peer": "/data/programmes/D37C33-644795/backgrounds/sd-3-5-medium/image-b.png",
+        "similarity": 0.508165270153135,
+        "edge_similarity": 0.6689435750246049,
+        "coarse_mass_iou": 0.3481652701531349,
+        "fine_edge_iou": 0.41294005708848713,
+        "regional_edge_similarity": 0.8376458287239075
+      }
+    ]
+  },
+  "subject_adherence": {
+    "checked": true,
+    "score": 0.85,
+    "threshold": 0.55,
+    "subject": "A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth.",
+    "anchors": [
+      "A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth."
+    ],
+    "model": "minicpm-v4.5:latest",
+    "decision": "pass",
+    "reason": "The background strongly matches the requested subject with layered panels and subtle connected geometry, creating professional spatial depth. Atmosphere is modern and confident, suitable for adults. Motif topology is well-presented, supporting the theme. Treatment shows clear viewpoint and spatial r",
+    "subject_score": 0.85,
+    "atmosphere_score": 0.85,
+    "motif_score": 0.85,
+    "treatment_score": 0.8,
+    "audience_fit_score": 1.0,
+    "thresholds": {
+      "subject_score": 0.55,
+      "atmosphere_score": 0.55,
+      "motif_score": 0.55,
+      "audience_fit_score": 0.55
+    },
+    "observed_evidence": [
+      "Subtle, layered white architectural panels with clean, connected geometry",
+      "Dark blue ceiling with grid-patterned recessed lighting",
+      "Multiple levels and depth perception from layered structures"
+    ],
+    "background_usability_score": 0.9,
+    "vision_human_signal": false,
+    "vision_text_signal": false,
+    "vision_text_evidence": "",
+    "unrequested_literal_object_visible": false,
+    "failure_category": null,
+    "compound_fidelity_failure": false,
+    "hard_dimensions": [
+      "subject_score",
+      "audience_fit_score"
+    ],
+    "hard_failed_dimensions": [],
+    "failed_dimensions": [],
+    "human_description": "",
+    "dimension_availability": {
+      "subject_score": "PASS",
+      "atmosphere_score": "PASS",
+      "motif_score": "PASS",
+      "audience_fit_score": "PASS"
+    },
+    "vision_debug": {
+      "endpoint": "/api/chat",
+      "model": "minicpm-v4.5:latest",
+      "score_parsing": [
+        {
+          "dimension_name": "subject_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.85,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "atmosphere_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.85,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "motif_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.85,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "treatment_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.8,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "audience_fit_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 1.0,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "background_usability_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.9,
+          "parse_failure_reason": null
+        }
+      ],
+      "thinking_present": false,
+      "thinking_preview_length": 0,
+      "response_length": 1009,
+      "final_source": "message.content",
+      "raw_text_preview": "<omitted>",
+      "assessment_attempts": 1,
+      "http_status": 200,
+      "response_content_type": "application/json; charset=utf-8",
+      "response_shape": [
+        "created_at",
+        "done",
+        "done_reason",
+        "eval_count",
+        "eval_duration",
+        "load_duration",
+        "message",
+        "model",
+        "prompt_eval_count",
+        "prompt_eval_duration",
+        "total_duration"
+      ],
+      "unconfirmed_human_report": false
+    }
+  },
+  "brief_fidelity": {
+    "checked": true,
+    "subject_score": 0.85,
+    "atmosphere_score": 0.85,
+    "motif_score": 0.85,
+    "treatment_score": 0.8,
+    "audience_fit_score": 1.0,
+    "thresholds": {
+      "subject_score": 0.55,
+      "atmosphere_score": 0.55,
+      "motif_score": 0.55,
+      "audience_fit_score": 0.55
+    },
+    "decision": "pass",
+    "reason": "The background strongly matches the requested subject with layered panels and subtle connected geometry, creating professional spatial depth. Atmosphere is modern and confident, suitable for adults. Motif topology is well-presented, supporting the theme. Treatment shows clear viewpoint and spatial r",
+    "observed_evidence": [
+      "Subtle, layered white architectural panels with clean, connected geometry",
+      "Dark blue ceiling with grid-patterned recessed lighting",
+      "Multiple levels and depth perception from layered structures"
+    ],
+    "model": "minicpm-v4.5:latest",
+    "failure_category": null,
+    "dimension_availability": {
+      "subject_score": "PASS",
+      "atmosphere_score": "PASS",
+      "motif_score": "PASS",
+      "audience_fit_score": "PASS"
+    },
+    "failed_dimensions": [],
+    "background_usability_score": 0.9,
+    "vision_human_signal": false,
+    "vision_debug": {
+      "endpoint": "/api/chat",
+      "model": "minicpm-v4.5:latest",
+      "score_parsing": [
+        {
+          "dimension_name": "subject_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.85,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "atmosphere_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.85,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "motif_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.85,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "treatment_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.8,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "audience_fit_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 1.0,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "background_usability_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.9,
+          "parse_failure_reason": null
+        }
+      ],
+      "thinking_present": false,
+      "thinking_preview_length": 0,
+      "response_length": 1009,
+      "final_source": "message.content",
+      "raw_text_preview": "<omitted>",
+      "assessment_attempts": 1,
+      "http_status": 200,
+      "response_content_type": "application/json; charset=utf-8",
+      "response_shape": [
+        "created_at",
+        "done",
+        "done_reason",
+        "eval_count",
+        "eval_duration",
+        "load_duration",
+        "message",
+        "model",
+        "prompt_eval_count",
+        "prompt_eval_duration",
+        "total_duration"
+      ],
+      "unconfirmed_human_report": false
+    },
+    "hard_dimensions": [
+      "subject_score",
+      "audience_fit_score"
+    ],
+    "hard_failed_dimensions": [],
+    "compound_fidelity_failure": false,
+    "human_description": "",
+    "vision_text_signal": false,
+    "vision_text_evidence": "",
+    "unrequested_literal_object_visible": false
+  },
+  "semantic_dimension_scores": {
+    "subject_score": 0.85,
+    "atmosphere_score": 0.85,
+    "motif_score": 0.85,
+    "treatment_score": 0.8,
+    "audience_fit_score": 1.0,
+    "unrequested_literal_object_visible": false,
+    "unrequested_text_visible": null
+  },
+  "semantic_failed_dimensions": [],
+  "safe_region_retry": {
+    "previous_score": null,
+    "current_score": 0.5,
+    "improved": null
+  },
+  "validation": {
+    "validation": {
+      "decision": "accepted",
+      "failure_category": null,
+      "diagnostic_findings": [
+        "SAFE_REGION_BORDERLINE"
+      ],
+      "palette": {
+        "mode": "dominant",
+        "palette_match_ratio": 1.0,
+        "off_palette_ratio": 0.0,
+        "primary_ratio": 0.4333718039772727,
+        "secondary_ratio": 0.49311967329545453,
+        "requested_chromatic_ratio": 0.4333718039772727,
+        "neutral_ratio": 0.07350852272727272,
+        "unrequested_chromatic_ratio": 0.0,
+        "largest_unrequested_region_ratio": 0.0,
+        "primary_secondary_ratio": 0.8788369790260149,
+        "secondary_presence": true,
+        "dominance_relationship": "FLEXIBLE",
+        "dominance_relationship_passed": true
+      },
+      "text": {
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 4,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        },
+        "detected": false,
+        "tokens": [],
+        "confirmed_tokens": [],
+        "text_lines": [],
+        "text_area_ratio": 0
+      },
+      "human": {
+        "detected": false,
+        "strong_signals": [],
+        "weak_signals": [],
+        "decision_reason": "no human evidence"
+      },
+      "quality": {
+        "structural_edge_density": 0.23295454545454544,
+        "macro_structure_score": 1.0,
+        "coarse_edge_density": 0.18876262626262627,
+        "high_pass_mean": 4.111504077911377,
+        "boilerplate_score": 0.0,
+        "title_panel_score": 0.0,
+        "fine_line_pair_ratio": 0.0,
+        "macro_form_balance": 1.0,
+        "scene_density": {
+          "requested_density": "moderate",
+          "overall_edge_density": 0.0579,
+          "tile_edge_fractions": [
+            0.0063,
+            0.009,
+            0.0071,
+            0.0066,
+            0.0774,
+            0.0723,
+            0.0842,
+            0.0759,
+            0.0505,
+            0.0559,
+            0.0559,
+            0.0657,
+            0.0723,
+            0.0903,
+            0.1089,
+            0.0884
+          ],
+          "occupied_tile_fraction": 0.0625,
+          "quiet_tile_fraction": 0.25,
+          "safe_region_density": 0.0671,
+          "edge_distribution_balance": 0.0324,
+          "macro_form_balance": 1.0,
+          "normalized_measurements": {
+            "density_pressure": 0.337
+          },
+          "thresholds_used": {
+            "density_pressure": 0.85,
+            "max_quiet_tile_fraction": 0.0625,
+            "occupied_tile_edge_fraction": 0.1,
+            "quiet_tile_edge_fraction": 0.04
+          },
+          "density_rule_triggered": null,
+          "decision": "PASS"
+        },
+        "global_density_decision": "PASS",
+        "explicit_safe_regions": {
+          "decision": "BORDERLINE",
+          "regions": {
+            "title": {
+              "decision": "BORDERLINE",
+              "reason": "large_contrasting_form",
+              "local_edge_density": 0.0426,
+              "local_contrast": 213.0,
+              "high_frequency_fraction": 0.1599,
+              "calm_tile_fraction": 0.5,
+              "usability_score": 0.5,
+              "broad_contrast": 183.0,
+              "broad_edge_density": 0.0101,
+              "tile_indexes": [
+                0,
+                1,
+                4,
+                5
+              ],
+              "occupied_tile_fraction": 0.0,
+              "quiet_tile_fraction": 0.5
+            }
+          }
+        },
+        "explicit_safe_region_decision": "BORDERLINE",
+        "raster_score": 0.0
+      },
+      "brief_fidelity": {
+        "checked": true,
+        "subject_score": 0.85,
+        "atmosphere_score": 0.85,
+        "motif_score": 0.85,
+        "treatment_score": 0.8,
+        "audience_fit_score": 1.0,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "decision": "pass",
+        "reason": "The background strongly matches the requested subject with layered panels and subtle connected geometry, creating professional spatial depth. Atmosphere is modern and confident, suitable for adults. Motif topology is well-presented, supporting the theme. Treatment shows clear viewpoint and spatial r",
+        "observed_evidence": [
+          "Subtle, layered white architectural panels with clean, connected geometry",
+          "Dark blue ceiling with grid-patterned recessed lighting",
+          "Multiple levels and depth perception from layered structures"
+        ],
+        "model": "minicpm-v4.5:latest",
+        "failure_category": null,
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "failed_dimensions": [],
+        "background_usability_score": 0.9,
+        "vision_human_signal": false,
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 1.0,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1009,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        },
+        "hard_dimensions": [
+          "subject_score",
+          "audience_fit_score"
+        ],
+        "hard_failed_dimensions": [],
+        "compound_fidelity_failure": false,
+        "human_description": "",
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false
+      }
+    },
+    "output_path": "/data/programmes/D37C33-644795/backgrounds/sd-3-5-medium/image-c.download.part",
+    "sha256": "0deb845bc0590c3521f65b0f80ef166ed0a07ad4b3cb082fd260db6bb506ecc9",
+    "width": 896,
+    "height": 1280,
+    "person_detection_count": 0,
+    "face_detection_count": 0,
+    "profile_detection_count": 0,
+    "upper_body_detection_count": 0,
+    "visual_quality_checked": true,
+    "visual_quality_passed": true,
+    "macro_structure_score": 1.0,
+    "coarse_edge_density": 0.18876262626262627,
+    "edge_density": 0.16908957741477273,
+    "structural_edge_density": 0.23295454545454544,
+    "horizontal_edge_density": 0.1331787109375,
+    "vertical_edge_density": 0.003506747159090909,
+    "directional_edge_dominance": 0.7876222353481657,
+    "full_span_line_ratio": 0.005681818181818182,
+    "fine_horizontal_pair_ratio": 0.0,
+    "fine_vertical_pair_ratio": 0.0,
+    "fine_line_pair_ratio": 0.0,
+    "fine_line_mean_delta": 2.5300168991088867,
+    "image_entropy": 6.722695350646973,
+    "largest_quantised_colour_ratio": 0.3213778409090909,
+    "laplacian_variance": 839.19140625,
+    "highpass_mean": 4.111504077911377,
+    "coherent_edge_ratio": 0.9241206030150754,
+    "center_structural_edge_density": 0.25110978103646064,
+    "outer_structural_edge_density": 0.2183988483224697,
+    "center_local_contrast": 89.05286407470703,
+    "title_structural_edge_density": 0.02822085889570552,
+    "title_local_contrast": 14.828558921813965,
+    "programme_structural_edge_density": 0.28019979369129705,
+    "programme_local_contrast": 50.520538330078125,
+    "center_to_outer_edge_ratio": 1.1497761227462733,
+    "center_safe_region_passed": false,
+    "title_panel_score": 0.0,
+    "boilerplate_score": 0.0,
+    "largest_flat_rectangle_ratio": 0.0,
+    "flat_rectangular_coverage_ratio": 0.0,
+    "flat_coverage_ratio": 0.43363813920454547,
+    "long_axis_separator_ratio": 0.005681818181818182,
+    "large_flat_rectangle_count": 0.0,
+    "centre_edge_density": 0.33433948863636365,
+    "perimeter_edge_density": 0.23940577651515152,
+    "centre_flat_ratio": 0.25941051136363635,
+    "bilateral_symmetry": 0.8552820682525635,
+    "irregular_frame_score": 0.0,
+    "lower_centre_edge_density": 0.3463983050847458,
+    "quiet_centre_evidence": 0.0,
+    "scene_density": {
+      "requested_density": "moderate",
+      "overall_edge_density": 0.0579,
+      "tile_edge_fractions": [
+        0.0063,
+        0.009,
+        0.0071,
+        0.0066,
+        0.0774,
+        0.0723,
+        0.0842,
+        0.0759,
+        0.0505,
+        0.0559,
+        0.0559,
+        0.0657,
+        0.0723,
+        0.0903,
+        0.1089,
+        0.0884
+      ],
+      "occupied_tile_fraction": 0.0625,
+      "quiet_tile_fraction": 0.25,
+      "safe_region_density": 0.0671,
+      "edge_distribution_balance": 0.0324,
+      "macro_form_balance": 1.0,
+      "normalized_measurements": {
+        "density_pressure": 0.337
+      },
+      "thresholds_used": {
+        "density_pressure": 0.85,
+        "max_quiet_tile_fraction": 0.0625,
+        "occupied_tile_edge_fraction": 0.1,
+        "quiet_tile_edge_fraction": 0.04
+      },
+      "density_rule_triggered": null,
+      "decision": "PASS"
+    },
+    "global_density_decision": "PASS",
+    "macro_form_balance": 1.0,
+    "explicit_safe_regions": {
+      "decision": "BORDERLINE",
+      "regions": {
+        "title": {
+          "decision": "BORDERLINE",
+          "reason": "large_contrasting_form",
+          "local_edge_density": 0.0426,
+          "local_contrast": 213.0,
+          "high_frequency_fraction": 0.1599,
+          "calm_tile_fraction": 0.5,
+          "usability_score": 0.5,
+          "broad_contrast": 183.0,
+          "broad_edge_density": 0.0101,
+          "tile_indexes": [
+            0,
+            1,
+            4,
+            5
+          ],
+          "occupied_tile_fraction": 0.0,
+          "quiet_tile_fraction": 0.5
+        }
+      }
+    },
+    "explicit_safe_region_decision": "BORDERLINE",
+    "palette_checked": true,
+    "palette_mode": "dominant-requested-colour-families",
+    "incidental_neutral_ratio": 0.07350852272727272,
+    "largest_incidental_neutral_region_ratio": 0.019886363636363636,
+    "palette_match_ratio": 1.0,
+    "off_palette_ratio": 0.0,
+    "perceptual_in_family_ratio": 1.0,
+    "unrelated_hue_ratio": 0.0,
+    "requested_chromatic_ratio": 0.4333718039772727,
+    "structural_neutral_ratio": 0.07350852272727272,
+    "unrequested_chromatic_ratio": 0.0,
+    "largest_unrequested_region_ratio": 0.0,
+    "primary_ratio": 0.4333718039772727,
+    "secondary_ratio": 0.49311967329545453,
+    "requested_palette_mode": "dominant",
+    "tonal_derivative_ratio": 0.8535600142045454,
+    "primary_presence_ratio": 0.4333718039772727,
+    "secondary_presence_ratio": 0.49311967329545453,
+    "primary_family": "navy",
+    "secondary_family": "white",
+    "primary_role": "primary",
+    "primary_secondary_ratio": 0.8788369790260149,
+    "secondary_presence": true,
+    "dominance_relationship": "FLEXIBLE",
+    "dominance_relationship_passed": true,
+    "secondary_role": "secondary",
+    "secondary_minimum": 0.008,
+    "palette_relationship_source": "default",
+    "palette_role_warning": "PALETTE_ROLE_WARNING",
+    "primary_colour_ratio": 0.4333718039772727,
+    "secondary_colour_ratio": 0.49311967329545453,
+    "requested_colour_counts": {
+      "navy": 9763,
+      "white": 11109
+    },
+    "requested_colour_family_counts": {
+      "navy": 9763,
+      "white": 11109
+    },
+    "accepted_tonal_breakdown": {
+      "white": 0.49311967329545453,
+      "navy": 0.4333718039772727
+    },
+    "unrequested_colour_breakdown": {
+      "grey": 0.05197975852272727,
+      "charcoal": 0.014692826704545454,
+      "black": 0.003995028409090909,
+      "silver": 0.0027965198863636365,
+      "navy": 4.438920454545455e-05
+    },
+    "primary_descriptor": {
+      "raw": "navy",
+      "base_name": "navy",
+      "family_members": [
+        "blue",
+        "navy",
+        "royal blue"
+      ],
+      "modifiers": [],
+      "modifier_only": false
+    },
+    "secondary_descriptor": {
+      "raw": "white",
+      "base_name": "white",
+      "family_members": [
+        "white"
+      ],
+      "modifiers": [],
+      "modifier_only": false
+    },
+    "ocr_tokens": [],
+    "ocr_diagnostics": {
+      "attempted": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "completed_variants": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "timed_out_variants": [],
+      "failed_variants": [],
+      "failure_reasons": {},
+      "completed_variant_count": 4,
+      "required_variant_count": 2,
+      "enhancement_variant_failures": [],
+      "evidence_sufficiency": true,
+      "decision": "complete"
+    },
+    "ocr_validation_attempts": 1,
+    "ocr_validation_sha256": "0deb845bc0590c3521f65b0f80ef166ed0a07ad4b3cb082fd260db6bb506ecc9",
+    "human_detection": {
+      "people": [],
+      "evidence": [],
+      "strong_signals": [],
+      "weak_signals": [],
+      "overlaps": [],
+      "people_weights": [],
+      "faces": [],
+      "profiles": [],
+      "upper_bodies": [],
+      "strong_upper_body_signal": false,
+      "ambiguous_face_signal": false,
+      "detected": false,
+      "human_detection_confidence": "low",
+      "human_detection_reason": "isolated detector patterns without independent confirmation",
+      "largest_detection_area_ratio": 0.0,
+      "classical_human_signal": false,
+      "vision_human_signal": false,
+      "combined_human_decision": false,
+      "decision_reason": "no human evidence"
+    },
+    "all_failure_categories": []
+  },
+  "output_path": "/data/programmes/D37C33-644795/backgrounds/sd-3-5-medium/image-c.png",
+  "sha256": "0deb845bc0590c3521f65b0f80ef166ed0a07ad4b3cb082fd260db6bb506ecc9",
+  "width": 896,
+  "height": 1280,
+  "person_detection_count": 0,
+  "face_detection_count": 0,
+  "profile_detection_count": 0,
+  "upper_body_detection_count": 0,
+  "visual_quality_checked": true,
+  "visual_quality_passed": true,
+  "macro_structure_score": 1.0,
+  "coarse_edge_density": 0.18876262626262627,
+  "edge_density": 0.16908957741477273,
+  "structural_edge_density": 0.23295454545454544,
+  "horizontal_edge_density": 0.1331787109375,
+  "vertical_edge_density": 0.003506747159090909,
+  "directional_edge_dominance": 0.7876222353481657,
+  "full_span_line_ratio": 0.005681818181818182,
+  "fine_horizontal_pair_ratio": 0.0,
+  "fine_vertical_pair_ratio": 0.0,
+  "fine_line_pair_ratio": 0.0,
+  "fine_line_mean_delta": 2.5300168991088867,
+  "image_entropy": 6.722695350646973,
+  "largest_quantised_colour_ratio": 0.3213778409090909,
+  "laplacian_variance": 839.19140625,
+  "highpass_mean": 4.111504077911377,
+  "coherent_edge_ratio": 0.9241206030150754,
+  "center_structural_edge_density": 0.25110978103646064,
+  "outer_structural_edge_density": 0.2183988483224697,
+  "center_local_contrast": 89.05286407470703,
+  "title_structural_edge_density": 0.02822085889570552,
+  "title_local_contrast": 14.828558921813965,
+  "programme_structural_edge_density": 0.28019979369129705,
+  "programme_local_contrast": 50.520538330078125,
+  "center_to_outer_edge_ratio": 1.1497761227462733,
+  "center_safe_region_passed": false,
+  "title_panel_score": 0.0,
+  "boilerplate_score": 0.0,
+  "largest_flat_rectangle_ratio": 0.0,
+  "flat_rectangular_coverage_ratio": 0.0,
+  "flat_coverage_ratio": 0.43363813920454547,
+  "long_axis_separator_ratio": 0.005681818181818182,
+  "large_flat_rectangle_count": 0.0,
+  "centre_edge_density": 0.33433948863636365,
+  "perimeter_edge_density": 0.23940577651515152,
+  "centre_flat_ratio": 0.25941051136363635,
+  "bilateral_symmetry": 0.8552820682525635,
+  "irregular_frame_score": 0.0,
+  "lower_centre_edge_density": 0.3463983050847458,
+  "quiet_centre_evidence": 0.0,
+  "scene_density": {
+    "requested_density": "moderate",
+    "overall_edge_density": 0.0579,
+    "tile_edge_fractions": [
+      0.0063,
+      0.009,
+      0.0071,
+      0.0066,
+      0.0774,
+      0.0723,
+      0.0842,
+      0.0759,
+      0.0505,
+      0.0559,
+      0.0559,
+      0.0657,
+      0.0723,
+      0.0903,
+      0.1089,
+      0.0884
+    ],
+    "occupied_tile_fraction": 0.0625,
+    "quiet_tile_fraction": 0.25,
+    "safe_region_density": 0.0671,
+    "edge_distribution_balance": 0.0324,
+    "macro_form_balance": 1.0,
+    "normalized_measurements": {
+      "density_pressure": 0.337
+    },
+    "thresholds_used": {
+      "density_pressure": 0.85,
+      "max_quiet_tile_fraction": 0.0625,
+      "occupied_tile_edge_fraction": 0.1,
+      "quiet_tile_edge_fraction": 0.04
+    },
+    "density_rule_triggered": null,
+    "decision": "PASS"
+  },
+  "global_density_decision": "PASS",
+  "macro_form_balance": 1.0,
+  "explicit_safe_regions": {
+    "decision": "BORDERLINE",
+    "regions": {
+      "title": {
+        "decision": "BORDERLINE",
+        "reason": "large_contrasting_form",
+        "local_edge_density": 0.0426,
+        "local_contrast": 213.0,
+        "high_frequency_fraction": 0.1599,
+        "calm_tile_fraction": 0.5,
+        "usability_score": 0.5,
+        "broad_contrast": 183.0,
+        "broad_edge_density": 0.0101,
+        "tile_indexes": [
+          0,
+          1,
+          4,
+          5
+        ],
+        "occupied_tile_fraction": 0.0,
+        "quiet_tile_fraction": 0.5
+      }
+    }
+  },
+  "explicit_safe_region_decision": "BORDERLINE",
+  "palette_checked": true,
+  "incidental_neutral_ratio": 0.07350852272727272,
+  "largest_incidental_neutral_region_ratio": 0.019886363636363636,
+  "palette_match_ratio": 1.0,
+  "off_palette_ratio": 0.0,
+  "perceptual_in_family_ratio": 1.0,
+  "unrelated_hue_ratio": 0.0,
+  "requested_chromatic_ratio": 0.4333718039772727,
+  "structural_neutral_ratio": 0.07350852272727272,
+  "unrequested_chromatic_ratio": 0.0,
+  "largest_unrequested_region_ratio": 0.0,
+  "primary_ratio": 0.4333718039772727,
+  "secondary_ratio": 0.49311967329545453,
+  "requested_palette_mode": "dominant",
+  "tonal_derivative_ratio": 0.8535600142045454,
+  "primary_presence_ratio": 0.4333718039772727,
+  "secondary_presence_ratio": 0.49311967329545453,
+  "primary_family": "navy",
+  "secondary_family": "white",
+  "primary_role": "primary",
+  "primary_secondary_ratio": 0.8788369790260149,
+  "secondary_presence": true,
+  "dominance_relationship": "FLEXIBLE",
+  "dominance_relationship_passed": true,
+  "secondary_role": "secondary",
+  "secondary_minimum": 0.008,
+  "palette_relationship_source": "default",
+  "palette_role_warning": "PALETTE_ROLE_WARNING",
+  "primary_colour_ratio": 0.4333718039772727,
+  "secondary_colour_ratio": 0.49311967329545453,
+  "requested_colour_counts": {
+    "navy": 9763,
+    "white": 11109
+  },
+  "requested_colour_family_counts": {
+    "navy": 9763,
+    "white": 11109
+  },
+  "accepted_tonal_breakdown": {
+    "white": 0.49311967329545453,
+    "navy": 0.4333718039772727
+  },
+  "unrequested_colour_breakdown": {
+    "grey": 0.05197975852272727,
+    "charcoal": 0.014692826704545454,
+    "black": 0.003995028409090909,
+    "silver": 0.0027965198863636365,
+    "navy": 4.438920454545455e-05
+  },
+  "primary_descriptor": {
+    "raw": "navy",
+    "base_name": "navy",
+    "family_members": [
+      "blue",
+      "navy",
+      "royal blue"
+    ],
+    "modifiers": [],
+    "modifier_only": false
+  },
+  "secondary_descriptor": {
+    "raw": "white",
+    "base_name": "white",
+    "family_members": [
+      "white"
+    ],
+    "modifiers": [],
+    "modifier_only": false
+  },
+  "ocr_tokens": [],
+  "ocr_diagnostics": {
+    "attempted": [
+      "original",
+      "contrast",
+      "threshold",
+      "inverted"
+    ],
+    "completed_variants": [
+      "original",
+      "contrast",
+      "threshold",
+      "inverted"
+    ],
+    "timed_out_variants": [],
+    "failed_variants": [],
+    "failure_reasons": {},
+    "completed_variant_count": 4,
+    "required_variant_count": 2,
+    "enhancement_variant_failures": [],
+    "evidence_sufficiency": true,
+    "decision": "complete"
+  },
+  "ocr_validation_attempts": 1,
+  "ocr_validation_sha256": "0deb845bc0590c3521f65b0f80ef166ed0a07ad4b3cb082fd260db6bb506ecc9",
+  "human_detection": {
+    "people": [],
+    "evidence": [],
+    "strong_signals": [],
+    "weak_signals": [],
+    "overlaps": [],
+    "people_weights": [],
+    "faces": [],
+    "profiles": [],
+    "upper_bodies": [],
+    "strong_upper_body_signal": false,
+    "ambiguous_face_signal": false,
+    "detected": false,
+    "human_detection_confidence": "low",
+    "human_detection_reason": "isolated detector patterns without independent confirmation",
+    "largest_detection_area_ratio": 0.0,
+    "classical_human_signal": false,
+    "vision_human_signal": false,
+    "combined_human_decision": false,
+    "decision_reason": "no human evidence"
+  },
+  "all_failure_categories": [],
+  "raw_validation": {
+    "validation": {
+      "decision": "accepted",
+      "failure_category": null,
+      "diagnostic_findings": [
+        "SAFE_REGION_BORDERLINE"
+      ],
+      "palette": {
+        "mode": "dominant",
+        "palette_match_ratio": 1.0,
+        "off_palette_ratio": 0.0,
+        "primary_ratio": 0.4333718039772727,
+        "secondary_ratio": 0.49311967329545453,
+        "requested_chromatic_ratio": 0.4333718039772727,
+        "neutral_ratio": 0.07350852272727272,
+        "unrequested_chromatic_ratio": 0.0,
+        "largest_unrequested_region_ratio": 0.0,
+        "primary_secondary_ratio": 0.8788369790260149,
+        "secondary_presence": true,
+        "dominance_relationship": "FLEXIBLE",
+        "dominance_relationship_passed": true
+      },
+      "text": {
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 4,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        },
+        "detected": false,
+        "tokens": [],
+        "confirmed_tokens": [],
+        "text_lines": [],
+        "text_area_ratio": 0
+      },
+      "human": {
+        "detected": false,
+        "strong_signals": [],
+        "weak_signals": [],
+        "decision_reason": "no human evidence"
+      },
+      "quality": {
+        "structural_edge_density": 0.23295454545454544,
+        "macro_structure_score": 1.0,
+        "coarse_edge_density": 0.18876262626262627,
+        "high_pass_mean": 4.111504077911377,
+        "boilerplate_score": 0.0,
+        "title_panel_score": 0.0,
+        "fine_line_pair_ratio": 0.0,
+        "macro_form_balance": 1.0,
+        "scene_density": {
+          "requested_density": "moderate",
+          "overall_edge_density": 0.0579,
+          "tile_edge_fractions": [
+            0.0063,
+            0.009,
+            0.0071,
+            0.0066,
+            0.0774,
+            0.0723,
+            0.0842,
+            0.0759,
+            0.0505,
+            0.0559,
+            0.0559,
+            0.0657,
+            0.0723,
+            0.0903,
+            0.1089,
+            0.0884
+          ],
+          "occupied_tile_fraction": 0.0625,
+          "quiet_tile_fraction": 0.25,
+          "safe_region_density": 0.0671,
+          "edge_distribution_balance": 0.0324,
+          "macro_form_balance": 1.0,
+          "normalized_measurements": {
+            "density_pressure": 0.337
+          },
+          "thresholds_used": {
+            "density_pressure": 0.85,
+            "max_quiet_tile_fraction": 0.0625,
+            "occupied_tile_edge_fraction": 0.1,
+            "quiet_tile_edge_fraction": 0.04
+          },
+          "density_rule_triggered": null,
+          "decision": "PASS"
+        },
+        "global_density_decision": "PASS",
+        "explicit_safe_regions": {
+          "decision": "BORDERLINE",
+          "regions": {
+            "title": {
+              "decision": "BORDERLINE",
+              "reason": "large_contrasting_form",
+              "local_edge_density": 0.0426,
+              "local_contrast": 213.0,
+              "high_frequency_fraction": 0.1599,
+              "calm_tile_fraction": 0.5,
+              "usability_score": 0.5,
+              "broad_contrast": 183.0,
+              "broad_edge_density": 0.0101,
+              "tile_indexes": [
+                0,
+                1,
+                4,
+                5
+              ],
+              "occupied_tile_fraction": 0.0,
+              "quiet_tile_fraction": 0.5
+            }
+          }
+        },
+        "explicit_safe_region_decision": "BORDERLINE",
+        "raster_score": 0.0
+      }
+    },
+    "output_path": "/data/programmes/D37C33-644795/backgrounds/sd-3-5-medium/image-c.download.part",
+    "sha256": "0deb845bc0590c3521f65b0f80ef166ed0a07ad4b3cb082fd260db6bb506ecc9",
+    "width": 896,
+    "height": 1280,
+    "person_detection_count": 0,
+    "face_detection_count": 0,
+    "profile_detection_count": 0,
+    "upper_body_detection_count": 0,
+    "visual_quality_checked": true,
+    "visual_quality_passed": true,
+    "macro_structure_score": 1.0,
+    "coarse_edge_density": 0.18876262626262627,
+    "edge_density": 0.16908957741477273,
+    "structural_edge_density": 0.23295454545454544,
+    "horizontal_edge_density": 0.1331787109375,
+    "vertical_edge_density": 0.003506747159090909,
+    "directional_edge_dominance": 0.7876222353481657,
+    "full_span_line_ratio": 0.005681818181818182,
+    "fine_horizontal_pair_ratio": 0.0,
+    "fine_vertical_pair_ratio": 0.0,
+    "fine_line_pair_ratio": 0.0,
+    "fine_line_mean_delta": 2.5300168991088867,
+    "image_entropy": 6.722695350646973,
+    "largest_quantised_colour_ratio": 0.3213778409090909,
+    "laplacian_variance": 839.19140625,
+    "highpass_mean": 4.111504077911377,
+    "coherent_edge_ratio": 0.9241206030150754,
+    "center_structural_edge_density": 0.25110978103646064,
+    "outer_structural_edge_density": 0.2183988483224697,
+    "center_local_contrast": 89.05286407470703,
+    "title_structural_edge_density": 0.02822085889570552,
+    "title_local_contrast": 14.828558921813965,
+    "programme_structural_edge_density": 0.28019979369129705,
+    "programme_local_contrast": 50.520538330078125,
+    "center_to_outer_edge_ratio": 1.1497761227462733,
+    "center_safe_region_passed": false,
+    "title_panel_score": 0.0,
+    "boilerplate_score": 0.0,
+    "largest_flat_rectangle_ratio": 0.0,
+    "flat_rectangular_coverage_ratio": 0.0,
+    "flat_coverage_ratio": 0.43363813920454547,
+    "long_axis_separator_ratio": 0.005681818181818182,
+    "large_flat_rectangle_count": 0.0,
+    "centre_edge_density": 0.33433948863636365,
+    "perimeter_edge_density": 0.23940577651515152,
+    "centre_flat_ratio": 0.25941051136363635,
+    "bilateral_symmetry": 0.8552820682525635,
+    "irregular_frame_score": 0.0,
+    "lower_centre_edge_density": 0.3463983050847458,
+    "quiet_centre_evidence": 0.0,
+    "scene_density": {
+      "requested_density": "moderate",
+      "overall_edge_density": 0.0579,
+      "tile_edge_fractions": [
+        0.0063,
+        0.009,
+        0.0071,
+        0.0066,
+        0.0774,
+        0.0723,
+        0.0842,
+        0.0759,
+        0.0505,
+        0.0559,
+        0.0559,
+        0.0657,
+        0.0723,
+        0.0903,
+        0.1089,
+        0.0884
+      ],
+      "occupied_tile_fraction": 0.0625,
+      "quiet_tile_fraction": 0.25,
+      "safe_region_density": 0.0671,
+      "edge_distribution_balance": 0.0324,
+      "macro_form_balance": 1.0,
+      "normalized_measurements": {
+        "density_pressure": 0.337
+      },
+      "thresholds_used": {
+        "density_pressure": 0.85,
+        "max_quiet_tile_fraction": 0.0625,
+        "occupied_tile_edge_fraction": 0.1,
+        "quiet_tile_edge_fraction": 0.04
+      },
+      "density_rule_triggered": null,
+      "decision": "PASS"
+    },
+    "global_density_decision": "PASS",
+    "macro_form_balance": 1.0,
+    "explicit_safe_regions": {
+      "decision": "BORDERLINE",
+      "regions": {
+        "title": {
+          "decision": "BORDERLINE",
+          "reason": "large_contrasting_form",
+          "local_edge_density": 0.0426,
+          "local_contrast": 213.0,
+          "high_frequency_fraction": 0.1599,
+          "calm_tile_fraction": 0.5,
+          "usability_score": 0.5,
+          "broad_contrast": 183.0,
+          "broad_edge_density": 0.0101,
+          "tile_indexes": [
+            0,
+            1,
+            4,
+            5
+          ],
+          "occupied_tile_fraction": 0.0,
+          "quiet_tile_fraction": 0.5
+        }
+      }
+    },
+    "explicit_safe_region_decision": "BORDERLINE",
+    "palette_checked": true,
+    "palette_mode": "dominant-requested-colour-families",
+    "incidental_neutral_ratio": 0.07350852272727272,
+    "largest_incidental_neutral_region_ratio": 0.019886363636363636,
+    "palette_match_ratio": 1.0,
+    "off_palette_ratio": 0.0,
+    "perceptual_in_family_ratio": 1.0,
+    "unrelated_hue_ratio": 0.0,
+    "requested_chromatic_ratio": 0.4333718039772727,
+    "structural_neutral_ratio": 0.07350852272727272,
+    "unrequested_chromatic_ratio": 0.0,
+    "largest_unrequested_region_ratio": 0.0,
+    "primary_ratio": 0.4333718039772727,
+    "secondary_ratio": 0.49311967329545453,
+    "requested_palette_mode": "dominant",
+    "tonal_derivative_ratio": 0.8535600142045454,
+    "primary_presence_ratio": 0.4333718039772727,
+    "secondary_presence_ratio": 0.49311967329545453,
+    "primary_family": "navy",
+    "secondary_family": "white",
+    "primary_role": "primary",
+    "primary_secondary_ratio": 0.8788369790260149,
+    "secondary_presence": true,
+    "dominance_relationship": "FLEXIBLE",
+    "dominance_relationship_passed": true,
+    "secondary_role": "secondary",
+    "secondary_minimum": 0.008,
+    "palette_relationship_source": "default",
+    "palette_role_warning": "PALETTE_ROLE_WARNING",
+    "primary_colour_ratio": 0.4333718039772727,
+    "secondary_colour_ratio": 0.49311967329545453,
+    "requested_colour_counts": {
+      "navy": 9763,
+      "white": 11109
+    },
+    "requested_colour_family_counts": {
+      "navy": 9763,
+      "white": 11109
+    },
+    "accepted_tonal_breakdown": {
+      "white": 0.49311967329545453,
+      "navy": 0.4333718039772727
+    },
+    "unrequested_colour_breakdown": {
+      "grey": 0.05197975852272727,
+      "charcoal": 0.014692826704545454,
+      "black": 0.003995028409090909,
+      "silver": 0.0027965198863636365,
+      "navy": 4.438920454545455e-05
+    },
+    "primary_descriptor": {
+      "raw": "navy",
+      "base_name": "navy",
+      "family_members": [
+        "blue",
+        "navy",
+        "royal blue"
+      ],
+      "modifiers": [],
+      "modifier_only": false
+    },
+    "secondary_descriptor": {
+      "raw": "white",
+      "base_name": "white",
+      "family_members": [
+        "white"
+      ],
+      "modifiers": [],
+      "modifier_only": false
+    },
+    "ocr_tokens": [],
+    "ocr_diagnostics": {
+      "attempted": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "completed_variants": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "timed_out_variants": [],
+      "failed_variants": [],
+      "failure_reasons": {},
+      "completed_variant_count": 4,
+      "required_variant_count": 2,
+      "enhancement_variant_failures": [],
+      "evidence_sufficiency": true,
+      "decision": "complete"
+    },
+    "ocr_validation_attempts": 1,
+    "ocr_validation_sha256": "0deb845bc0590c3521f65b0f80ef166ed0a07ad4b3cb082fd260db6bb506ecc9",
+    "human_detection": {
+      "people": [],
+      "evidence": [],
+      "strong_signals": [],
+      "weak_signals": [],
+      "overlaps": [],
+      "people_weights": [],
+      "faces": [],
+      "profiles": [],
+      "upper_bodies": [],
+      "strong_upper_body_signal": false,
+      "ambiguous_face_signal": false,
+      "detected": false,
+      "human_detection_confidence": "low",
+      "human_detection_reason": "isolated detector patterns without independent confirmation",
+      "largest_detection_area_ratio": 0.0,
+      "classical_human_signal": false,
+      "vision_human_signal": false,
+      "combined_human_decision": false,
+      "decision_reason": "no human evidence"
+    },
+    "all_failure_categories": []
+  },
+  "final_validation": {
+    "decision": "accepted",
+    "failure_category": null,
+    "diagnostic_findings": [
+      "SAFE_REGION_BORDERLINE"
+    ],
+    "palette": {
+      "mode": "dominant",
+      "palette_match_ratio": 1.0,
+      "off_palette_ratio": 0.0,
+      "primary_ratio": 0.4333718039772727,
+      "secondary_ratio": 0.49311967329545453,
+      "requested_chromatic_ratio": 0.4333718039772727,
+      "neutral_ratio": 0.07350852272727272,
+      "unrequested_chromatic_ratio": 0.0,
+      "largest_unrequested_region_ratio": 0.0,
+      "primary_secondary_ratio": 0.8788369790260149,
+      "secondary_presence": true,
+      "dominance_relationship": "FLEXIBLE",
+      "dominance_relationship_passed": true
+    },
+    "text": {
+      "ocr_diagnostics": {
+        "attempted": [
+          "original",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "completed_variants": [
+          "original",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "timed_out_variants": [],
+        "failed_variants": [],
+        "failure_reasons": {},
+        "completed_variant_count": 4,
+        "required_variant_count": 2,
+        "enhancement_variant_failures": [],
+        "evidence_sufficiency": true,
+        "decision": "complete"
+      },
+      "detected": false,
+      "tokens": [],
+      "confirmed_tokens": [],
+      "text_lines": [],
+      "text_area_ratio": 0
+    },
+    "human": {
+      "detected": false,
+      "strong_signals": [],
+      "weak_signals": [],
+      "decision_reason": "no human evidence"
+    },
+    "quality": {
+      "structural_edge_density": 0.23295454545454544,
+      "macro_structure_score": 1.0,
+      "coarse_edge_density": 0.18876262626262627,
+      "high_pass_mean": 4.111504077911377,
+      "boilerplate_score": 0.0,
+      "title_panel_score": 0.0,
+      "fine_line_pair_ratio": 0.0,
+      "macro_form_balance": 1.0,
+      "scene_density": {
+        "requested_density": "moderate",
+        "overall_edge_density": 0.0579,
+        "tile_edge_fractions": [
+          0.0063,
+          0.009,
+          0.0071,
+          0.0066,
+          0.0774,
+          0.0723,
+          0.0842,
+          0.0759,
+          0.0505,
+          0.0559,
+          0.0559,
+          0.0657,
+          0.0723,
+          0.0903,
+          0.1089,
+          0.0884
+        ],
+        "occupied_tile_fraction": 0.0625,
+        "quiet_tile_fraction": 0.25,
+        "safe_region_density": 0.0671,
+        "edge_distribution_balance": 0.0324,
+        "macro_form_balance": 1.0,
+        "normalized_measurements": {
+          "density_pressure": 0.337
+        },
+        "thresholds_used": {
+          "density_pressure": 0.85,
+          "max_quiet_tile_fraction": 0.0625,
+          "occupied_tile_edge_fraction": 0.1,
+          "quiet_tile_edge_fraction": 0.04
+        },
+        "density_rule_triggered": null,
+        "decision": "PASS"
+      },
+      "global_density_decision": "PASS",
+      "explicit_safe_regions": {
+        "decision": "BORDERLINE",
+        "regions": {
+          "title": {
+            "decision": "BORDERLINE",
+            "reason": "large_contrasting_form",
+            "local_edge_density": 0.0426,
+            "local_contrast": 213.0,
+            "high_frequency_fraction": 0.1599,
+            "calm_tile_fraction": 0.5,
+            "usability_score": 0.5,
+            "broad_contrast": 183.0,
+            "broad_edge_density": 0.0101,
+            "tile_indexes": [
+              0,
+              1,
+              4,
+              5
+            ],
+            "occupied_tile_fraction": 0.0,
+            "quiet_tile_fraction": 0.5
+          }
+        }
+      },
+      "explicit_safe_region_decision": "BORDERLINE",
+      "raster_score": 0.0
+    },
+    "brief_fidelity": {
+      "checked": true,
+      "subject_score": 0.85,
+      "atmosphere_score": 0.85,
+      "motif_score": 0.85,
+      "treatment_score": 0.8,
+      "audience_fit_score": 1.0,
+      "thresholds": {
+        "subject_score": 0.55,
+        "atmosphere_score": 0.55,
+        "motif_score": 0.55,
+        "audience_fit_score": 0.55
+      },
+      "decision": "pass",
+      "reason": "The background strongly matches the requested subject with layered panels and subtle connected geometry, creating professional spatial depth. Atmosphere is modern and confident, suitable for adults. Motif topology is well-presented, supporting the theme. Treatment shows clear viewpoint and spatial r",
+      "observed_evidence": [
+        "Subtle, layered white architectural panels with clean, connected geometry",
+        "Dark blue ceiling with grid-patterned recessed lighting",
+        "Multiple levels and depth perception from layered structures"
+      ],
+      "model": "minicpm-v4.5:latest",
+      "failure_category": null,
+      "dimension_availability": {
+        "subject_score": "PASS",
+        "atmosphere_score": "PASS",
+        "motif_score": "PASS",
+        "audience_fit_score": "PASS"
+      },
+      "failed_dimensions": [],
+      "background_usability_score": 0.9,
+      "vision_human_signal": false,
+      "vision_debug": {
+        "endpoint": "/api/chat",
+        "model": "minicpm-v4.5:latest",
+        "score_parsing": [
+          {
+            "dimension_name": "subject_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.85,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "atmosphere_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.85,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "motif_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.85,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "treatment_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.8,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "audience_fit_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 1.0,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "background_usability_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.9,
+            "parse_failure_reason": null
+          }
+        ],
+        "thinking_present": false,
+        "thinking_preview_length": 0,
+        "response_length": 1009,
+        "final_source": "message.content",
+        "raw_text_preview": "<omitted>",
+        "assessment_attempts": 1,
+        "http_status": 200,
+        "response_content_type": "application/json; charset=utf-8",
+        "response_shape": [
+          "created_at",
+          "done",
+          "done_reason",
+          "eval_count",
+          "eval_duration",
+          "load_duration",
+          "message",
+          "model",
+          "prompt_eval_count",
+          "prompt_eval_duration",
+          "total_duration"
+        ],
+        "unconfirmed_human_report": false
+      },
+      "hard_dimensions": [
+        "subject_score",
+        "audience_fit_score"
+      ],
+      "hard_failed_dimensions": [],
+      "compound_fidelity_failure": false,
+      "human_description": "",
+      "vision_text_signal": false,
+      "vision_text_evidence": "",
+      "unrequested_literal_object_visible": false
+    }
+  },
+  "palette_normalized": false,
+  "raw_palette_error": null,
+  "outcome_category": "PASS",
+  "raw_image_path": null,
+  "error": null,
+  "rejection_reason": null,
+  "remote_image": {
+    "filename": "c_00001_.png",
+    "subfolder": "programme-studio/D37C33-644795/sd-3-5-medium",
+    "type": "output"
+  },
+  "secondary_failure_categories": [],
+  "retry_failure_category": null,
+  "decision": "accepted",
+  "primary_failure_category": null,
+  "attempt_history": [
+    {
+      "attempt_count": 1,
+      "status": "complete",
+      "seed": 7747822824721817734,
+      "failure_category": null,
+      "primary_failure_category": null,
+      "retry_failure_category": null,
+      "rejection_reason": null,
+      "error": null,
+      "final_validation": {
+        "decision": "accepted",
+        "failure_category": null,
+        "diagnostic_findings": [
+          "SAFE_REGION_BORDERLINE"
+        ],
+        "palette": {
+          "mode": "dominant",
+          "palette_match_ratio": 1.0,
+          "off_palette_ratio": 0.0,
+          "primary_ratio": 0.4333718039772727,
+          "secondary_ratio": 0.49311967329545453,
+          "requested_chromatic_ratio": 0.4333718039772727,
+          "neutral_ratio": 0.07350852272727272,
+          "unrequested_chromatic_ratio": 0.0,
+          "largest_unrequested_region_ratio": 0.0,
+          "primary_secondary_ratio": 0.8788369790260149,
+          "secondary_presence": true,
+          "dominance_relationship": "FLEXIBLE",
+          "dominance_relationship_passed": true
+        },
+        "text": {
+          "ocr_diagnostics": {
+            "attempted": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "completed_variants": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "timed_out_variants": [],
+            "failed_variants": [],
+            "failure_reasons": {},
+            "completed_variant_count": 4,
+            "required_variant_count": 2,
+            "enhancement_variant_failures": [],
+            "evidence_sufficiency": true,
+            "decision": "complete"
+          },
+          "detected": false,
+          "tokens": [],
+          "confirmed_tokens": [],
+          "text_lines": [],
+          "text_area_ratio": 0
+        },
+        "human": {
+          "detected": false,
+          "strong_signals": [],
+          "weak_signals": [],
+          "decision_reason": "no human evidence"
+        },
+        "quality": {
+          "structural_edge_density": 0.23295454545454544,
+          "macro_structure_score": 1.0,
+          "coarse_edge_density": 0.18876262626262627,
+          "high_pass_mean": 4.111504077911377,
+          "boilerplate_score": 0.0,
+          "title_panel_score": 0.0,
+          "fine_line_pair_ratio": 0.0,
+          "macro_form_balance": 1.0,
+          "scene_density": {
+            "requested_density": "moderate",
+            "overall_edge_density": 0.0579,
+            "tile_edge_fractions": [
+              0.0063,
+              0.009,
+              0.0071,
+              0.0066,
+              0.0774,
+              0.0723,
+              0.0842,
+              0.0759,
+              0.0505,
+              0.0559,
+              0.0559,
+              0.0657,
+              0.0723,
+              0.0903,
+              0.1089,
+              0.0884
+            ],
+            "occupied_tile_fraction": 0.0625,
+            "quiet_tile_fraction": 0.25,
+            "safe_region_density": 0.0671,
+            "edge_distribution_balance": 0.0324,
+            "macro_form_balance": 1.0,
+            "normalized_measurements": {
+              "density_pressure": 0.337
+            },
+            "thresholds_used": {
+              "density_pressure": 0.85,
+              "max_quiet_tile_fraction": 0.0625,
+              "occupied_tile_edge_fraction": 0.1,
+              "quiet_tile_edge_fraction": 0.04
+            },
+            "density_rule_triggered": null,
+            "decision": "PASS"
+          },
+          "global_density_decision": "PASS",
+          "explicit_safe_regions": {
+            "decision": "BORDERLINE",
+            "regions": {
+              "title": {
+                "decision": "BORDERLINE",
+                "reason": "large_contrasting_form",
+                "local_edge_density": 0.0426,
+                "local_contrast": 213.0,
+                "high_frequency_fraction": 0.1599,
+                "calm_tile_fraction": 0.5,
+                "usability_score": 0.5,
+                "broad_contrast": 183.0,
+                "broad_edge_density": 0.0101,
+                "tile_indexes": [
+                  0,
+                  1,
+                  4,
+                  5
+                ],
+                "occupied_tile_fraction": 0.0,
+                "quiet_tile_fraction": 0.5
+              }
+            }
+          },
+          "explicit_safe_region_decision": "BORDERLINE",
+          "raster_score": 0.0
+        },
+        "brief_fidelity": {
+          "checked": true,
+          "subject_score": 0.85,
+          "atmosphere_score": 0.85,
+          "motif_score": 0.85,
+          "treatment_score": 0.8,
+          "audience_fit_score": 1.0,
+          "thresholds": {
+            "subject_score": 0.55,
+            "atmosphere_score": 0.55,
+            "motif_score": 0.55,
+            "audience_fit_score": 0.55
+          },
+          "decision": "pass",
+          "reason": "The background strongly matches the requested subject with layered panels and subtle connected geometry, creating professional spatial depth. Atmosphere is modern and confident, suitable for adults. Motif topology is well-presented, supporting the theme. Treatment shows clear viewpoint and spatial r",
+          "observed_evidence": [
+            "Subtle, layered white architectural panels with clean, connected geometry",
+            "Dark blue ceiling with grid-patterned recessed lighting",
+            "Multiple levels and depth perception from layered structures"
+          ],
+          "model": "minicpm-v4.5:latest",
+          "failure_category": null,
+          "dimension_availability": {
+            "subject_score": "PASS",
+            "atmosphere_score": "PASS",
+            "motif_score": "PASS",
+            "audience_fit_score": "PASS"
+          },
+          "failed_dimensions": [],
+          "background_usability_score": 0.9,
+          "vision_human_signal": false,
+          "vision_debug": {
+            "endpoint": "/api/chat",
+            "model": "minicpm-v4.5:latest",
+            "score_parsing": [
+              {
+                "dimension_name": "subject_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "atmosphere_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "motif_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "treatment_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.8,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "audience_fit_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 1.0,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "background_usability_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.9,
+                "parse_failure_reason": null
+              }
+            ],
+            "thinking_present": false,
+            "thinking_preview_length": 0,
+            "response_length": 1009,
+            "final_source": "message.content",
+            "raw_text_preview": "<omitted>",
+            "assessment_attempts": 1,
+            "http_status": 200,
+            "response_content_type": "application/json; charset=utf-8",
+            "response_shape": [
+              "created_at",
+              "done",
+              "done_reason",
+              "eval_count",
+              "eval_duration",
+              "load_duration",
+              "message",
+              "model",
+              "prompt_eval_count",
+              "prompt_eval_duration",
+              "total_duration"
+            ],
+            "unconfirmed_human_report": false
+          },
+          "hard_dimensions": [
+            "subject_score",
+            "audience_fit_score"
+          ],
+          "hard_failed_dimensions": [],
+          "compound_fidelity_failure": false,
+          "human_description": "",
+          "vision_text_signal": false,
+          "vision_text_evidence": "",
+          "unrequested_literal_object_visible": false
+        }
+      },
+      "subject_adherence": {
+        "checked": true,
+        "score": 0.85,
+        "threshold": 0.55,
+        "subject": "A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth.",
+        "anchors": [
+          "A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth."
+        ],
+        "model": "minicpm-v4.5:latest",
+        "decision": "pass",
+        "reason": "The background strongly matches the requested subject with layered panels and subtle connected geometry, creating professional spatial depth. Atmosphere is modern and confident, suitable for adults. Motif topology is well-presented, supporting the theme. Treatment shows clear viewpoint and spatial r",
+        "subject_score": 0.85,
+        "atmosphere_score": 0.85,
+        "motif_score": 0.85,
+        "treatment_score": 0.8,
+        "audience_fit_score": 1.0,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "observed_evidence": [
+          "Subtle, layered white architectural panels with clean, connected geometry",
+          "Dark blue ceiling with grid-patterned recessed lighting",
+          "Multiple levels and depth perception from layered structures"
+        ],
+        "background_usability_score": 0.9,
+        "vision_human_signal": false,
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false,
+        "failure_category": null,
+        "compound_fidelity_failure": false,
+        "hard_dimensions": [
+          "subject_score",
+          "audience_fit_score"
+        ],
+        "hard_failed_dimensions": [],
+        "failed_dimensions": [],
+        "human_description": "",
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 1.0,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1009,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        }
+      },
+      "brief_fidelity": {
+        "checked": true,
+        "subject_score": 0.85,
+        "atmosphere_score": 0.85,
+        "motif_score": 0.85,
+        "treatment_score": 0.8,
+        "audience_fit_score": 1.0,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "decision": "pass",
+        "reason": "The background strongly matches the requested subject with layered panels and subtle connected geometry, creating professional spatial depth. Atmosphere is modern and confident, suitable for adults. Motif topology is well-presented, supporting the theme. Treatment shows clear viewpoint and spatial r",
+        "observed_evidence": [
+          "Subtle, layered white architectural panels with clean, connected geometry",
+          "Dark blue ceiling with grid-patterned recessed lighting",
+          "Multiple levels and depth perception from layered structures"
+        ],
+        "model": "minicpm-v4.5:latest",
+        "failure_category": null,
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "failed_dimensions": [],
+        "background_usability_score": 0.9,
+        "vision_human_signal": false,
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 1.0,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1009,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        },
+        "hard_dimensions": [
+          "subject_score",
+          "audience_fit_score"
+        ],
+        "hard_failed_dimensions": [],
+        "compound_fidelity_failure": false,
+        "human_description": "",
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false
+      },
+      "raw_palette_error": null,
+      "raw_validation": {
+        "validation": {
+          "decision": "accepted",
+          "failure_category": null,
+          "diagnostic_findings": [
+            "SAFE_REGION_BORDERLINE"
+          ],
+          "palette": {
+            "mode": "dominant",
+            "palette_match_ratio": 1.0,
+            "off_palette_ratio": 0.0,
+            "primary_ratio": 0.4333718039772727,
+            "secondary_ratio": 0.49311967329545453,
+            "requested_chromatic_ratio": 0.4333718039772727,
+            "neutral_ratio": 0.07350852272727272,
+            "unrequested_chromatic_ratio": 0.0,
+            "largest_unrequested_region_ratio": 0.0,
+            "primary_secondary_ratio": 0.8788369790260149,
+            "secondary_presence": true,
+            "dominance_relationship": "FLEXIBLE",
+            "dominance_relationship_passed": true
+          },
+          "text": {
+            "ocr_diagnostics": {
+              "attempted": [
+                "original",
+                "contrast",
+                "threshold",
+                "inverted"
+              ],
+              "completed_variants": [
+                "original",
+                "contrast",
+                "threshold",
+                "inverted"
+              ],
+              "timed_out_variants": [],
+              "failed_variants": [],
+              "failure_reasons": {},
+              "completed_variant_count": 4,
+              "required_variant_count": 2,
+              "enhancement_variant_failures": [],
+              "evidence_sufficiency": true,
+              "decision": "complete"
+            },
+            "detected": false,
+            "tokens": [],
+            "confirmed_tokens": [],
+            "text_lines": [],
+            "text_area_ratio": 0
+          },
+          "human": {
+            "detected": false,
+            "strong_signals": [],
+            "weak_signals": [],
+            "decision_reason": "no human evidence"
+          },
+          "quality": {
+            "structural_edge_density": 0.23295454545454544,
+            "macro_structure_score": 1.0,
+            "coarse_edge_density": 0.18876262626262627,
+            "high_pass_mean": 4.111504077911377,
+            "boilerplate_score": 0.0,
+            "title_panel_score": 0.0,
+            "fine_line_pair_ratio": 0.0,
+            "macro_form_balance": 1.0,
+            "scene_density": {
+              "requested_density": "moderate",
+              "overall_edge_density": 0.0579,
+              "tile_edge_fractions": [
+                0.0063,
+                0.009,
+                0.0071,
+                0.0066,
+                0.0774,
+                0.0723,
+                0.0842,
+                0.0759,
+                0.0505,
+                0.0559,
+                0.0559,
+                0.0657,
+                0.0723,
+                0.0903,
+                0.1089,
+                0.0884
+              ],
+              "occupied_tile_fraction": 0.0625,
+              "quiet_tile_fraction": 0.25,
+              "safe_region_density": 0.0671,
+              "edge_distribution_balance": 0.0324,
+              "macro_form_balance": 1.0,
+              "normalized_measurements": {
+                "density_pressure": 0.337
+              },
+              "thresholds_used": {
+                "density_pressure": 0.85,
+                "max_quiet_tile_fraction": 0.0625,
+                "occupied_tile_edge_fraction": 0.1,
+                "quiet_tile_edge_fraction": 0.04
+              },
+              "density_rule_triggered": null,
+              "decision": "PASS"
+            },
+            "global_density_decision": "PASS",
+            "explicit_safe_regions": {
+              "decision": "BORDERLINE",
+              "regions": {
+                "title": {
+                  "decision": "BORDERLINE",
+                  "reason": "large_contrasting_form",
+                  "local_edge_density": 0.0426,
+                  "local_contrast": 213.0,
+                  "high_frequency_fraction": 0.1599,
+                  "calm_tile_fraction": 0.5,
+                  "usability_score": 0.5,
+                  "broad_contrast": 183.0,
+                  "broad_edge_density": 0.0101,
+                  "tile_indexes": [
+                    0,
+                    1,
+                    4,
+                    5
+                  ],
+                  "occupied_tile_fraction": 0.0,
+                  "quiet_tile_fraction": 0.5
+                }
+              }
+            },
+            "explicit_safe_region_decision": "BORDERLINE",
+            "raster_score": 0.0
+          }
+        },
+        "output_path": "/data/programmes/D37C33-644795/backgrounds/sd-3-5-medium/image-c.download.part",
+        "sha256": "0deb845bc0590c3521f65b0f80ef166ed0a07ad4b3cb082fd260db6bb506ecc9",
+        "width": 896,
+        "height": 1280,
+        "person_detection_count": 0,
+        "face_detection_count": 0,
+        "profile_detection_count": 0,
+        "upper_body_detection_count": 0,
+        "visual_quality_checked": true,
+        "visual_quality_passed": true,
+        "macro_structure_score": 1.0,
+        "coarse_edge_density": 0.18876262626262627,
+        "edge_density": 0.16908957741477273,
+        "structural_edge_density": 0.23295454545454544,
+        "horizontal_edge_density": 0.1331787109375,
+        "vertical_edge_density": 0.003506747159090909,
+        "directional_edge_dominance": 0.7876222353481657,
+        "full_span_line_ratio": 0.005681818181818182,
+        "fine_horizontal_pair_ratio": 0.0,
+        "fine_vertical_pair_ratio": 0.0,
+        "fine_line_pair_ratio": 0.0,
+        "fine_line_mean_delta": 2.5300168991088867,
+        "image_entropy": 6.722695350646973,
+        "largest_quantised_colour_ratio": 0.3213778409090909,
+        "laplacian_variance": 839.19140625,
+        "highpass_mean": 4.111504077911377,
+        "coherent_edge_ratio": 0.9241206030150754,
+        "center_structural_edge_density": 0.25110978103646064,
+        "outer_structural_edge_density": 0.2183988483224697,
+        "center_local_contrast": 89.05286407470703,
+        "title_structural_edge_density": 0.02822085889570552,
+        "title_local_contrast": 14.828558921813965,
+        "programme_structural_edge_density": 0.28019979369129705,
+        "programme_local_contrast": 50.520538330078125,
+        "center_to_outer_edge_ratio": 1.1497761227462733,
+        "center_safe_region_passed": false,
+        "title_panel_score": 0.0,
+        "boilerplate_score": 0.0,
+        "largest_flat_rectangle_ratio": 0.0,
+        "flat_rectangular_coverage_ratio": 0.0,
+        "flat_coverage_ratio": 0.43363813920454547,
+        "long_axis_separator_ratio": 0.005681818181818182,
+        "large_flat_rectangle_count": 0.0,
+        "centre_edge_density": 0.33433948863636365,
+        "perimeter_edge_density": 0.23940577651515152,
+        "centre_flat_ratio": 0.25941051136363635,
+        "bilateral_symmetry": 0.8552820682525635,
+        "irregular_frame_score": 0.0,
+        "lower_centre_edge_density": 0.3463983050847458,
+        "quiet_centre_evidence": 0.0,
+        "scene_density": {
+          "requested_density": "moderate",
+          "overall_edge_density": 0.0579,
+          "tile_edge_fractions": [
+            0.0063,
+            0.009,
+            0.0071,
+            0.0066,
+            0.0774,
+            0.0723,
+            0.0842,
+            0.0759,
+            0.0505,
+            0.0559,
+            0.0559,
+            0.0657,
+            0.0723,
+            0.0903,
+            0.1089,
+            0.0884
+          ],
+          "occupied_tile_fraction": 0.0625,
+          "quiet_tile_fraction": 0.25,
+          "safe_region_density": 0.0671,
+          "edge_distribution_balance": 0.0324,
+          "macro_form_balance": 1.0,
+          "normalized_measurements": {
+            "density_pressure": 0.337
+          },
+          "thresholds_used": {
+            "density_pressure": 0.85,
+            "max_quiet_tile_fraction": 0.0625,
+            "occupied_tile_edge_fraction": 0.1,
+            "quiet_tile_edge_fraction": 0.04
+          },
+          "density_rule_triggered": null,
+          "decision": "PASS"
+        },
+        "global_density_decision": "PASS",
+        "macro_form_balance": 1.0,
+        "explicit_safe_regions": {
+          "decision": "BORDERLINE",
+          "regions": {
+            "title": {
+              "decision": "BORDERLINE",
+              "reason": "large_contrasting_form",
+              "local_edge_density": 0.0426,
+              "local_contrast": 213.0,
+              "high_frequency_fraction": 0.1599,
+              "calm_tile_fraction": 0.5,
+              "usability_score": 0.5,
+              "broad_contrast": 183.0,
+              "broad_edge_density": 0.0101,
+              "tile_indexes": [
+                0,
+                1,
+                4,
+                5
+              ],
+              "occupied_tile_fraction": 0.0,
+              "quiet_tile_fraction": 0.5
+            }
+          }
+        },
+        "explicit_safe_region_decision": "BORDERLINE",
+        "palette_checked": true,
+        "palette_mode": "dominant-requested-colour-families",
+        "incidental_neutral_ratio": 0.07350852272727272,
+        "largest_incidental_neutral_region_ratio": 0.019886363636363636,
+        "palette_match_ratio": 1.0,
+        "off_palette_ratio": 0.0,
+        "perceptual_in_family_ratio": 1.0,
+        "unrelated_hue_ratio": 0.0,
+        "requested_chromatic_ratio": 0.4333718039772727,
+        "structural_neutral_ratio": 0.07350852272727272,
+        "unrequested_chromatic_ratio": 0.0,
+        "largest_unrequested_region_ratio": 0.0,
+        "primary_ratio": 0.4333718039772727,
+        "secondary_ratio": 0.49311967329545453,
+        "requested_palette_mode": "dominant",
+        "tonal_derivative_ratio": 0.8535600142045454,
+        "primary_presence_ratio": 0.4333718039772727,
+        "secondary_presence_ratio": 0.49311967329545453,
+        "primary_family": "navy",
+        "secondary_family": "white",
+        "primary_role": "primary",
+        "primary_secondary_ratio": 0.8788369790260149,
+        "secondary_presence": true,
+        "dominance_relationship": "FLEXIBLE",
+        "dominance_relationship_passed": true,
+        "secondary_role": "secondary",
+        "secondary_minimum": 0.008,
+        "palette_relationship_source": "default",
+        "palette_role_warning": "PALETTE_ROLE_WARNING",
+        "primary_colour_ratio": 0.4333718039772727,
+        "secondary_colour_ratio": 0.49311967329545453,
+        "requested_colour_counts": {
+          "navy": 9763,
+          "white": 11109
+        },
+        "requested_colour_family_counts": {
+          "navy": 9763,
+          "white": 11109
+        },
+        "accepted_tonal_breakdown": {
+          "white": 0.49311967329545453,
+          "navy": 0.4333718039772727
+        },
+        "unrequested_colour_breakdown": {
+          "grey": 0.05197975852272727,
+          "charcoal": 0.014692826704545454,
+          "black": 0.003995028409090909,
+          "silver": 0.0027965198863636365,
+          "navy": 4.438920454545455e-05
+        },
+        "primary_descriptor": {
+          "raw": "navy",
+          "base_name": "navy",
+          "family_members": [
+            "blue",
+            "navy",
+            "royal blue"
+          ],
+          "modifiers": [],
+          "modifier_only": false
+        },
+        "secondary_descriptor": {
+          "raw": "white",
+          "base_name": "white",
+          "family_members": [
+            "white"
+          ],
+          "modifiers": [],
+          "modifier_only": false
+        },
+        "ocr_tokens": [],
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 4,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        },
+        "ocr_validation_attempts": 1,
+        "ocr_validation_sha256": "0deb845bc0590c3521f65b0f80ef166ed0a07ad4b3cb082fd260db6bb506ecc9",
+        "human_detection": {
+          "people": [],
+          "evidence": [],
+          "strong_signals": [],
+          "weak_signals": [],
+          "overlaps": [],
+          "people_weights": [],
+          "faces": [],
+          "profiles": [],
+          "upper_bodies": [],
+          "strong_upper_body_signal": false,
+          "ambiguous_face_signal": false,
+          "detected": false,
+          "human_detection_confidence": "low",
+          "human_detection_reason": "isolated detector patterns without independent confirmation",
+          "largest_detection_area_ratio": 0.0,
+          "classical_human_signal": false,
+          "vision_human_signal": false,
+          "combined_human_decision": false,
+          "decision_reason": "no human evidence"
+        },
+        "all_failure_categories": []
+      },
+      "raw_subject_adherence": null,
+      "palette_recovery": {
+        "eligible": false,
+        "attempted": false,
+        "source_off_palette_ratio": null,
+        "result": "not_attempted",
+        "failure_reason": null,
+        "normalized_off_palette_ratio": null,
+        "edge_geometry_similarity": null,
+        "structural_detail_preserved": null
+      }
+    }
+  ]
+}

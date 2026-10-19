@@ -1,0 +1,137 @@
+{
+  "session_id": "1ed8dfe8d40d43db96b634fff3727192",
+  "reference_number": "D37C33-644795",
+  "event_type": "Corporate conference",
+  "theme": "Modern technology forum",
+  "age_group": "Adults",
+  "primary_colour": "navy",
+  "secondary_colour": "white",
+  "creative_description": "A professional, confident and modern technology conference with a clean premium atmosphere.",
+  "background_inspiration": "A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth.",
+  "theme_reference_treatment": null,
+  "grill_me_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "Corporate conference",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "Professional setting",
+      "Formal attire",
+      "Conference hall"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Modern technology forum",
+    "reference_detected": false,
+    "reference_name": null,
+    "reference_type": "none",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "Generate a clean, contemporary technology hall with layered architectural panels, subtle connected geometry, and professional spatial depth. Ensure the background is high-contrast and has clear readable programme text.",
+    "scene_family_evidence": "A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth.",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "Professional",
+        "Confident",
+        "Modern"
+      ],
+      "audience_descriptors": [
+        "Adults"
+      ],
+      "motif_descriptors": [
+        "Layered architectural panels",
+        "Subtle connected geometry"
+      ],
+      "motif_structure_description": "The layered architectural panels and subtle connected geometry should create a sense of depth and professionalism.",
+      "lighting_descriptors": [
+        "Bright and clear"
+      ],
+      "material_descriptors": [
+        "Smooth and sleek"
+      ],
+      "texture_descriptors": [
+        "Subtle and refined"
+      ],
+      "incompatible_treatments": [
+        "Bright and distracting lighting",
+        "Cluttered and chaotic design"
+      ],
+      "scene_family": "architectural-interior",
+      "composition_affinities": [
+        "Symmetrical balance",
+        "Clean lines"
+      ]
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SEMANTIC_INFERENCE",
+      "material_descriptors": "SEMANTIC_INFERENCE",
+      "texture_descriptors": "SEMANTIC_INFERENCE",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SEMANTIC_INFERENCE",
+      "composition_affinities": "SEMANTIC_INFERENCE"
+    },
+    "semantic_confidence": {},
+    "generation_constraints": [
+      "No readable programme/title text",
+      "No logos",
+      "No people or characters",
+      "background only",
+      "no people",
+      "no characters",
+      "no logos",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "title": "Technology Forum",
+  "event_date": "2026-12-21",
+  "start_time": "09:00",
+  "timezone": "Africa/Johannesburg",
+  "venue": "Innovation Centre",
+  "programme": [
+    {
+      "time": "09:00",
+      "title": "Opening",
+      "description": null
+    },
+    {
+      "time": "10:00",
+      "title": "Keynote",
+      "description": null
+    },
+    {
+      "time": "11:30",
+      "title": "Panel",
+      "description": null
+    }
+  ],
+  "output_language": "en",
+  "accessibility_preferences": [
+    "high contrast",
+    "clear readable programme text"
+  ],
+  "asset_type": "none",
+  "asset_placement": null,
+  "asset_vertical_position": null,
+  "text_flow": "standard",
+  "headshot_path": null,
+  "logo_path": null,
+  "headshot_shape": null,
+  "headshot_placement": null,
+  "logo_placement": null,
+  "layout_contract": {
+    "asset": {
+      "enabled": false,
+      "type": "none",
+      "vertical_position": null,
+      "horizontal_position": null
+    },
+    "text": {
+      "flow": "standard",
+      "must_begin_below_asset": false
+    }
+  },
+  "rights_and_consent_confirmed": true
+}

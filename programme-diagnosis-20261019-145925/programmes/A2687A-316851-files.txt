@@ -1,0 +1,7 @@
+REFERENCE=A2687A-316851
+
+2026-10-19 13:43:02.3873633640 18775 /home/ntlhari/NerdCode/programme-studio/data/programmes/A2687A-316851/prompts.json
+2026-10-19 13:43:02.3933633340 7421 /home/ntlhari/NerdCode/programme-studio/data/programmes/A2687A-316851/brief.json
+2026-10-19 13:43:02.3943633290 146 /home/ntlhari/NerdCode/programme-studio/data/programmes/A2687A-316851/probe-source.json
+2026-10-19 13:43:20.1202785040 1360820 /home/ntlhari/NerdCode/programme-studio/data/programmes/A2687A-316851/backgrounds/sd-3-5-medium/image-b.png
+2026-10-19 13:43:30.7272297160 155904 /home/ntlhari/NerdCode/programme-studio/data/programmes/A2687A-316851/backgrounds/sd-3-5-medium/image-b.json

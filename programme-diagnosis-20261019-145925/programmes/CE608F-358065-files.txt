@@ -1,0 +1,7 @@
+REFERENCE=CE608F-358065
+
+2026-10-19 14:49:56.8314499280 22503 /home/ntlhari/NerdCode/programme-studio/data/programmes/CE608F-358065/prompts.json
+2026-10-19 14:49:56.8364498520 7660 /home/ntlhari/NerdCode/programme-studio/data/programmes/CE608F-358065/brief.json
+2026-10-19 14:49:56.8424497600 146 /home/ntlhari/NerdCode/programme-studio/data/programmes/CE608F-358065/probe-source.json
+2026-10-19 14:50:15.4031718050 1267589 /home/ntlhari/NerdCode/programme-studio/data/programmes/CE608F-358065/backgrounds/sd-3-5-medium/image-b.png
+2026-10-19 14:50:24.4070405900 123042 /home/ntlhari/NerdCode/programme-studio/data/programmes/CE608F-358065/backgrounds/sd-3-5-medium/image-b.json

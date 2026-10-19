@@ -9,6 +9,13 @@ from app.services.scene_density import assess_explicit_safe_regions, assess_scen
 
 
 class SafeRegionUsabilityTests(unittest.TestCase):
+    def test_unactivated_strategy_is_not_reported_as_evaluated_pass(self):
+        image = Image.new("RGB", (512, 512), "white")
+        result = assess_explicit_safe_regions(assess_scene_density(image, "moderate"),
+                                               {"title": "reserved for title text"}, image)
+        self.assertEqual(result["regions"], {})
+        self.assertEqual(result["evaluation_status"], "NOT_EVALUATED")
+
     def assess(self, image, strategy="quiet top-left area", global_decision=None):
         density = assess_scene_density(image, "moderate")
         if global_decision:

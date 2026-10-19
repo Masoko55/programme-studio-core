@@ -1,0 +1,118 @@
+{
+  "session_id": "d66e328d66994df287c0efb953493d13",
+  "status": "ready",
+  "answers": {
+    "event_type": "Children birthday party",
+    "theme": "Superhero city adventure",
+    "age_group": "Children aged 7 to 10",
+    "primary_colour": "royal blue",
+    "secondary_colour": "red",
+    "creative_description": "A joyful, playful, high-energy superhero-inspired children's birthday celebration with a bright comic-book city atmosphere.",
+    "background_inspiration": "A stylised comic-book city skyline with bold angular architecture, layered city depth, interconnected web-inspired geometry and energetic spatial movement.",
+    "theme_reference_treatment": "Use connected radial web geometry, curved cross-links, angular architecture, playful comic-book movement and strong royal-blue and red relationships without depicting any person, superhero, character, logo or recognizable costume.",
+    "event_date": "2026-12-05",
+    "start_time": "14:00",
+    "title_preference": "Kabelo's Superhero Birthday",
+    "venue": "Sunrise Family Hall",
+    "timezone": "Africa/Johannesburg",
+    "programme": [
+      {
+        "time": "14:00",
+        "title": "Welcome",
+        "description": null
+      },
+      {
+        "time": "14:30",
+        "title": "Games and Activities",
+        "description": null
+      },
+      {
+        "time": "16:00",
+        "title": "Cake Celebration",
+        "description": null
+      }
+    ],
+    "output_language": "en",
+    "accessibility_preferences": [
+      "high contrast",
+      "clear readable programme text"
+    ],
+    "asset_type": "none",
+    "asset_placement": null,
+    "headshot_shape": null,
+    "rights_and_consent_confirmed": null
+  },
+  "clarification_questions": [],
+  "creative_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "Children birthday party",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "Decorations and activities tailored for children",
+      "Bright and playful atmosphere"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Superhero city adventure",
+    "reference_detected": true,
+    "reference_name": "Superhero",
+    "reference_type": "franchise",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "Create a stylised comic-book city skyline with bold angular architecture, layered city depth, interconnected web-inspired geometry, and energetic spatial movement. Use strong royal-blue and red relationships without depicting any person, superhero, character, logo or recognizable costume.",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "joyful, playful, high-energy"
+      ],
+      "audience_descriptors": [
+        "Children aged 7 to 10"
+      ],
+      "motif_descriptors": [
+        "Connected radial web geometry",
+        "Curved cross-links",
+        "Angular architecture"
+      ],
+      "motif_structure_description": "The motif is interconnected through radial web geometry and curved cross-links, creating a network of angular architecture.",
+      "lighting_descriptors": [
+        "Bright and vibrant"
+      ],
+      "material_descriptors": [
+        "Stylised comic-book materials"
+      ],
+      "texture_descriptors": [
+        "Smooth and glossy"
+      ],
+      "incompatible_treatments": [
+        "Realistic cityscape",
+        "Dark and gloomy atmosphere"
+      ],
+      "scene_family": "architectural-interior",
+      "composition_affinities": [
+        "Dynamic and energetic"
+      ]
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SEMANTIC_INFERENCE",
+      "material_descriptors": "SEMANTIC_INFERENCE",
+      "texture_descriptors": "SEMANTIC_INFERENCE",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SEMANTIC_INFERENCE",
+      "composition_affinities": "SEMANTIC_INFERENCE"
+    },
+    "semantic_confidence": {},
+    "generation_constraints": [
+      "Use strong royal-blue and red relationships",
+      "Avoid depicting any person, superhero, character, logo or recognizable costume",
+      "background only",
+      "no people",
+      "no characters",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "assets": {},
+  "reference_number": null
+}

@@ -1,0 +1,7 @@
+REFERENCE=0336F3-428644
+
+2026-10-19 13:50:16.9612120660 19064 /home/ntlhari/NerdCode/programme-studio/data/programmes/0336F3-428644/prompts.json
+2026-10-19 13:50:16.9652120620 6538 /home/ntlhari/NerdCode/programme-studio/data/programmes/0336F3-428644/brief.json
+2026-10-19 13:50:16.9662120610 139 /home/ntlhari/NerdCode/programme-studio/data/programmes/0336F3-428644/probe-source.json
+2026-10-19 13:50:24.4762051030 1819226 /home/ntlhari/NerdCode/programme-studio/data/programmes/0336F3-428644/backgrounds/flux-2/image-b.png
+2026-10-19 13:51:24.5101606330 137645 /home/ntlhari/NerdCode/programme-studio/data/programmes/0336F3-428644/backgrounds/flux-2/image-b.json

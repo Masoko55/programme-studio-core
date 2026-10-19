@@ -1280,6 +1280,7 @@ def _pseudo_text_evidence(image: Image.Image) -> dict:
         return {"detected": grouped and not geometry_suppressed,
                 "geometry_suppressed": geometry_suppressed,
                 "aligned_rows": len(plausible), "glyph_components": len(glyphs),
+                "row_bounds": plausible if not geometry_suppressed else [],
                 "structured_components": sum(item[5] for item in glyphs)}
     dark = grouped_rows(binary)
     light = grouped_rows(255 - binary)
@@ -1287,7 +1288,29 @@ def _pseudo_text_evidence(image: Image.Image) -> dict:
             "aligned_rows": max(dark["aligned_rows"], light["aligned_rows"]),
             "glyph_components": max(dark["glyph_components"], light["glyph_components"]),
             "structured_components": max(dark["structured_components"], light["structured_components"]),
+            "row_bounds": dark["row_bounds"] + light["row_bounds"],
             "geometry_suppressed": dark["geometry_suppressed"] and light["geometry_suppressed"]}
+
+
+def _single_row_ocr_confirmation(items: list[dict], pseudo_text: dict,
+                                 image_size: tuple[int, int]) -> bool:
+    """Correlate one compact glyph row with an OCR hint in the same place."""
+    if (pseudo_text["aligned_rows"] != 1 or pseudo_text["glyph_components"] > 32 or
+            pseudo_text["structured_components"] < 5):
+        return False
+    scale_x, scale_y = 512 / image_size[0], 512 / image_size[1]
+    for item in items:
+        x, y, width, height = item["bbox"]
+        if item["confidence"] < 65 or len(item["token"]) < 5 or width <= 0 or height <= 0:
+            continue
+        left, right = x * scale_x, (x + width) * scale_x
+        center_y = (y + height / 2) * scale_y
+        for row_left, row_right, row_y in pseudo_text["row_bounds"]:
+            overlap = max(0, min(right, row_right) - max(left, row_left))
+            if (overlap >= .35 * min(right - left, row_right - row_left) and
+                    abs(center_y - row_y) <= max(20, height * scale_y)):
+                return True
+    return False
 
 
 def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = None) -> dict:
@@ -1350,6 +1373,9 @@ def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = 
                          and item["area_ratio"] >= 0.01
                          and (item["crop_confirmed"] or len(item["passes"]) >= 2))
     pseudo_text = _pseudo_text_evidence(image)
+    if not pseudo_text["detected"] and _single_row_ocr_confirmation(items, pseudo_text, image.size):
+        pseudo_text["detected"] = True
+        pseudo_text["single_row_ocr_confirmed"] = True
     detected = bool(lines or strong_single or pseudo_text["detected"])
     selected = confirmed if detected else []
     completed = set(diagnostics["completed_variants"])

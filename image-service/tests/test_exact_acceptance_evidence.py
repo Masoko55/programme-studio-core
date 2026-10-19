@@ -15,6 +15,49 @@ def ocr_data(*items):
 
 
 class ExactOcrCases(unittest.TestCase):
+    def test_single_pseudo_word_row_with_ocr_hint_is_detected(self):
+        artwork = Image.new("RGB", (512, 512), "white")
+        draw = ImageDraw.Draw(artwork)
+        x = 60
+        for width in (9, 7, 12, 6, 11, 8, 13, 6):
+            draw.line((x, 150, x, 163), fill="black", width=2)
+            draw.line((x, 150, x + width, 150), fill="black", width=2)
+            draw.line((x + width, 150, x + width, 163), fill="black", width=2)
+            x += width + 8
+        first = ocr_data(("TANSWOR", "74", 60, 145, 130, 22))
+        with patch("app.services.comfyui_client.pytesseract.image_to_data",
+                   side_effect=[first, ocr_data(), ocr_data(), ocr_data()]), \
+             patch("app.services.comfyui_client._confirm_ocr_candidate", return_value=False):
+            result = detect_text_evidence(artwork)
+        self.assertEqual(result["ocr_diagnostics"]["decision"], "complete")
+        self.assertEqual(result["pseudo_text"]["aligned_rows"], 1)
+        self.assertTrue(result["text_detected"])
+        for hint in (ocr_data(("TANSWOR", "52", 60, 145, 130, 22)),
+                     ocr_data(("TANSWOR", "74", 350, 330, 130, 22))):
+            with self.subTest(hint=hint), \
+                 patch("app.services.comfyui_client.pytesseract.image_to_data",
+                       side_effect=[hint, ocr_data(), ocr_data(), ocr_data()]), \
+                 patch("app.services.comfyui_client._confirm_ocr_candidate", return_value=False):
+                self.assertFalse(detect_text_evidence(artwork)["text_detected"])
+
+    def test_geometry_with_isolated_ocr_hint_is_not_pseudo_text(self):
+        for kind in ("lattice", "radial"):
+            with self.subTest(kind=kind):
+                artwork = Image.new("RGB", (512, 512), "white")
+                draw = ImageDraw.Draw(artwork)
+                for coordinate in range(0, 512, 24):
+                    if kind == "lattice":
+                        draw.line((coordinate, 0, coordinate, 511), fill="black", width=2)
+                        draw.line((0, coordinate, 511, coordinate), fill="black", width=2)
+                    else:
+                        draw.line((256, 256, coordinate, 0), fill="black", width=2)
+                        draw.line((256, 256, coordinate, 511), fill="black", width=2)
+                hint = ocr_data(("TANSWOR", "74", 60, 145, 130, 22))
+                with patch("app.services.comfyui_client.pytesseract.image_to_data",
+                           side_effect=[hint, ocr_data(), ocr_data(), ocr_data()]), \
+                     patch("app.services.comfyui_client._confirm_ocr_candidate", return_value=False):
+                    self.assertFalse(detect_text_evidence(artwork)["text_detected"])
+
     def test_grouped_pseudo_glyphs_without_ocr_and_grid_control(self):
         artwork = Image.new("RGB", (512, 512), "white")
         draw = ImageDraw.Draw(artwork)

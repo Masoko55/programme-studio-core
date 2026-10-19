@@ -1,0 +1,15 @@
+REFERENCE=8A0449-439194
+
+2026-10-19 13:35:05.8392392860 18775 /home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/prompts.json
+2026-10-19 13:35:05.8422392980 7421 /home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/brief.json
+2026-10-19 13:35:05.8452393100 141 /home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/probe-source.json
+2026-10-19 13:35:31.0493386380 1700697 /home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-01.rejected.png
+2026-10-19 13:35:53.8494283970 1733374 /home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-02.rejected.png
+2026-10-19 13:36:14.4335093570 1702765 /home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-03.rejected.png
+2026-10-19 13:36:35.6415814250 1850139 /home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-04.rejected.png
+2026-10-19 13:36:58.5982970530 1762465 /home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-05.rejected.png
+2026-10-19 13:37:20.4850394520 1867105 /home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-06.rejected.png
+2026-10-19 13:37:43.3267840670 1761833 /home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-07.rejected.png
+2026-10-19 13:38:06.2555409430 1565450 /home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-08.rejected.png
+2026-10-19 13:38:31.5282876250 1731277 /home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-09.rejected.png
+2026-10-19 13:38:31.5712872060 566818 /home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.json

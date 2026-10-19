@@ -34,6 +34,63 @@ class SafeRegionUsabilityTests(unittest.TestCase):
         self.assertEqual(result["decision"], "FAIL")
         self.assertEqual(result["regions"]["title"]["reason"], "dense_high_contrast_detail")
 
+    def test_ornate_edges_leave_contiguous_title_window(self):
+        image = Image.new("RGB", (512, 512), "#ebe4d7")
+        draw = ImageDraw.Draw(image)
+        for x in list(range(0, 64, 5)) + list(range(192, 256, 5)):
+            draw.line((x, 0, x, 255), fill="#292827", width=2)
+        for y in range(0, 48, 5):
+            draw.line((0, y, 255, y), fill="#292827", width=2)
+        result = self.assess(image)
+        self.assertNotEqual(result["decision"], "FAIL")
+        self.assertGreaterEqual(result["regions"]["title"]["largest_calm_window_fraction"], .125)
+
+    def test_architectural_edge_can_be_borderline_with_open_window(self):
+        image = Image.new("RGB", (512, 512), "#d8d5ce")
+        draw = ImageDraw.Draw(image)
+        for x in range(0, 70, 6):
+            draw.line((x, 0, x, 255), fill="#22232a", width=2)
+        result = self.assess(image)
+        self.assertIn(result["decision"], {"PASS", "BORDERLINE"})
+        self.assertGreater(result["regions"]["title"]["usable_window_width_fraction"], .35)
+
+    def test_scattered_calm_cells_without_text_window_fail(self):
+        image = Image.new("RGB", (512, 512), "white")
+        draw = ImageDraw.Draw(image)
+        for row in range(8):
+            for column in range(8):
+                if (row + column) % 3 == 0:
+                    continue
+                x, y = column * 32, row * 32
+                for offset in range(0, 32, 4):
+                    draw.line((x + offset, y, x + offset, y + 31), fill="black", width=2)
+        self.assertEqual(self.assess(image)["decision"], "FAIL")
+
+    def test_dense_crossing_pattern_still_has_no_overlay_window(self):
+        image = Image.new("RGB", (512, 512), "white")
+        draw = ImageDraw.Draw(image)
+        for offset in range(-256, 256, 10):
+            draw.line((offset, 0, offset + 255, 255), fill="black", width=2)
+            draw.line((offset + 255, 0, offset, 255), fill="black", width=2)
+        result = self.assess(image)
+        self.assertEqual(result["decision"], "FAIL")
+        self.assertEqual(result["regions"]["title"]["largest_calm_window_fraction"], 0)
+
+    def test_layout_coordinates_take_precedence_over_strategy_fallback(self):
+        image = Image.new("RGB", (512, 512), "white")
+        draw = ImageDraw.Draw(image)
+        for coordinate in range(0, 256, 8):
+            draw.line((coordinate, 0, coordinate, 255), fill="black", width=2)
+            draw.line((0, coordinate, 255, coordinate), fill="black", width=2)
+        density = assess_scene_density(image, "moderate")
+        fallback = assess_explicit_safe_regions(density, {"title": "quiet top-left"}, image)
+        self.assertEqual(fallback["decision"], "FAIL")
+        exact = assess_explicit_safe_regions(density, {"title": "quiet top-left"}, image,
+                                             {"title_zone": {"x": .5, "y": 0,
+                                                             "width": .5, "height": .5}})
+        self.assertEqual(exact["decision"], "PASS")
+        self.assertEqual(exact["regions"]["title"]["region_source"], "layout_guidance")
+
     def test_low_contrast_texture_is_usable(self):
         pixels = np.full((512, 512, 3), 210, dtype=np.uint8)
         for y in range(0, 256, 4):

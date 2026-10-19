@@ -31,6 +31,22 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_inferred_audience_mood_is_diagnostic_but_explicit_hard_audience_rejects(self):
+        brief = {"primary_visual_subject": "layered abstract landscape",
+                 "audience_context": "families", "age_group": "children",
+                 "visual_semantics": {"audience_descriptors": ["welcoming"]},
+                 "semantic_provenance": {"audience_descriptors": "SEMANTIC_INFERENCE"}}
+        scores = {"subject_score": .9, "audience_fit_score": .3}
+        result, _ = self._assess(brief, scores)
+        self.assertEqual(result["audience_fit_score"], .3)
+        self.assertIn("audience_fit_score", result["failed_dimensions"])
+        self.assertNotIn("audience_fit_score", result["hard_failed_dimensions"])
+        self.assertFalse(hard_fidelity_failure(result))
+        brief["hard_dimensions"] = ["audience_fit_score"]
+        hard, _ = self._assess(brief, scores)
+        self.assertIn("audience_fit_score", hard["hard_failed_dimensions"])
+        self.assertTrue(hard_fidelity_failure(hard))
+
     def test_vision_human_requires_anatomy_or_posture_and_location(self):
         brief = {"primary_visual_subject": "architectural shapes"}
         base = {"subject_score": .9, "human_visible": True}
@@ -354,6 +370,7 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                 "audience_context": (
                     "children"
                 ),
+                "hard_dimensions": ["audience_fit_score"],
                 "creative_description": (
                     "joyful playful celebration"
                 ),

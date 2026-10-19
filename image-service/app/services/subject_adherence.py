@@ -1004,12 +1004,7 @@ def assess_subject_adherence(
                 "audience_descriptors"
             )
             in explicit_sources
-            or visual_design.get(
-                "audience_context"
-            )
-            or visual_design.get(
-                "age_group"
-            )
+            or "audience_fit_score" in visual_design.get("hard_dimensions", [])
         )
     ):
         hard_dimensions.append(

@@ -1850,7 +1850,7 @@ def validate_background(
             safe_regions = assess_explicit_safe_regions(density, {
                 "title": str(visual_design.get("title_safe_region_strategy") or ""),
                 "programme": str(visual_design.get("programme_safe_region_strategy") or ""),
-            }, image)
+            }, image, visual_design.get("layout_guidance"))
             quality_result["explicit_safe_regions"] = safe_regions
             quality_result["explicit_safe_region_decision"] = safe_regions["decision"]
             if safe_regions["decision"] == "FAIL":
@@ -2633,7 +2633,8 @@ class ComfyUIClient:
                 load_prompts_document(reference_number), engine_id, direction_id
             )
             visual_design = {**candidate_spec.visual_design,
-                             "semantic_provenance": candidate_spec.semantic_contract.get("semantic_provenance", {})}
+                             "semantic_provenance": candidate_spec.semantic_contract.get("semantic_provenance", {}),
+                             "layout_guidance": candidate_spec.layout_guidance}
         except FileNotFoundError:
             # Legacy fixture records can be validated without a prompts file.
             visual_design = None
@@ -3106,7 +3107,8 @@ class ComfyUIClient:
         ):
             try:
                 spec = build_candidate_spec(load_prompts_document(reference_number), engine_id, direction_id)
-                design = {**spec.visual_design, "semantic_provenance": spec.semantic_contract.get("semantic_provenance", {})}
+                design = {**spec.visual_design, "semantic_provenance": spec.semantic_contract.get("semantic_provenance", {}),
+                          "layout_guidance": spec.layout_guidance}
                 subject = assess_subject_adherence(image_path, design)
                 previous_hard_failure = hard_fidelity_failure(previous.get("subject_adherence"))
                 if subject.get("decision") != "unavailable":

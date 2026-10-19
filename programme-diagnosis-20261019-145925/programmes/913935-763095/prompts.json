@@ -1,0 +1,305 @@
+{
+  "schema_version": "1.0",
+  "prompt_schema_version": "1.0",
+  "creative_direction_version": "2.0",
+  "reference_number": "913935-763095",
+  "input_sha256": "250290e496281a7201bba949c5c1001fc0496256696c93bf9b04cd05bc5a6c99",
+  "created_at": "2026-10-19T07:16:30.026696Z",
+  "brief": {
+    "event_type": "Children birthday party",
+    "theme": "Superhero city adventure inspired by Spider-Man",
+    "age_group": "Children aged 7 to 10",
+    "primary_colour": "royal blue",
+    "secondary_colour": "red",
+    "creative_description": "A kids birthday party for a kid who is into superheroes, most especially spiderman.",
+    "background_inspiration": null,
+    "theme_reference_treatment": "spiderman colours must influence the visual traits but do not add any buildings and just add webs but not a lot.",
+    "grill_me_context": {
+      "event_type_status": "known",
+      "event_type_interpretation": "Children birthday party",
+      "well_known_event_type": true,
+      "event_visual_conventions": [
+        "Decorations and activities tailored for children",
+        "Bright and vibrant colors"
+      ],
+      "theme_status": "known",
+      "theme_interpretation": "Superhero city adventure inspired by Spider-Man",
+      "reference_detected": true,
+      "reference_name": "Spider-Man",
+      "reference_type": "character",
+      "reference_needs_clarification": false,
+      "background_generation_summary": "Use only the supplied visual motifs and treatment; do not invent an environment.",
+      "scene_family_evidence": "Superhero city adventure inspired by Spider-Man",
+      "visual_semantics": {
+        "atmosphere_descriptors": [
+          "Exciting and adventurous"
+        ],
+        "audience_descriptors": [
+          "Children aged 7 to 10"
+        ],
+        "motif_descriptors": [
+          "Webs"
+        ],
+        "motif_structure_description": "Webs should be subtly integrated into the background without dominating the scene.",
+        "lighting_descriptors": [],
+        "material_descriptors": [],
+        "texture_descriptors": [],
+        "incompatible_treatments": [],
+        "scene_family": "general",
+        "composition_affinities": []
+      },
+      "semantic_provenance": {
+        "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+        "audience_descriptors": "SEMANTIC_INFERENCE",
+        "motif_descriptors": "SEMANTIC_INFERENCE",
+        "motif_structure_description": "SEMANTIC_INFERENCE",
+        "lighting_descriptors": "SAFE_FALLBACK",
+        "material_descriptors": "SAFE_FALLBACK",
+        "texture_descriptors": "SAFE_FALLBACK",
+        "incompatible_treatments": "SAFE_FALLBACK",
+        "scene_family": "SAFE_FALLBACK",
+        "composition_affinities": "SAFE_FALLBACK"
+      },
+      "semantic_confidence": {
+        "atmosphere_descriptors": 0.9,
+        "audience_descriptors": 0.9,
+        "motif_descriptors": 0.8
+      },
+      "generation_constraints": [
+        "No readable programme/title text",
+        "No logos",
+        "No people or characters",
+        "background only",
+        "no people",
+        "no characters",
+        "no logos",
+        "no readable text",
+        "leave quiet areas for later overlays"
+      ],
+      "clarification_questions": []
+    },
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "Exciting and adventurous"
+      ],
+      "audience_descriptors": [
+        "Children aged 7 to 10"
+      ],
+      "motif_descriptors": [
+        "Webs"
+      ],
+      "motif_structure_description": "Webs should be subtly integrated into the background without dominating the scene.",
+      "lighting_descriptors": [],
+      "material_descriptors": [],
+      "texture_descriptors": [],
+      "incompatible_treatments": [],
+      "scene_family": "general",
+      "composition_affinities": []
+    },
+    "title_preference": "Kabelo's Superhero Birthday",
+    "event_date": "2026-12-05",
+    "start_time": "14:00",
+    "timezone": "Africa/Johannesburg",
+    "output_language": "en",
+    "asset_type": "none",
+    "asset_placement": null,
+    "asset_vertical_position": null,
+    "text_flow": "standard",
+    "palette_mode": "dominant",
+    "palette_relationship": "requested colours dominate with natural tonal variation",
+    "palette_relationship_source": "default",
+    "semantic_contract": {
+      "semantic_contract_version": "1.0",
+      "primary_visual_subject": "Superhero city adventure inspired by Spider-Man",
+      "visual_anchors": [],
+      "atmosphere_descriptors": [
+        "Exciting and adventurous"
+      ],
+      "audience_descriptors": [
+        "Children aged 7 to 10"
+      ],
+      "motif_descriptors": [
+        "Webs"
+      ],
+      "motif_structure_description": "Webs should be subtly integrated into the background without dominating the scene.",
+      "lighting_descriptors": [],
+      "material_descriptors": [],
+      "texture_descriptors": [],
+      "incompatible_treatments": [],
+      "scene_family": "general",
+      "composition_affinities": [],
+      "palette": [
+        {
+          "colour": "royal blue",
+          "role": "primary"
+        },
+        {
+          "colour": "red",
+          "role": "secondary"
+        }
+      ],
+      "palette_mode": "dominant",
+      "palette_relationship": "requested colours dominate with natural tonal variation",
+      "abstraction_level": "",
+      "realism_level": "",
+      "energy_level": "",
+      "symmetry_preference": "",
+      "density_preference": "",
+      "theme_reference_treatment": "spiderman colours must influence the visual traits but do not add any buildings and just add webs but not a lot.",
+      "hard_dimensions": [],
+      "semantic_provenance": {
+        "primary_visual_subject": "SAFE_FALLBACK",
+        "visual_anchors": "SAFE_FALLBACK",
+        "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+        "audience_descriptors": "SEMANTIC_INFERENCE",
+        "motif_descriptors": "SEMANTIC_INFERENCE",
+        "motif_structure_description": "SEMANTIC_INFERENCE",
+        "lighting_descriptors": "SAFE_FALLBACK",
+        "material_descriptors": "SAFE_FALLBACK",
+        "texture_descriptors": "SAFE_FALLBACK",
+        "incompatible_treatments": "SAFE_FALLBACK",
+        "scene_family": "SAFE_FALLBACK",
+        "composition_affinities": "SAFE_FALLBACK",
+        "palette": "SAFE_FALLBACK",
+        "palette_mode": "USER_EXPLICIT",
+        "palette_relationship": "SAFE_FALLBACK",
+        "abstraction_level": "SAFE_FALLBACK",
+        "realism_level": "SAFE_FALLBACK",
+        "energy_level": "SAFE_FALLBACK",
+        "symmetry_preference": "SAFE_FALLBACK",
+        "density_preference": "SAFE_FALLBACK",
+        "theme_reference_treatment": "USER_EXPLICIT"
+      },
+      "semantic_confidence": {
+        "atmosphere_descriptors": 0.9,
+        "audience_descriptors": 0.9,
+        "motif_descriptors": 0.8
+      }
+    },
+    "semantic_contract_version": "1.0",
+    "semantic_contract_sha256": "ce97753570e569ad9267a39cdf8605fe11dc69cf5aa016b90d859af90c523730"
+  },
+  "directions": [
+    {
+      "provenance": {
+        "provider": "ollama",
+        "model": "qwen2.5:14b"
+      },
+      "direction": {
+        "composition_strategy": "A panoramic composition with the focal band near the center, creating a sense of depth and adventure through a series of webs woven through the scene, guiding the viewer's eye across the image.",
+        "focal_strategy": "The focal point is a subtle yet dynamic web formation that lies slightly off-center to the left, drawing attention while maintaining an adventurous atmosphere.",
+        "depth_strategy": "Depth is achieved through the use of tonal gradation and the placement of webs at different distances from the viewer, with lighter and more intricate webs in the foreground and darker, more expansive webs receding into the background.",
+        "border_or_perimeter_strategy": "The border is treated with a gentle gradient, transitioning from a lighter shade of the primary color to a darker tone, blending seamlessly with the background while providing a clear visual frame.",
+        "title_safe_region_strategy": "A calm, rectangular region is reserved at the top center of the frame, designed to be slightly elevated from the main action, offering a clear space for text.",
+        "programme_safe_region_strategy": "A safe zone for additional text is placed below the title area, maintaining a vertical layout that aligns with the flow of the composition.",
+        "direction_id": "A",
+        "role": "Adventure and excitement through subtle and dynamic web formations in a superhero city theme.",
+        "positive_prompt": "Use only webs as the visual motif and maintain an exciting and adventurous atmosphere, A royal blue, red palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: Webs, Exciting and adventurous, Clarified visual language: motifs: Webs, atmosphere: Exciting and adventurous, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+        "negative_prompt": "Do not include generic imagery, crowded center, readable text, people, characters, logos, or buildings. The background should be free from any unrequested chromatic design colors, and the layout must follow the standard zones., person, human, human figure, man, woman, child, face, portrait, silhouette, body, head, hands, arms, legs, clothing, mannequin, character, fictional character, hero, superhero, masked character, mascot, costume, costumed figure, humanoid, text, typography, lettering, words, letters, numbers, writing, calligraphy, signature, logo, watermark, signage, unrequested chromatic design colours, colour drift, unrelated hues, large neutral areas that displace the requested colours, unrelated generic imagery, crowded centre",
+        "title_suggestions": [
+          "Kabelo's Superhero Adventure",
+          "Spider-Man's Web-Wonderland",
+          "Web-Wilderness Celebration"
+        ],
+        "short_design_rationale": "This design offers a dynamic and adventurous background that captures the essence of a superhero city adventure inspired by Spider-Man, tailored specifically for children aged 7 to 10. The use of webs woven through the scene subtly enhances the theme without overwhelming the viewer, providing a visually engaging and imaginative space.",
+        "layout_guidance": {
+          "title_zone": {
+            "x": 0.1,
+            "y": 0.08,
+            "width": 0.8,
+            "height": 0.12
+          },
+          "programme_zone": {
+            "x": 0.1,
+            "y": 0.47,
+            "width": 0.8,
+            "height": 0.4
+          },
+          "headshot_zone": null,
+          "logo_zone": null
+        }
+      }
+    },
+    {
+      "provenance": {
+        "provider": "ollama",
+        "model": "gemma3:27b"
+      },
+      "direction": {
+        "composition_strategy": "A close-up, almost abstract composition featuring a tightly woven network of webs against a deep royal blue backdrop. The composition emphasizes texture and pattern rather than a traditional sense of depth. The webs appear to be emanating from multiple focal points, creating a sense of energetic containment.",
+        "focal_strategy": "Multiple focal points are created by areas of denser web construction and subtle shifts in the blue hue. These are not singular points, but rather distributed areas that encourage the eye to explore the intricate network.",
+        "depth_strategy": "Depth is minimized, creating a flatter, more textural image. Subtle tonal variation within the blue background and slight layering of web strands are used to hint at depth without creating strong recession.",
+        "border_or_perimeter_strategy": "The image bleeds off the edges, creating an 'open' perimeter that suggests the webs continue beyond the frame. There is no distinct border; the blue deepens towards the edges, seamlessly blending with the surrounding space.",
+        "title_safe_region_strategy": "A reserved rectangular area is positioned in the upper right quadrant, providing clear space for typography. It's intentionally placed opposite the heaviest concentration of web detail to create visual separation.",
+        "programme_safe_region_strategy": "A smaller rectangular safe zone is placed below the title area, aligned with the right edge, providing a secondary space for additional text elements.",
+        "direction_id": "B",
+        "role": "Textural Abstract",
+        "positive_prompt": "intricate web patterns, subtle red highlights within the web strands, organic shapes, abstract composition, high detail, dynamic interplay of light and shadow, energetic containment, A royal blue, red palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: Webs, Exciting and adventurous, Clarified visual language: motifs: Webs, atmosphere: Exciting and adventurous, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+        "negative_prompt": "buildings, characters, people, readable text, logos, realistic rendering, clear environments, obvious focal point, symmetrical composition, strong perspective, smooth surfaces, simple shapes, flat colours, person, human, human figure, man, woman, child, face, portrait, silhouette, body, head, hands, arms, legs, clothing, mannequin, character, fictional character, hero, superhero, masked character, mascot, costume, costumed figure, humanoid, text, typography, lettering, words, letters, numbers, writing, calligraphy, signature, logo, watermark, signage, unrequested chromatic design colours, colour drift, unrelated hues, large neutral areas that displace the requested colours, unrelated generic imagery, crowded centre",
+        "title_suggestions": [
+          "Webbed Wonder",
+          "Spider's Embrace",
+          "Kabelo's Super Web Adventure"
+        ],
+        "short_design_rationale": "This direction moves away from a traditional 'environment' and focuses on the textural qualities of webs to create an abstract, energetic background. The multiple focal points and minimized depth contribute to a sense of dynamic containment, mirroring the adventurous spirit of the theme while providing a unique visual experience.",
+        "layout_guidance": {
+          "title_zone": {
+            "x": 0.1,
+            "y": 0.08,
+            "width": 0.8,
+            "height": 0.12
+          },
+          "programme_zone": {
+            "x": 0.1,
+            "y": 0.47,
+            "width": 0.8,
+            "height": 0.4
+          },
+          "headshot_zone": null,
+          "logo_zone": null
+        }
+      }
+    },
+    {
+      "provenance": {
+        "provider": "ollama",
+        "model": "mistral-small3.1:24b"
+      },
+      "direction": {
+        "composition_strategy": "Asymmetric-cluster composition with a focus on the upper right section to guide the viewer's eye diagonally through the scene.",
+        "focal_strategy": "The focal point is located in the upper right area, drawing attention to a prominent feature or subject.",
+        "depth_strategy": "A shallow depth plan to create a sense of flatness and emphasis on the foreground.",
+        "border_or_perimeter_strategy": "Open perimeter to allow for a natural flow and unobstructed view of the scene.",
+        "title_safe_region_strategy": "The title will be placed in a calm, quiet upper region to avoid competing with the focal point.",
+        "programme_safe_region_strategy": "The programme will be positioned in the lower section to maintain a clean separation from the title and focal area.",
+        "direction_id": "C",
+        "role": "Creative Director",
+        "positive_prompt": "Use a frontal viewpoint to emphasize the subject's presence, Incorporate an asymmetric cluster composition with a diagonal flow, A royal blue, red palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: Webs, Exciting and adventurous, Clarified visual language: motifs: Webs, atmosphere: Exciting and adventurous, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+        "negative_prompt": "Avoid a radial or central mass distribution. Do not include a framed perimeter., person, people, human, human figure, man, woman, child, face, portrait, silhouette, body, head, hands, arms, legs, clothing, mannequin, character, fictional character, hero, superhero, masked character, mascot, costume, costumed figure, humanoid, text, typography, lettering, words, letters, numbers, writing, calligraphy, signature, logo, watermark, signage, unrequested chromatic design colours, colour drift, unrelated hues, large neutral areas that displace the requested colours, unrelated generic imagery, crowded centre, readable text, characters",
+        "title_suggestions": [
+          "Asymmetry in Motion",
+          "Diagonal Depths",
+          "Flat Horizon"
+        ],
+        "short_design_rationale": "This composition utilizes an asymmetric cluster with a diagonal flow to guide the viewer's eye. The frontal viewpoint emphasizes the subject, while an open perimeter and shallow depth create a clean, uncluttered scene.",
+        "layout_guidance": {
+          "title_zone": {
+            "x": 0.1,
+            "y": 0.08,
+            "width": 0.8,
+            "height": 0.12
+          },
+          "programme_zone": {
+            "x": 0.1,
+            "y": 0.47,
+            "width": 0.8,
+            "height": 0.4
+          },
+          "headshot_zone": null,
+          "logo_zone": null
+        }
+      }
+    }
+  ],
+  "prompt_generation_sha256": "0623c3c824087981b05ecdb5cbc86677c29e982d6e9661b1148f4e283d27cc26"
+}

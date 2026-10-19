@@ -1,0 +1,7 @@
+REFERENCE=521982-575200
+
+2026-10-19 14:48:01.0874328850 22503 /home/ntlhari/NerdCode/programme-studio/data/programmes/521982-575200/prompts.json
+2026-10-19 14:48:01.0914328090 7660 /home/ntlhari/NerdCode/programme-studio/data/programmes/521982-575200/brief.json
+2026-10-19 14:48:01.0924327890 141 /home/ntlhari/NerdCode/programme-studio/data/programmes/521982-575200/probe-source.json
+2026-10-19 14:48:15.5731592630 1250797 /home/ntlhari/NerdCode/programme-studio/data/programmes/521982-575200/backgrounds/sdxl-1-0/image-a.png
+2026-10-19 14:48:24.6889910290 125751 /home/ntlhari/NerdCode/programme-studio/data/programmes/521982-575200/backgrounds/sdxl-1-0/image-a.json

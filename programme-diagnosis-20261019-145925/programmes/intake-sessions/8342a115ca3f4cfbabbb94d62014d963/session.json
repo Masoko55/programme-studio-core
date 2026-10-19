@@ -1,0 +1,131 @@
+{
+  "session_id": "8342a115ca3f4cfbabbb94d62014d963",
+  "status": "clarification_required",
+  "answers": {
+    "event_type": "30th birthday celebration",
+    "theme": "Black and white tie",
+    "age_group": "Adults",
+    "primary_colour": "black",
+    "secondary_colour": "white",
+    "creative_description": "An elegant, sophisticated and celebratory 30th birthday with a formal black-and-white evening atmosphere.",
+    "background_inspiration": null,
+    "theme_reference_treatment": null,
+    "event_date": "2026-12-12",
+    "start_time": "18:00",
+    "title_preference": "30th Birthday Celebration",
+    "venue": "Grand Hall",
+    "timezone": "Africa/Johannesburg",
+    "programme": [
+      {
+        "time": "18:00",
+        "title": "Arrival",
+        "description": null
+      },
+      {
+        "time": "19:00",
+        "title": "Dinner",
+        "description": null
+      },
+      {
+        "time": "20:00",
+        "title": "Celebration",
+        "description": null
+      }
+    ],
+    "output_language": "en",
+    "accessibility_preferences": [
+      "high contrast",
+      "clear readable programme text"
+    ],
+    "asset_type": "none",
+    "asset_placement": null,
+    "headshot_shape": null,
+    "rights_and_consent_confirmed": null
+  },
+  "clarification_questions": [
+    {
+      "field": "background_inspiration",
+      "question": "What would you like people to see in the background? For example, a city skyline, flowers, balloons, a stage, a pattern, or something abstract.",
+      "reason": "A clear visual idea helps us create three strong background options that all feel close to what you want."
+    }
+  ],
+  "creative_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "30th birthday celebration",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "black and white attire",
+      "formal evening setting"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Black and white tie",
+    "reference_detected": false,
+    "reference_name": null,
+    "reference_type": "none",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "Use only the supplied visual motifs and treatment; do not invent an environment.",
+    "scene_family_evidence": "formal black-and-white evening atmosphere",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "elegant",
+        "sophisticated",
+        "celebratory"
+      ],
+      "audience_descriptors": [
+        "adults"
+      ],
+      "motif_descriptors": [
+        "black and white patterns"
+      ],
+      "motif_structure_description": "Patterns should be repeated in a balanced and symmetrical manner, reflecting the black and white theme.",
+      "lighting_descriptors": [
+        "soft ambient lighting"
+      ],
+      "material_descriptors": [
+        "silk and satin"
+      ],
+      "texture_descriptors": [
+        "smooth and sleek"
+      ],
+      "incompatible_treatments": [
+        "bright and colorful decorations"
+      ],
+      "scene_family": "general",
+      "composition_affinities": [
+        "formal and structured"
+      ]
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SEMANTIC_INFERENCE",
+      "material_descriptors": "SEMANTIC_INFERENCE",
+      "texture_descriptors": "SEMANTIC_INFERENCE",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SAFE_FALLBACK",
+      "composition_affinities": "SEMANTIC_INFERENCE"
+    },
+    "semantic_confidence": {},
+    "generation_constraints": [
+      "no readable programme/title text",
+      "no logos",
+      "no people or characters",
+      "background only",
+      "no people",
+      "no characters",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": [
+      {
+        "field": "background_inspiration",
+        "question": "What would you like people to see in the background? For example, a city skyline, flowers, balloons, a stage, a pattern, or something abstract.",
+        "reason": "A clear visual idea helps us create three strong background options that all feel close to what you want."
+      }
+    ]
+  },
+  "assets": {},
+  "reference_number": null
+}

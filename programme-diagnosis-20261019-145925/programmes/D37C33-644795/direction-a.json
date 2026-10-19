@@ -1,0 +1,34 @@
+{
+  "composition_strategy": "Symmetrical balance with a central focus on layered architectural panels and subtle connected geometry, creating a sense of professional depth and modernity.",
+  "focal_strategy": "A central point of focus with layered architectural panels and subtle geometric patterns that guide the eye towards the center, enhancing the sense of professionalism and modernism.",
+  "depth_strategy": "Employing perspective techniques such as linear perspective and atmospheric perspective to create a sense of depth and three-dimensional space within the composition.",
+  "border_or_perimeter_strategy": "A clean, symmetrical perimeter that frames the layered architectural panels and subtle connected geometry, providing a clear and professional boundary.",
+  "title_safe_region_strategy": "A symmetrical, centrally placed title-safe region with ample space for the event title, ensuring it is prominent and easily readable.",
+  "programme_safe_region_strategy": "A secondary, centrally aligned programme-safe region, ensuring that the layout is balanced and the programme information is easily accessible and readable.",
+  "direction_id": "A",
+  "role": "Create a high-contrast, visually cohesive background that reflects the modern technology theme and provides a clean, professional setting for a corporate conference.",
+  "positive_prompt": "A clean contemporary technology hall with layered architectural panels and subtle connected geometry, The design should convey a professional, confident, and modern atmosphere with symmetrical balance and clean lines, Focus on a sense of depth and professionalism through the use of layered architectural panels and subtle geometric patterns, A navy, white palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth, Clarified visual language: motifs: Layered architectural panels, Subtle connected geometry, motif structure: The layered architectural panels and subtle connected geometry should create a sense of depth and professionalism, atmosphere: Professional, Modern, composition: Symmetrical balance, Clean lines, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+  "negative_prompt": "Unrelated generic imagery, crowded center, readable text, people, characters., person, human, human figure, man, woman, child, face, portrait, silhouette, body, head, hands, arms, legs, clothing, mannequin, character, fictional character, hero, superhero, masked character, mascot, costume, costumed figure, humanoid, text, typography, lettering, words, letters, numbers, writing, calligraphy, signature, logo, watermark, signage, unrequested chromatic design colours, colour drift, unrelated hues, large neutral areas that displace the requested colours, crowded centre, characters",
+  "title_suggestions": [
+    "Technology Forum",
+    "Innovation Hall",
+    "Digital Summit"
+  ],
+  "short_design_rationale": "This creative direction emphasizes a clean, professional aesthetic with a focus on layered architectural elements and subtle geometric patterns, perfect for a modern technology conference. The design is symmetrical and balanced, ensuring a high-contrast, visually appealing background that complements the event's theme.",
+  "layout_guidance": {
+    "title_zone": {
+      "x": 0.1,
+      "y": 0.08,
+      "width": 0.8,
+      "height": 0.12
+    },
+    "programme_zone": {
+      "x": 0.1,
+      "y": 0.47,
+      "width": 0.8,
+      "height": 0.4
+    },
+    "headshot_zone": null,
+    "logo_zone": null
+  }
+}

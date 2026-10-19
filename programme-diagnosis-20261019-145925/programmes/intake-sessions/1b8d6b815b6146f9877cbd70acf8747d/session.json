@@ -1,0 +1,69 @@
+{
+  "session_id": "1b8d6b815b6146f9877cbd70acf8747d",
+  "status": "ready",
+  "answers": {
+    "event_type": "Children birthday party",
+    "theme": "Superhero city adventure",
+    "age_group": "Children",
+    "primary_colour": "royal blue",
+    "secondary_colour": "red",
+    "creative_description": "A high-energy superhero-inspired children birthday background with a comic-book city atmosphere, dynamic movement and strong blue and red visual identity.",
+    "background_inspiration": "A stylised comic-book city skyline with bold angular architecture",
+    "theme_reference_treatment": "Spiderweb-inspired geometry and dynamic motion shapes, without depicting any character",
+    "event_date": "2026-12-05",
+    "start_time": "14:00",
+    "title_preference": "Kabelo's Superhero Birthday",
+    "venue": "Sunrise Family Hall",
+    "timezone": "Africa/Johannesburg",
+    "programme": [
+      {
+        "time": "14:00",
+        "title": "Guests Arrive",
+        "description": null
+      },
+      {
+        "time": "15:00",
+        "title": "Games",
+        "description": null
+      },
+      {
+        "time": "16:00",
+        "title": "Cake",
+        "description": null
+      }
+    ],
+    "output_language": "en",
+    "accessibility_preferences": [
+      "high contrast",
+      "clear readable programme text"
+    ],
+    "asset_type": "none",
+    "asset_placement": null,
+    "headshot_shape": null,
+    "rights_and_consent_confirmed": null
+  },
+  "clarification_questions": [],
+  "creative_context": {
+    "event_type_status": "unknown",
+    "event_type_interpretation": null,
+    "well_known_event_type": false,
+    "event_visual_conventions": [],
+    "theme_status": "unknown",
+    "theme_interpretation": null,
+    "reference_detected": false,
+    "reference_name": null,
+    "reference_type": "none",
+    "reference_needs_clarification": false,
+    "background_generation_summary": null,
+    "generation_constraints": [
+      "background only",
+      "no people",
+      "no characters",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "assets": {},
+  "reference_number": null
+}

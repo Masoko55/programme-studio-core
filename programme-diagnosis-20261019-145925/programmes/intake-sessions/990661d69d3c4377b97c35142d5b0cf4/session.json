@@ -1,0 +1,74 @@
+{
+  "session_id": "990661d69d3c4377b97c35142d5b0cf4",
+  "status": "generated",
+  "answers": {
+    "event_type": "Bridal shower",
+    "theme": "Romantic floral garden",
+    "age_group": "Adults",
+    "primary_colour": "pink",
+    "secondary_colour": "white",
+    "creative_description": "A soft elegant bridal shower with a romantic botanical atmosphere, layered floral detail and graceful feminine styling.",
+    "background_inspiration": "A refined floral garden composition with layered sculptural flowers, delicate botanical branches, flowing leaves and intentional breathing space.",
+    "theme_reference_treatment": "Use layered petals, soft botanical forms, elegant foliage, subtle paper-like or fabric-like floral textures and gentle pink-and-white tonal relationships without depicting people.",
+    "event_date": "2026-11-21",
+    "start_time": "13:00",
+    "title_preference": "Naledi's Bridal Shower",
+    "venue": "Rose Garden Venue",
+    "timezone": "Africa/Johannesburg",
+    "programme": [
+      {
+        "time": "13:00",
+        "title": "Guest arrival",
+        "description": null
+      },
+      {
+        "time": "13:30",
+        "title": "Welcome and refreshments",
+        "description": null
+      },
+      {
+        "time": "14:00",
+        "title": "Bridal shower games",
+        "description": null
+      },
+      {
+        "time": "15:00",
+        "title": "Gifts and celebration",
+        "description": null
+      }
+    ],
+    "output_language": "en",
+    "accessibility_preferences": [
+      "high contrast",
+      "clear readable programme text"
+    ],
+    "asset_type": "none",
+    "asset_placement": null,
+    "headshot_shape": null,
+    "rights_and_consent_confirmed": null
+  },
+  "clarification_questions": [],
+  "creative_context": {
+    "event_type_status": "unknown",
+    "event_type_interpretation": null,
+    "well_known_event_type": false,
+    "event_visual_conventions": [],
+    "theme_status": "unknown",
+    "theme_interpretation": null,
+    "reference_detected": false,
+    "reference_name": null,
+    "reference_type": "none",
+    "reference_needs_clarification": false,
+    "background_generation_summary": null,
+    "generation_constraints": [
+      "background only",
+      "no people",
+      "no characters",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "assets": {},
+  "reference_number": "89DDC3-680512"
+}

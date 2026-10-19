@@ -1,0 +1,117 @@
+{
+  "session_id": "ab126062a7594d35a39ce10ab47161fd",
+  "status": "generated",
+  "answers": {
+    "event_type": "Bridal celebration",
+    "theme": "Elegant pink floral celebration",
+    "age_group": "Adults",
+    "primary_colour": "pink",
+    "secondary_colour": "cream",
+    "creative_description": "A soft, elegant, feminine and celebratory bridal atmosphere with graceful floral movement.",
+    "background_inspiration": null,
+    "theme_reference_treatment": null,
+    "event_date": "2026-12-19",
+    "start_time": "14:00",
+    "title_preference": "Bridal Celebration",
+    "venue": "Rose Garden Hall",
+    "timezone": "Africa/Johannesburg",
+    "programme": [
+      {
+        "time": "14:00",
+        "title": "Welcome",
+        "description": null
+      },
+      {
+        "time": "15:00",
+        "title": "Celebration",
+        "description": null
+      },
+      {
+        "time": "16:00",
+        "title": "Refreshments",
+        "description": null
+      }
+    ],
+    "output_language": "en",
+    "accessibility_preferences": [
+      "high contrast",
+      "clear readable programme text"
+    ],
+    "asset_type": "none",
+    "asset_placement": null,
+    "headshot_shape": null,
+    "rights_and_consent_confirmed": null
+  },
+  "clarification_questions": [],
+  "creative_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "Bridal celebration",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "Elegant attire, floral decorations, soft lighting"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Elegant pink floral celebration",
+    "reference_detected": false,
+    "reference_name": null,
+    "reference_type": "none",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "Use only the supplied visual motifs and treatment; do not invent an environment.",
+    "scene_family_evidence": "Elegant pink floral celebration",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "Soft, elegant, feminine, celebratory"
+      ],
+      "audience_descriptors": [
+        "Adults"
+      ],
+      "motif_descriptors": [
+        "Floral patterns"
+      ],
+      "motif_structure_description": "Floral patterns should be integrated throughout the background, creating a cohesive and visually appealing environment.",
+      "lighting_descriptors": [
+        "Soft, ambient lighting"
+      ],
+      "material_descriptors": [
+        "Delicate fabrics, floral textures"
+      ],
+      "texture_descriptors": [
+        "Smooth, delicate textures"
+      ],
+      "incompatible_treatments": [
+        "Harsh lighting, dark or bold colors, cluttered or chaotic compositions"
+      ],
+      "scene_family": "general",
+      "composition_affinities": [
+        "Symmetrical, balanced compositions"
+      ]
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SEMANTIC_INFERENCE",
+      "material_descriptors": "SEMANTIC_INFERENCE",
+      "texture_descriptors": "SEMANTIC_INFERENCE",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SAFE_FALLBACK",
+      "composition_affinities": "SEMANTIC_INFERENCE"
+    },
+    "semantic_confidence": {},
+    "generation_constraints": [
+      "No readable programme/title text",
+      "No logos",
+      "No people or characters",
+      "background only",
+      "no people",
+      "no characters",
+      "no logos",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "assets": {},
+  "reference_number": "CC9A13-522500"
+}

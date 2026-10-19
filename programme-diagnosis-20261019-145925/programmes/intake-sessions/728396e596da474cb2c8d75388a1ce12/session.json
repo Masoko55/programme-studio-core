@@ -1,0 +1,69 @@
+{
+  "session_id": "728396e596da474cb2c8d75388a1ce12",
+  "status": "generated",
+  "answers": {
+    "event_type": "Children birthday party",
+    "theme": "Superhero city adventure",
+    "age_group": "Children aged 7 to 10",
+    "primary_colour": "royal blue",
+    "secondary_colour": "red",
+    "creative_description": "A joyful high-energy superhero-inspired birthday celebration with a dynamic comic-book city atmosphere.",
+    "background_inspiration": "A stylised comic-book city skyline with bold angular architecture, layered city depth and energetic spatial movement.",
+    "theme_reference_treatment": "Use radial web-inspired geometry, angular architecture, speed-line energy and strong blue-red colour relationships without depicting any character.",
+    "event_date": "2026-12-05",
+    "start_time": "14:00",
+    "title_preference": "Kabelo's Superhero Birthday",
+    "venue": "Sunrise Family Hall",
+    "timezone": "Africa/Johannesburg",
+    "programme": [
+      {
+        "time": "14:00",
+        "title": "Arrival and registration",
+        "description": null
+      },
+      {
+        "time": "14:30",
+        "title": "Superhero games",
+        "description": null
+      },
+      {
+        "time": "15:30",
+        "title": "Birthday cake",
+        "description": null
+      }
+    ],
+    "output_language": "en",
+    "accessibility_preferences": [
+      "high contrast",
+      "clear readable programme text"
+    ],
+    "asset_type": "none",
+    "asset_placement": null,
+    "headshot_shape": null,
+    "rights_and_consent_confirmed": null
+  },
+  "clarification_questions": [],
+  "creative_context": {
+    "event_type_status": "unknown",
+    "event_type_interpretation": null,
+    "well_known_event_type": false,
+    "event_visual_conventions": [],
+    "theme_status": "unknown",
+    "theme_interpretation": null,
+    "reference_detected": false,
+    "reference_name": null,
+    "reference_type": "none",
+    "reference_needs_clarification": false,
+    "background_generation_summary": null,
+    "generation_constraints": [
+      "background only",
+      "no people",
+      "no characters",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "assets": {},
+  "reference_number": "147CB1-464909"
+}

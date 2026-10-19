@@ -1,0 +1,116 @@
+{
+  "session_id": "034b21a53df541d48b8cb302bff98df7",
+  "status": "generated",
+  "answers": {
+    "event_type": "Children birthday party",
+    "theme": "Superhero city adventure inspired by Spider-Man",
+    "age_group": "Children aged 7 to 10",
+    "primary_colour": "royal blue",
+    "secondary_colour": "red",
+    "creative_description": "A kids birthday party for a kid who is into superheroes, most especially spiderman.",
+    "background_inspiration": null,
+    "theme_reference_treatment": "colours must influence the visual traits but do not add any buildings and just add webs but not a lot.",
+    "event_date": "2026-12-05",
+    "start_time": "14:00",
+    "title_preference": "Kabelo's Superhero Birthday",
+    "venue": "Sunrise Family Hall",
+    "timezone": "Africa/Johannesburg",
+    "programme": [
+      {
+        "time": "14:00",
+        "title": "Welcome",
+        "description": null
+      },
+      {
+        "time": "15:00",
+        "title": "Games",
+        "description": null
+      },
+      {
+        "time": "16:00",
+        "title": "Cake",
+        "description": null
+      }
+    ],
+    "output_language": "en",
+    "accessibility_preferences": [
+      "high contrast",
+      "clear readable programme text"
+    ],
+    "asset_type": "none",
+    "asset_placement": null,
+    "headshot_shape": null,
+    "rights_and_consent_confirmed": null
+  },
+  "clarification_questions": [],
+  "creative_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "Children birthday party",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "Decorations and activities tailored for children",
+      "Bright and vibrant colors",
+      "Interactive and fun activities"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Superhero city adventure inspired by Spider-Man",
+    "reference_detected": true,
+    "reference_name": "Spider-Man",
+    "reference_type": "character",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "Use only the supplied visual motifs and treatment; do not invent an environment.",
+    "scene_family_evidence": "Superhero city adventure inspired by Spider-Man",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "Exciting and adventurous"
+      ],
+      "audience_descriptors": [
+        "Children aged 7 to 10"
+      ],
+      "motif_descriptors": [
+        "Webs"
+      ],
+      "motif_structure_description": "Webs should be scattered throughout the background, creating a web-like network without forming specific structures or buildings.",
+      "lighting_descriptors": [],
+      "material_descriptors": [],
+      "texture_descriptors": [],
+      "incompatible_treatments": [
+        "Specific buildings or landmarks"
+      ],
+      "scene_family": "general",
+      "composition_affinities": []
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SAFE_FALLBACK",
+      "material_descriptors": "SAFE_FALLBACK",
+      "texture_descriptors": "SAFE_FALLBACK",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SAFE_FALLBACK",
+      "composition_affinities": "SAFE_FALLBACK"
+    },
+    "semantic_confidence": {
+      "atmosphere_descriptors": 0.9,
+      "audience_descriptors": 0.9,
+      "motif_descriptors": 0.8,
+      "incompatible_treatments": 0.9
+    },
+    "generation_constraints": [
+      "No readable programme/title text",
+      "No logos",
+      "No characters or people",
+      "background only",
+      "no people",
+      "no characters",
+      "no logos",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "assets": {},
+  "reference_number": "99BCB5-745743"
+}

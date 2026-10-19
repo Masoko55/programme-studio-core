@@ -1,0 +1,127 @@
+{
+  "updated_at": "2026-10-19T07:59:06.250233+00:00",
+  "reference_number": "766C26-216262",
+  "status": "awaiting_selection",
+  "current_stage": "awaiting_selection",
+  "composition_results": [],
+  "error": null,
+  "image_job": {
+    "reference_number": "766C26-216262",
+    "status": "awaiting_selection",
+    "current_stage": "backgrounds_complete_with_failures",
+    "total_outputs": 9,
+    "completed_outputs": 4,
+    "outputs": [
+      {
+        "engine_id": "flux-2",
+        "engine_label": "FLUX.2",
+        "direction_id": "A",
+        "status": "failed",
+        "output_path": null,
+        "sha256": null,
+        "error": "Generated background contains colours that were not requested (off-palette ratio 0.18; strongest matches: navy=0.12, burgundy=0.04, maroon=0.02, charcoal=0.00; neutral ratio 0.00; largest unrelated region 0.02).",
+        "seed": null,
+        "prompt_id": null,
+        "workflow_sha256": null
+      },
+      {
+        "engine_id": "sdxl-1-0",
+        "engine_label": "SDXL 1.0",
+        "direction_id": "A",
+        "status": "failed",
+        "output_path": null,
+        "sha256": null,
+        "error": "DENSE_SAFE_REGION: high-contrast visual interference in title region",
+        "seed": null,
+        "prompt_id": null,
+        "workflow_sha256": null
+      },
+      {
+        "engine_id": "sd-3-5-medium",
+        "engine_label": "Stable Diffusion 3.5 Medium",
+        "direction_id": "A",
+        "status": "failed",
+        "output_path": null,
+        "sha256": null,
+        "error": "AUDIENCE_DRIFT: Webs are the primary motif, subtly integrated but visually dominant, reducing atmosphere fit for 'exciting/adventurous' for young children. Treatment includes viewpoint and spatial relationship to webs, but motif dominance and mood incompatibility (spiderwebs suggest spooky/creepy rather than advent",
+        "seed": null,
+        "prompt_id": null,
+        "workflow_sha256": null
+      },
+      {
+        "engine_id": "flux-2",
+        "engine_label": "FLUX.2",
+        "direction_id": "B",
+        "status": "complete",
+        "output_path": "/data/programmes/766C26-216262/backgrounds/flux-2/image-b.png",
+        "sha256": "7be2fc951f7af23ec3e3ebeb9d2310ac15ec317434d693e77c3ae0df87cdc31a",
+        "error": null,
+        "seed": 547568431369185015,
+        "prompt_id": "edb60c7f-01ff-489a-a252-02b8167fab91",
+        "workflow_sha256": "c649a1b0708befb0f2c08c872227c18915b8b9730c9a8a0a984df57ad69f3e51"
+      },
+      {
+        "engine_id": "sdxl-1-0",
+        "engine_label": "SDXL 1.0",
+        "direction_id": "B",
+        "status": "complete",
+        "output_path": "/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-b.png",
+        "sha256": "981627c7c4d40afca888005d149827660cb0d30d6a7b5d7e7c9dcba92bc6943c",
+        "error": null,
+        "seed": 2271749509895206698,
+        "prompt_id": "3071231a-d139-4d3f-b833-6436c4710b49",
+        "workflow_sha256": "efd198f6f65a7f017c724a308838757bd7db2dcca7de61fd5d03bbc432d3b670"
+      },
+      {
+        "engine_id": "sd-3-5-medium",
+        "engine_label": "Stable Diffusion 3.5 Medium",
+        "direction_id": "B",
+        "status": "complete",
+        "output_path": "/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-b.png",
+        "sha256": "f901136c05d087e31fa8ffb9618fa74cdc5b6052fbdfae534d09697ffd60e2cd",
+        "error": null,
+        "seed": 7780369732141889212,
+        "prompt_id": "265e5311-9dbc-46ac-9e1b-0ffc6bf04519",
+        "workflow_sha256": "37dfdfe4064fa84fc69d9a181007c6fe363b47c8ab45aa7f4ba20bc7aa007909"
+      },
+      {
+        "engine_id": "flux-2",
+        "engine_label": "FLUX.2",
+        "direction_id": "C",
+        "status": "failed",
+        "output_path": null,
+        "sha256": null,
+        "error": "Generated background contains colours that were not requested (off-palette ratio 0.10; strongest matches: charcoal=0.05, maroon=0.03, burgundy=0.02, navy=0.00; neutral ratio 0.00; largest unrelated region 0.01).",
+        "seed": null,
+        "prompt_id": null,
+        "workflow_sha256": null
+      },
+      {
+        "engine_id": "sdxl-1-0",
+        "engine_label": "SDXL 1.0",
+        "direction_id": "C",
+        "status": "failed",
+        "output_path": null,
+        "sha256": null,
+        "error": "DENSE_SAFE_REGION: high-contrast visual interference in title region",
+        "seed": null,
+        "prompt_id": null,
+        "workflow_sha256": null
+      },
+      {
+        "engine_id": "sd-3-5-medium",
+        "engine_label": "Stable Diffusion 3.5 Medium",
+        "direction_id": "C",
+        "status": "complete",
+        "output_path": "/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-c.png",
+        "sha256": "f2a8dae0b15f894d3a922a03edc0273893897d08e819c491a26327148acea8e5",
+        "error": null,
+        "seed": 8510284500979701534,
+        "prompt_id": "9b88b44b-e7eb-4067-b2e2-3df1ce26ec0a",
+        "workflow_sha256": "bac1e92f566d28ce97f56562f677d093a278549ca8971e59267cd45cc7635ad9"
+      }
+    ],
+    "error": "4/9 background candidates completed; 5 failed; 0 remain pending."
+  },
+  "last_completed_node": "generate_images"
+}

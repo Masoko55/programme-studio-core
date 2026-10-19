@@ -1,0 +1,337 @@
+{
+  "schema_version": "1.0",
+  "prompt_schema_version": "1.0",
+  "creative_direction_version": "2.0",
+  "reference_number": "DEDE55-288221",
+  "input_sha256": "193c3115e9579f5a93660a6fe59091c9810779ae67a0abafb5caf2496dabde60",
+  "created_at": "2026-10-18T18:02:38.935574Z",
+  "brief": {
+    "event_type": "Garden celebration",
+    "theme": "Botanical garden",
+    "age_group": "Adults",
+    "primary_colour": "green",
+    "secondary_colour": "cream",
+    "creative_description": "A warm, elegant and peaceful garden celebration surrounded by lush natural foliage.",
+    "background_inspiration": null,
+    "theme_reference_treatment": null,
+    "grill_me_context": {
+      "event_type_status": "known",
+      "event_type_interpretation": "Garden celebration",
+      "well_known_event_type": true,
+      "event_visual_conventions": [
+        "outdoor setting",
+        "natural elements",
+        "lush greenery"
+      ],
+      "theme_status": "known",
+      "theme_interpretation": "Botanical garden",
+      "reference_detected": false,
+      "reference_name": null,
+      "reference_type": "none",
+      "reference_needs_clarification": false,
+      "background_generation_summary": "Use only the supplied visual motifs and treatment; do not invent an environment.",
+      "scene_family_evidence": "A warm, elegant and peaceful garden celebration surrounded by lush natural foliage.",
+      "visual_semantics": {
+        "atmosphere_descriptors": [
+          "warm and elegant",
+          "peaceful"
+        ],
+        "audience_descriptors": [
+          "adults"
+        ],
+        "motif_descriptors": [
+          "lush foliage",
+          "botanical elements"
+        ],
+        "motif_structure_description": "The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere.",
+        "lighting_descriptors": [
+          "soft and natural"
+        ],
+        "material_descriptors": [
+          "organic materials"
+        ],
+        "texture_descriptors": [
+          "natural textures"
+        ],
+        "incompatible_treatments": [
+          "urban or industrial settings",
+          "bright or harsh lighting"
+        ],
+        "scene_family": "general",
+        "composition_affinities": [
+          "natural and organic"
+        ]
+      },
+      "semantic_provenance": {
+        "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+        "audience_descriptors": "SEMANTIC_INFERENCE",
+        "motif_descriptors": "SEMANTIC_INFERENCE",
+        "motif_structure_description": "SEMANTIC_INFERENCE",
+        "lighting_descriptors": "SEMANTIC_INFERENCE",
+        "material_descriptors": "SEMANTIC_INFERENCE",
+        "texture_descriptors": "SEMANTIC_INFERENCE",
+        "incompatible_treatments": "SEMANTIC_INFERENCE",
+        "scene_family": "SAFE_FALLBACK",
+        "composition_affinities": "SEMANTIC_INFERENCE"
+      },
+      "semantic_confidence": {},
+      "generation_constraints": [
+        "no readable programme/title text",
+        "no logos",
+        "no people or characters",
+        "background only",
+        "no people",
+        "no characters",
+        "no readable text",
+        "leave quiet areas for later overlays"
+      ],
+      "clarification_questions": []
+    },
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "warm and elegant",
+        "peaceful"
+      ],
+      "audience_descriptors": [
+        "adults"
+      ],
+      "motif_descriptors": [
+        "lush foliage",
+        "botanical elements"
+      ],
+      "motif_structure_description": "The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere.",
+      "lighting_descriptors": [
+        "soft and natural"
+      ],
+      "material_descriptors": [
+        "organic materials"
+      ],
+      "texture_descriptors": [
+        "natural textures"
+      ],
+      "incompatible_treatments": [
+        "urban or industrial settings",
+        "bright or harsh lighting"
+      ],
+      "scene_family": "general",
+      "composition_affinities": [
+        "natural and organic"
+      ]
+    },
+    "title_preference": "Garden Celebration",
+    "event_date": "2026-12-20",
+    "start_time": "15:00",
+    "timezone": "Africa/Johannesburg",
+    "output_language": "en",
+    "asset_type": "none",
+    "asset_placement": null,
+    "asset_vertical_position": null,
+    "text_flow": "standard",
+    "palette_mode": "dominant",
+    "palette_relationship": "requested colours dominate with natural tonal variation",
+    "palette_relationship_source": "default",
+    "semantic_contract": {
+      "semantic_contract_version": "1.0",
+      "primary_visual_subject": "Botanical garden",
+      "visual_anchors": [],
+      "atmosphere_descriptors": [
+        "warm and elegant",
+        "peaceful"
+      ],
+      "audience_descriptors": [
+        "adults"
+      ],
+      "motif_descriptors": [
+        "lush foliage",
+        "botanical elements"
+      ],
+      "motif_structure_description": "The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere.",
+      "lighting_descriptors": [
+        "soft and natural"
+      ],
+      "material_descriptors": [
+        "organic materials"
+      ],
+      "texture_descriptors": [
+        "natural textures"
+      ],
+      "incompatible_treatments": [
+        "urban or industrial settings",
+        "bright or harsh lighting"
+      ],
+      "scene_family": "general",
+      "composition_affinities": [
+        "natural and organic"
+      ],
+      "palette": [
+        {
+          "colour": "green",
+          "role": "primary"
+        },
+        {
+          "colour": "cream",
+          "role": "secondary"
+        }
+      ],
+      "palette_mode": "dominant",
+      "palette_relationship": "requested colours dominate with natural tonal variation",
+      "abstraction_level": "",
+      "realism_level": "",
+      "energy_level": "",
+      "symmetry_preference": "",
+      "density_preference": "",
+      "theme_reference_treatment": "",
+      "hard_dimensions": [],
+      "semantic_provenance": {
+        "primary_visual_subject": "SAFE_FALLBACK",
+        "visual_anchors": "SAFE_FALLBACK",
+        "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+        "audience_descriptors": "SEMANTIC_INFERENCE",
+        "motif_descriptors": "SEMANTIC_INFERENCE",
+        "motif_structure_description": "SEMANTIC_INFERENCE",
+        "lighting_descriptors": "SEMANTIC_INFERENCE",
+        "material_descriptors": "SEMANTIC_INFERENCE",
+        "texture_descriptors": "SEMANTIC_INFERENCE",
+        "incompatible_treatments": "SEMANTIC_INFERENCE",
+        "scene_family": "SAFE_FALLBACK",
+        "composition_affinities": "SEMANTIC_INFERENCE",
+        "palette": "SAFE_FALLBACK",
+        "palette_mode": "USER_EXPLICIT",
+        "palette_relationship": "SAFE_FALLBACK",
+        "abstraction_level": "SAFE_FALLBACK",
+        "realism_level": "SAFE_FALLBACK",
+        "energy_level": "SAFE_FALLBACK",
+        "symmetry_preference": "SAFE_FALLBACK",
+        "density_preference": "SAFE_FALLBACK",
+        "theme_reference_treatment": "SAFE_FALLBACK"
+      },
+      "semantic_confidence": {}
+    },
+    "semantic_contract_version": "1.0",
+    "semantic_contract_sha256": "5aa859662f73aa9944a2c5847676dc96d61f8c78f668cb057da595e6195d1bad"
+  },
+  "directions": [
+    {
+      "provenance": {
+        "provider": "ollama",
+        "model": "qwen2.5:14b"
+      },
+      "direction": {
+        "composition_strategy": "A natural and organic layout featuring a gradual transition from dense botanical elements at the foreground to more open, serene spaces towards the back, creating a sense of depth and calm. This composition is inspired by the natural flow of a botanical garden, guiding the viewer through a series of tranquil scenes.",
+        "focal_strategy": "The focal point is a central clearing with a subtle arrangement of botanical elements, creating a natural focal point that encourages the viewer to explore the scene's details while maintaining a sense of peace and elegance.",
+        "depth_strategy": "Depth is achieved through a layered approach, with dense foliage and botanical elements in the foreground gradually giving way to more open spaces and lighter tones in the background, creating a visual narrative that invites the viewer to delve into the garden's serene atmosphere.",
+        "border_or_perimeter_strategy": "The perimeter is framed by lush foliage and botanical elements, creating a natural and cohesive boundary that integrates seamlessly with the background while preserving quiet areas for later typography overlays.",
+        "title_safe_region_strategy": "The title safe region is positioned above the central clearing, ensuring that text overlays remain clear and uncluttered, while still benefiting from the calm and elegant atmosphere of the botanical garden setting.",
+        "programme_safe_region_strategy": "The programme safe region is placed below the central clearing, allowing for a clean and unobtrusive placement of event details while maintaining the serene and inviting quality of the garden scene.",
+        "direction_id": "A",
+        "role": "This composition serves as a backdrop for a garden celebration, providing a warm, elegant, and peaceful environment that is both immersive and visually appealing.",
+        "positive_prompt": "A lush botanical garden background featuring dense foliage and botanical elements, creating a warm and elegant atmosphere, The composition is natural and organic, with a gradual transition from dense foliage at the foreground to open spaces in the background, framed by lush foliage and botanical elements, The focal point is a central clearing with subtle botanical arrangements, A green, cream palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: Use only the supplied visual motifs and treatment, Clarified visual language: motifs: lush foliage, botanical elements, motif structure: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere, atmosphere: warm and elegant, peaceful, composition: natural and organic, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+        "negative_prompt": "Do not include unrelated generic imagery, crowded centers, readable text, people, characters, or any elements that do not align with the botanical garden theme and the warm, elegant, and peaceful atmosphere., person, human, human figure, man, woman, child, face, portrait, silhouette, body, head, hands, arms, legs, clothing, mannequin, character, fictional character, hero, superhero, masked character, mascot, costume, costumed figure, humanoid, text, typography, lettering, words, letters, numbers, writing, calligraphy, signature, logo, watermark, signage, unrequested chromatic design colours, colour drift, unrelated hues, large neutral areas that displace the requested colours, unrelated generic imagery, crowded centre",
+        "title_suggestions": [
+          "Garden Celebration",
+          "Botanical Bliss",
+          "Peaceful Retreat"
+        ],
+        "short_design_rationale": "This creative direction aims to capture the essence of a botanical garden celebration, focusing on a natural and organic composition with a warm and elegant atmosphere. The design ensures a cohesive and immersive background while providing clear and quiet regions for later typography overlays.",
+        "layout_guidance": {
+          "title_zone": {
+            "x": 0.1,
+            "y": 0.08,
+            "width": 0.8,
+            "height": 0.12
+          },
+          "programme_zone": {
+            "x": 0.1,
+            "y": 0.47,
+            "width": 0.8,
+            "height": 0.4
+          },
+          "headshot_zone": null,
+          "logo_zone": null
+        }
+      }
+    },
+    {
+      "provenance": {
+        "provider": "ollama",
+        "model": "gemma3:27b"
+      },
+      "direction": {
+        "composition_strategy": "A sweeping, low-angle view showcasing a dense cluster of lush foliage predominantly on the left side of the frame, receding towards a soft, blurred background. The composition mimics a view *within* a garden, looking upwards through the leaves and branches, creating a sense of immersion. The composition emphasizes upward movement and a sense of being enveloped by nature.",
+        "focal_strategy": "The focal point is a subtly brighter patch of foliage and botanical detail in the upper-left quadrant, accented by delicate leaf patterns. This acts as a visual 'highlight' and draws the eye initially, before allowing exploration of the broader scene.",
+        "depth_strategy": "Depth is achieved through dramatic foreshortening and atmospheric perspective. Dense, detailed foliage in the foreground quickly blurs and lightens as it recedes, creating a strong sense of depth and dimension. Layers of foliage overlap, enhancing the illusion of space.",
+        "border_or_perimeter_strategy": "The perimeter is deliberately left open and undefined, as if the garden extends beyond the frame.  Branches and leaves subtly spill beyond the visible edges, implying a limitless, expansive garden setting.",
+        "title_safe_region_strategy": "The title safe region is positioned at the lower-right, an area of softer, less dense foliage to provide maximum contrast and readability.  The area is a calm, muted green tone.",
+        "programme_safe_region_strategy": "The programme safe region is located along the bottom edge, partially obscured by gentle leaf shadows. The darkness of the shadow will create contrast with lighter text for legibility.",
+        "direction_id": "B",
+        "role": "Immersive Garden Viewpoint",
+        "positive_prompt": "Lush, vibrant green foliage, delicate botanical details, soft and diffused light, low-angle view, organic shapes, peaceful and serene atmosphere, botanical garden setting, cream and subtle green tonal variations, intricate leaf patterns, a sense of being enveloped by nature, A green, cream palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: Use only the supplied visual motifs and treatment, Clarified visual language: motifs: lush foliage, botanical elements, motif structure: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere, atmosphere: warm and elegant, peaceful, composition: natural and organic, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+        "negative_prompt": "unrelated generic imagery, crowded centre, readable text, people, characters, harsh shadows, strong direct light, industrial elements, urban settings, perfectly symmetrical arrangements, geometric shapes, hard edges, artificial textures., person, human, human figure, man, woman, child, face, portrait, silhouette, body, head, hands, arms, legs, clothing, mannequin, character, fictional character, hero, superhero, masked character, mascot, costume, costumed figure, humanoid, text, typography, lettering, words, letters, numbers, writing, calligraphy, signature, logo, watermark, signage, unrequested chromatic design colours, colour drift, unrelated hues, large neutral areas that displace the requested colours",
+        "title_suggestions": [
+          "Botanical Bloom",
+          "Garden Sanctuary",
+          "Emerald Embrace",
+          "Verdant Vista"
+        ],
+        "short_design_rationale": "This direction offers a materially distinct experience from direction A by prioritizing a low-angle, immersive viewpoint. The left-heavy mass distribution and asymmetric composition creates a dynamic and organic feel, diverging from A's central focal point and more balanced layout. It emphasizes the feeling of being *within* the garden, rather than observing it from a distance.",
+        "layout_guidance": {
+          "title_zone": {
+            "x": 0.1,
+            "y": 0.08,
+            "width": 0.8,
+            "height": 0.12
+          },
+          "programme_zone": {
+            "x": 0.1,
+            "y": 0.47,
+            "width": 0.8,
+            "height": 0.4
+          },
+          "headshot_zone": null,
+          "logo_zone": null
+        }
+      }
+    },
+    {
+      "provenance": {
+        "provider": "ollama",
+        "model": "mistral-small3.1:24b"
+      },
+      "direction": {
+        "composition_strategy": "Use an asymmetric-cluster composition to balance a dominant motif in the right lower area with quieter regions, emphasizing visual interest.",
+        "focal_strategy": "Place the focal point in the right lower quadrant to draw the viewer's attention to that area, creating a sense of depth and intrigue.",
+        "depth_strategy": "Employ a shallow depth plan to keep the scene coherent and uncluttered, with minimal layered elements.",
+        "border_or_perimeter_strategy": "Use an open perimeter to create a sense of space and continuity, avoiding a framed look.",
+        "title_safe_region_strategy": "Position the title in the upper portion of the scene to maintain clarity and avoid overlapping with the focal point.",
+        "programme_safe_region_strategy": "Place the programme information in the lower portion, ensuring it is easily accessible and does not interfere with the main visual elements.",
+        "direction_id": "C",
+        "role": "Creative Director",
+        "positive_prompt": "Create a balanced composition with a prominent focal point in the right lower area, using open perimeters and shallow depth, A green, cream palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: Use only the supplied visual motifs and treatment, Clarified visual language: motifs: lush foliage, botanical elements, motif structure: The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere, atmosphere: warm and elegant, peaceful, composition: natural and organic, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+        "negative_prompt": "Avoid overcrowded scenes with too many micro-details. Keep the quiet regions calm and uncluttered., person, people, human, human figure, man, woman, child, face, portrait, silhouette, body, head, hands, arms, legs, clothing, mannequin, character, fictional character, hero, superhero, masked character, mascot, costume, costumed figure, humanoid, text, typography, lettering, words, letters, numbers, writing, calligraphy, signature, logo, watermark, signage, unrequested chromatic design colours, colour drift, unrelated hues, large neutral areas that displace the requested colours, unrelated generic imagery, crowded centre, readable text, characters",
+        "title_suggestions": [
+          "Asymmetric Cluster",
+          "Right-Lower Focal Point",
+          "Open Perimeter Depth"
+        ],
+        "short_design_rationale": "This design aims to create visual interest through an asymmetric-cluster composition with a right lower focal point. The shallow depth and open perimeter enhance the scene's coherence and spaciousness, ensuring calm regions are maintained.",
+        "layout_guidance": {
+          "title_zone": {
+            "x": 0.1,
+            "y": 0.08,
+            "width": 0.8,
+            "height": 0.12
+          },
+          "programme_zone": {
+            "x": 0.1,
+            "y": 0.47,
+            "width": 0.8,
+            "height": 0.4
+          },
+          "headshot_zone": null,
+          "logo_zone": null
+        }
+      }
+    }
+  ],
+  "prompt_generation_sha256": "9135d9bda719e18da102c2cb1c9548078d8c2b5014bbd2a8048f7caf0c2e4be7"
+}

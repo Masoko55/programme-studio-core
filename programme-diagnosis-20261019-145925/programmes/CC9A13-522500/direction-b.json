@@ -1,0 +1,35 @@
+{
+  "composition_strategy": "An asymmetric cluster of floral elements dominates the left side of the composition, creating a dynamic and visually engaging arrangement. The composition employs a receding depth plan, with elements subtly diminishing in scale as they move from the foreground to the background.",
+  "focal_strategy": "The focal point is a tightly clustered arrangement of pink and cream floral motifs positioned in the upper-left quadrant. The asymmetrical placement and density of these elements draw the eye, establishing a clear visual hierarchy.",
+  "depth_strategy": "Depth is achieved through a receding gradient of floral patterns, where larger, more detailed blooms are closer to the viewer and progressively simplify as they recede into the background. This creates a sense of space and dimension.",
+  "border_or_perimeter_strategy": "The perimeter is left open and undefined, allowing the floral arrangement to organically flow into the surrounding space. This creates a more natural and less constrained aesthetic.",
+  "title_safe_region_strategy": "The title safe region is positioned in the bottom-right corner, providing a clear and unobscured space for typography.",
+  "programme_safe_region_strategy": "The programme safe region is strategically located at the bottom center, ensuring ample space for additional information without disrupting the main visual elements.",
+  "direction_id": "B",
+  "role": "Asymmetrical Floral Abundance",
+  "positive_prompt": "Delicate pink and cream floral patterns, asymmetrical arrangement, receding floral layers, soft ambient lighting, graceful floral movement, gentle tonal modelling, clustered blooms, elegant composition, feminine aesthetic, celebrating atmosphere, floral clusters, layered floral elements, botanical motifs, A pink, cream palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: Use only the supplied visual motifs and treatment, Clarified visual language: motifs: Floral patterns, motif structure: Floral patterns should be integrated throughout the background, creating a cohesive and visually appealing environment, atmosphere: Soft, elegant, feminine, celebratory, composition: Symmetrical, balanced compositions, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+  "negative_prompt": "Unrelated imagery, crowded centre, readable text, people, characters, harsh lighting, dark colors, cluttered compositions, symmetrical arrangements, uniform distribution, solid blocks of colour, overly sharp edges., person, human, human figure, man, woman, child, face, portrait, silhouette, body, head, hands, arms, legs, clothing, mannequin, character, fictional character, hero, superhero, masked character, mascot, costume, costumed figure, humanoid, text, typography, lettering, words, letters, numbers, writing, calligraphy, signature, logo, watermark, signage, unrequested chromatic design colours, colour drift, unrelated hues, large neutral areas that displace the requested colours, unrelated generic imagery",
+  "title_suggestions": [
+    "Blossom Dreams",
+    "Floral Embrace",
+    "Pink Celebration",
+    "Elegant Blooms"
+  ],
+  "short_design_rationale": "This direction focuses on an asymmetrical arrangement of floral motifs to create a dynamic and visually rich background. The use of layering and a receding depth plan adds dimension and sophistication, while the open perimeter creates a sense of natural flow. This differs from direction A by employing asymmetry and a more dynamic flow, creating an energy that still feels soft and celebratory.",
+  "layout_guidance": {
+    "title_zone": {
+      "x": 0.1,
+      "y": 0.08,
+      "width": 0.8,
+      "height": 0.12
+    },
+    "programme_zone": {
+      "x": 0.1,
+      "y": 0.47,
+      "width": 0.8,
+      "height": 0.4
+    },
+    "headshot_zone": null,
+    "logo_zone": null
+  }
+}

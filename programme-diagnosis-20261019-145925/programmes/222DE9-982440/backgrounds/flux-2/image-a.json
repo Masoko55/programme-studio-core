@@ -1,0 +1,3587 @@
+{
+  "reference_number": "222DE9-982440",
+  "source_reference": "766C26-216262",
+  "source_prompt_manifest": {
+    "prompt_schema_version": "1.0",
+    "semantic_contract_version": "1.0",
+    "creative_direction_version": "2.0",
+    "prompt_generation_sha256": "0623c3c824087981b05ecdb5cbc86677c29e982d6e9661b1148f4e283d27cc26",
+    "hash_verified": false,
+    "freshness_status": "STALE_FOR_EXPERIMENT",
+    "created_at": "2026-10-19T07:16:30.026696Z"
+  },
+  "engine_id": "flux-2",
+  "direction_id": "A",
+  "seed": 20261009,
+  "workflow_sha256": "1e5cbbc4988a02bb7daac4797ee372d120443716e388cde13c51b6bd2a7e759a",
+  "effective_workflow": {
+    "workflow_sha256": "1e5cbbc4988a02bb7daac4797ee372d120443716e388cde13c51b6bd2a7e759a"
+  },
+  "request_id": "367854ba-aa2a-4a33-a162-5b8ab0d56eba",
+  "status": "complete",
+  "attempt_count": 1,
+  "positive_prompt": "Background inspiration: Webs, Webs should be subtly integrated into the background without dominating the scene.. Visual motif: Webs should be subtly integrated into the background without dominating the scene. Motif as abstract pattern structure; no unrequested literal objects. Theme reference treatment: Webs should be subtly integrated into the background without dominating the scene.. Brief anchors: Webs, Webs should be subtly integrated into the background without dominating the scene.. Composition: A panoramic composition with the focal band near the center, creating a sense of depth and adventure through a series of webs woven through the scene, guiding the viewer's eye across the image.. Focal strategy: The focal point is a subtle yet dynamic web formation that lies slightly off-center to the left, drawing attention while maintaining an adventurous atmosphere.. Depth strategy: Depth is achieved through the use of tonal gradation and the placement of webs at different distances from the viewer, with lighter and more intricate webs in the foreground and darker, more expansive webs receding into the background.. Perimeter strategy: The border is treated with a gentle gradient, transitioning from a lighter shade of the primary color to a darker tone, blending seamlessly with the background while providing a clear visual frame.. Preserve intentional negative space as integrated low-detail visual breathing room according to A calm, rectangular region is reserved at the top center of the frame, designed to be slightly elevated from the main action, offering a clear space for text.; A safe zone for additional text is placed below the visual calm area, maintaining a vertical layout that aligns with the flow of the composition.. Use natural visual hierarchy, breathing room and spatial balance with controlled subject concentration. Palette: royal blue, red; dominant palette; royal blue clearly visible in substantial design elements; red clearly visible in substantial design elements; requested colour families own principal surfaces and visual mass; both requested families remain substantial; neutrals support only fine linework, shading and highlights; natural tonal variation within requested families; no large unrequested chromatic region. Visual hierarchy: the subject is present without saturating the frame; coherent large forms, limited mid-size forms and concentrated small detail. Large forms establish the subject, medium forms carry motif topology, small details support texture. Preserve integrated low-detail breathing room and readable depth; avoid uniformly distributed micro-detail. Motif prominence is primary. Lighting, contrast and edge character should express the requested atmosphere and audience without changing the subject. Keep the result usable as background artwork rather than a crowded standalone illustration. Event atmosphere: Exciting and adventurous. Audience fit: Children aged 7 to 10. environment-only composition. Primary motif topology visibly follows: Webs should be subtly integrated into the background without dominating the scene.. Use only brief-grounded subject and motif content with this direction's spatial strategies. Pure visual background artwork with a clear subject and natural low-detail breathing room. Continuous scene surfaces and integrated calm areas. The visible chromatic design is restricted to the requested families: royal blue, red. Tonal variations within those families are allowed. Lighting changes brightness while preserving those families. Keep royal blue distinctly royal blue, avoiding sky blue, violet, lavender, purple, cyan, teal drift; Keep red distinctly red, avoiding rose gold, coral, rose, peach, brown, pink drift. Environment-only visual artwork with uninterrupted natural image surfaces; continuous scene composition, calm tonal breathing room, and recognizable subject forms.",
+  "workflow": {
+    "1": {
+      "class_type": "UNETLoader",
+      "inputs": {
+        "unet_name": "flux-2-klein-4b.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    "2": {
+      "class_type": "CLIPLoader",
+      "inputs": {
+        "clip_name": "qwen_3_4b.safetensors",
+        "type": "flux2",
+        "device": "default"
+      }
+    },
+    "3": {
+      "class_type": "VAELoader",
+      "inputs": {
+        "vae_name": "flux2-vae.safetensors"
+      }
+    },
+    "4": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "Background inspiration: Webs, Webs should be subtly integrated into the background without dominating the scene.. Visual motif: Webs should be subtly integrated into the background without dominating the scene. Motif as abstract pattern structure; no unrequested literal objects. Theme reference treatment: Webs should be subtly integrated into the background without dominating the scene.. Brief anchors: Webs, Webs should be subtly integrated into the background without dominating the scene.. Composition: A panoramic composition with the focal band near the center, creating a sense of depth and adventure through a series of webs woven through the scene, guiding the viewer's eye across the image.. Focal strategy: The focal point is a subtle yet dynamic web formation that lies slightly off-center to the left, drawing attention while maintaining an adventurous atmosphere.. Depth strategy: Depth is achieved through the use of tonal gradation and the placement of webs at different distances from the viewer, with lighter and more intricate webs in the foreground and darker, more expansive webs receding into the background.. Perimeter strategy: The border is treated with a gentle gradient, transitioning from a lighter shade of the primary color to a darker tone, blending seamlessly with the background while providing a clear visual frame.. Preserve intentional negative space as integrated low-detail visual breathing room according to A calm, rectangular region is reserved at the top center of the frame, designed to be slightly elevated from the main action, offering a clear space for text.; A safe zone for additional text is placed below the visual calm area, maintaining a vertical layout that aligns with the flow of the composition.. Use natural visual hierarchy, breathing room and spatial balance with controlled subject concentration. Palette: royal blue, red; dominant palette; royal blue clearly visible in substantial design elements; red clearly visible in substantial design elements; requested colour families own principal surfaces and visual mass; both requested families remain substantial; neutrals support only fine linework, shading and highlights; natural tonal variation within requested families; no large unrequested chromatic region. Visual hierarchy: the subject is present without saturating the frame; coherent large forms, limited mid-size forms and concentrated small detail. Large forms establish the subject, medium forms carry motif topology, small details support texture. Preserve integrated low-detail breathing room and readable depth; avoid uniformly distributed micro-detail. Motif prominence is primary. Lighting, contrast and edge character should express the requested atmosphere and audience without changing the subject. Keep the result usable as background artwork rather than a crowded standalone illustration. Event atmosphere: Exciting and adventurous. Audience fit: Children aged 7 to 10. environment-only composition. Primary motif topology visibly follows: Webs should be subtly integrated into the background without dominating the scene.. Use only brief-grounded subject and motif content with this direction's spatial strategies. Pure visual background artwork with a clear subject and natural low-detail breathing room. Continuous scene surfaces and integrated calm areas. The visible chromatic design is restricted to the requested families: royal blue, red. Tonal variations within those families are allowed. Lighting changes brightness while preserving those families. Keep royal blue distinctly royal blue, avoiding sky blue, violet, lavender, purple, cyan, teal drift; Keep red distinctly red, avoiding rose gold, coral, rose, peach, brown, pink drift. Environment-only visual artwork with uninterrupted natural image surfaces; continuous scene composition, calm tonal breathing room, and recognizable subject forms.",
+        "clip": [
+          "2",
+          0
+        ]
+      }
+    },
+    "5": {
+      "class_type": "FluxGuidance",
+      "inputs": {
+        "guidance": 1.0,
+        "conditioning": [
+          "4",
+          0
+        ]
+      }
+    },
+    "6": {
+      "class_type": "BasicGuider",
+      "inputs": {
+        "model": [
+          "1",
+          0
+        ],
+        "conditioning": [
+          "5",
+          0
+        ]
+      }
+    },
+    "7": {
+      "class_type": "RandomNoise",
+      "inputs": {
+        "noise_seed": 20261009
+      }
+    },
+    "8": {
+      "class_type": "KSamplerSelect",
+      "inputs": {
+        "sampler_name": "euler"
+      }
+    },
+    "9": {
+      "class_type": "Flux2Scheduler",
+      "inputs": {
+        "steps": 4,
+        "width": 1024,
+        "height": 1408
+      }
+    },
+    "10": {
+      "class_type": "EmptyFlux2LatentImage",
+      "inputs": {
+        "width": 1024,
+        "height": 1408,
+        "batch_size": 1
+      }
+    },
+    "11": {
+      "class_type": "SamplerCustomAdvanced",
+      "inputs": {
+        "noise": [
+          "7",
+          0
+        ],
+        "guider": [
+          "6",
+          0
+        ],
+        "sampler": [
+          "8",
+          0
+        ],
+        "sigmas": [
+          "9",
+          0
+        ],
+        "latent_image": [
+          "10",
+          0
+        ]
+      }
+    },
+    "12": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "11",
+          0
+        ],
+        "vae": [
+          "3",
+          0
+        ]
+      }
+    },
+    "13": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "filename_prefix": "programme-studio/222DE9-982440/flux-2/a",
+        "images": [
+          "12",
+          0
+        ]
+      }
+    }
+  },
+  "spec_sha256": "e675e8105593ea189d1a69905c66500302b3bcdb7496f5cbd04d44580f20fc5a",
+  "SPEC_SHA256": "e675e8105593ea189d1a69905c66500302b3bcdb7496f5cbd04d44580f20fc5a",
+  "ENGINE": "flux-2",
+  "DIRECTION": "A",
+  "DIRECTION_ROLE": "Adventure and excitement through subtle and dynamic web formations in a superhero city theme.",
+  "ATTEMPT": 1,
+  "RETRY_STAGE": "normal",
+  "SEED": 20261009,
+  "candidate_spec_sha256": "e675e8105593ea189d1a69905c66500302b3bcdb7496f5cbd04d44580f20fc5a",
+  "semantic_contract_version": "1.0",
+  "semantic_contract_sha256": "85ae21596b2e022431110be177306ef5dd78cb8212fb7ce9d1424d107efcac01",
+  "semantic_consistency": {
+    "conflicts": [],
+    "requires_clarification": false,
+    "valid": true
+  },
+  "semantic_completeness": {
+    "fields": {
+      "atmosphere_descriptors": "PRESENT",
+      "audience_descriptors": "PRESENT",
+      "composition_affinities": "OPTIONAL_NOT_PROVIDED",
+      "material_descriptors": "OPTIONAL_NOT_PROVIDED",
+      "motif_descriptors": "PRESENT",
+      "motif_structure_description": "PRESENT",
+      "palette": "PRESENT",
+      "primary_visual_subject": "PRESENT"
+    },
+    "ready": true,
+    "score": 1.0
+  },
+  "vision_model": "minicpm-v4.5:latest",
+  "ocr_config": {
+    "timeout_seconds": 7.0
+  },
+  "direction_role": "Adventure and excitement through subtle and dynamic web formations in a superhero city theme.",
+  "creative_concept": "Use only webs as the visual motif and maintain an exciting and adventurous atmosphere, A royal blue, red palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: Webs, Exciting and adventurous, Clarified visual language: motifs: Webs, atmosphere: Exciting and adventurous, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+  "visual_anchors": [
+    "Webs",
+    "Webs should be subtly integrated into the background without dominating the scene."
+  ],
+  "composition_strategy": "A panoramic composition with the focal band near the center, creating a sense of depth and adventure through a series of webs woven through the scene, guiding the viewer's eye across the image.",
+  "resolved_palette": [
+    {
+      "colour": "royal blue",
+      "role": "primary"
+    },
+    {
+      "colour": "red",
+      "role": "secondary"
+    }
+  ],
+  "palette_mode": "dominant-requested-colour-families",
+  "requested_primary": "royal blue",
+  "requested_secondary": "red",
+  "palette_roles": [
+    "primary",
+    "secondary"
+  ],
+  "safe_region_strategy": {
+    "title": "A calm, rectangular region is reserved at the top center of the frame, designed to be slightly elevated from the main action, offering a clear space for text.",
+    "programme": "A safe zone for additional text is placed below the title area, maintaining a vertical layout that aligns with the flow of the composition."
+  },
+  "sampling_profile": null,
+  "sampling_profile_name": null,
+  "sampling_profile_stage": "normal",
+  "sampling_profile_failure_history": {
+    "counts": {},
+    "consecutive_category": "INITIAL",
+    "consecutive_count": 0
+  },
+  "selection_reason": "INITIAL: engine_default",
+  "failure_history": {
+    "counts": {},
+    "consecutive_category": "INITIAL",
+    "consecutive_count": 0
+  },
+  "renderer_recovery_type": "baseline",
+  "generation_mode": "native_text_to_image",
+  "GENERATION_MODE": "native_text_to_image",
+  "TEMPLATE_CONDITIONING_ENABLED": false,
+  "MASKED_DENOISING_ENABLED": false,
+  "TEMPLATE_PATH": null,
+  "template_conditioning": {
+    "enabled": false,
+    "masked_denoising_enabled": false
+  },
+  "negative_prompt": null,
+  "adaptations": [
+    "Negative prompt omitted because the configured FLUX workflow does not expose negative conditioning."
+  ],
+  "retry_stage": "normal",
+  "failure_category": null,
+  "compiled_prompt": {
+    "positive": "Background inspiration: Webs, Webs should be subtly integrated into the background without dominating the scene.. Visual motif: Webs should be subtly integrated into the background without dominating the scene. Motif as abstract pattern structure; no unrequested literal objects. Theme reference treatment: Webs should be subtly integrated into the background without dominating the scene.. Brief anchors: Webs, Webs should be subtly integrated into the background without dominating the scene.. Composition: A panoramic composition with the focal band near the center, creating a sense of depth and adventure through a series of webs woven through the scene, guiding the viewer's eye across the image.. Focal strategy: The focal point is a subtle yet dynamic web formation that lies slightly off-center to the left, drawing attention while maintaining an adventurous atmosphere.. Depth strategy: Depth is achieved through the use of tonal gradation and the placement of webs at different distances from the viewer, with lighter and more intricate webs in the foreground and darker, more expansive webs receding into the background.. Perimeter strategy: The border is treated with a gentle gradient, transitioning from a lighter shade of the primary color to a darker tone, blending seamlessly with the background while providing a clear visual frame.. Preserve intentional negative space as integrated low-detail visual breathing room according to A calm, rectangular region is reserved at the top center of the frame, designed to be slightly elevated from the main action, offering a clear space for text.; A safe zone for additional text is placed below the visual calm area, maintaining a vertical layout that aligns with the flow of the composition.. Use natural visual hierarchy, breathing room and spatial balance with controlled subject concentration. Palette: royal blue, red; dominant palette; royal blue clearly visible in substantial design elements; red clearly visible in substantial design elements; requested colour families own principal surfaces and visual mass; both requested families remain substantial; neutrals support only fine linework, shading and highlights; natural tonal variation within requested families; no large unrequested chromatic region. Visual hierarchy: the subject is present without saturating the frame; coherent large forms, limited mid-size forms and concentrated small detail. Large forms establish the subject, medium forms carry motif topology, small details support texture. Preserve integrated low-detail breathing room and readable depth; avoid uniformly distributed micro-detail. Motif prominence is primary. Lighting, contrast and edge character should express the requested atmosphere and audience without changing the subject. Keep the result usable as background artwork rather than a crowded standalone illustration. Event atmosphere: Exciting and adventurous. Audience fit: Children aged 7 to 10. environment-only composition. Primary motif topology visibly follows: Webs should be subtly integrated into the background without dominating the scene.. Use only brief-grounded subject and motif content with this direction's spatial strategies. Pure visual background artwork with a clear subject and natural low-detail breathing room. Continuous scene surfaces and integrated calm areas. The visible chromatic design is restricted to the requested families: royal blue, red. Tonal variations within those families are allowed. Lighting changes brightness while preserving those families. Keep royal blue distinctly royal blue, avoiding sky blue, violet, lavender, purple, cyan, teal drift; Keep red distinctly red, avoiding rose gold, coral, rose, peach, brown, pink drift. Environment-only visual artwork with uninterrupted natural image surfaces; continuous scene composition, calm tonal breathing room, and recognizable subject forms.",
+    "negative": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels",
+    "clip_l": "Background artwork. Visual subject: Webs, Webs should be subtly integrated into the background without dominating the scene.. Visual anchors: Webs, Webs should be subtly integrated into the background without dominating the scene.. Visual motif: Webs should be subtly integrated into the background without dominating the scene.. Event atmosphere: Exciting and adventurous. Audience fit: Children aged 7 to 10. environment-only composition. Primary motif topology visibly follows: Webs should be subtly integrated into the background without dominating the scene.. Composition: A panoramic composition with the focal band near the center, creating a sense of depth and adventure through a series of webs woven through the scene, guiding the viewer's eye across the image.. Focal: The focal point is a subtle yet dynamic web formation that lies slightly off-center to the left, drawing attention while maintaining an adventurous atmosphere.. Depth: Depth is achieved through the use of tonal gradation and the placement of webs at different distances from the viewer, with lighter and more intricate webs in the foreground and darker, more expansive webs receding into the background.. Perimeter: The border is treated with a gentle gradient, transitioning from a lighter shade of the primary color to a darker tone, blending seamlessly with the background while providing a clear visual frame.. Quiet areas: A calm, rectangular region is reserved at the top center of the frame, designed to be slightly elevated from the main action, offering a clear space for text.; A safe zone for additional text is placed below the visual calm area, maintaining a vertical layout that aligns with the flow of the composition.. Requested palette: royal blue, red; royal blue clearly visible in substantial design elements; red clearly visible in substantial design elements; requested colour families own principal surfaces and visual mass; both requested families remain substantial; neutrals support only fine linework, shading and highlights; no major unrelated chromatic family. Keep royal blue distinctly royal blue, avoiding sky blue, violet, lavender, purple, cyan, teal drift; Keep red distinctly red, avoiding rose gold, coral, rose, peach, brown, pink drift.",
+    "clip_g": "Background artwork. Visual subject: Webs, Webs should be subtly integrated into the background without dominating the scene.. Visual anchors: Webs, Webs should be subtly integrated into the background without dominating the scene.. Visual motif: Webs should be subtly integrated into the background without dominating the scene.. Event atmosphere: Exciting and adventurous. Audience fit: Children aged 7 to 10. environment-only composition. Primary motif topology visibly follows: Webs should be subtly integrated into the background without dominating the scene.. Composition: A panoramic composition with the focal band near the center, creating a sense of depth and adventure through a series of webs woven through the scene, guiding the viewer's eye across the image.. Focal: The focal point is a subtle yet dynamic web formation that lies slightly off-center to the left, drawing attention while maintaining an adventurous atmosphere.. Depth: Depth is achieved through the use of tonal gradation and the placement of webs at different distances from the viewer, with lighter and more intricate webs in the foreground and darker, more expansive webs receding into the background.. Perimeter: The border is treated with a gentle gradient, transitioning from a lighter shade of the primary color to a darker tone, blending seamlessly with the background while providing a clear visual frame.. Quiet areas: A calm, rectangular region is reserved at the top center of the frame, designed to be slightly elevated from the main action, offering a clear space for text.; A safe zone for additional text is placed below the visual calm area, maintaining a vertical layout that aligns with the flow of the composition.. Requested palette: royal blue, red; royal blue clearly visible in substantial design elements; red clearly visible in substantial design elements; requested colour families own principal surfaces and visual mass; both requested families remain substantial; neutrals support only fine linework, shading and highlights; no major unrelated chromatic family. Keep royal blue distinctly royal blue, avoiding sky blue, violet, lavender, purple, cyan, teal drift; Keep red distinctly red, avoiding rose gold, coral, rose, peach, brown, pink drift.",
+    "t5": null,
+    "negative_prompt_channel_active": false,
+    "negative_semantics_preserved": true,
+    "incompatible_treatments": [],
+    "semantic_contract_sha256": "85ae21596b2e022431110be177306ef5dd78cb8212fb7ce9d1424d107efcac01",
+    "conditioning_coverage": {
+      "subject": [
+        "positive",
+        "clip_l",
+        "clip_g"
+      ],
+      "atmosphere": [
+        "positive",
+        "clip_l",
+        "clip_g"
+      ],
+      "audience": [
+        "positive",
+        "clip_l",
+        "clip_g"
+      ],
+      "motif": [
+        "positive",
+        "clip_l",
+        "clip_g"
+      ],
+      "treatment": [
+        "positive",
+        "clip_l",
+        "clip_g"
+      ],
+      "palette": [
+        "positive",
+        "clip_l",
+        "clip_g"
+      ],
+      "scene_family": [],
+      "incompatible_treatments": []
+    },
+    "engine_capabilities": {
+      "negative_prompt_channel": false,
+      "multi_encoder": false,
+      "long_context_encoder": false,
+      "supports_shift": true
+    },
+    "prompt_budget": {
+      "positive": {
+        "characters": 3894,
+        "approx_tokens": 550,
+        "budget_risk": false
+      },
+      "negative": {
+        "characters": 105,
+        "approx_tokens": 13,
+        "budget_risk": false
+      },
+      "clip_l": {
+        "characters": 2255,
+        "approx_tokens": 338,
+        "budget_risk": true
+      },
+      "clip_g": {
+        "characters": 2255,
+        "approx_tokens": 338,
+        "budget_risk": true
+      },
+      "t5": {
+        "characters": 0,
+        "approx_tokens": 0,
+        "budget_risk": false
+      }
+    },
+    "truncated": false,
+    "retry_strength_level": "BASE"
+  },
+  "conditioning_coverage": {
+    "subject": [
+      "positive",
+      "clip_l",
+      "clip_g"
+    ],
+    "atmosphere": [
+      "positive",
+      "clip_l",
+      "clip_g"
+    ],
+    "audience": [
+      "positive",
+      "clip_l",
+      "clip_g"
+    ],
+    "motif": [
+      "positive",
+      "clip_l",
+      "clip_g"
+    ],
+    "treatment": [
+      "positive",
+      "clip_l",
+      "clip_g"
+    ],
+    "palette": [
+      "positive",
+      "clip_l",
+      "clip_g"
+    ],
+    "scene_family": [],
+    "incompatible_treatments": []
+  },
+  "prompt_budget": {
+    "positive": {
+      "characters": 3894,
+      "approx_tokens": 550,
+      "budget_risk": false
+    },
+    "negative": {
+      "characters": 105,
+      "approx_tokens": 13,
+      "budget_risk": false
+    },
+    "clip_l": {
+      "characters": 2255,
+      "approx_tokens": 338,
+      "budget_risk": true
+    },
+    "clip_g": {
+      "characters": 2255,
+      "approx_tokens": 338,
+      "budget_risk": true
+    },
+    "t5": {
+      "characters": 0,
+      "approx_tokens": 0,
+      "budget_risk": false
+    }
+  },
+  "engine_capabilities": {
+    "negative_prompt_channel": false,
+    "multi_encoder": false,
+    "long_context_encoder": false,
+    "supports_shift": true
+  },
+  "reproducibility_manifest": {
+    "reference": "222DE9-982440",
+    "source_reference": "766C26-216262",
+    "semantic_contract_version": "1.0",
+    "semantic_contract_sha256": "85ae21596b2e022431110be177306ef5dd78cb8212fb7ce9d1424d107efcac01",
+    "candidate_spec_sha256": "e675e8105593ea189d1a69905c66500302b3bcdb7496f5cbd04d44580f20fc5a",
+    "engine": "flux-2",
+    "engine_models": [
+      "flux-2-klein-4b.safetensors"
+    ],
+    "workflow_sha256": "1e5cbbc4988a02bb7daac4797ee372d120443716e388cde13c51b6bd2a7e759a",
+    "effective_workflow_values": {
+      "workflow_sha256": "1e5cbbc4988a02bb7daac4797ee372d120443716e388cde13c51b6bd2a7e759a"
+    },
+    "direction": "A",
+    "sampling_profile": null,
+    "sampler_name": "euler",
+    "scheduler": null,
+    "cfg": null,
+    "steps": 4,
+    "shift": null,
+    "width": 1024,
+    "height": 1408,
+    "seed": 20261009,
+    "compiled_prompt_sha256": {
+      "positive": "82a9da283ed0740b562d49f1f5283eed7a2f50ae2d1f91bbeee94f10811b6948",
+      "negative": "d34ab161dd3bbe951d641f661f381c9c8554f3eb3d5ed283342f2bf361317e4c",
+      "clip_l": "52f9a84e37b6d3570b9dfefd088638d16d6dad4b4a6f50aaf253682489e2ce69",
+      "clip_g": "52f9a84e37b6d3570b9dfefd088638d16d6dad4b4a6f50aaf253682489e2ce69",
+      "t5": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "conditioning_lengths": {
+      "positive": {
+        "characters": 3894,
+        "approx_tokens": 550,
+        "budget_risk": false
+      },
+      "negative": {
+        "characters": 105,
+        "approx_tokens": 13,
+        "budget_risk": false
+      },
+      "clip_l": {
+        "characters": 2255,
+        "approx_tokens": 338,
+        "budget_risk": true
+      },
+      "clip_g": {
+        "characters": 2255,
+        "approx_tokens": 338,
+        "budget_risk": true
+      },
+      "t5": {
+        "characters": 0,
+        "approx_tokens": 0,
+        "budget_risk": false
+      }
+    },
+    "vision_model": "minicpm-v4.5:latest",
+    "ocr_config": {
+      "timeout_seconds": 7.0
+    },
+    "validator_version": null,
+    "retry_attempt": 1,
+    "retry_stage": "normal",
+    "failure_history": {
+      "counts": {},
+      "consecutive_category": "INITIAL",
+      "consecutive_count": 0
+    },
+    "image_sha256": "4ff1f6780f8d0f155b8e952248c3cf4a326be13af13cc97640a6dbe14b1d687e"
+  },
+  "prompt_id": "5bfb5ef9-ef0a-45a5-b5cb-77ef43a9cc05",
+  "palette_recovery": {
+    "eligible": false,
+    "attempted": false,
+    "source_off_palette_ratio": null,
+    "result": "not_attempted",
+    "failure_reason": null,
+    "normalized_off_palette_ratio": null,
+    "edge_geometry_similarity": null,
+    "structural_detail_preserved": null
+  },
+  "direction_similarity_score": 0.0,
+  "direction_similarity": 0.0,
+  "direction_similarity_diagnostics": {
+    "similarity": 0.0,
+    "closest_peer": null,
+    "peer_comparisons": []
+  },
+  "subject_adherence": {
+    "checked": true,
+    "score": 0.8,
+    "threshold": 0.55,
+    "subject": "Webs, Webs should be subtly integrated into the background without dominating the scene.",
+    "anchors": [
+      "Webs",
+      "Webs should be subtly integrated into the background without dominating the scene."
+    ],
+    "model": "minicpm-v4.5:latest",
+    "decision": "BRIEF_FIDELITY_DRIFT",
+    "reason": "Subject: The webs are clearly the primary motif, meeting the request for 'webs subtly integrated into the background without dominating'. Atmosphere: The abstract, repetitive web pattern lacks dynamic or adventurous elements, reducing the exciting adventurous atmosphere requested. Audience: The abst",
+    "subject_score": 0.8,
+    "atmosphere_score": 0.5,
+    "motif_score": 1.0,
+    "treatment_score": 0.6,
+    "audience_fit_score": 0.4,
+    "thresholds": {
+      "subject_score": 0.55,
+      "atmosphere_score": 0.55,
+      "motif_score": 0.55,
+      "audience_fit_score": 0.55
+    },
+    "observed_evidence": [
+      "red and white web patterns on blue background"
+    ],
+    "background_usability_score": 0.8,
+    "vision_human_signal": false,
+    "vision_text_signal": false,
+    "vision_text_evidence": "",
+    "unrequested_literal_object_visible": false,
+    "failure_category": "AUDIENCE_DRIFT",
+    "compound_fidelity_failure": false,
+    "hard_dimensions": [
+      "subject_score",
+      "motif_score"
+    ],
+    "hard_failed_dimensions": [],
+    "failed_dimensions": [
+      "atmosphere_score",
+      "audience_fit_score"
+    ],
+    "human_description": "",
+    "dimension_availability": {
+      "subject_score": "PASS",
+      "atmosphere_score": "FAIL",
+      "motif_score": "PASS",
+      "audience_fit_score": "FAIL"
+    },
+    "vision_debug": {
+      "endpoint": "/api/chat",
+      "model": "minicpm-v4.5:latest",
+      "score_parsing": [
+        {
+          "dimension_name": "subject_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.8,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "atmosphere_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.5,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "motif_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 1.0,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "treatment_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.6,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "audience_fit_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.4,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "background_usability_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.8,
+          "parse_failure_reason": null
+        }
+      ],
+      "thinking_present": false,
+      "thinking_preview_length": 0,
+      "response_length": 1309,
+      "final_source": "message.content",
+      "raw_text_preview": "<omitted>",
+      "assessment_attempts": 1,
+      "http_status": 200,
+      "response_content_type": "application/json; charset=utf-8",
+      "response_shape": [
+        "created_at",
+        "done",
+        "done_reason",
+        "eval_count",
+        "eval_duration",
+        "load_duration",
+        "message",
+        "model",
+        "prompt_eval_count",
+        "prompt_eval_duration",
+        "total_duration"
+      ],
+      "unconfirmed_human_report": false
+    }
+  },
+  "brief_fidelity": {
+    "checked": true,
+    "subject_score": 0.8,
+    "atmosphere_score": 0.5,
+    "motif_score": 1.0,
+    "treatment_score": 0.6,
+    "audience_fit_score": 0.4,
+    "thresholds": {
+      "subject_score": 0.55,
+      "atmosphere_score": 0.55,
+      "motif_score": 0.55,
+      "audience_fit_score": 0.55
+    },
+    "decision": "BRIEF_FIDELITY_DRIFT",
+    "reason": "Subject: The webs are clearly the primary motif, meeting the request for 'webs subtly integrated into the background without dominating'. Atmosphere: The abstract, repetitive web pattern lacks dynamic or adventurous elements, reducing the exciting adventurous atmosphere requested. Audience: The abst",
+    "observed_evidence": [
+      "red and white web patterns on blue background"
+    ],
+    "model": "minicpm-v4.5:latest",
+    "failure_category": "AUDIENCE_DRIFT",
+    "dimension_availability": {
+      "subject_score": "PASS",
+      "atmosphere_score": "FAIL",
+      "motif_score": "PASS",
+      "audience_fit_score": "FAIL"
+    },
+    "failed_dimensions": [
+      "atmosphere_score",
+      "audience_fit_score"
+    ],
+    "background_usability_score": 0.8,
+    "vision_human_signal": false,
+    "vision_debug": {
+      "endpoint": "/api/chat",
+      "model": "minicpm-v4.5:latest",
+      "score_parsing": [
+        {
+          "dimension_name": "subject_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.8,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "atmosphere_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.5,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "motif_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 1.0,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "treatment_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.6,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "audience_fit_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.4,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "background_usability_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.8,
+          "parse_failure_reason": null
+        }
+      ],
+      "thinking_present": false,
+      "thinking_preview_length": 0,
+      "response_length": 1309,
+      "final_source": "message.content",
+      "raw_text_preview": "<omitted>",
+      "assessment_attempts": 1,
+      "http_status": 200,
+      "response_content_type": "application/json; charset=utf-8",
+      "response_shape": [
+        "created_at",
+        "done",
+        "done_reason",
+        "eval_count",
+        "eval_duration",
+        "load_duration",
+        "message",
+        "model",
+        "prompt_eval_count",
+        "prompt_eval_duration",
+        "total_duration"
+      ],
+      "unconfirmed_human_report": false
+    },
+    "hard_dimensions": [
+      "subject_score",
+      "motif_score"
+    ],
+    "hard_failed_dimensions": [],
+    "compound_fidelity_failure": false,
+    "human_description": "",
+    "vision_text_signal": false,
+    "vision_text_evidence": "",
+    "unrequested_literal_object_visible": false
+  },
+  "semantic_dimension_scores": {
+    "subject_score": 0.8,
+    "atmosphere_score": 0.5,
+    "motif_score": 1.0,
+    "treatment_score": 0.6,
+    "audience_fit_score": 0.4,
+    "unrequested_literal_object_visible": false,
+    "unrequested_text_visible": null
+  },
+  "semantic_failed_dimensions": [
+    "atmosphere_score",
+    "audience_fit_score"
+  ],
+  "safe_region_retry": {
+    "previous_score": null,
+    "current_score": 1.0,
+    "improved": null
+  },
+  "validation": {
+    "validation": {
+      "decision": "accepted",
+      "failure_category": null,
+      "diagnostic_findings": [],
+      "palette": {
+        "mode": "dominant",
+        "palette_match_ratio": 0.9740767045454546,
+        "off_palette_ratio": 0.025923295454545456,
+        "primary_ratio": 0.9580965909090909,
+        "secondary_ratio": 0.012251420454545454,
+        "requested_chromatic_ratio": 0.9703480113636364,
+        "neutral_ratio": 0.003728693181818182,
+        "unrequested_chromatic_ratio": 0.025923295454545456,
+        "largest_unrequested_region_ratio": 0.0007102272727272727,
+        "primary_secondary_ratio": 78.20289855072464,
+        "secondary_presence": true,
+        "dominance_relationship": "FLEXIBLE",
+        "dominance_relationship_passed": true
+      },
+      "text": {
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "crop-psm-7",
+            "crop-psm-6",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "crop-psm-7",
+            "crop-psm-6",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 6,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        },
+        "detected": false,
+        "tokens": [
+          "Natt"
+        ],
+        "confirmed_tokens": [],
+        "text_lines": [],
+        "text_area_ratio": 0
+      },
+      "human": {
+        "detected": false,
+        "strong_signals": [],
+        "weak_signals": [],
+        "decision_reason": "no human evidence"
+      },
+      "quality": {
+        "structural_edge_density": 0.23345392400568182,
+        "macro_structure_score": 0.5037878787878788,
+        "coarse_edge_density": 0.04198232323232323,
+        "high_pass_mean": 6.007983684539795,
+        "boilerplate_score": 0.010166074107729971,
+        "title_panel_score": 0.0,
+        "fine_line_pair_ratio": 0.0028429282160625444,
+        "macro_form_balance": 0.2863,
+        "scene_density": {
+          "requested_density": "moderate",
+          "overall_edge_density": 0.1611,
+          "tile_edge_fractions": [
+            0.0461,
+            0.0156,
+            0.0251,
+            0.0625,
+            0.2463,
+            0.2812,
+            0.2217,
+            0.1079,
+            0.29,
+            0.2979,
+            0.1497,
+            0.093,
+            0.2473,
+            0.1743,
+            0.1069,
+            0.2126
+          ],
+          "occupied_tile_fraction": 0.6875,
+          "quiet_tile_fraction": 0.125,
+          "safe_region_density": 0.2376,
+          "edge_distribution_balance": 0.0949,
+          "macro_form_balance": 0.2863,
+          "normalized_measurements": {
+            "density_pressure": 0.7932
+          },
+          "thresholds_used": {
+            "density_pressure": 0.85,
+            "max_quiet_tile_fraction": 0.0625,
+            "occupied_tile_edge_fraction": 0.1,
+            "quiet_tile_edge_fraction": 0.04
+          },
+          "density_rule_triggered": null,
+          "decision": "PASS"
+        },
+        "global_density_decision": "PASS",
+        "explicit_safe_regions": {
+          "decision": "PASS",
+          "regions": {
+            "title": {
+              "decision": "PASS",
+              "reason": null,
+              "local_edge_density": 0.0,
+              "local_contrast": 16.0,
+              "high_frequency_fraction": 0.0,
+              "calm_tile_fraction": 1.0,
+              "usability_score": 1.0,
+              "calm_cell_fraction": 1.0,
+              "largest_calm_window_fraction": 1.0,
+              "usable_window_width_fraction": 1.0,
+              "usable_window_height_fraction": 1.0,
+              "broad_contrast": 13.0,
+              "broad_edge_density": 0.0,
+              "tile_indexes": [
+                1,
+                2,
+                5,
+                6
+              ],
+              "occupied_tile_fraction": 0.5,
+              "quiet_tile_fraction": 0.5,
+              "region_bounds": {
+                "x": 0.1,
+                "y": 0.08,
+                "width": 0.8,
+                "height": 0.12
+              },
+              "region_source": "layout_guidance"
+            }
+          }
+        },
+        "explicit_safe_region_decision": "PASS",
+        "raster_score": 0.0028429282160625444
+      },
+      "brief_fidelity": {
+        "checked": true,
+        "subject_score": 0.8,
+        "atmosphere_score": 0.5,
+        "motif_score": 1.0,
+        "treatment_score": 0.6,
+        "audience_fit_score": 0.4,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "decision": "BRIEF_FIDELITY_DRIFT",
+        "reason": "Subject: The webs are clearly the primary motif, meeting the request for 'webs subtly integrated into the background without dominating'. Atmosphere: The abstract, repetitive web pattern lacks dynamic or adventurous elements, reducing the exciting adventurous atmosphere requested. Audience: The abst",
+        "observed_evidence": [
+          "red and white web patterns on blue background"
+        ],
+        "model": "minicpm-v4.5:latest",
+        "failure_category": "AUDIENCE_DRIFT",
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "FAIL",
+          "motif_score": "PASS",
+          "audience_fit_score": "FAIL"
+        },
+        "failed_dimensions": [
+          "atmosphere_score",
+          "audience_fit_score"
+        ],
+        "background_usability_score": 0.8,
+        "vision_human_signal": false,
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.5,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 1.0,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.6,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.4,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1309,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        },
+        "hard_dimensions": [
+          "subject_score",
+          "motif_score"
+        ],
+        "hard_failed_dimensions": [],
+        "compound_fidelity_failure": false,
+        "human_description": "",
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false
+      }
+    },
+    "output_path": "/home/ntlhari/NerdCode/programme-studio/data/programmes/222DE9-982440/backgrounds/flux-2/image-a.download.part",
+    "sha256": "4ff1f6780f8d0f155b8e952248c3cf4a326be13af13cc97640a6dbe14b1d687e",
+    "width": 1024,
+    "height": 1408,
+    "person_detection_count": 0,
+    "face_detection_count": 0,
+    "profile_detection_count": 0,
+    "upper_body_detection_count": 0,
+    "visual_quality_checked": true,
+    "visual_quality_passed": true,
+    "macro_structure_score": 0.5037878787878788,
+    "coarse_edge_density": 0.04198232323232323,
+    "edge_density": 0.3782293146306818,
+    "structural_edge_density": 0.23345392400568182,
+    "horizontal_edge_density": 0.09048739346590909,
+    "vertical_edge_density": 0.08261940696022728,
+    "directional_edge_dominance": 0.23923950356482704,
+    "full_span_line_ratio": 0.02556818181818182,
+    "fine_horizontal_pair_ratio": 0.0028429282160625444,
+    "fine_vertical_pair_ratio": 0.0,
+    "fine_line_pair_ratio": 0.0028429282160625444,
+    "fine_line_mean_delta": 4.441182613372803,
+    "image_entropy": 6.575592517852783,
+    "largest_quantised_colour_ratio": 0.2346524325284091,
+    "laplacian_variance": 2093.611083984375,
+    "highpass_mean": 6.007983684539795,
+    "coherent_edge_ratio": 0.9413053686022852,
+    "center_structural_edge_density": 0.2630804528904185,
+    "outer_structural_edge_density": 0.20970128364058063,
+    "center_local_contrast": 49.342987060546875,
+    "title_structural_edge_density": 0.0,
+    "title_local_contrast": 1.6431341171264648,
+    "programme_structural_edge_density": 0.2810684619143276,
+    "programme_local_contrast": 17.85293197631836,
+    "center_to_outer_edge_ratio": 1.2545486051545949,
+    "center_safe_region_passed": false,
+    "title_panel_score": 0.0,
+    "boilerplate_score": 0.010166074107729971,
+    "largest_flat_rectangle_ratio": 0.17515980113636365,
+    "flat_rectangular_coverage_ratio": 0.17515980113636365,
+    "flat_coverage_ratio": 0.40425248579545453,
+    "long_axis_separator_ratio": 0.045454545454545456,
+    "large_flat_rectangle_count": 1.0,
+    "centre_edge_density": 0.08895596590909091,
+    "perimeter_edge_density": 0.14630681818181818,
+    "centre_flat_ratio": 0.19992897727272727,
+    "bilateral_symmetry": 0.8401691913604736,
+    "irregular_frame_score": 0.0,
+    "lower_centre_edge_density": 0.1430084745762712,
+    "quiet_centre_evidence": 0.07837021803287732,
+    "scene_density": {
+      "requested_density": "moderate",
+      "overall_edge_density": 0.1611,
+      "tile_edge_fractions": [
+        0.0461,
+        0.0156,
+        0.0251,
+        0.0625,
+        0.2463,
+        0.2812,
+        0.2217,
+        0.1079,
+        0.29,
+        0.2979,
+        0.1497,
+        0.093,
+        0.2473,
+        0.1743,
+        0.1069,
+        0.2126
+      ],
+      "occupied_tile_fraction": 0.6875,
+      "quiet_tile_fraction": 0.125,
+      "safe_region_density": 0.2376,
+      "edge_distribution_balance": 0.0949,
+      "macro_form_balance": 0.2863,
+      "normalized_measurements": {
+        "density_pressure": 0.7932
+      },
+      "thresholds_used": {
+        "density_pressure": 0.85,
+        "max_quiet_tile_fraction": 0.0625,
+        "occupied_tile_edge_fraction": 0.1,
+        "quiet_tile_edge_fraction": 0.04
+      },
+      "density_rule_triggered": null,
+      "decision": "PASS"
+    },
+    "global_density_decision": "PASS",
+    "macro_form_balance": 0.2863,
+    "explicit_safe_regions": {
+      "decision": "PASS",
+      "regions": {
+        "title": {
+          "decision": "PASS",
+          "reason": null,
+          "local_edge_density": 0.0,
+          "local_contrast": 16.0,
+          "high_frequency_fraction": 0.0,
+          "calm_tile_fraction": 1.0,
+          "usability_score": 1.0,
+          "calm_cell_fraction": 1.0,
+          "largest_calm_window_fraction": 1.0,
+          "usable_window_width_fraction": 1.0,
+          "usable_window_height_fraction": 1.0,
+          "broad_contrast": 13.0,
+          "broad_edge_density": 0.0,
+          "tile_indexes": [
+            1,
+            2,
+            5,
+            6
+          ],
+          "occupied_tile_fraction": 0.5,
+          "quiet_tile_fraction": 0.5,
+          "region_bounds": {
+            "x": 0.1,
+            "y": 0.08,
+            "width": 0.8,
+            "height": 0.12
+          },
+          "region_source": "layout_guidance"
+        }
+      }
+    },
+    "explicit_safe_region_decision": "PASS",
+    "palette_checked": true,
+    "palette_mode": "dominant-requested-colour-families",
+    "incidental_neutral_ratio": 0.003728693181818182,
+    "largest_incidental_neutral_region_ratio": 0.00022194602272727272,
+    "palette_match_ratio": 0.9740767045454546,
+    "off_palette_ratio": 0.025923295454545456,
+    "perceptual_in_family_ratio": 0.9740767045454546,
+    "unrelated_hue_ratio": 0.025923295454545456,
+    "requested_chromatic_ratio": 0.9703480113636364,
+    "structural_neutral_ratio": 0.003728693181818182,
+    "unrequested_chromatic_ratio": 0.025923295454545456,
+    "largest_unrequested_region_ratio": 0.0007102272727272727,
+    "primary_ratio": 0.9580965909090909,
+    "secondary_ratio": 0.012251420454545454,
+    "requested_palette_mode": "dominant",
+    "tonal_derivative_ratio": 0.9703480113636364,
+    "primary_presence_ratio": 0.9580965909090909,
+    "secondary_presence_ratio": 0.012251420454545454,
+    "primary_family": "royal blue",
+    "secondary_family": "red",
+    "primary_role": "primary",
+    "primary_secondary_ratio": 78.20289855072464,
+    "secondary_presence": true,
+    "dominance_relationship": "FLEXIBLE",
+    "dominance_relationship_passed": true,
+    "secondary_role": "secondary",
+    "secondary_minimum": 0.008,
+    "palette_relationship_source": "default",
+    "palette_role_warning": null,
+    "primary_colour_ratio": 0.9580965909090909,
+    "secondary_colour_ratio": 0.012251420454545454,
+    "requested_colour_counts": {
+      "royal blue": 21584,
+      "red": 276
+    },
+    "requested_colour_family_counts": {
+      "royal blue": 21584,
+      "red": 276
+    },
+    "accepted_tonal_breakdown": {
+      "royal blue": 0.9373668323863636,
+      "charcoal": 0.020241477272727272,
+      "red": 0.01211825284090909,
+      "grey": 0.00048828125,
+      "violet": 0.00013316761363636363
+    },
+    "unrequested_colour_breakdown": {
+      "charcoal": 0.018909801136363636,
+      "burgundy": 0.004483309659090909,
+      "maroon": 0.0025745738636363635,
+      "grey": 0.0020862926136363635,
+      "navy": 0.0009765625,
+      "silver": 0.0005770596590909091,
+      "brown": 4.438920454545455e-05,
+      "violet": 0.0
+    },
+    "primary_descriptor": {
+      "raw": "royal blue",
+      "base_name": "royal blue",
+      "family_members": [
+        "blue",
+        "navy",
+        "royal blue"
+      ],
+      "modifiers": [],
+      "modifier_only": false
+    },
+    "secondary_descriptor": {
+      "raw": "red",
+      "base_name": "red",
+      "family_members": [
+        "burgundy",
+        "maroon",
+        "red"
+      ],
+      "modifiers": [],
+      "modifier_only": false
+    },
+    "ocr_tokens": [],
+    "ocr_diagnostics": {
+      "attempted": [
+        "original",
+        "crop-psm-7",
+        "crop-psm-6",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "completed_variants": [
+        "original",
+        "crop-psm-7",
+        "crop-psm-6",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "timed_out_variants": [],
+      "failed_variants": [],
+      "failure_reasons": {},
+      "completed_variant_count": 6,
+      "required_variant_count": 2,
+      "enhancement_variant_failures": [],
+      "evidence_sufficiency": true,
+      "decision": "complete"
+    },
+    "ocr_validation_attempts": 1,
+    "ocr_validation_sha256": "4ff1f6780f8d0f155b8e952248c3cf4a326be13af13cc97640a6dbe14b1d687e",
+    "human_detection": {
+      "people": [],
+      "evidence": [],
+      "strong_signals": [],
+      "weak_signals": [],
+      "overlaps": [],
+      "people_weights": [],
+      "faces": [],
+      "profiles": [],
+      "upper_bodies": [],
+      "strong_upper_body_signal": false,
+      "ambiguous_face_signal": false,
+      "detected": false,
+      "human_detection_confidence": "low",
+      "human_detection_reason": "isolated detector patterns without independent confirmation",
+      "largest_detection_area_ratio": 0.0,
+      "classical_human_signal": false,
+      "vision_human_signal": false,
+      "combined_human_decision": false,
+      "decision_reason": "no human evidence"
+    },
+    "all_failure_categories": []
+  },
+  "output_path": "/home/ntlhari/NerdCode/programme-studio/data/programmes/222DE9-982440/backgrounds/flux-2/image-a.png",
+  "sha256": "4ff1f6780f8d0f155b8e952248c3cf4a326be13af13cc97640a6dbe14b1d687e",
+  "width": 1024,
+  "height": 1408,
+  "person_detection_count": 0,
+  "face_detection_count": 0,
+  "profile_detection_count": 0,
+  "upper_body_detection_count": 0,
+  "visual_quality_checked": true,
+  "visual_quality_passed": true,
+  "macro_structure_score": 0.5037878787878788,
+  "coarse_edge_density": 0.04198232323232323,
+  "edge_density": 0.3782293146306818,
+  "structural_edge_density": 0.23345392400568182,
+  "horizontal_edge_density": 0.09048739346590909,
+  "vertical_edge_density": 0.08261940696022728,
+  "directional_edge_dominance": 0.23923950356482704,
+  "full_span_line_ratio": 0.02556818181818182,
+  "fine_horizontal_pair_ratio": 0.0028429282160625444,
+  "fine_vertical_pair_ratio": 0.0,
+  "fine_line_pair_ratio": 0.0028429282160625444,
+  "fine_line_mean_delta": 4.441182613372803,
+  "image_entropy": 6.575592517852783,
+  "largest_quantised_colour_ratio": 0.2346524325284091,
+  "laplacian_variance": 2093.611083984375,
+  "highpass_mean": 6.007983684539795,
+  "coherent_edge_ratio": 0.9413053686022852,
+  "center_structural_edge_density": 0.2630804528904185,
+  "outer_structural_edge_density": 0.20970128364058063,
+  "center_local_contrast": 49.342987060546875,
+  "title_structural_edge_density": 0.0,
+  "title_local_contrast": 1.6431341171264648,
+  "programme_structural_edge_density": 0.2810684619143276,
+  "programme_local_contrast": 17.85293197631836,
+  "center_to_outer_edge_ratio": 1.2545486051545949,
+  "center_safe_region_passed": false,
+  "title_panel_score": 0.0,
+  "boilerplate_score": 0.010166074107729971,
+  "largest_flat_rectangle_ratio": 0.17515980113636365,
+  "flat_rectangular_coverage_ratio": 0.17515980113636365,
+  "flat_coverage_ratio": 0.40425248579545453,
+  "long_axis_separator_ratio": 0.045454545454545456,
+  "large_flat_rectangle_count": 1.0,
+  "centre_edge_density": 0.08895596590909091,
+  "perimeter_edge_density": 0.14630681818181818,
+  "centre_flat_ratio": 0.19992897727272727,
+  "bilateral_symmetry": 0.8401691913604736,
+  "irregular_frame_score": 0.0,
+  "lower_centre_edge_density": 0.1430084745762712,
+  "quiet_centre_evidence": 0.07837021803287732,
+  "scene_density": {
+    "requested_density": "moderate",
+    "overall_edge_density": 0.1611,
+    "tile_edge_fractions": [
+      0.0461,
+      0.0156,
+      0.0251,
+      0.0625,
+      0.2463,
+      0.2812,
+      0.2217,
+      0.1079,
+      0.29,
+      0.2979,
+      0.1497,
+      0.093,
+      0.2473,
+      0.1743,
+      0.1069,
+      0.2126
+    ],
+    "occupied_tile_fraction": 0.6875,
+    "quiet_tile_fraction": 0.125,
+    "safe_region_density": 0.2376,
+    "edge_distribution_balance": 0.0949,
+    "macro_form_balance": 0.2863,
+    "normalized_measurements": {
+      "density_pressure": 0.7932
+    },
+    "thresholds_used": {
+      "density_pressure": 0.85,
+      "max_quiet_tile_fraction": 0.0625,
+      "occupied_tile_edge_fraction": 0.1,
+      "quiet_tile_edge_fraction": 0.04
+    },
+    "density_rule_triggered": null,
+    "decision": "PASS"
+  },
+  "global_density_decision": "PASS",
+  "macro_form_balance": 0.2863,
+  "explicit_safe_regions": {
+    "decision": "PASS",
+    "regions": {
+      "title": {
+        "decision": "PASS",
+        "reason": null,
+        "local_edge_density": 0.0,
+        "local_contrast": 16.0,
+        "high_frequency_fraction": 0.0,
+        "calm_tile_fraction": 1.0,
+        "usability_score": 1.0,
+        "calm_cell_fraction": 1.0,
+        "largest_calm_window_fraction": 1.0,
+        "usable_window_width_fraction": 1.0,
+        "usable_window_height_fraction": 1.0,
+        "broad_contrast": 13.0,
+        "broad_edge_density": 0.0,
+        "tile_indexes": [
+          1,
+          2,
+          5,
+          6
+        ],
+        "occupied_tile_fraction": 0.5,
+        "quiet_tile_fraction": 0.5,
+        "region_bounds": {
+          "x": 0.1,
+          "y": 0.08,
+          "width": 0.8,
+          "height": 0.12
+        },
+        "region_source": "layout_guidance"
+      }
+    }
+  },
+  "explicit_safe_region_decision": "PASS",
+  "palette_checked": true,
+  "incidental_neutral_ratio": 0.003728693181818182,
+  "largest_incidental_neutral_region_ratio": 0.00022194602272727272,
+  "palette_match_ratio": 0.9740767045454546,
+  "off_palette_ratio": 0.025923295454545456,
+  "perceptual_in_family_ratio": 0.9740767045454546,
+  "unrelated_hue_ratio": 0.025923295454545456,
+  "requested_chromatic_ratio": 0.9703480113636364,
+  "structural_neutral_ratio": 0.003728693181818182,
+  "unrequested_chromatic_ratio": 0.025923295454545456,
+  "largest_unrequested_region_ratio": 0.0007102272727272727,
+  "primary_ratio": 0.9580965909090909,
+  "secondary_ratio": 0.012251420454545454,
+  "requested_palette_mode": "dominant",
+  "tonal_derivative_ratio": 0.9703480113636364,
+  "primary_presence_ratio": 0.9580965909090909,
+  "secondary_presence_ratio": 0.012251420454545454,
+  "primary_family": "royal blue",
+  "secondary_family": "red",
+  "primary_role": "primary",
+  "primary_secondary_ratio": 78.20289855072464,
+  "secondary_presence": true,
+  "dominance_relationship": "FLEXIBLE",
+  "dominance_relationship_passed": true,
+  "secondary_role": "secondary",
+  "secondary_minimum": 0.008,
+  "palette_relationship_source": "default",
+  "palette_role_warning": null,
+  "primary_colour_ratio": 0.9580965909090909,
+  "secondary_colour_ratio": 0.012251420454545454,
+  "requested_colour_counts": {
+    "royal blue": 21584,
+    "red": 276
+  },
+  "requested_colour_family_counts": {
+    "royal blue": 21584,
+    "red": 276
+  },
+  "accepted_tonal_breakdown": {
+    "royal blue": 0.9373668323863636,
+    "charcoal": 0.020241477272727272,
+    "red": 0.01211825284090909,
+    "grey": 0.00048828125,
+    "violet": 0.00013316761363636363
+  },
+  "unrequested_colour_breakdown": {
+    "charcoal": 0.018909801136363636,
+    "burgundy": 0.004483309659090909,
+    "maroon": 0.0025745738636363635,
+    "grey": 0.0020862926136363635,
+    "navy": 0.0009765625,
+    "silver": 0.0005770596590909091,
+    "brown": 4.438920454545455e-05,
+    "violet": 0.0
+  },
+  "primary_descriptor": {
+    "raw": "royal blue",
+    "base_name": "royal blue",
+    "family_members": [
+      "blue",
+      "navy",
+      "royal blue"
+    ],
+    "modifiers": [],
+    "modifier_only": false
+  },
+  "secondary_descriptor": {
+    "raw": "red",
+    "base_name": "red",
+    "family_members": [
+      "burgundy",
+      "maroon",
+      "red"
+    ],
+    "modifiers": [],
+    "modifier_only": false
+  },
+  "ocr_tokens": [],
+  "ocr_diagnostics": {
+    "attempted": [
+      "original",
+      "crop-psm-7",
+      "crop-psm-6",
+      "contrast",
+      "threshold",
+      "inverted"
+    ],
+    "completed_variants": [
+      "original",
+      "crop-psm-7",
+      "crop-psm-6",
+      "contrast",
+      "threshold",
+      "inverted"
+    ],
+    "timed_out_variants": [],
+    "failed_variants": [],
+    "failure_reasons": {},
+    "completed_variant_count": 6,
+    "required_variant_count": 2,
+    "enhancement_variant_failures": [],
+    "evidence_sufficiency": true,
+    "decision": "complete"
+  },
+  "ocr_validation_attempts": 1,
+  "ocr_validation_sha256": "4ff1f6780f8d0f155b8e952248c3cf4a326be13af13cc97640a6dbe14b1d687e",
+  "human_detection": {
+    "people": [],
+    "evidence": [],
+    "strong_signals": [],
+    "weak_signals": [],
+    "overlaps": [],
+    "people_weights": [],
+    "faces": [],
+    "profiles": [],
+    "upper_bodies": [],
+    "strong_upper_body_signal": false,
+    "ambiguous_face_signal": false,
+    "detected": false,
+    "human_detection_confidence": "low",
+    "human_detection_reason": "isolated detector patterns without independent confirmation",
+    "largest_detection_area_ratio": 0.0,
+    "classical_human_signal": false,
+    "vision_human_signal": false,
+    "combined_human_decision": false,
+    "decision_reason": "no human evidence"
+  },
+  "all_failure_categories": [],
+  "raw_validation": {
+    "validation": {
+      "decision": "accepted",
+      "failure_category": null,
+      "diagnostic_findings": [],
+      "palette": {
+        "mode": "dominant",
+        "palette_match_ratio": 0.9740767045454546,
+        "off_palette_ratio": 0.025923295454545456,
+        "primary_ratio": 0.9580965909090909,
+        "secondary_ratio": 0.012251420454545454,
+        "requested_chromatic_ratio": 0.9703480113636364,
+        "neutral_ratio": 0.003728693181818182,
+        "unrequested_chromatic_ratio": 0.025923295454545456,
+        "largest_unrequested_region_ratio": 0.0007102272727272727,
+        "primary_secondary_ratio": 78.20289855072464,
+        "secondary_presence": true,
+        "dominance_relationship": "FLEXIBLE",
+        "dominance_relationship_passed": true
+      },
+      "text": {
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "crop-psm-7",
+            "crop-psm-6",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "crop-psm-7",
+            "crop-psm-6",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 6,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        },
+        "detected": false,
+        "tokens": [
+          "Natt"
+        ],
+        "confirmed_tokens": [],
+        "text_lines": [],
+        "text_area_ratio": 0
+      },
+      "human": {
+        "detected": false,
+        "strong_signals": [],
+        "weak_signals": [],
+        "decision_reason": "no human evidence"
+      },
+      "quality": {
+        "structural_edge_density": 0.23345392400568182,
+        "macro_structure_score": 0.5037878787878788,
+        "coarse_edge_density": 0.04198232323232323,
+        "high_pass_mean": 6.007983684539795,
+        "boilerplate_score": 0.010166074107729971,
+        "title_panel_score": 0.0,
+        "fine_line_pair_ratio": 0.0028429282160625444,
+        "macro_form_balance": 0.2863,
+        "scene_density": {
+          "requested_density": "moderate",
+          "overall_edge_density": 0.1611,
+          "tile_edge_fractions": [
+            0.0461,
+            0.0156,
+            0.0251,
+            0.0625,
+            0.2463,
+            0.2812,
+            0.2217,
+            0.1079,
+            0.29,
+            0.2979,
+            0.1497,
+            0.093,
+            0.2473,
+            0.1743,
+            0.1069,
+            0.2126
+          ],
+          "occupied_tile_fraction": 0.6875,
+          "quiet_tile_fraction": 0.125,
+          "safe_region_density": 0.2376,
+          "edge_distribution_balance": 0.0949,
+          "macro_form_balance": 0.2863,
+          "normalized_measurements": {
+            "density_pressure": 0.7932
+          },
+          "thresholds_used": {
+            "density_pressure": 0.85,
+            "max_quiet_tile_fraction": 0.0625,
+            "occupied_tile_edge_fraction": 0.1,
+            "quiet_tile_edge_fraction": 0.04
+          },
+          "density_rule_triggered": null,
+          "decision": "PASS"
+        },
+        "global_density_decision": "PASS",
+        "explicit_safe_regions": {
+          "decision": "PASS",
+          "regions": {
+            "title": {
+              "decision": "PASS",
+              "reason": null,
+              "local_edge_density": 0.0,
+              "local_contrast": 16.0,
+              "high_frequency_fraction": 0.0,
+              "calm_tile_fraction": 1.0,
+              "usability_score": 1.0,
+              "calm_cell_fraction": 1.0,
+              "largest_calm_window_fraction": 1.0,
+              "usable_window_width_fraction": 1.0,
+              "usable_window_height_fraction": 1.0,
+              "broad_contrast": 13.0,
+              "broad_edge_density": 0.0,
+              "tile_indexes": [
+                1,
+                2,
+                5,
+                6
+              ],
+              "occupied_tile_fraction": 0.5,
+              "quiet_tile_fraction": 0.5,
+              "region_bounds": {
+                "x": 0.1,
+                "y": 0.08,
+                "width": 0.8,
+                "height": 0.12
+              },
+              "region_source": "layout_guidance"
+            }
+          }
+        },
+        "explicit_safe_region_decision": "PASS",
+        "raster_score": 0.0028429282160625444
+      }
+    },
+    "output_path": "/home/ntlhari/NerdCode/programme-studio/data/programmes/222DE9-982440/backgrounds/flux-2/image-a.download.part",
+    "sha256": "4ff1f6780f8d0f155b8e952248c3cf4a326be13af13cc97640a6dbe14b1d687e",
+    "width": 1024,
+    "height": 1408,
+    "person_detection_count": 0,
+    "face_detection_count": 0,
+    "profile_detection_count": 0,
+    "upper_body_detection_count": 0,
+    "visual_quality_checked": true,
+    "visual_quality_passed": true,
+    "macro_structure_score": 0.5037878787878788,
+    "coarse_edge_density": 0.04198232323232323,
+    "edge_density": 0.3782293146306818,
+    "structural_edge_density": 0.23345392400568182,
+    "horizontal_edge_density": 0.09048739346590909,
+    "vertical_edge_density": 0.08261940696022728,
+    "directional_edge_dominance": 0.23923950356482704,
+    "full_span_line_ratio": 0.02556818181818182,
+    "fine_horizontal_pair_ratio": 0.0028429282160625444,
+    "fine_vertical_pair_ratio": 0.0,
+    "fine_line_pair_ratio": 0.0028429282160625444,
+    "fine_line_mean_delta": 4.441182613372803,
+    "image_entropy": 6.575592517852783,
+    "largest_quantised_colour_ratio": 0.2346524325284091,
+    "laplacian_variance": 2093.611083984375,
+    "highpass_mean": 6.007983684539795,
+    "coherent_edge_ratio": 0.9413053686022852,
+    "center_structural_edge_density": 0.2630804528904185,
+    "outer_structural_edge_density": 0.20970128364058063,
+    "center_local_contrast": 49.342987060546875,
+    "title_structural_edge_density": 0.0,
+    "title_local_contrast": 1.6431341171264648,
+    "programme_structural_edge_density": 0.2810684619143276,
+    "programme_local_contrast": 17.85293197631836,
+    "center_to_outer_edge_ratio": 1.2545486051545949,
+    "center_safe_region_passed": false,
+    "title_panel_score": 0.0,
+    "boilerplate_score": 0.010166074107729971,
+    "largest_flat_rectangle_ratio": 0.17515980113636365,
+    "flat_rectangular_coverage_ratio": 0.17515980113636365,
+    "flat_coverage_ratio": 0.40425248579545453,
+    "long_axis_separator_ratio": 0.045454545454545456,
+    "large_flat_rectangle_count": 1.0,
+    "centre_edge_density": 0.08895596590909091,
+    "perimeter_edge_density": 0.14630681818181818,
+    "centre_flat_ratio": 0.19992897727272727,
+    "bilateral_symmetry": 0.8401691913604736,
+    "irregular_frame_score": 0.0,
+    "lower_centre_edge_density": 0.1430084745762712,
+    "quiet_centre_evidence": 0.07837021803287732,
+    "scene_density": {
+      "requested_density": "moderate",
+      "overall_edge_density": 0.1611,
+      "tile_edge_fractions": [
+        0.0461,
+        0.0156,
+        0.0251,
+        0.0625,
+        0.2463,
+        0.2812,
+        0.2217,
+        0.1079,
+        0.29,
+        0.2979,
+        0.1497,
+        0.093,
+        0.2473,
+        0.1743,
+        0.1069,
+        0.2126
+      ],
+      "occupied_tile_fraction": 0.6875,
+      "quiet_tile_fraction": 0.125,
+      "safe_region_density": 0.2376,
+      "edge_distribution_balance": 0.0949,
+      "macro_form_balance": 0.2863,
+      "normalized_measurements": {
+        "density_pressure": 0.7932
+      },
+      "thresholds_used": {
+        "density_pressure": 0.85,
+        "max_quiet_tile_fraction": 0.0625,
+        "occupied_tile_edge_fraction": 0.1,
+        "quiet_tile_edge_fraction": 0.04
+      },
+      "density_rule_triggered": null,
+      "decision": "PASS"
+    },
+    "global_density_decision": "PASS",
+    "macro_form_balance": 0.2863,
+    "explicit_safe_regions": {
+      "decision": "PASS",
+      "regions": {
+        "title": {
+          "decision": "PASS",
+          "reason": null,
+          "local_edge_density": 0.0,
+          "local_contrast": 16.0,
+          "high_frequency_fraction": 0.0,
+          "calm_tile_fraction": 1.0,
+          "usability_score": 1.0,
+          "calm_cell_fraction": 1.0,
+          "largest_calm_window_fraction": 1.0,
+          "usable_window_width_fraction": 1.0,
+          "usable_window_height_fraction": 1.0,
+          "broad_contrast": 13.0,
+          "broad_edge_density": 0.0,
+          "tile_indexes": [
+            1,
+            2,
+            5,
+            6
+          ],
+          "occupied_tile_fraction": 0.5,
+          "quiet_tile_fraction": 0.5,
+          "region_bounds": {
+            "x": 0.1,
+            "y": 0.08,
+            "width": 0.8,
+            "height": 0.12
+          },
+          "region_source": "layout_guidance"
+        }
+      }
+    },
+    "explicit_safe_region_decision": "PASS",
+    "palette_checked": true,
+    "palette_mode": "dominant-requested-colour-families",
+    "incidental_neutral_ratio": 0.003728693181818182,
+    "largest_incidental_neutral_region_ratio": 0.00022194602272727272,
+    "palette_match_ratio": 0.9740767045454546,
+    "off_palette_ratio": 0.025923295454545456,
+    "perceptual_in_family_ratio": 0.9740767045454546,
+    "unrelated_hue_ratio": 0.025923295454545456,
+    "requested_chromatic_ratio": 0.9703480113636364,
+    "structural_neutral_ratio": 0.003728693181818182,
+    "unrequested_chromatic_ratio": 0.025923295454545456,
+    "largest_unrequested_region_ratio": 0.0007102272727272727,
+    "primary_ratio": 0.9580965909090909,
+    "secondary_ratio": 0.012251420454545454,
+    "requested_palette_mode": "dominant",
+    "tonal_derivative_ratio": 0.9703480113636364,
+    "primary_presence_ratio": 0.9580965909090909,
+    "secondary_presence_ratio": 0.012251420454545454,
+    "primary_family": "royal blue",
+    "secondary_family": "red",
+    "primary_role": "primary",
+    "primary_secondary_ratio": 78.20289855072464,
+    "secondary_presence": true,
+    "dominance_relationship": "FLEXIBLE",
+    "dominance_relationship_passed": true,
+    "secondary_role": "secondary",
+    "secondary_minimum": 0.008,
+    "palette_relationship_source": "default",
+    "palette_role_warning": null,
+    "primary_colour_ratio": 0.9580965909090909,
+    "secondary_colour_ratio": 0.012251420454545454,
+    "requested_colour_counts": {
+      "royal blue": 21584,
+      "red": 276
+    },
+    "requested_colour_family_counts": {
+      "royal blue": 21584,
+      "red": 276
+    },
+    "accepted_tonal_breakdown": {
+      "royal blue": 0.9373668323863636,
+      "charcoal": 0.020241477272727272,
+      "red": 0.01211825284090909,
+      "grey": 0.00048828125,
+      "violet": 0.00013316761363636363
+    },
+    "unrequested_colour_breakdown": {
+      "charcoal": 0.018909801136363636,
+      "burgundy": 0.004483309659090909,
+      "maroon": 0.0025745738636363635,
+      "grey": 0.0020862926136363635,
+      "navy": 0.0009765625,
+      "silver": 0.0005770596590909091,
+      "brown": 4.438920454545455e-05,
+      "violet": 0.0
+    },
+    "primary_descriptor": {
+      "raw": "royal blue",
+      "base_name": "royal blue",
+      "family_members": [
+        "blue",
+        "navy",
+        "royal blue"
+      ],
+      "modifiers": [],
+      "modifier_only": false
+    },
+    "secondary_descriptor": {
+      "raw": "red",
+      "base_name": "red",
+      "family_members": [
+        "burgundy",
+        "maroon",
+        "red"
+      ],
+      "modifiers": [],
+      "modifier_only": false
+    },
+    "ocr_tokens": [],
+    "ocr_diagnostics": {
+      "attempted": [
+        "original",
+        "crop-psm-7",
+        "crop-psm-6",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "completed_variants": [
+        "original",
+        "crop-psm-7",
+        "crop-psm-6",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "timed_out_variants": [],
+      "failed_variants": [],
+      "failure_reasons": {},
+      "completed_variant_count": 6,
+      "required_variant_count": 2,
+      "enhancement_variant_failures": [],
+      "evidence_sufficiency": true,
+      "decision": "complete"
+    },
+    "ocr_validation_attempts": 1,
+    "ocr_validation_sha256": "4ff1f6780f8d0f155b8e952248c3cf4a326be13af13cc97640a6dbe14b1d687e",
+    "human_detection": {
+      "people": [],
+      "evidence": [],
+      "strong_signals": [],
+      "weak_signals": [],
+      "overlaps": [],
+      "people_weights": [],
+      "faces": [],
+      "profiles": [],
+      "upper_bodies": [],
+      "strong_upper_body_signal": false,
+      "ambiguous_face_signal": false,
+      "detected": false,
+      "human_detection_confidence": "low",
+      "human_detection_reason": "isolated detector patterns without independent confirmation",
+      "largest_detection_area_ratio": 0.0,
+      "classical_human_signal": false,
+      "vision_human_signal": false,
+      "combined_human_decision": false,
+      "decision_reason": "no human evidence"
+    },
+    "all_failure_categories": []
+  },
+  "final_validation": {
+    "decision": "accepted",
+    "failure_category": null,
+    "diagnostic_findings": [],
+    "palette": {
+      "mode": "dominant",
+      "palette_match_ratio": 0.9740767045454546,
+      "off_palette_ratio": 0.025923295454545456,
+      "primary_ratio": 0.9580965909090909,
+      "secondary_ratio": 0.012251420454545454,
+      "requested_chromatic_ratio": 0.9703480113636364,
+      "neutral_ratio": 0.003728693181818182,
+      "unrequested_chromatic_ratio": 0.025923295454545456,
+      "largest_unrequested_region_ratio": 0.0007102272727272727,
+      "primary_secondary_ratio": 78.20289855072464,
+      "secondary_presence": true,
+      "dominance_relationship": "FLEXIBLE",
+      "dominance_relationship_passed": true
+    },
+    "text": {
+      "ocr_diagnostics": {
+        "attempted": [
+          "original",
+          "crop-psm-7",
+          "crop-psm-6",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "completed_variants": [
+          "original",
+          "crop-psm-7",
+          "crop-psm-6",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "timed_out_variants": [],
+        "failed_variants": [],
+        "failure_reasons": {},
+        "completed_variant_count": 6,
+        "required_variant_count": 2,
+        "enhancement_variant_failures": [],
+        "evidence_sufficiency": true,
+        "decision": "complete"
+      },
+      "detected": false,
+      "tokens": [
+        "Natt"
+      ],
+      "confirmed_tokens": [],
+      "text_lines": [],
+      "text_area_ratio": 0
+    },
+    "human": {
+      "detected": false,
+      "strong_signals": [],
+      "weak_signals": [],
+      "decision_reason": "no human evidence"
+    },
+    "quality": {
+      "structural_edge_density": 0.23345392400568182,
+      "macro_structure_score": 0.5037878787878788,
+      "coarse_edge_density": 0.04198232323232323,
+      "high_pass_mean": 6.007983684539795,
+      "boilerplate_score": 0.010166074107729971,
+      "title_panel_score": 0.0,
+      "fine_line_pair_ratio": 0.0028429282160625444,
+      "macro_form_balance": 0.2863,
+      "scene_density": {
+        "requested_density": "moderate",
+        "overall_edge_density": 0.1611,
+        "tile_edge_fractions": [
+          0.0461,
+          0.0156,
+          0.0251,
+          0.0625,
+          0.2463,
+          0.2812,
+          0.2217,
+          0.1079,
+          0.29,
+          0.2979,
+          0.1497,
+          0.093,
+          0.2473,
+          0.1743,
+          0.1069,
+          0.2126
+        ],
+        "occupied_tile_fraction": 0.6875,
+        "quiet_tile_fraction": 0.125,
+        "safe_region_density": 0.2376,
+        "edge_distribution_balance": 0.0949,
+        "macro_form_balance": 0.2863,
+        "normalized_measurements": {
+          "density_pressure": 0.7932
+        },
+        "thresholds_used": {
+          "density_pressure": 0.85,
+          "max_quiet_tile_fraction": 0.0625,
+          "occupied_tile_edge_fraction": 0.1,
+          "quiet_tile_edge_fraction": 0.04
+        },
+        "density_rule_triggered": null,
+        "decision": "PASS"
+      },
+      "global_density_decision": "PASS",
+      "explicit_safe_regions": {
+        "decision": "PASS",
+        "regions": {
+          "title": {
+            "decision": "PASS",
+            "reason": null,
+            "local_edge_density": 0.0,
+            "local_contrast": 16.0,
+            "high_frequency_fraction": 0.0,
+            "calm_tile_fraction": 1.0,
+            "usability_score": 1.0,
+            "calm_cell_fraction": 1.0,
+            "largest_calm_window_fraction": 1.0,
+            "usable_window_width_fraction": 1.0,
+            "usable_window_height_fraction": 1.0,
+            "broad_contrast": 13.0,
+            "broad_edge_density": 0.0,
+            "tile_indexes": [
+              1,
+              2,
+              5,
+              6
+            ],
+            "occupied_tile_fraction": 0.5,
+            "quiet_tile_fraction": 0.5,
+            "region_bounds": {
+              "x": 0.1,
+              "y": 0.08,
+              "width": 0.8,
+              "height": 0.12
+            },
+            "region_source": "layout_guidance"
+          }
+        }
+      },
+      "explicit_safe_region_decision": "PASS",
+      "raster_score": 0.0028429282160625444
+    },
+    "brief_fidelity": {
+      "checked": true,
+      "subject_score": 0.8,
+      "atmosphere_score": 0.5,
+      "motif_score": 1.0,
+      "treatment_score": 0.6,
+      "audience_fit_score": 0.4,
+      "thresholds": {
+        "subject_score": 0.55,
+        "atmosphere_score": 0.55,
+        "motif_score": 0.55,
+        "audience_fit_score": 0.55
+      },
+      "decision": "BRIEF_FIDELITY_DRIFT",
+      "reason": "Subject: The webs are clearly the primary motif, meeting the request for 'webs subtly integrated into the background without dominating'. Atmosphere: The abstract, repetitive web pattern lacks dynamic or adventurous elements, reducing the exciting adventurous atmosphere requested. Audience: The abst",
+      "observed_evidence": [
+        "red and white web patterns on blue background"
+      ],
+      "model": "minicpm-v4.5:latest",
+      "failure_category": "AUDIENCE_DRIFT",
+      "dimension_availability": {
+        "subject_score": "PASS",
+        "atmosphere_score": "FAIL",
+        "motif_score": "PASS",
+        "audience_fit_score": "FAIL"
+      },
+      "failed_dimensions": [
+        "atmosphere_score",
+        "audience_fit_score"
+      ],
+      "background_usability_score": 0.8,
+      "vision_human_signal": false,
+      "vision_debug": {
+        "endpoint": "/api/chat",
+        "model": "minicpm-v4.5:latest",
+        "score_parsing": [
+          {
+            "dimension_name": "subject_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.8,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "atmosphere_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.5,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "motif_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 1.0,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "treatment_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.6,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "audience_fit_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.4,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "background_usability_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.8,
+            "parse_failure_reason": null
+          }
+        ],
+        "thinking_present": false,
+        "thinking_preview_length": 0,
+        "response_length": 1309,
+        "final_source": "message.content",
+        "raw_text_preview": "<omitted>",
+        "assessment_attempts": 1,
+        "http_status": 200,
+        "response_content_type": "application/json; charset=utf-8",
+        "response_shape": [
+          "created_at",
+          "done",
+          "done_reason",
+          "eval_count",
+          "eval_duration",
+          "load_duration",
+          "message",
+          "model",
+          "prompt_eval_count",
+          "prompt_eval_duration",
+          "total_duration"
+        ],
+        "unconfirmed_human_report": false
+      },
+      "hard_dimensions": [
+        "subject_score",
+        "motif_score"
+      ],
+      "hard_failed_dimensions": [],
+      "compound_fidelity_failure": false,
+      "human_description": "",
+      "vision_text_signal": false,
+      "vision_text_evidence": "",
+      "unrequested_literal_object_visible": false
+    }
+  },
+  "palette_normalized": false,
+  "raw_palette_error": null,
+  "outcome_category": "PASS",
+  "raw_image_path": null,
+  "error": null,
+  "rejection_reason": null,
+  "remote_image": {
+    "filename": "a_00001_.png",
+    "subfolder": "programme-studio/222DE9-982440/flux-2",
+    "type": "output"
+  },
+  "secondary_failure_categories": [],
+  "retry_failure_category": null,
+  "decision": "accepted",
+  "primary_failure_category": null,
+  "attempt_history": [
+    {
+      "attempt_count": 1,
+      "status": "complete",
+      "seed": 20261009,
+      "failure_category": null,
+      "primary_failure_category": null,
+      "retry_failure_category": null,
+      "rejection_reason": null,
+      "error": null,
+      "final_validation": {
+        "decision": "accepted",
+        "failure_category": null,
+        "diagnostic_findings": [],
+        "palette": {
+          "mode": "dominant",
+          "palette_match_ratio": 0.9740767045454546,
+          "off_palette_ratio": 0.025923295454545456,
+          "primary_ratio": 0.9580965909090909,
+          "secondary_ratio": 0.012251420454545454,
+          "requested_chromatic_ratio": 0.9703480113636364,
+          "neutral_ratio": 0.003728693181818182,
+          "unrequested_chromatic_ratio": 0.025923295454545456,
+          "largest_unrequested_region_ratio": 0.0007102272727272727,
+          "primary_secondary_ratio": 78.20289855072464,
+          "secondary_presence": true,
+          "dominance_relationship": "FLEXIBLE",
+          "dominance_relationship_passed": true
+        },
+        "text": {
+          "ocr_diagnostics": {
+            "attempted": [
+              "original",
+              "crop-psm-7",
+              "crop-psm-6",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "completed_variants": [
+              "original",
+              "crop-psm-7",
+              "crop-psm-6",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "timed_out_variants": [],
+            "failed_variants": [],
+            "failure_reasons": {},
+            "completed_variant_count": 6,
+            "required_variant_count": 2,
+            "enhancement_variant_failures": [],
+            "evidence_sufficiency": true,
+            "decision": "complete"
+          },
+          "detected": false,
+          "tokens": [
+            "Natt"
+          ],
+          "confirmed_tokens": [],
+          "text_lines": [],
+          "text_area_ratio": 0
+        },
+        "human": {
+          "detected": false,
+          "strong_signals": [],
+          "weak_signals": [],
+          "decision_reason": "no human evidence"
+        },
+        "quality": {
+          "structural_edge_density": 0.23345392400568182,
+          "macro_structure_score": 0.5037878787878788,
+          "coarse_edge_density": 0.04198232323232323,
+          "high_pass_mean": 6.007983684539795,
+          "boilerplate_score": 0.010166074107729971,
+          "title_panel_score": 0.0,
+          "fine_line_pair_ratio": 0.0028429282160625444,
+          "macro_form_balance": 0.2863,
+          "scene_density": {
+            "requested_density": "moderate",
+            "overall_edge_density": 0.1611,
+            "tile_edge_fractions": [
+              0.0461,
+              0.0156,
+              0.0251,
+              0.0625,
+              0.2463,
+              0.2812,
+              0.2217,
+              0.1079,
+              0.29,
+              0.2979,
+              0.1497,
+              0.093,
+              0.2473,
+              0.1743,
+              0.1069,
+              0.2126
+            ],
+            "occupied_tile_fraction": 0.6875,
+            "quiet_tile_fraction": 0.125,
+            "safe_region_density": 0.2376,
+            "edge_distribution_balance": 0.0949,
+            "macro_form_balance": 0.2863,
+            "normalized_measurements": {
+              "density_pressure": 0.7932
+            },
+            "thresholds_used": {
+              "density_pressure": 0.85,
+              "max_quiet_tile_fraction": 0.0625,
+              "occupied_tile_edge_fraction": 0.1,
+              "quiet_tile_edge_fraction": 0.04
+            },
+            "density_rule_triggered": null,
+            "decision": "PASS"
+          },
+          "global_density_decision": "PASS",
+          "explicit_safe_regions": {
+            "decision": "PASS",
+            "regions": {
+              "title": {
+                "decision": "PASS",
+                "reason": null,
+                "local_edge_density": 0.0,
+                "local_contrast": 16.0,
+                "high_frequency_fraction": 0.0,
+                "calm_tile_fraction": 1.0,
+                "usability_score": 1.0,
+                "calm_cell_fraction": 1.0,
+                "largest_calm_window_fraction": 1.0,
+                "usable_window_width_fraction": 1.0,
+                "usable_window_height_fraction": 1.0,
+                "broad_contrast": 13.0,
+                "broad_edge_density": 0.0,
+                "tile_indexes": [
+                  1,
+                  2,
+                  5,
+                  6
+                ],
+                "occupied_tile_fraction": 0.5,
+                "quiet_tile_fraction": 0.5,
+                "region_bounds": {
+                  "x": 0.1,
+                  "y": 0.08,
+                  "width": 0.8,
+                  "height": 0.12
+                },
+                "region_source": "layout_guidance"
+              }
+            }
+          },
+          "explicit_safe_region_decision": "PASS",
+          "raster_score": 0.0028429282160625444
+        },
+        "brief_fidelity": {
+          "checked": true,
+          "subject_score": 0.8,
+          "atmosphere_score": 0.5,
+          "motif_score": 1.0,
+          "treatment_score": 0.6,
+          "audience_fit_score": 0.4,
+          "thresholds": {
+            "subject_score": 0.55,
+            "atmosphere_score": 0.55,
+            "motif_score": 0.55,
+            "audience_fit_score": 0.55
+          },
+          "decision": "BRIEF_FIDELITY_DRIFT",
+          "reason": "Subject: The webs are clearly the primary motif, meeting the request for 'webs subtly integrated into the background without dominating'. Atmosphere: The abstract, repetitive web pattern lacks dynamic or adventurous elements, reducing the exciting adventurous atmosphere requested. Audience: The abst",
+          "observed_evidence": [
+            "red and white web patterns on blue background"
+          ],
+          "model": "minicpm-v4.5:latest",
+          "failure_category": "AUDIENCE_DRIFT",
+          "dimension_availability": {
+            "subject_score": "PASS",
+            "atmosphere_score": "FAIL",
+            "motif_score": "PASS",
+            "audience_fit_score": "FAIL"
+          },
+          "failed_dimensions": [
+            "atmosphere_score",
+            "audience_fit_score"
+          ],
+          "background_usability_score": 0.8,
+          "vision_human_signal": false,
+          "vision_debug": {
+            "endpoint": "/api/chat",
+            "model": "minicpm-v4.5:latest",
+            "score_parsing": [
+              {
+                "dimension_name": "subject_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.8,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "atmosphere_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.5,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "motif_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 1.0,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "treatment_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.6,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "audience_fit_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.4,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "background_usability_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.8,
+                "parse_failure_reason": null
+              }
+            ],
+            "thinking_present": false,
+            "thinking_preview_length": 0,
+            "response_length": 1309,
+            "final_source": "message.content",
+            "raw_text_preview": "<omitted>",
+            "assessment_attempts": 1,
+            "http_status": 200,
+            "response_content_type": "application/json; charset=utf-8",
+            "response_shape": [
+              "created_at",
+              "done",
+              "done_reason",
+              "eval_count",
+              "eval_duration",
+              "load_duration",
+              "message",
+              "model",
+              "prompt_eval_count",
+              "prompt_eval_duration",
+              "total_duration"
+            ],
+            "unconfirmed_human_report": false
+          },
+          "hard_dimensions": [
+            "subject_score",
+            "motif_score"
+          ],
+          "hard_failed_dimensions": [],
+          "compound_fidelity_failure": false,
+          "human_description": "",
+          "vision_text_signal": false,
+          "vision_text_evidence": "",
+          "unrequested_literal_object_visible": false
+        }
+      },
+      "subject_adherence": {
+        "checked": true,
+        "score": 0.8,
+        "threshold": 0.55,
+        "subject": "Webs, Webs should be subtly integrated into the background without dominating the scene.",
+        "anchors": [
+          "Webs",
+          "Webs should be subtly integrated into the background without dominating the scene."
+        ],
+        "model": "minicpm-v4.5:latest",
+        "decision": "BRIEF_FIDELITY_DRIFT",
+        "reason": "Subject: The webs are clearly the primary motif, meeting the request for 'webs subtly integrated into the background without dominating'. Atmosphere: The abstract, repetitive web pattern lacks dynamic or adventurous elements, reducing the exciting adventurous atmosphere requested. Audience: The abst",
+        "subject_score": 0.8,
+        "atmosphere_score": 0.5,
+        "motif_score": 1.0,
+        "treatment_score": 0.6,
+        "audience_fit_score": 0.4,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "observed_evidence": [
+          "red and white web patterns on blue background"
+        ],
+        "background_usability_score": 0.8,
+        "vision_human_signal": false,
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false,
+        "failure_category": "AUDIENCE_DRIFT",
+        "compound_fidelity_failure": false,
+        "hard_dimensions": [
+          "subject_score",
+          "motif_score"
+        ],
+        "hard_failed_dimensions": [],
+        "failed_dimensions": [
+          "atmosphere_score",
+          "audience_fit_score"
+        ],
+        "human_description": "",
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "FAIL",
+          "motif_score": "PASS",
+          "audience_fit_score": "FAIL"
+        },
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.5,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 1.0,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.6,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.4,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1309,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        }
+      },
+      "brief_fidelity": {
+        "checked": true,
+        "subject_score": 0.8,
+        "atmosphere_score": 0.5,
+        "motif_score": 1.0,
+        "treatment_score": 0.6,
+        "audience_fit_score": 0.4,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "decision": "BRIEF_FIDELITY_DRIFT",
+        "reason": "Subject: The webs are clearly the primary motif, meeting the request for 'webs subtly integrated into the background without dominating'. Atmosphere: The abstract, repetitive web pattern lacks dynamic or adventurous elements, reducing the exciting adventurous atmosphere requested. Audience: The abst",
+        "observed_evidence": [
+          "red and white web patterns on blue background"
+        ],
+        "model": "minicpm-v4.5:latest",
+        "failure_category": "AUDIENCE_DRIFT",
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "FAIL",
+          "motif_score": "PASS",
+          "audience_fit_score": "FAIL"
+        },
+        "failed_dimensions": [
+          "atmosphere_score",
+          "audience_fit_score"
+        ],
+        "background_usability_score": 0.8,
+        "vision_human_signal": false,
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.5,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 1.0,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.6,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.4,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1309,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        },
+        "hard_dimensions": [
+          "subject_score",
+          "motif_score"
+        ],
+        "hard_failed_dimensions": [],
+        "compound_fidelity_failure": false,
+        "human_description": "",
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false
+      },
+      "raw_palette_error": null,
+      "raw_validation": {
+        "validation": {
+          "decision": "accepted",
+          "failure_category": null,
+          "diagnostic_findings": [],
+          "palette": {
+            "mode": "dominant",
+            "palette_match_ratio": 0.9740767045454546,
+            "off_palette_ratio": 0.025923295454545456,
+            "primary_ratio": 0.9580965909090909,
+            "secondary_ratio": 0.012251420454545454,
+            "requested_chromatic_ratio": 0.9703480113636364,
+            "neutral_ratio": 0.003728693181818182,
+            "unrequested_chromatic_ratio": 0.025923295454545456,
+            "largest_unrequested_region_ratio": 0.0007102272727272727,
+            "primary_secondary_ratio": 78.20289855072464,
+            "secondary_presence": true,
+            "dominance_relationship": "FLEXIBLE",
+            "dominance_relationship_passed": true
+          },
+          "text": {
+            "ocr_diagnostics": {
+              "attempted": [
+                "original",
+                "crop-psm-7",
+                "crop-psm-6",
+                "contrast",
+                "threshold",
+                "inverted"
+              ],
+              "completed_variants": [
+                "original",
+                "crop-psm-7",
+                "crop-psm-6",
+                "contrast",
+                "threshold",
+                "inverted"
+              ],
+              "timed_out_variants": [],
+              "failed_variants": [],
+              "failure_reasons": {},
+              "completed_variant_count": 6,
+              "required_variant_count": 2,
+              "enhancement_variant_failures": [],
+              "evidence_sufficiency": true,
+              "decision": "complete"
+            },
+            "detected": false,
+            "tokens": [
+              "Natt"
+            ],
+            "confirmed_tokens": [],
+            "text_lines": [],
+            "text_area_ratio": 0
+          },
+          "human": {
+            "detected": false,
+            "strong_signals": [],
+            "weak_signals": [],
+            "decision_reason": "no human evidence"
+          },
+          "quality": {
+            "structural_edge_density": 0.23345392400568182,
+            "macro_structure_score": 0.5037878787878788,
+            "coarse_edge_density": 0.04198232323232323,
+            "high_pass_mean": 6.007983684539795,
+            "boilerplate_score": 0.010166074107729971,
+            "title_panel_score": 0.0,
+            "fine_line_pair_ratio": 0.0028429282160625444,
+            "macro_form_balance": 0.2863,
+            "scene_density": {
+              "requested_density": "moderate",
+              "overall_edge_density": 0.1611,
+              "tile_edge_fractions": [
+                0.0461,
+                0.0156,
+                0.0251,
+                0.0625,
+                0.2463,
+                0.2812,
+                0.2217,
+                0.1079,
+                0.29,
+                0.2979,
+                0.1497,
+                0.093,
+                0.2473,
+                0.1743,
+                0.1069,
+                0.2126
+              ],
+              "occupied_tile_fraction": 0.6875,
+              "quiet_tile_fraction": 0.125,
+              "safe_region_density": 0.2376,
+              "edge_distribution_balance": 0.0949,
+              "macro_form_balance": 0.2863,
+              "normalized_measurements": {
+                "density_pressure": 0.7932
+              },
+              "thresholds_used": {
+                "density_pressure": 0.85,
+                "max_quiet_tile_fraction": 0.0625,
+                "occupied_tile_edge_fraction": 0.1,
+                "quiet_tile_edge_fraction": 0.04
+              },
+              "density_rule_triggered": null,
+              "decision": "PASS"
+            },
+            "global_density_decision": "PASS",
+            "explicit_safe_regions": {
+              "decision": "PASS",
+              "regions": {
+                "title": {
+                  "decision": "PASS",
+                  "reason": null,
+                  "local_edge_density": 0.0,
+                  "local_contrast": 16.0,
+                  "high_frequency_fraction": 0.0,
+                  "calm_tile_fraction": 1.0,
+                  "usability_score": 1.0,
+                  "calm_cell_fraction": 1.0,
+                  "largest_calm_window_fraction": 1.0,
+                  "usable_window_width_fraction": 1.0,
+                  "usable_window_height_fraction": 1.0,
+                  "broad_contrast": 13.0,
+                  "broad_edge_density": 0.0,
+                  "tile_indexes": [
+                    1,
+                    2,
+                    5,
+                    6
+                  ],
+                  "occupied_tile_fraction": 0.5,
+                  "quiet_tile_fraction": 0.5,
+                  "region_bounds": {
+                    "x": 0.1,
+                    "y": 0.08,
+                    "width": 0.8,
+                    "height": 0.12
+                  },
+                  "region_source": "layout_guidance"
+                }
+              }
+            },
+            "explicit_safe_region_decision": "PASS",
+            "raster_score": 0.0028429282160625444
+          }
+        },
+        "output_path": "/home/ntlhari/NerdCode/programme-studio/data/programmes/222DE9-982440/backgrounds/flux-2/image-a.download.part",
+        "sha256": "4ff1f6780f8d0f155b8e952248c3cf4a326be13af13cc97640a6dbe14b1d687e",
+        "width": 1024,
+        "height": 1408,
+        "person_detection_count": 0,
+        "face_detection_count": 0,
+        "profile_detection_count": 0,
+        "upper_body_detection_count": 0,
+        "visual_quality_checked": true,
+        "visual_quality_passed": true,
+        "macro_structure_score": 0.5037878787878788,
+        "coarse_edge_density": 0.04198232323232323,
+        "edge_density": 0.3782293146306818,
+        "structural_edge_density": 0.23345392400568182,
+        "horizontal_edge_density": 0.09048739346590909,
+        "vertical_edge_density": 0.08261940696022728,
+        "directional_edge_dominance": 0.23923950356482704,
+        "full_span_line_ratio": 0.02556818181818182,
+        "fine_horizontal_pair_ratio": 0.0028429282160625444,
+        "fine_vertical_pair_ratio": 0.0,
+        "fine_line_pair_ratio": 0.0028429282160625444,
+        "fine_line_mean_delta": 4.441182613372803,
+        "image_entropy": 6.575592517852783,
+        "largest_quantised_colour_ratio": 0.2346524325284091,
+        "laplacian_variance": 2093.611083984375,
+        "highpass_mean": 6.007983684539795,
+        "coherent_edge_ratio": 0.9413053686022852,
+        "center_structural_edge_density": 0.2630804528904185,
+        "outer_structural_edge_density": 0.20970128364058063,
+        "center_local_contrast": 49.342987060546875,
+        "title_structural_edge_density": 0.0,
+        "title_local_contrast": 1.6431341171264648,
+        "programme_structural_edge_density": 0.2810684619143276,
+        "programme_local_contrast": 17.85293197631836,
+        "center_to_outer_edge_ratio": 1.2545486051545949,
+        "center_safe_region_passed": false,
+        "title_panel_score": 0.0,
+        "boilerplate_score": 0.010166074107729971,
+        "largest_flat_rectangle_ratio": 0.17515980113636365,
+        "flat_rectangular_coverage_ratio": 0.17515980113636365,
+        "flat_coverage_ratio": 0.40425248579545453,
+        "long_axis_separator_ratio": 0.045454545454545456,
+        "large_flat_rectangle_count": 1.0,
+        "centre_edge_density": 0.08895596590909091,
+        "perimeter_edge_density": 0.14630681818181818,
+        "centre_flat_ratio": 0.19992897727272727,
+        "bilateral_symmetry": 0.8401691913604736,
+        "irregular_frame_score": 0.0,
+        "lower_centre_edge_density": 0.1430084745762712,
+        "quiet_centre_evidence": 0.07837021803287732,
+        "scene_density": {
+          "requested_density": "moderate",
+          "overall_edge_density": 0.1611,
+          "tile_edge_fractions": [
+            0.0461,
+            0.0156,
+            0.0251,
+            0.0625,
+            0.2463,
+            0.2812,
+            0.2217,
+            0.1079,
+            0.29,
+            0.2979,
+            0.1497,
+            0.093,
+            0.2473,
+            0.1743,
+            0.1069,
+            0.2126
+          ],
+          "occupied_tile_fraction": 0.6875,
+          "quiet_tile_fraction": 0.125,
+          "safe_region_density": 0.2376,
+          "edge_distribution_balance": 0.0949,
+          "macro_form_balance": 0.2863,
+          "normalized_measurements": {
+            "density_pressure": 0.7932
+          },
+          "thresholds_used": {
+            "density_pressure": 0.85,
+            "max_quiet_tile_fraction": 0.0625,
+            "occupied_tile_edge_fraction": 0.1,
+            "quiet_tile_edge_fraction": 0.04
+          },
+          "density_rule_triggered": null,
+          "decision": "PASS"
+        },
+        "global_density_decision": "PASS",
+        "macro_form_balance": 0.2863,
+        "explicit_safe_regions": {
+          "decision": "PASS",
+          "regions": {
+            "title": {
+              "decision": "PASS",
+              "reason": null,
+              "local_edge_density": 0.0,
+              "local_contrast": 16.0,
+              "high_frequency_fraction": 0.0,
+              "calm_tile_fraction": 1.0,
+              "usability_score": 1.0,
+              "calm_cell_fraction": 1.0,
+              "largest_calm_window_fraction": 1.0,
+              "usable_window_width_fraction": 1.0,
+              "usable_window_height_fraction": 1.0,
+              "broad_contrast": 13.0,
+              "broad_edge_density": 0.0,
+              "tile_indexes": [
+                1,
+                2,
+                5,
+                6
+              ],
+              "occupied_tile_fraction": 0.5,
+              "quiet_tile_fraction": 0.5,
+              "region_bounds": {
+                "x": 0.1,
+                "y": 0.08,
+                "width": 0.8,
+                "height": 0.12
+              },
+              "region_source": "layout_guidance"
+            }
+          }
+        },
+        "explicit_safe_region_decision": "PASS",
+        "palette_checked": true,
+        "palette_mode": "dominant-requested-colour-families",
+        "incidental_neutral_ratio": 0.003728693181818182,
+        "largest_incidental_neutral_region_ratio": 0.00022194602272727272,
+        "palette_match_ratio": 0.9740767045454546,
+        "off_palette_ratio": 0.025923295454545456,
+        "perceptual_in_family_ratio": 0.9740767045454546,
+        "unrelated_hue_ratio": 0.025923295454545456,
+        "requested_chromatic_ratio": 0.9703480113636364,
+        "structural_neutral_ratio": 0.003728693181818182,
+        "unrequested_chromatic_ratio": 0.025923295454545456,
+        "largest_unrequested_region_ratio": 0.0007102272727272727,
+        "primary_ratio": 0.9580965909090909,
+        "secondary_ratio": 0.012251420454545454,
+        "requested_palette_mode": "dominant",
+        "tonal_derivative_ratio": 0.9703480113636364,
+        "primary_presence_ratio": 0.9580965909090909,
+        "secondary_presence_ratio": 0.012251420454545454,
+        "primary_family": "royal blue",
+        "secondary_family": "red",
+        "primary_role": "primary",
+        "primary_secondary_ratio": 78.20289855072464,
+        "secondary_presence": true,
+        "dominance_relationship": "FLEXIBLE",
+        "dominance_relationship_passed": true,
+        "secondary_role": "secondary",
+        "secondary_minimum": 0.008,
+        "palette_relationship_source": "default",
+        "palette_role_warning": null,
+        "primary_colour_ratio": 0.9580965909090909,
+        "secondary_colour_ratio": 0.012251420454545454,
+        "requested_colour_counts": {
+          "royal blue": 21584,
+          "red": 276
+        },
+        "requested_colour_family_counts": {
+          "royal blue": 21584,
+          "red": 276
+        },
+        "accepted_tonal_breakdown": {
+          "royal blue": 0.9373668323863636,
+          "charcoal": 0.020241477272727272,
+          "red": 0.01211825284090909,
+          "grey": 0.00048828125,
+          "violet": 0.00013316761363636363
+        },
+        "unrequested_colour_breakdown": {
+          "charcoal": 0.018909801136363636,
+          "burgundy": 0.004483309659090909,
+          "maroon": 0.0025745738636363635,
+          "grey": 0.0020862926136363635,
+          "navy": 0.0009765625,
+          "silver": 0.0005770596590909091,
+          "brown": 4.438920454545455e-05,
+          "violet": 0.0
+        },
+        "primary_descriptor": {
+          "raw": "royal blue",
+          "base_name": "royal blue",
+          "family_members": [
+            "blue",
+            "navy",
+            "royal blue"
+          ],
+          "modifiers": [],
+          "modifier_only": false
+        },
+        "secondary_descriptor": {
+          "raw": "red",
+          "base_name": "red",
+          "family_members": [
+            "burgundy",
+            "maroon",
+            "red"
+          ],
+          "modifiers": [],
+          "modifier_only": false
+        },
+        "ocr_tokens": [],
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "crop-psm-7",
+            "crop-psm-6",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "crop-psm-7",
+            "crop-psm-6",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 6,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        },
+        "ocr_validation_attempts": 1,
+        "ocr_validation_sha256": "4ff1f6780f8d0f155b8e952248c3cf4a326be13af13cc97640a6dbe14b1d687e",
+        "human_detection": {
+          "people": [],
+          "evidence": [],
+          "strong_signals": [],
+          "weak_signals": [],
+          "overlaps": [],
+          "people_weights": [],
+          "faces": [],
+          "profiles": [],
+          "upper_bodies": [],
+          "strong_upper_body_signal": false,
+          "ambiguous_face_signal": false,
+          "detected": false,
+          "human_detection_confidence": "low",
+          "human_detection_reason": "isolated detector patterns without independent confirmation",
+          "largest_detection_area_ratio": 0.0,
+          "classical_human_signal": false,
+          "vision_human_signal": false,
+          "combined_human_decision": false,
+          "decision_reason": "no human evidence"
+        },
+        "all_failure_categories": []
+      },
+      "raw_subject_adherence": null,
+      "palette_recovery": {
+        "eligible": false,
+        "attempted": false,
+        "source_off_palette_ratio": null,
+        "result": "not_attempted",
+        "failure_reason": null,
+        "normalized_off_palette_ratio": null,
+        "edge_geometry_similarity": null,
+        "structural_detail_preserved": null
+      }
+    }
+  ],
+  "probe_mode": true,
+  "probe_raw_validation": {
+    "validation": {
+      "decision": "accepted",
+      "failure_category": null,
+      "diagnostic_findings": [],
+      "palette": {
+        "mode": null,
+        "palette_match_ratio": null,
+        "off_palette_ratio": null,
+        "primary_ratio": null,
+        "secondary_ratio": null,
+        "requested_chromatic_ratio": null,
+        "neutral_ratio": null,
+        "unrequested_chromatic_ratio": null,
+        "largest_unrequested_region_ratio": null,
+        "primary_secondary_ratio": null,
+        "secondary_presence": null,
+        "dominance_relationship": null,
+        "dominance_relationship_passed": null
+      },
+      "text": {
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "crop-psm-7",
+            "crop-psm-6",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "crop-psm-7",
+            "crop-psm-6",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 6,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        },
+        "detected": false,
+        "tokens": [
+          "Natt"
+        ],
+        "confirmed_tokens": [],
+        "text_lines": [],
+        "text_area_ratio": 0
+      },
+      "human": {
+        "detected": false,
+        "strong_signals": [],
+        "weak_signals": [],
+        "decision_reason": "no human evidence"
+      },
+      "quality": {
+        "structural_edge_density": 0.23345392400568182,
+        "macro_structure_score": 0.5037878787878788,
+        "coarse_edge_density": 0.04198232323232323,
+        "high_pass_mean": 6.007983684539795,
+        "boilerplate_score": 0.010166074107729971,
+        "title_panel_score": 0.0,
+        "fine_line_pair_ratio": 0.0028429282160625444,
+        "macro_form_balance": 0.2863,
+        "scene_density": {
+          "requested_density": "moderate",
+          "overall_edge_density": 0.1611,
+          "tile_edge_fractions": [
+            0.0461,
+            0.0156,
+            0.0251,
+            0.0625,
+            0.2463,
+            0.2812,
+            0.2217,
+            0.1079,
+            0.29,
+            0.2979,
+            0.1497,
+            0.093,
+            0.2473,
+            0.1743,
+            0.1069,
+            0.2126
+          ],
+          "occupied_tile_fraction": 0.6875,
+          "quiet_tile_fraction": 0.125,
+          "safe_region_density": 0.2376,
+          "edge_distribution_balance": 0.0949,
+          "macro_form_balance": 0.2863,
+          "normalized_measurements": {
+            "density_pressure": 0.7932
+          },
+          "thresholds_used": {
+            "density_pressure": 0.85,
+            "max_quiet_tile_fraction": 0.0625,
+            "occupied_tile_edge_fraction": 0.1,
+            "quiet_tile_edge_fraction": 0.04
+          },
+          "density_rule_triggered": null,
+          "decision": "PASS"
+        },
+        "global_density_decision": "PASS",
+        "explicit_safe_regions": {
+          "decision": "PASS",
+          "regions": {
+            "title": {
+              "decision": "PASS",
+              "reason": null,
+              "local_edge_density": 0.0,
+              "local_contrast": 16.0,
+              "high_frequency_fraction": 0.0,
+              "calm_tile_fraction": 1.0,
+              "usability_score": 1.0,
+              "calm_cell_fraction": 1.0,
+              "largest_calm_window_fraction": 1.0,
+              "usable_window_width_fraction": 1.0,
+              "usable_window_height_fraction": 1.0,
+              "broad_contrast": 13.0,
+              "broad_edge_density": 0.0,
+              "tile_indexes": [
+                1,
+                2,
+                5,
+                6
+              ],
+              "occupied_tile_fraction": 0.5,
+              "quiet_tile_fraction": 0.5,
+              "region_bounds": {
+                "x": 0.1,
+                "y": 0.08,
+                "width": 0.8,
+                "height": 0.12
+              },
+              "region_source": "layout_guidance"
+            }
+          }
+        },
+        "explicit_safe_region_decision": "PASS",
+        "raster_score": 0.0028429282160625444
+      }
+    },
+    "output_path": "/home/ntlhari/NerdCode/programme-studio/data/programmes/222DE9-982440/backgrounds/flux-2/image-a.download.part",
+    "sha256": "4ff1f6780f8d0f155b8e952248c3cf4a326be13af13cc97640a6dbe14b1d687e",
+    "width": 1024,
+    "height": 1408,
+    "person_detection_count": 0,
+    "face_detection_count": 0,
+    "profile_detection_count": 0,
+    "upper_body_detection_count": 0,
+    "visual_quality_checked": true,
+    "visual_quality_passed": true,
+    "macro_structure_score": 0.5037878787878788,
+    "coarse_edge_density": 0.04198232323232323,
+    "edge_density": 0.3782293146306818,
+    "structural_edge_density": 0.23345392400568182,
+    "horizontal_edge_density": 0.09048739346590909,
+    "vertical_edge_density": 0.08261940696022728,
+    "directional_edge_dominance": 0.23923950356482704,
+    "full_span_line_ratio": 0.02556818181818182,
+    "fine_horizontal_pair_ratio": 0.0028429282160625444,
+    "fine_vertical_pair_ratio": 0.0,
+    "fine_line_pair_ratio": 0.0028429282160625444,
+    "fine_line_mean_delta": 4.441182613372803,
+    "image_entropy": 6.575592517852783,
+    "largest_quantised_colour_ratio": 0.2346524325284091,
+    "laplacian_variance": 2093.611083984375,
+    "highpass_mean": 6.007983684539795,
+    "coherent_edge_ratio": 0.9413053686022852,
+    "center_structural_edge_density": 0.2630804528904185,
+    "outer_structural_edge_density": 0.20970128364058063,
+    "center_local_contrast": 49.342987060546875,
+    "title_structural_edge_density": 0.0,
+    "title_local_contrast": 1.6431341171264648,
+    "programme_structural_edge_density": 0.2810684619143276,
+    "programme_local_contrast": 17.85293197631836,
+    "center_to_outer_edge_ratio": 1.2545486051545949,
+    "center_safe_region_passed": false,
+    "title_panel_score": 0.0,
+    "boilerplate_score": 0.010166074107729971,
+    "largest_flat_rectangle_ratio": 0.17515980113636365,
+    "flat_rectangular_coverage_ratio": 0.17515980113636365,
+    "flat_coverage_ratio": 0.40425248579545453,
+    "long_axis_separator_ratio": 0.045454545454545456,
+    "large_flat_rectangle_count": 1.0,
+    "centre_edge_density": 0.08895596590909091,
+    "perimeter_edge_density": 0.14630681818181818,
+    "centre_flat_ratio": 0.19992897727272727,
+    "bilateral_symmetry": 0.8401691913604736,
+    "irregular_frame_score": 0.0,
+    "lower_centre_edge_density": 0.1430084745762712,
+    "quiet_centre_evidence": 0.07837021803287732,
+    "scene_density": {
+      "requested_density": "moderate",
+      "overall_edge_density": 0.1611,
+      "tile_edge_fractions": [
+        0.0461,
+        0.0156,
+        0.0251,
+        0.0625,
+        0.2463,
+        0.2812,
+        0.2217,
+        0.1079,
+        0.29,
+        0.2979,
+        0.1497,
+        0.093,
+        0.2473,
+        0.1743,
+        0.1069,
+        0.2126
+      ],
+      "occupied_tile_fraction": 0.6875,
+      "quiet_tile_fraction": 0.125,
+      "safe_region_density": 0.2376,
+      "edge_distribution_balance": 0.0949,
+      "macro_form_balance": 0.2863,
+      "normalized_measurements": {
+        "density_pressure": 0.7932
+      },
+      "thresholds_used": {
+        "density_pressure": 0.85,
+        "max_quiet_tile_fraction": 0.0625,
+        "occupied_tile_edge_fraction": 0.1,
+        "quiet_tile_edge_fraction": 0.04
+      },
+      "density_rule_triggered": null,
+      "decision": "PASS"
+    },
+    "global_density_decision": "PASS",
+    "macro_form_balance": 0.2863,
+    "explicit_safe_regions": {
+      "decision": "PASS",
+      "regions": {
+        "title": {
+          "decision": "PASS",
+          "reason": null,
+          "local_edge_density": 0.0,
+          "local_contrast": 16.0,
+          "high_frequency_fraction": 0.0,
+          "calm_tile_fraction": 1.0,
+          "usability_score": 1.0,
+          "calm_cell_fraction": 1.0,
+          "largest_calm_window_fraction": 1.0,
+          "usable_window_width_fraction": 1.0,
+          "usable_window_height_fraction": 1.0,
+          "broad_contrast": 13.0,
+          "broad_edge_density": 0.0,
+          "tile_indexes": [
+            1,
+            2,
+            5,
+            6
+          ],
+          "occupied_tile_fraction": 0.5,
+          "quiet_tile_fraction": 0.5,
+          "region_bounds": {
+            "x": 0.1,
+            "y": 0.08,
+            "width": 0.8,
+            "height": 0.12
+          },
+          "region_source": "layout_guidance"
+        }
+      }
+    },
+    "explicit_safe_region_decision": "PASS",
+    "palette_checked": false,
+    "ocr_tokens": [],
+    "ocr_diagnostics": {
+      "attempted": [
+        "original",
+        "crop-psm-7",
+        "crop-psm-6",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "completed_variants": [
+        "original",
+        "crop-psm-7",
+        "crop-psm-6",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "timed_out_variants": [],
+      "failed_variants": [],
+      "failure_reasons": {},
+      "completed_variant_count": 6,
+      "required_variant_count": 2,
+      "enhancement_variant_failures": [],
+      "evidence_sufficiency": true,
+      "decision": "complete"
+    },
+    "ocr_validation_attempts": 1,
+    "ocr_validation_sha256": "4ff1f6780f8d0f155b8e952248c3cf4a326be13af13cc97640a6dbe14b1d687e",
+    "human_detection": {
+      "people": [],
+      "evidence": [],
+      "strong_signals": [],
+      "weak_signals": [],
+      "overlaps": [],
+      "people_weights": [],
+      "faces": [],
+      "profiles": [],
+      "upper_bodies": [],
+      "strong_upper_body_signal": false,
+      "ambiguous_face_signal": false,
+      "detected": false,
+      "human_detection_confidence": "low",
+      "human_detection_reason": "isolated detector patterns without independent confirmation",
+      "largest_detection_area_ratio": 0.0,
+      "classical_human_signal": false,
+      "vision_human_signal": false,
+      "combined_human_decision": false,
+      "decision_reason": "no human evidence"
+    },
+    "all_failure_categories": []
+  },
+  "probe_raw_validation_error": null,
+  "probe_full_validation_error": null,
+  "full_validation": {
+    "decision": "accepted",
+    "failure_category": null,
+    "diagnostic_findings": [],
+    "palette": {
+      "mode": "dominant",
+      "palette_match_ratio": 0.9740767045454546,
+      "off_palette_ratio": 0.025923295454545456,
+      "primary_ratio": 0.9580965909090909,
+      "secondary_ratio": 0.012251420454545454,
+      "requested_chromatic_ratio": 0.9703480113636364,
+      "neutral_ratio": 0.003728693181818182,
+      "unrequested_chromatic_ratio": 0.025923295454545456,
+      "largest_unrequested_region_ratio": 0.0007102272727272727,
+      "primary_secondary_ratio": 78.20289855072464,
+      "secondary_presence": true,
+      "dominance_relationship": "FLEXIBLE",
+      "dominance_relationship_passed": true
+    },
+    "text": {
+      "ocr_diagnostics": {
+        "attempted": [
+          "original",
+          "crop-psm-7",
+          "crop-psm-6",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "completed_variants": [
+          "original",
+          "crop-psm-7",
+          "crop-psm-6",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "timed_out_variants": [],
+        "failed_variants": [],
+        "failure_reasons": {},
+        "completed_variant_count": 6,
+        "required_variant_count": 2,
+        "enhancement_variant_failures": [],
+        "evidence_sufficiency": true,
+        "decision": "complete"
+      },
+      "detected": false,
+      "tokens": [
+        "Natt"
+      ],
+      "confirmed_tokens": [],
+      "text_lines": [],
+      "text_area_ratio": 0
+    },
+    "human": {
+      "detected": false,
+      "strong_signals": [],
+      "weak_signals": [],
+      "decision_reason": "no human evidence"
+    },
+    "quality": {
+      "structural_edge_density": 0.23345392400568182,
+      "macro_structure_score": 0.5037878787878788,
+      "coarse_edge_density": 0.04198232323232323,
+      "high_pass_mean": 6.007983684539795,
+      "boilerplate_score": 0.010166074107729971,
+      "title_panel_score": 0.0,
+      "fine_line_pair_ratio": 0.0028429282160625444,
+      "macro_form_balance": 0.2863,
+      "scene_density": {
+        "requested_density": "moderate",
+        "overall_edge_density": 0.1611,
+        "tile_edge_fractions": [
+          0.0461,
+          0.0156,
+          0.0251,
+          0.0625,
+          0.2463,
+          0.2812,
+          0.2217,
+          0.1079,
+          0.29,
+          0.2979,
+          0.1497,
+          0.093,
+          0.2473,
+          0.1743,
+          0.1069,
+          0.2126
+        ],
+        "occupied_tile_fraction": 0.6875,
+        "quiet_tile_fraction": 0.125,
+        "safe_region_density": 0.2376,
+        "edge_distribution_balance": 0.0949,
+        "macro_form_balance": 0.2863,
+        "normalized_measurements": {
+          "density_pressure": 0.7932
+        },
+        "thresholds_used": {
+          "density_pressure": 0.85,
+          "max_quiet_tile_fraction": 0.0625,
+          "occupied_tile_edge_fraction": 0.1,
+          "quiet_tile_edge_fraction": 0.04
+        },
+        "density_rule_triggered": null,
+        "decision": "PASS"
+      },
+      "global_density_decision": "PASS",
+      "explicit_safe_regions": {
+        "decision": "PASS",
+        "regions": {
+          "title": {
+            "decision": "PASS",
+            "reason": null,
+            "local_edge_density": 0.0,
+            "local_contrast": 16.0,
+            "high_frequency_fraction": 0.0,
+            "calm_tile_fraction": 1.0,
+            "usability_score": 1.0,
+            "calm_cell_fraction": 1.0,
+            "largest_calm_window_fraction": 1.0,
+            "usable_window_width_fraction": 1.0,
+            "usable_window_height_fraction": 1.0,
+            "broad_contrast": 13.0,
+            "broad_edge_density": 0.0,
+            "tile_indexes": [
+              1,
+              2,
+              5,
+              6
+            ],
+            "occupied_tile_fraction": 0.5,
+            "quiet_tile_fraction": 0.5,
+            "region_bounds": {
+              "x": 0.1,
+              "y": 0.08,
+              "width": 0.8,
+              "height": 0.12
+            },
+            "region_source": "layout_guidance"
+          }
+        }
+      },
+      "explicit_safe_region_decision": "PASS",
+      "raster_score": 0.0028429282160625444
+    },
+    "recovery_attempted": false
+  },
+  "rejected_image_path": null,
+  "rejected_image_preserved": false
+}

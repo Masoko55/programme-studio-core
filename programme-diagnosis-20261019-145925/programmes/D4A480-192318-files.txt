@@ -1,0 +1,7 @@
+REFERENCE=D4A480-192318
+
+2026-10-19 13:52:24.0881345720 19064 /home/ntlhari/NerdCode/programme-studio/data/programmes/D4A480-192318/prompts.json
+2026-10-19 13:52:24.0921345710 6538 /home/ntlhari/NerdCode/programme-studio/data/programmes/D4A480-192318/brief.json
+2026-10-19 13:52:24.0931345700 141 /home/ntlhari/NerdCode/programme-studio/data/programmes/D4A480-192318/probe-source.json
+2026-10-19 13:52:35.2581315280 1409042 /home/ntlhari/NerdCode/programme-studio/data/programmes/D4A480-192318/backgrounds/sdxl-1-0/image-b.png
+2026-10-19 13:52:45.3001292580 111845 /home/ntlhari/NerdCode/programme-studio/data/programmes/D4A480-192318/backgrounds/sdxl-1-0/image-b.json

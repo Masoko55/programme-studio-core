@@ -1,0 +1,117 @@
+{
+  "session_id": "28582a018c0940b3bc43f7b28177c8b9",
+  "status": "generated",
+  "answers": {
+    "event_type": "Children birthday party",
+    "theme": "Superheroes",
+    "age_group": "Children aged 7 to 10",
+    "primary_colour": "blue",
+    "secondary_colour": "red",
+    "creative_description": "A kids party for a kid who is into superheroes, most especially spiderman.",
+    "background_inspiration": "A spiderman inspired theme for a kid's birthday",
+    "theme_reference_treatment": "Use Spider-Man-inspired visual traits through abstract web geometry, connected radial strands with curved cross-links, energetic comic-style movement, layered urban city forms and a strong blue-and-red colour relationship. Keep it suitable for children aged 7 to 10. Do not depict Spider-Man, any superhero character, masks, costumes, faces, people, logos or readable text.",
+    "event_date": "2026-12-05",
+    "start_time": "14:00",
+    "title_preference": "Kabelo's Superhero Birthday",
+    "venue": "Sunrise Family Hall",
+    "timezone": "Africa/Johannesburg",
+    "programme": [
+      {
+        "time": "14:00",
+        "title": "Welcome",
+        "description": null
+      },
+      {
+        "time": "15:00",
+        "title": "Games",
+        "description": null
+      },
+      {
+        "time": "16:00",
+        "title": "Cake",
+        "description": null
+      }
+    ],
+    "output_language": "en",
+    "accessibility_preferences": [
+      "high contrast",
+      "clear readable programme text"
+    ],
+    "asset_type": "none",
+    "asset_placement": null,
+    "headshot_shape": null,
+    "rights_and_consent_confirmed": null
+  },
+  "clarification_questions": [],
+  "creative_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "Children birthday party",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "Decorations and activities tailored for children",
+      "Bright and vibrant colors"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Superheroes",
+    "reference_detected": true,
+    "reference_name": "Spider-Man",
+    "reference_type": "character",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "The background should reflect a Spider-Man inspired theme, focusing on abstract web geometry, connected radial strands with curved cross-links, energetic comic-style movement, layered urban city forms, and a strong blue-and-red color relationship. Ensure the design is suitable for children aged 7 to 10.",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "Energetic and playful"
+      ],
+      "audience_descriptors": [
+        "Children aged 7 to 10"
+      ],
+      "motif_descriptors": [
+        "Web patterns",
+        "Urban cityscape elements"
+      ],
+      "motif_structure_description": "Web patterns should be interconnected and form a cohesive background, with urban cityscape elements integrated to create a layered and dynamic environment.",
+      "lighting_descriptors": [
+        "Bright and vibrant"
+      ],
+      "material_descriptors": [
+        "Abstract and geometric"
+      ],
+      "texture_descriptors": [
+        "Smooth and sleek"
+      ],
+      "incompatible_treatments": [
+        "Direct depictions of Spider-Man or other superheroes",
+        "Costumes, masks, or faces of characters",
+        "Readable text or logos"
+      ],
+      "scene_family": "abstract",
+      "composition_affinities": [
+        "Geometric patterns and abstract forms"
+      ]
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SEMANTIC_INFERENCE",
+      "material_descriptors": "SEMANTIC_INFERENCE",
+      "texture_descriptors": "SEMANTIC_INFERENCE",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SEMANTIC_INFERENCE",
+      "composition_affinities": "SEMANTIC_INFERENCE"
+    },
+    "semantic_confidence": {},
+    "generation_constraints": [
+      "Do not depict Spider-Man, any superhero character, masks, costumes, faces, people, logos or readable text.",
+      "background only",
+      "no people",
+      "no characters",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "assets": {},
+  "reference_number": "C0A758-773595"
+}

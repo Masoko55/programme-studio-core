@@ -1,0 +1,7 @@
+REFERENCE=22F008-377097
+
+2026-10-19 13:42:29.6035315480 18775 /home/ntlhari/NerdCode/programme-studio/data/programmes/22F008-377097/prompts.json
+2026-10-19 13:42:29.6075315270 7421 /home/ntlhari/NerdCode/programme-studio/data/programmes/22F008-377097/brief.json
+2026-10-19 13:42:29.6085315210 146 /home/ntlhari/NerdCode/programme-studio/data/programmes/22F008-377097/probe-source.json
+2026-10-19 13:42:51.1244194590 1377880 /home/ntlhari/NerdCode/programme-studio/data/programmes/22F008-377097/backgrounds/sd-3-5-medium/image-a.png
+2026-10-19 13:43:02.1443645550 135094 /home/ntlhari/NerdCode/programme-studio/data/programmes/22F008-377097/backgrounds/sd-3-5-medium/image-a.json

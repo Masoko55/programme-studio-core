@@ -1,0 +1,127 @@
+{
+  "updated_at": "2026-10-19T10:04:46.477825+00:00",
+  "reference_number": "D37C33-644795",
+  "status": "awaiting_selection",
+  "current_stage": "awaiting_selection",
+  "composition_results": [],
+  "error": null,
+  "image_job": {
+    "reference_number": "D37C33-644795",
+    "status": "awaiting_selection",
+    "current_stage": "backgrounds_complete",
+    "total_outputs": 9,
+    "completed_outputs": 9,
+    "outputs": [
+      {
+        "engine_id": "flux-2",
+        "engine_label": "FLUX.2",
+        "direction_id": "A",
+        "status": "complete",
+        "output_path": "/data/programmes/D37C33-644795/backgrounds/flux-2/image-a.png",
+        "sha256": "f5f3e02467935c768c927b8d265e0dbe368fb7cf6474573e5493df15a23dbd37",
+        "error": null,
+        "seed": 4893976743275535658,
+        "prompt_id": "2104ba94-80ea-4bc7-9fab-aa6bb8736103",
+        "workflow_sha256": "053147a8d409276f1cdee998be37189006adfcb132c9af5b26ae8ca81ac1968e"
+      },
+      {
+        "engine_id": "sdxl-1-0",
+        "engine_label": "SDXL 1.0",
+        "direction_id": "A",
+        "status": "complete",
+        "output_path": "/data/programmes/D37C33-644795/backgrounds/sdxl-1-0/image-a.png",
+        "sha256": "bd03ebd0d533963a3429aaa75b84d8b61819cc66e38bbe7837cb04e723f20b58",
+        "error": null,
+        "seed": 3253795490241667306,
+        "prompt_id": "34b0cb10-4a5f-4709-8f50-80aca8306b95",
+        "workflow_sha256": "f3b40790c074d45b1d9ca2d88f709a2fdb72495573ed099814b9d1b4601273bf"
+      },
+      {
+        "engine_id": "sd-3-5-medium",
+        "engine_label": "Stable Diffusion 3.5 Medium",
+        "direction_id": "A",
+        "status": "complete",
+        "output_path": "/data/programmes/D37C33-644795/backgrounds/sd-3-5-medium/image-a.png",
+        "sha256": "20a704a5fe57f9d75308a27621027064a43d8b4ef9f90636a1f1785fa4a1e25b",
+        "error": null,
+        "seed": 5180210762781496188,
+        "prompt_id": "5b8c0d0e-051a-46d7-b239-69b972697d59",
+        "workflow_sha256": "3482abc4cd24b5de4c89dcf7cdde65047d503b38437ff2adb0058a54ce7af803"
+      },
+      {
+        "engine_id": "flux-2",
+        "engine_label": "FLUX.2",
+        "direction_id": "B",
+        "status": "complete",
+        "output_path": "/data/programmes/D37C33-644795/backgrounds/flux-2/image-b.png",
+        "sha256": "535e8a012bf0dc7050510340a566a73094307f61448b3e3c279681269fe31e54",
+        "error": null,
+        "seed": 4193677426549836066,
+        "prompt_id": "d0156306-11f0-423f-928d-1225567201f8",
+        "workflow_sha256": "d776620e35a5939a1f5503cb0e5d3ca8b246649a4ee2d548929617c6116ccec9"
+      },
+      {
+        "engine_id": "sdxl-1-0",
+        "engine_label": "SDXL 1.0",
+        "direction_id": "B",
+        "status": "complete",
+        "output_path": "/data/programmes/D37C33-644795/backgrounds/sdxl-1-0/image-b.png",
+        "sha256": "56457a1813ff58652a3ffc1985e907960371557e67d72aee8047654255410eff",
+        "error": null,
+        "seed": 404424686704857672,
+        "prompt_id": "5af01b51-4008-4b80-96e4-4ac4cf0c74ea",
+        "workflow_sha256": "f4149b8166d59a57b91254bbc9d4a731dd68ff57f8ec6f6ef8c69b88e31802ee"
+      },
+      {
+        "engine_id": "sd-3-5-medium",
+        "engine_label": "Stable Diffusion 3.5 Medium",
+        "direction_id": "B",
+        "status": "complete",
+        "output_path": "/data/programmes/D37C33-644795/backgrounds/sd-3-5-medium/image-b.png",
+        "sha256": "1d029ee44d1d7b8299369bbce259b5bc850887f130902070639a5b891a60256c",
+        "error": null,
+        "seed": 9011400479119796041,
+        "prompt_id": "33a940ec-db29-40ff-b93f-cdec4531c60e",
+        "workflow_sha256": "0643d0981622bee012834f7dfb1c1eb1b31cecfd28c9b6c298070426081d5984"
+      },
+      {
+        "engine_id": "flux-2",
+        "engine_label": "FLUX.2",
+        "direction_id": "C",
+        "status": "complete",
+        "output_path": "/data/programmes/D37C33-644795/backgrounds/flux-2/image-c.png",
+        "sha256": "3471198adbaab4ad2bd859f9e960ebeb157d3a8a0052c1d43f7816681a3dbc44",
+        "error": null,
+        "seed": 3804127097623987803,
+        "prompt_id": "c8a34786-9100-4905-9db3-fe732100981a",
+        "workflow_sha256": "4c7324aa3904b9394388d47705223b877a51be28968d5f60d3f83eff661e55ee"
+      },
+      {
+        "engine_id": "sdxl-1-0",
+        "engine_label": "SDXL 1.0",
+        "direction_id": "C",
+        "status": "complete",
+        "output_path": "/data/programmes/D37C33-644795/backgrounds/sdxl-1-0/image-c.png",
+        "sha256": "32c2cd1b76e7600588a32c98474c160b3ffba96d781881fb8bd660e6baa22c2b",
+        "error": null,
+        "seed": 8260299821157906400,
+        "prompt_id": "6c7c90c7-a057-4b0e-9368-cc36123dc122",
+        "workflow_sha256": "cecfcd0756bd07b56e117d0508f4f0c0fbf15ca590f272677e29d236ba328741"
+      },
+      {
+        "engine_id": "sd-3-5-medium",
+        "engine_label": "Stable Diffusion 3.5 Medium",
+        "direction_id": "C",
+        "status": "complete",
+        "output_path": "/data/programmes/D37C33-644795/backgrounds/sd-3-5-medium/image-c.png",
+        "sha256": "0deb845bc0590c3521f65b0f80ef166ed0a07ad4b3cb082fd260db6bb506ecc9",
+        "error": null,
+        "seed": 7747822824721817734,
+        "prompt_id": "51f8eddc-a2e3-4762-ac78-3011ba00126b",
+        "workflow_sha256": "e6990a78f2b07b7d05ec447b54b5d39575791eb603ef78bce0cf6997ad463f17"
+      }
+    ],
+    "error": null
+  },
+  "last_completed_node": "generate_images"
+}

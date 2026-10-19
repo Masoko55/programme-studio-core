@@ -1,0 +1,205 @@
+{
+  "event_type": "Garden celebration",
+  "theme": "Botanical garden",
+  "age_group": "Adults",
+  "primary_colour": "green",
+  "secondary_colour": "cream",
+  "creative_description": "A warm, elegant and peaceful garden celebration surrounded by lush natural foliage.",
+  "background_inspiration": null,
+  "theme_reference_treatment": null,
+  "grill_me_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "Garden celebration",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "outdoor setting",
+      "natural elements",
+      "lush greenery"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Botanical garden",
+    "reference_detected": false,
+    "reference_name": null,
+    "reference_type": "none",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "Use only the supplied visual motifs and treatment; do not invent an environment.",
+    "scene_family_evidence": "A warm, elegant and peaceful garden celebration surrounded by lush natural foliage.",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "warm and elegant",
+        "peaceful"
+      ],
+      "audience_descriptors": [
+        "adults"
+      ],
+      "motif_descriptors": [
+        "lush foliage",
+        "botanical elements"
+      ],
+      "motif_structure_description": "The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere.",
+      "lighting_descriptors": [
+        "soft and natural"
+      ],
+      "material_descriptors": [
+        "organic materials"
+      ],
+      "texture_descriptors": [
+        "natural textures"
+      ],
+      "incompatible_treatments": [
+        "urban or industrial settings",
+        "bright or harsh lighting"
+      ],
+      "scene_family": "general",
+      "composition_affinities": [
+        "natural and organic"
+      ]
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SEMANTIC_INFERENCE",
+      "material_descriptors": "SEMANTIC_INFERENCE",
+      "texture_descriptors": "SEMANTIC_INFERENCE",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SAFE_FALLBACK",
+      "composition_affinities": "SEMANTIC_INFERENCE"
+    },
+    "semantic_confidence": {},
+    "generation_constraints": [
+      "no readable programme/title text",
+      "no logos",
+      "no people or characters",
+      "background only",
+      "no people",
+      "no characters",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "visual_semantics": {
+    "atmosphere_descriptors": [
+      "warm and elegant",
+      "peaceful"
+    ],
+    "audience_descriptors": [
+      "adults"
+    ],
+    "motif_descriptors": [
+      "lush foliage",
+      "botanical elements"
+    ],
+    "motif_structure_description": "The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere.",
+    "lighting_descriptors": [
+      "soft and natural"
+    ],
+    "material_descriptors": [
+      "organic materials"
+    ],
+    "texture_descriptors": [
+      "natural textures"
+    ],
+    "incompatible_treatments": [
+      "urban or industrial settings",
+      "bright or harsh lighting"
+    ],
+    "scene_family": "general",
+    "composition_affinities": [
+      "natural and organic"
+    ]
+  },
+  "title_preference": "Garden Celebration",
+  "event_date": "2026-12-20",
+  "start_time": "15:00",
+  "timezone": "Africa/Johannesburg",
+  "output_language": "en",
+  "asset_type": "none",
+  "asset_placement": null,
+  "asset_vertical_position": null,
+  "text_flow": "standard",
+  "palette_mode": "dominant",
+  "palette_relationship": "requested colours dominate with natural tonal variation",
+  "palette_relationship_source": "default",
+  "semantic_contract": {
+    "semantic_contract_version": "1.0",
+    "primary_visual_subject": "Botanical garden",
+    "visual_anchors": [],
+    "atmosphere_descriptors": [
+      "warm and elegant",
+      "peaceful"
+    ],
+    "audience_descriptors": [
+      "adults"
+    ],
+    "motif_descriptors": [
+      "lush foliage",
+      "botanical elements"
+    ],
+    "motif_structure_description": "The motif of lush foliage and botanical elements should be consistent throughout the background, creating a cohesive and immersive garden atmosphere.",
+    "lighting_descriptors": [
+      "soft and natural"
+    ],
+    "material_descriptors": [
+      "organic materials"
+    ],
+    "texture_descriptors": [
+      "natural textures"
+    ],
+    "incompatible_treatments": [
+      "urban or industrial settings",
+      "bright or harsh lighting"
+    ],
+    "scene_family": "general",
+    "composition_affinities": [
+      "natural and organic"
+    ],
+    "palette": [
+      {
+        "colour": "green",
+        "role": "primary"
+      },
+      {
+        "colour": "cream",
+        "role": "secondary"
+      }
+    ],
+    "palette_mode": "dominant",
+    "palette_relationship": "requested colours dominate with natural tonal variation",
+    "abstraction_level": "",
+    "realism_level": "",
+    "energy_level": "",
+    "symmetry_preference": "",
+    "density_preference": "",
+    "theme_reference_treatment": "",
+    "hard_dimensions": [],
+    "semantic_provenance": {
+      "primary_visual_subject": "SAFE_FALLBACK",
+      "visual_anchors": "SAFE_FALLBACK",
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SEMANTIC_INFERENCE",
+      "material_descriptors": "SEMANTIC_INFERENCE",
+      "texture_descriptors": "SEMANTIC_INFERENCE",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SAFE_FALLBACK",
+      "composition_affinities": "SEMANTIC_INFERENCE",
+      "palette": "SAFE_FALLBACK",
+      "palette_mode": "USER_EXPLICIT",
+      "palette_relationship": "SAFE_FALLBACK",
+      "abstraction_level": "SAFE_FALLBACK",
+      "realism_level": "SAFE_FALLBACK",
+      "energy_level": "SAFE_FALLBACK",
+      "symmetry_preference": "SAFE_FALLBACK",
+      "density_preference": "SAFE_FALLBACK",
+      "theme_reference_treatment": "SAFE_FALLBACK"
+    },
+    "semantic_confidence": {}
+  },
+  "semantic_contract_version": "1.0",
+  "semantic_contract_sha256": "5aa859662f73aa9944a2c5847676dc96d61f8c78f668cb057da595e6195d1bad"
+}

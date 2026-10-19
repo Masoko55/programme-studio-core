@@ -1,0 +1,74 @@
+{
+  "session_id": "0d81c438947d415b88c9dc4c111608d1",
+  "status": "generated",
+  "answers": {
+    "event_type": "30th birthday celebration",
+    "theme": "Black-tie evening",
+    "age_group": "Adults",
+    "primary_colour": "black",
+    "secondary_colour": "white",
+    "creative_description": "An elegant formal 30th birthday celebration with sophisticated black-tie atmosphere, architectural depth and refined evening styling.",
+    "background_inspiration": "A sophisticated formal event environment using elegant architectural forms, graceful fabric movement, refined geometric structure and luxurious black-and-white visual depth.",
+    "theme_reference_treatment": "Use formal evening architecture, elegant draping, subtle chandelier-inspired geometry, polished surfaces and refined black-and-white tonal contrast without depicting people.",
+    "event_date": "2026-12-12",
+    "start_time": "18:00",
+    "title_preference": "Thabo's 30th Black-Tie Celebration",
+    "venue": "Grand Pavilion",
+    "timezone": "Africa/Johannesburg",
+    "programme": [
+      {
+        "time": "18:00",
+        "title": "Guest arrival",
+        "description": null
+      },
+      {
+        "time": "19:00",
+        "title": "Dinner",
+        "description": null
+      },
+      {
+        "time": "20:00",
+        "title": "Celebration programme",
+        "description": null
+      },
+      {
+        "time": "21:00",
+        "title": "Music and dancing",
+        "description": null
+      }
+    ],
+    "output_language": "en",
+    "accessibility_preferences": [
+      "high contrast",
+      "clear readable programme text"
+    ],
+    "asset_type": "none",
+    "asset_placement": null,
+    "headshot_shape": null,
+    "rights_and_consent_confirmed": null
+  },
+  "clarification_questions": [],
+  "creative_context": {
+    "event_type_status": "unknown",
+    "event_type_interpretation": null,
+    "well_known_event_type": false,
+    "event_visual_conventions": [],
+    "theme_status": "unknown",
+    "theme_interpretation": null,
+    "reference_detected": false,
+    "reference_name": null,
+    "reference_type": "none",
+    "reference_needs_clarification": false,
+    "background_generation_summary": null,
+    "generation_constraints": [
+      "background only",
+      "no people",
+      "no characters",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "assets": {},
+  "reference_number": "DC9CFA-657024"
+}

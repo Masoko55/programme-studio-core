@@ -1,0 +1,7 @@
+REFERENCE=3D7C17-768444
+
+2026-10-19 13:29:14.7298399300 18775 /home/ntlhari/NerdCode/programme-studio/data/programmes/3D7C17-768444/prompts.json
+2026-10-19 13:29:14.7308399340 7421 /home/ntlhari/NerdCode/programme-studio/data/programmes/3D7C17-768444/brief.json
+2026-10-19 13:29:14.7338399460 139 /home/ntlhari/NerdCode/programme-studio/data/programmes/3D7C17-768444/probe-source.json
+2026-10-19 13:29:21.1958660370 1473316 /home/ntlhari/NerdCode/programme-studio/data/programmes/3D7C17-768444/backgrounds/flux-2/image-b.png
+2026-10-19 13:29:48.2309750300 144243 /home/ntlhari/NerdCode/programme-studio/data/programmes/3D7C17-768444/backgrounds/flux-2/image-b.json

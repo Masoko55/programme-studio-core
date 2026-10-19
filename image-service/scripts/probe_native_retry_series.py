@@ -90,11 +90,13 @@ async def main() -> None:
         await client.health()
         for attempt in range(1, args.attempts + 1):
             previous = _load_record(reference, args.engine, args.direction)
-            compiled = compile_candidate_prompt(spec, attempt, previous_reason)
+            history = summarize_failures(previous)
+            compiled = compile_candidate_prompt(spec, attempt, previous_reason, concise=True,
+                                                failure_history=history)
             positive, negative = compiled.positive, compiled.negative
             category, stage = compiled.failure_category, compiled.retry_stage
             profile = select_sampling_profile(
-                args.engine, attempt, summarize_failures(previous)
+                args.engine, attempt, history
             )
             capture = ProbeValidationCapture(
                 directory / "backgrounds" / args.engine /

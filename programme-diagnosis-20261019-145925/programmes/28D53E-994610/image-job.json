@@ -1,0 +1,118 @@
+{
+  "reference_number": "28D53E-994610",
+  "status": "awaiting_selection",
+  "current_stage": "backgrounds_complete_with_failures",
+  "total_outputs": 9,
+  "completed_outputs": 2,
+  "outputs": [
+    {
+      "engine_id": "flux-2",
+      "engine_label": "FLUX.2",
+      "direction_id": "A",
+      "status": "complete",
+      "output_path": "/data/programmes/28D53E-994610/backgrounds/flux-2/image-a.png",
+      "sha256": "d129b6fbc287d3f7996de9bda41b9ffe0735464ec5557e862419b7de3fe7c6ce",
+      "error": null,
+      "seed": 7586879105619108790,
+      "prompt_id": "32578c88-a55a-4590-93df-6abbe3f88e78",
+      "workflow_sha256": "b9498819101ec4a334d00570f581b5b1a18b62a4e80b1900a9ebb77ac9b9c2a9"
+    },
+    {
+      "engine_id": "sdxl-1-0",
+      "engine_label": "SDXL 1.0",
+      "direction_id": "A",
+      "status": "failed",
+      "output_path": null,
+      "sha256": null,
+      "error": "Generated background contains colours that were not requested (off-palette ratio 0.35; strongest matches: grey=0.19, beige=0.14, green=0.06, forest green=0.04, brown=0.03, white=0.02; neutral ratio 0.14; largest unrelated region 0.24).",
+      "seed": null,
+      "prompt_id": null,
+      "workflow_sha256": null
+    },
+    {
+      "engine_id": "sd-3-5-medium",
+      "engine_label": "Stable Diffusion 3.5 Medium",
+      "direction_id": "A",
+      "status": "failed",
+      "output_path": null,
+      "sha256": null,
+      "error": "Generated background contains colours that were not requested (off-palette ratio 0.32; strongest matches: white=0.23, grey=0.14, brown=0.07, forest green=0.06, beige=0.05, green=0.02; neutral ratio 0.33; largest unrelated region 0.15).",
+      "seed": null,
+      "prompt_id": null,
+      "workflow_sha256": null
+    },
+    {
+      "engine_id": "flux-2",
+      "engine_label": "FLUX.2",
+      "direction_id": "B",
+      "status": "complete",
+      "output_path": "/data/programmes/28D53E-994610/backgrounds/flux-2/image-b.png",
+      "sha256": "cb4d40c4284b65be4da373618e924556f887e5bc1e868e40399d16efbcc75f3f",
+      "error": null,
+      "seed": 8109858410336805378,
+      "prompt_id": "48d2e755-2083-4ce4-9a6e-61169793d42c",
+      "workflow_sha256": "6712ab19f438110367d85d47ef6bbb9893bc67c05b207afde1d6823f40165ede"
+    },
+    {
+      "engine_id": "sdxl-1-0",
+      "engine_label": "SDXL 1.0",
+      "direction_id": "B",
+      "status": "failed",
+      "output_path": null,
+      "sha256": null,
+      "error": "Generated background contains colours that were not requested (off-palette ratio 0.48; strongest matches: grey=0.19, beige=0.14, brown=0.10, forest green=0.09, gold=0.06, charcoal=0.02; neutral ratio 0.18; largest unrelated region 0.20).",
+      "seed": null,
+      "prompt_id": null,
+      "workflow_sha256": null
+    },
+    {
+      "engine_id": "sd-3-5-medium",
+      "engine_label": "Stable Diffusion 3.5 Medium",
+      "direction_id": "B",
+      "status": "failed",
+      "output_path": null,
+      "sha256": null,
+      "error": "Generated background contains colours that were not requested (off-palette ratio 0.10; strongest matches: white=0.45, beige=0.12, grey=0.12, silver=0.02, cream=0.01, green=0.01; neutral ratio 0.64; largest unrelated region 0.01).",
+      "seed": null,
+      "prompt_id": null,
+      "workflow_sha256": null
+    },
+    {
+      "engine_id": "flux-2",
+      "engine_label": "FLUX.2",
+      "direction_id": "C",
+      "status": "failed",
+      "output_path": null,
+      "sha256": null,
+      "error": "Generated background contains colours that were not requested (off-palette ratio 0.38; strongest matches: beige=0.14, grey=0.13, lime=0.08, green=0.07, champagne=0.03, mint green=0.01; neutral ratio 0.09; largest unrelated region 0.18).",
+      "seed": null,
+      "prompt_id": null,
+      "workflow_sha256": null
+    },
+    {
+      "engine_id": "sdxl-1-0",
+      "engine_label": "SDXL 1.0",
+      "direction_id": "C",
+      "status": "failed",
+      "output_path": null,
+      "sha256": null,
+      "error": "Generated background contains colours that were not requested (off-palette ratio 0.47; strongest matches: grey=0.32, brown=0.16, beige=0.06, gold=0.06, forest green=0.04, rose gold=0.01; neutral ratio 0.22; largest unrelated region 0.42).",
+      "seed": null,
+      "prompt_id": null,
+      "workflow_sha256": null
+    },
+    {
+      "engine_id": "sd-3-5-medium",
+      "engine_label": "Stable Diffusion 3.5 Medium",
+      "direction_id": "C",
+      "status": "failed",
+      "output_path": null,
+      "sha256": null,
+      "error": "Generated background contains colours that were not requested (off-palette ratio 0.14; strongest matches: white=0.47, grey=0.08, beige=0.08, green=0.02, cream=0.01, silver=0.01; neutral ratio 0.56; largest unrelated region 0.02).",
+      "seed": null,
+      "prompt_id": null,
+      "workflow_sha256": null
+    }
+  ],
+  "error": "2/9 background candidates completed; 7 failed; 0 remain pending."
+}

@@ -1,0 +1,7 @@
+REFERENCE=C10F3C-936996
+
+2026-10-19 13:53:07.7261257500 19064 /home/ntlhari/NerdCode/programme-studio/data/programmes/C10F3C-936996/prompts.json
+2026-10-19 13:53:07.7331257490 6538 /home/ntlhari/NerdCode/programme-studio/data/programmes/C10F3C-936996/brief.json
+2026-10-19 13:53:07.7341257490 146 /home/ntlhari/NerdCode/programme-studio/data/programmes/C10F3C-936996/probe-source.json
+2026-10-19 13:53:29.8871243220 1744390 /home/ntlhari/NerdCode/programme-studio/data/programmes/C10F3C-936996/backgrounds/sd-3-5-medium/image-a.png
+2026-10-19 13:53:51.6381248180 114730 /home/ntlhari/NerdCode/programme-studio/data/programmes/C10F3C-936996/backgrounds/sd-3-5-medium/image-a.json

@@ -1,0 +1,119 @@
+{
+  "session_id": "f3532d19ac824cb6887dd1548de011bf",
+  "status": "generated",
+  "answers": {
+    "event_type": "30th birthday celebration",
+    "theme": "Black and white tie",
+    "age_group": "Adults",
+    "primary_colour": "black",
+    "secondary_colour": "white",
+    "creative_description": "An elegant, sophisticated and celebratory 30th birthday with a formal black-and-white evening atmosphere.",
+    "background_inspiration": "An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.",
+    "theme_reference_treatment": "Express black-tie elegance through formal architecture, refined fabric-like forms, graceful geometry, controlled contrast and sophisticated lighting without depicting people.",
+    "event_date": "2026-12-12",
+    "start_time": "18:00",
+    "title_preference": "30th Birthday Celebration",
+    "venue": "Grand Hall",
+    "timezone": "Africa/Johannesburg",
+    "programme": [
+      {
+        "time": "18:00",
+        "title": "Arrival",
+        "description": null
+      },
+      {
+        "time": "19:00",
+        "title": "Dinner",
+        "description": null
+      },
+      {
+        "time": "20:00",
+        "title": "Celebration",
+        "description": null
+      }
+    ],
+    "output_language": "en",
+    "accessibility_preferences": [
+      "high contrast",
+      "clear readable programme text"
+    ],
+    "asset_type": "none",
+    "asset_placement": null,
+    "headshot_shape": null,
+    "rights_and_consent_confirmed": null
+  },
+  "clarification_questions": [],
+  "creative_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "30th birthday celebration",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "black-tie event"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Black and white tie",
+    "reference_detected": false,
+    "reference_name": null,
+    "reference_type": "none",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "Generate an elegant, sophisticated black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes, and polished evening lighting. Ensure the background reflects the celebratory atmosphere of a 30th birthday without depicting people.",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "elegant",
+        "sophisticated",
+        "celebratory"
+      ],
+      "audience_descriptors": [
+        "adults"
+      ],
+      "motif_descriptors": [
+        "formal drapery",
+        "refined architectural forms"
+      ],
+      "motif_structure_description": "The motif of formal drapery and refined architectural forms should be consistently repeated throughout the background to maintain a cohesive visual theme.",
+      "lighting_descriptors": [
+        "polished evening lighting"
+      ],
+      "material_descriptors": [
+        "formal fabrics"
+      ],
+      "texture_descriptors": [
+        "smooth and polished"
+      ],
+      "incompatible_treatments": [
+        "depicting people",
+        "bright and colorful lighting"
+      ],
+      "scene_family": "architectural-interior",
+      "composition_affinities": [
+        "symmetrical balance",
+        "layered depth"
+      ]
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SEMANTIC_INFERENCE",
+      "material_descriptors": "SEMANTIC_INFERENCE",
+      "texture_descriptors": "SEMANTIC_INFERENCE",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SEMANTIC_INFERENCE",
+      "composition_affinities": "SEMANTIC_INFERENCE"
+    },
+    "semantic_confidence": {},
+    "generation_constraints": [
+      "high contrast",
+      "clear readable programme text",
+      "background only",
+      "no people",
+      "no characters",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "assets": {},
+  "reference_number": "351BF5-133519"
+}

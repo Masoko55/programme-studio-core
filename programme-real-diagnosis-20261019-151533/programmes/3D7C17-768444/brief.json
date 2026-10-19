@@ -1,0 +1,213 @@
+{
+  "event_type": "30th birthday celebration",
+  "theme": "Black and white tie",
+  "age_group": "Adults",
+  "primary_colour": "black",
+  "secondary_colour": "white",
+  "creative_description": "An elegant, sophisticated and celebratory 30th birthday with a formal black-and-white evening atmosphere.",
+  "background_inspiration": "An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.",
+  "theme_reference_treatment": null,
+  "grill_me_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "30th birthday celebration",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "black tie",
+      "formal attire",
+      "evening celebration"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Black and white tie",
+    "reference_detected": false,
+    "reference_name": null,
+    "reference_type": "none",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "Create an elegant, sophisticated black-and-white themed background for a 30th birthday celebration in a formal ballroom setting.",
+    "scene_family_evidence": "An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "elegant",
+        "sophisticated",
+        "celebratory"
+      ],
+      "audience_descriptors": [
+        "adults"
+      ],
+      "motif_descriptors": [
+        "refined architectural forms",
+        "formal drapery-inspired shapes"
+      ],
+      "motif_structure_description": "Motifs should be repeated in a structured and symmetrical manner, reflecting the formality of the event.",
+      "lighting_descriptors": [
+        "polished evening lighting"
+      ],
+      "material_descriptors": [
+        "polished surfaces"
+      ],
+      "texture_descriptors": [
+        "smooth and sleek"
+      ],
+      "incompatible_treatments": [
+        "bright and colorful",
+        "casual or informal"
+      ],
+      "scene_family": "architectural-interior",
+      "composition_affinities": [
+        "symmetrical",
+        "layered depth"
+      ]
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SEMANTIC_INFERENCE",
+      "material_descriptors": "SEMANTIC_INFERENCE",
+      "texture_descriptors": "SEMANTIC_INFERENCE",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SEMANTIC_INFERENCE",
+      "composition_affinities": "SEMANTIC_INFERENCE"
+    },
+    "semantic_confidence": {},
+    "generation_constraints": [
+      "no readable programme/title text",
+      "no logos",
+      "no people or characters",
+      "background only",
+      "no people",
+      "no characters",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "visual_semantics": {
+    "atmosphere_descriptors": [
+      "elegant",
+      "sophisticated",
+      "celebratory"
+    ],
+    "audience_descriptors": [
+      "adults"
+    ],
+    "motif_descriptors": [
+      "refined architectural forms",
+      "formal drapery-inspired shapes"
+    ],
+    "motif_structure_description": "Motifs should be repeated in a structured and symmetrical manner, reflecting the formality of the event.",
+    "lighting_descriptors": [
+      "polished evening lighting"
+    ],
+    "material_descriptors": [
+      "polished surfaces"
+    ],
+    "texture_descriptors": [
+      "smooth and sleek"
+    ],
+    "incompatible_treatments": [
+      "bright and colorful",
+      "casual or informal"
+    ],
+    "scene_family": "architectural-interior",
+    "composition_affinities": [
+      "symmetrical",
+      "layered depth"
+    ]
+  },
+  "title_preference": "30th Birthday Celebration",
+  "event_date": "2026-12-12",
+  "start_time": "18:00",
+  "timezone": "Africa/Johannesburg",
+  "output_language": "en",
+  "asset_type": "none",
+  "asset_placement": null,
+  "asset_vertical_position": null,
+  "text_flow": "standard",
+  "palette_mode": "dominant",
+  "palette_relationship": "requested colours dominate with natural tonal variation",
+  "palette_relationship_source": "default",
+  "semantic_contract": {
+    "semantic_contract_version": "1.0",
+    "primary_visual_subject": "An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting.",
+    "visual_anchors": [
+      "An elegant black-tie ballroom environment with refined architectural forms, layered depth, formal drapery-inspired shapes and polished evening lighting."
+    ],
+    "atmosphere_descriptors": [
+      "elegant",
+      "sophisticated",
+      "celebratory"
+    ],
+    "audience_descriptors": [
+      "adults"
+    ],
+    "motif_descriptors": [
+      "refined architectural forms",
+      "formal drapery-inspired shapes"
+    ],
+    "motif_structure_description": "Motifs should be repeated in a structured and symmetrical manner, reflecting the formality of the event.",
+    "lighting_descriptors": [
+      "polished evening lighting"
+    ],
+    "material_descriptors": [
+      "polished surfaces"
+    ],
+    "texture_descriptors": [
+      "smooth and sleek"
+    ],
+    "incompatible_treatments": [
+      "bright and colorful",
+      "casual or informal"
+    ],
+    "scene_family": "architectural-interior",
+    "composition_affinities": [
+      "symmetrical",
+      "layered depth"
+    ],
+    "palette": [
+      {
+        "colour": "black",
+        "role": "primary"
+      },
+      {
+        "colour": "white",
+        "role": "secondary"
+      }
+    ],
+    "palette_mode": "dominant",
+    "palette_relationship": "requested colours dominate with natural tonal variation",
+    "abstraction_level": "",
+    "realism_level": "",
+    "energy_level": "",
+    "symmetry_preference": "",
+    "density_preference": "",
+    "theme_reference_treatment": "",
+    "hard_dimensions": [],
+    "semantic_provenance": {
+      "primary_visual_subject": "USER_EXPLICIT",
+      "visual_anchors": "USER_EXPLICIT",
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SEMANTIC_INFERENCE",
+      "material_descriptors": "SEMANTIC_INFERENCE",
+      "texture_descriptors": "SEMANTIC_INFERENCE",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SEMANTIC_INFERENCE",
+      "composition_affinities": "SEMANTIC_INFERENCE",
+      "palette": "SAFE_FALLBACK",
+      "palette_mode": "USER_EXPLICIT",
+      "palette_relationship": "SAFE_FALLBACK",
+      "abstraction_level": "SAFE_FALLBACK",
+      "realism_level": "SAFE_FALLBACK",
+      "energy_level": "SAFE_FALLBACK",
+      "symmetry_preference": "SAFE_FALLBACK",
+      "density_preference": "SAFE_FALLBACK",
+      "theme_reference_treatment": "SAFE_FALLBACK"
+    },
+    "semantic_confidence": {}
+  },
+  "semantic_contract_version": "1.0",
+  "semantic_contract_sha256": "3066afcea462a19aa7770c92033d97c4bf739d37a195e0c71c6b5e1d96ebe5dc"
+}

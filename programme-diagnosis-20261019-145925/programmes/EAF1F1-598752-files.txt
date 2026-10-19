@@ -1,0 +1,15 @@
+REFERENCE=EAF1F1-598752
+
+2026-10-19 12:47:23.4078002390 19146 /home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/prompts.json
+2026-10-19 12:47:23.4178002650 6337 /home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/brief.json
+2026-10-19 12:47:23.4198002700 139 /home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/probe-source.json
+2026-10-19 12:47:52.8748775310 1455543 /home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-01.rejected.png
+2026-10-19 12:48:28.8539734030 2093284 /home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-02.rejected.png
+2026-10-19 12:49:03.8620681830 2244377 /home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-03.rejected.png
+2026-10-19 12:49:35.8061558440 1571995 /home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-04.rejected.png
+2026-10-19 12:50:07.8202447610 2277115 /home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-05.rejected.png
+2026-10-19 12:50:37.8373290450 1907331 /home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-06.rejected.png
+2026-10-19 12:51:05.8374084130 1631699 /home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-07.rejected.png
+2026-10-19 12:51:34.9144915400 1751211 /home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-08.rejected.png
+2026-10-19 12:52:07.8235864750 1568338 /home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-09.rejected.png
+2026-10-19 12:52:07.8545865650 551966 /home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.json

@@ -1,0 +1,2 @@
+CONTAINER ID  IMAGE                                  COMMAND               CREATED      STATUS          PORTS                   NAMES
+518044b908a6  localhost/programme-image-service:1.0  uvicorn app.main:...  2 hours ago  Up 2 hours ago  0.0.0.0:8002->8002/tcp  programme-image

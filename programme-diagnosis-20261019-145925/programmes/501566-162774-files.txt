@@ -1,0 +1,7 @@
+REFERENCE=501566-162774
+
+2026-10-19 14:46:30.6483295250 22503 /home/ntlhari/NerdCode/programme-studio/data/programmes/501566-162774/prompts.json
+2026-10-19 14:46:30.6553293640 7660 /home/ntlhari/NerdCode/programme-studio/data/programmes/501566-162774/brief.json
+2026-10-19 14:46:30.6583292960 139 /home/ntlhari/NerdCode/programme-studio/data/programmes/501566-162774/probe-source.json
+2026-10-19 14:46:41.1230921780 1055942 /home/ntlhari/NerdCode/programme-studio/data/programmes/501566-162774/backgrounds/flux-2/image-a.png
+2026-10-19 14:47:04.8675719350 117871 /home/ntlhari/NerdCode/programme-studio/data/programmes/501566-162774/backgrounds/flux-2/image-a.json

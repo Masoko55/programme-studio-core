@@ -1,0 +1,2989 @@
+{
+  "reference_number": "CC9A13-522500",
+  "source_reference": "CC9A13-522500",
+  "source_prompt_manifest": {
+    "prompt_schema_version": "1.0",
+    "semantic_contract_version": "1.0",
+    "creative_direction_version": "2.0",
+    "prompt_generation_sha256": "267bef928edf54814d2038e767d96634191619774481023200c2633283281758",
+    "hash_verified": true,
+    "freshness_status": "CURRENT",
+    "created_at": "2026-10-19T08:54:09.786877Z"
+  },
+  "engine_id": "sdxl-1-0",
+  "direction_id": "C",
+  "seed": 8430272953238029050,
+  "workflow_sha256": "eaa748db3cfb733db6eaa4deb259d68812daebd969b0306542989505f9001612",
+  "effective_workflow": {
+    "workflow_sha256": "eaa748db3cfb733db6eaa4deb259d68812daebd969b0306542989505f9001612"
+  },
+  "request_id": "aed9acd2-9bbd-4f43-9d89-7c6e868e1398",
+  "status": "complete",
+  "attempt_count": 1,
+  "positive_prompt": "Visual subject: Elegant pink floral celebration. Mood: Soft, elegant, feminine, celebratory. Audience: Adults. Composition: off-centre focal placement, diagonal flow, curved flow, shallow depth. Motif as abstract pattern structure; no unrequested literal objects Palette: pink, cream; pink clearly visible in and highlights; primary visual mass, secondary accents; neutrals support. Motif: Floral patterns should be integrated throughout the background, creating a. Continuous background artwork with integrated calm visual space.",
+  "workflow": {
+    "8": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "3",
+          0
+        ],
+        "vae": [
+          "4",
+          2
+        ]
+      }
+    },
+    "9": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "filename_prefix": "programme-studio/CC9A13-522500/sdxl-1-0/c",
+        "images": [
+          "8",
+          0
+        ]
+      }
+    },
+    "40": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "people, faces, characters, readable text, words, letters, lettering, numbers, logos, watermark, pseudo-glyphs, signage, poster mockup, bordered panel, blank card, banner, harsh lighting, dark or bold colors, cluttered or chaotic compositions",
+        "clip": [
+          "4",
+          1
+        ]
+      }
+    },
+    "53": {
+      "class_type": "EmptyLatentImage",
+      "inputs": {
+        "width": 832,
+        "height": 1216,
+        "batch_size": 1
+      }
+    },
+    "4": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": {
+        "ckpt_name": "sd_xl_base_1.0.safetensors"
+      }
+    },
+    "3": {
+      "class_type": "KSampler",
+      "inputs": {
+        "seed": 8430272953238029050,
+        "steps": 28,
+        "cfg": 6.0,
+        "sampler_name": "dpmpp_2m",
+        "scheduler": "karras",
+        "denoise": 1.0,
+        "model": [
+          "4",
+          0
+        ],
+        "positive": [
+          "16",
+          0
+        ],
+        "negative": [
+          "40",
+          0
+        ],
+        "latent_image": [
+          "53",
+          0
+        ]
+      }
+    },
+    "16": {
+      "class_type": "CLIPTextEncodeSDXL",
+      "inputs": {
+        "width": 832,
+        "height": 1216,
+        "crop_w": 0,
+        "crop_h": 0,
+        "target_width": 832,
+        "target_height": 1216,
+        "text_g": "Visual subject: Elegant pink floral celebration. Mood: Soft, elegant, feminine, celebratory. Audience: Adults. Composition: off-centre focal placement, diagonal flow, curved flow, shallow depth. Motif as abstract pattern structure; no unrequested literal objects Palette: pink, cream; pink clearly visible in and highlights; primary visual mass, secondary accents; neutrals support.",
+        "text_l": "Visual subject: Elegant pink floral celebration. Primary pink; secondary cream; relationship: pink clearly visible in substantial design elements; cream clearly visible. Motif: Floral patterns should be integrated throughout the background, creating a.",
+        "clip": [
+          "4",
+          1
+        ]
+      }
+    }
+  },
+  "spec_sha256": "28848ab2087f26236cdd672ecba338b56f80f30d4d7c06b69ccf5ff583e11801",
+  "SPEC_SHA256": "28848ab2087f26236cdd672ecba338b56f80f30d4d7c06b69ccf5ff583e11801",
+  "ENGINE": "sdxl-1-0",
+  "DIRECTION": "C",
+  "DIRECTION_ROLE": "Creative Director",
+  "ATTEMPT": 1,
+  "RETRY_STAGE": "normal",
+  "SEED": 8430272953238029050,
+  "candidate_spec_sha256": "28848ab2087f26236cdd672ecba338b56f80f30d4d7c06b69ccf5ff583e11801",
+  "semantic_contract_version": "1.0",
+  "semantic_contract_sha256": "39e1fc1fe6cf73df85126ce438238444ed5d99941abb7430ce06c3ef07a0098e",
+  "semantic_consistency": {
+    "conflicts": [],
+    "requires_clarification": false,
+    "valid": true
+  },
+  "semantic_completeness": {
+    "fields": {
+      "atmosphere_descriptors": "PRESENT",
+      "audience_descriptors": "PRESENT",
+      "composition_affinities": "PRESENT",
+      "material_descriptors": "PRESENT",
+      "motif_descriptors": "PRESENT",
+      "motif_structure_description": "PRESENT",
+      "palette": "PRESENT",
+      "primary_visual_subject": "PRESENT"
+    },
+    "ready": true,
+    "score": 1.0
+  },
+  "vision_model": "minicpm-v4.5:latest",
+  "ocr_config": {
+    "timeout_seconds": 7.0
+  },
+  "direction_role": "Creative Director",
+  "creative_concept": "Create a central-focal composition with diagonal flow, a dominant motif in the lower-right focal zone, and an open perimeter with calm left and right regions, A pink, cream palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: Use only the supplied visual motifs and treatment, Clarified visual language: motifs: Floral patterns, motif structure: Floral patterns should be integrated throughout the background, creating a cohesive and visually appealing environment, atmosphere: Soft, elegant, feminine, celebratory, composition: Symmetrical, balanced compositions, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+  "visual_anchors": [],
+  "composition_strategy": "A central-focal composition with a diagonal flow to guide the viewer's eye through the scene, creating a sense of movement and balance. The design features a subtle accent with a quiet right region paired with a quiet left region, maintaining a calm visual region.",
+  "resolved_palette": [
+    {
+      "colour": "pink",
+      "role": "primary"
+    },
+    {
+      "colour": "cream",
+      "role": "secondary"
+    }
+  ],
+  "palette_mode": "dominant-requested-colour-families",
+  "requested_primary": "pink",
+  "requested_secondary": "cream",
+  "palette_roles": [
+    "primary",
+    "secondary"
+  ],
+  "safe_region_strategy": {
+    "title": "The title is placed in a title-safe region at the top of the composition, ensuring legibility and prominence.",
+    "programme": "The programme information is situated in a programme-safe region in the lower part of the composition, ensuring it does not interfere with the focal point or overall composition."
+  },
+  "sampling_profile": {
+    "name": "baseline",
+    "steps": 28,
+    "cfg": 6.0,
+    "sampler_name": "dpmpp_2m",
+    "scheduler": "karras",
+    "shift": null,
+    "shift_mode": "checkpoint_default"
+  },
+  "sampling_profile_name": "baseline",
+  "sampling_profile_stage": "normal",
+  "sampling_profile_failure_history": {
+    "counts": {},
+    "consecutive_category": "INITIAL",
+    "consecutive_count": 0
+  },
+  "selection_reason": "INITIAL: baseline",
+  "failure_history": {
+    "counts": {},
+    "consecutive_category": "INITIAL",
+    "consecutive_count": 0
+  },
+  "renderer_recovery_type": "baseline",
+  "generation_mode": "native_text_to_image",
+  "GENERATION_MODE": "native_text_to_image",
+  "TEMPLATE_CONDITIONING_ENABLED": false,
+  "MASKED_DENOISING_ENABLED": false,
+  "TEMPLATE_PATH": null,
+  "template_conditioning": {
+    "enabled": false,
+    "masked_denoising_enabled": false
+  },
+  "negative_prompt": "people, faces, characters, readable text, words, letters, lettering, numbers, logos, watermark, pseudo-glyphs, signage, poster mockup, bordered panel, blank card, banner, harsh lighting, dark or bold colors, cluttered or chaotic compositions",
+  "adaptations": [],
+  "retry_stage": "normal",
+  "failure_category": null,
+  "compiled_prompt": {
+    "positive": "Visual subject: Elegant pink floral celebration. Mood: Soft, elegant, feminine, celebratory. Audience: Adults. Composition: off-centre focal placement, diagonal flow, curved flow, shallow depth. Motif as abstract pattern structure; no unrequested literal objects Palette: pink, cream; pink clearly visible in and highlights; primary visual mass, secondary accents; neutrals support. Motif: Floral patterns should be integrated throughout the background, creating a. Continuous background artwork with integrated calm visual space.",
+    "negative": "people, faces, characters, readable text, words, letters, lettering, numbers, logos, watermark, pseudo-glyphs, signage, poster mockup, bordered panel, blank card, banner, harsh lighting, dark or bold colors, cluttered or chaotic compositions",
+    "clip_l": "Visual subject: Elegant pink floral celebration. Primary pink; secondary cream; relationship: pink clearly visible in substantial design elements; cream clearly visible. Motif: Floral patterns should be integrated throughout the background, creating a.",
+    "clip_g": "Visual subject: Elegant pink floral celebration. Mood: Soft, elegant, feminine, celebratory. Audience: Adults. Composition: off-centre focal placement, diagonal flow, curved flow, shallow depth. Motif as abstract pattern structure; no unrequested literal objects Palette: pink, cream; pink clearly visible in and highlights; primary visual mass, secondary accents; neutrals support.",
+    "t5": null,
+    "negative_prompt_channel_active": true,
+    "negative_semantics_preserved": true,
+    "incompatible_treatments": [
+      "Harsh lighting, dark or bold colors, cluttered or chaotic compositions"
+    ],
+    "semantic_contract_sha256": "39e1fc1fe6cf73df85126ce438238444ed5d99941abb7430ce06c3ef07a0098e",
+    "conditioning_coverage": {
+      "subject": [
+        "positive",
+        "clip_l",
+        "clip_g"
+      ],
+      "atmosphere": [
+        "positive",
+        "clip_l",
+        "clip_g"
+      ],
+      "audience": [
+        "positive",
+        "clip_l",
+        "clip_g"
+      ],
+      "motif": [
+        "positive",
+        "clip_l",
+        "clip_g"
+      ],
+      "treatment": [],
+      "palette": [
+        "positive",
+        "clip_l",
+        "clip_g"
+      ],
+      "scene_family": [],
+      "incompatible_treatments": [
+        "negative"
+      ]
+    },
+    "engine_capabilities": {
+      "negative_prompt_channel": true,
+      "multi_encoder": true,
+      "long_context_encoder": false,
+      "supports_shift": false
+    },
+    "prompt_budget": {
+      "positive": {
+        "characters": 530,
+        "approx_tokens": 67,
+        "budget_risk": false
+      },
+      "negative": {
+        "characters": 241,
+        "approx_tokens": 30,
+        "budget_risk": false
+      },
+      "clip_l": {
+        "characters": 252,
+        "approx_tokens": 32,
+        "budget_risk": false
+      },
+      "clip_g": {
+        "characters": 382,
+        "approx_tokens": 48,
+        "budget_risk": false
+      },
+      "t5": {
+        "characters": 0,
+        "approx_tokens": 0,
+        "budget_risk": false
+      }
+    },
+    "truncated": false,
+    "retry_strength_level": "BASE"
+  },
+  "conditioning_coverage": {
+    "subject": [
+      "positive",
+      "clip_l",
+      "clip_g"
+    ],
+    "atmosphere": [
+      "positive",
+      "clip_l",
+      "clip_g"
+    ],
+    "audience": [
+      "positive",
+      "clip_l",
+      "clip_g"
+    ],
+    "motif": [
+      "positive",
+      "clip_l",
+      "clip_g"
+    ],
+    "treatment": [],
+    "palette": [
+      "positive",
+      "clip_l",
+      "clip_g"
+    ],
+    "scene_family": [],
+    "incompatible_treatments": [
+      "negative"
+    ]
+  },
+  "prompt_budget": {
+    "positive": {
+      "characters": 530,
+      "approx_tokens": 67,
+      "budget_risk": false
+    },
+    "negative": {
+      "characters": 241,
+      "approx_tokens": 30,
+      "budget_risk": false
+    },
+    "clip_l": {
+      "characters": 252,
+      "approx_tokens": 32,
+      "budget_risk": false
+    },
+    "clip_g": {
+      "characters": 382,
+      "approx_tokens": 48,
+      "budget_risk": false
+    },
+    "t5": {
+      "characters": 0,
+      "approx_tokens": 0,
+      "budget_risk": false
+    }
+  },
+  "engine_capabilities": {
+    "negative_prompt_channel": true,
+    "multi_encoder": true,
+    "long_context_encoder": false,
+    "supports_shift": false
+  },
+  "reproducibility_manifest": {
+    "reference": "CC9A13-522500",
+    "source_reference": "CC9A13-522500",
+    "semantic_contract_version": "1.0",
+    "semantic_contract_sha256": "39e1fc1fe6cf73df85126ce438238444ed5d99941abb7430ce06c3ef07a0098e",
+    "candidate_spec_sha256": "28848ab2087f26236cdd672ecba338b56f80f30d4d7c06b69ccf5ff583e11801",
+    "engine": "sdxl-1-0",
+    "engine_models": [
+      "sd_xl_base_1.0.safetensors"
+    ],
+    "workflow_sha256": "eaa748db3cfb733db6eaa4deb259d68812daebd969b0306542989505f9001612",
+    "effective_workflow_values": {
+      "workflow_sha256": "eaa748db3cfb733db6eaa4deb259d68812daebd969b0306542989505f9001612"
+    },
+    "direction": "C",
+    "sampling_profile": "baseline",
+    "sampler_name": "dpmpp_2m",
+    "scheduler": "karras",
+    "cfg": 6.0,
+    "steps": 28,
+    "shift": null,
+    "width": 832,
+    "height": 1216,
+    "seed": 8430272953238029050,
+    "compiled_prompt_sha256": {
+      "positive": "c0efdc3ce73d2c75a7d1b70a51e235b714fb696dbf18c31adbea4cf623b4d050",
+      "negative": "20856d296c72f9e6d8457f762d9ef01c1ed14cdd1330628f692c2a83ca0e9a63",
+      "clip_l": "7627ac87be190b686497d2794f9f84af3105c50bf6adf737fcfbb509e1a1746b",
+      "clip_g": "1fad0365532db6a883af6d3a18d3cc0cca27c6e8363ae2c2878276d6ed8131fc",
+      "t5": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "conditioning_lengths": {
+      "positive": {
+        "characters": 530,
+        "approx_tokens": 67,
+        "budget_risk": false
+      },
+      "negative": {
+        "characters": 241,
+        "approx_tokens": 30,
+        "budget_risk": false
+      },
+      "clip_l": {
+        "characters": 252,
+        "approx_tokens": 32,
+        "budget_risk": false
+      },
+      "clip_g": {
+        "characters": 382,
+        "approx_tokens": 48,
+        "budget_risk": false
+      },
+      "t5": {
+        "characters": 0,
+        "approx_tokens": 0,
+        "budget_risk": false
+      }
+    },
+    "vision_model": "minicpm-v4.5:latest",
+    "ocr_config": {
+      "timeout_seconds": 7.0
+    },
+    "validator_version": null,
+    "retry_attempt": 1,
+    "retry_stage": "normal",
+    "failure_history": {
+      "counts": {},
+      "consecutive_category": "INITIAL",
+      "consecutive_count": 0
+    },
+    "image_sha256": "86e28218aaefca67a0ca1107e1cc48ccce7269b0cc69d258784525c6469e57a2"
+  },
+  "prompt_id": "b52e0444-848f-4bba-9eca-770965252b7f",
+  "palette_recovery": {
+    "eligible": false,
+    "attempted": false,
+    "source_off_palette_ratio": null,
+    "result": "not_attempted",
+    "failure_reason": null,
+    "normalized_off_palette_ratio": null,
+    "edge_geometry_similarity": null,
+    "structural_detail_preserved": null
+  },
+  "direction_similarity_score": 0.3236363636363636,
+  "direction_similarity": 0.3236363636363636,
+  "direction_similarity_diagnostics": {
+    "similarity": 0.3236363636363636,
+    "closest_peer": {
+      "peer": "/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-b.png",
+      "similarity": 0.3236363636363636,
+      "edge_similarity": 0.33851843774318696,
+      "coarse_mass_iou": 0.16363636363636364,
+      "fine_edge_iou": 0.205607476635514,
+      "regional_edge_similarity": 0.44517242908477783
+    },
+    "peer_comparisons": [
+      {
+        "peer": "/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-b.png",
+        "similarity": 0.3236363636363636,
+        "edge_similarity": 0.33851843774318696,
+        "coarse_mass_iou": 0.16363636363636364,
+        "fine_edge_iou": 0.205607476635514,
+        "regional_edge_similarity": 0.44517242908477783
+      }
+    ]
+  },
+  "subject_adherence": {
+    "checked": true,
+    "score": 0.75,
+    "threshold": 0.55,
+    "subject": "Elegant pink floral celebration",
+    "anchors": [],
+    "model": "minicpm-v4.5:latest",
+    "decision": "pass",
+    "reason": "The background features an elegant pink floral motif that creates a soft, feminine, and celebratory atmosphere. The floral patterns are integrated and cohesive, supporting the requested motif structure. It is suitable for an adult bridal celebration. The treatment is mostly calm, with gentle viewpoi",
+    "subject_score": 0.75,
+    "atmosphere_score": 0.9,
+    "motif_score": 0.9,
+    "treatment_score": 0.7,
+    "audience_fit_score": 0.85,
+    "thresholds": {
+      "subject_score": 0.55,
+      "atmosphere_score": 0.55,
+      "motif_score": 0.55,
+      "audience_fit_score": 0.55
+    },
+    "observed_evidence": [
+      "Large pink flowers with detailed petals and stamen",
+      "Swirling floral and leaf motifs in soft pink and cream",
+      "Butterfly silhouette in bottom left",
+      "Calm, empty pink background"
+    ],
+    "background_usability_score": 0.85,
+    "vision_human_signal": false,
+    "vision_text_signal": false,
+    "vision_text_evidence": "",
+    "unrequested_literal_object_visible": false,
+    "failure_category": null,
+    "compound_fidelity_failure": false,
+    "hard_dimensions": [
+      "subject_score",
+      "audience_fit_score"
+    ],
+    "hard_failed_dimensions": [],
+    "failed_dimensions": [],
+    "human_description": "",
+    "dimension_availability": {
+      "subject_score": "PASS",
+      "atmosphere_score": "PASS",
+      "motif_score": "PASS",
+      "audience_fit_score": "PASS"
+    },
+    "vision_debug": {
+      "endpoint": "/api/chat",
+      "model": "minicpm-v4.5:latest",
+      "score_parsing": [
+        {
+          "dimension_name": "subject_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.75,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "atmosphere_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.9,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "motif_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.9,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "treatment_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.7,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "audience_fit_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.85,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "background_usability_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.85,
+          "parse_failure_reason": null
+        }
+      ],
+      "thinking_present": false,
+      "thinking_preview_length": 0,
+      "response_length": 1102,
+      "final_source": "message.content",
+      "raw_text_preview": "<omitted>",
+      "assessment_attempts": 1,
+      "http_status": 200,
+      "response_content_type": "application/json; charset=utf-8",
+      "response_shape": [
+        "created_at",
+        "done",
+        "done_reason",
+        "eval_count",
+        "eval_duration",
+        "load_duration",
+        "message",
+        "model",
+        "prompt_eval_count",
+        "prompt_eval_duration",
+        "total_duration"
+      ],
+      "unconfirmed_human_report": false
+    }
+  },
+  "brief_fidelity": {
+    "checked": true,
+    "subject_score": 0.75,
+    "atmosphere_score": 0.9,
+    "motif_score": 0.9,
+    "treatment_score": 0.7,
+    "audience_fit_score": 0.85,
+    "thresholds": {
+      "subject_score": 0.55,
+      "atmosphere_score": 0.55,
+      "motif_score": 0.55,
+      "audience_fit_score": 0.55
+    },
+    "decision": "pass",
+    "reason": "The background features an elegant pink floral motif that creates a soft, feminine, and celebratory atmosphere. The floral patterns are integrated and cohesive, supporting the requested motif structure. It is suitable for an adult bridal celebration. The treatment is mostly calm, with gentle viewpoi",
+    "observed_evidence": [
+      "Large pink flowers with detailed petals and stamen",
+      "Swirling floral and leaf motifs in soft pink and cream",
+      "Butterfly silhouette in bottom left",
+      "Calm, empty pink background"
+    ],
+    "model": "minicpm-v4.5:latest",
+    "failure_category": null,
+    "dimension_availability": {
+      "subject_score": "PASS",
+      "atmosphere_score": "PASS",
+      "motif_score": "PASS",
+      "audience_fit_score": "PASS"
+    },
+    "failed_dimensions": [],
+    "background_usability_score": 0.85,
+    "vision_human_signal": false,
+    "vision_debug": {
+      "endpoint": "/api/chat",
+      "model": "minicpm-v4.5:latest",
+      "score_parsing": [
+        {
+          "dimension_name": "subject_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.75,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "atmosphere_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.9,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "motif_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.9,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "treatment_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.7,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "audience_fit_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.85,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "background_usability_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.85,
+          "parse_failure_reason": null
+        }
+      ],
+      "thinking_present": false,
+      "thinking_preview_length": 0,
+      "response_length": 1102,
+      "final_source": "message.content",
+      "raw_text_preview": "<omitted>",
+      "assessment_attempts": 1,
+      "http_status": 200,
+      "response_content_type": "application/json; charset=utf-8",
+      "response_shape": [
+        "created_at",
+        "done",
+        "done_reason",
+        "eval_count",
+        "eval_duration",
+        "load_duration",
+        "message",
+        "model",
+        "prompt_eval_count",
+        "prompt_eval_duration",
+        "total_duration"
+      ],
+      "unconfirmed_human_report": false
+    },
+    "hard_dimensions": [
+      "subject_score",
+      "audience_fit_score"
+    ],
+    "hard_failed_dimensions": [],
+    "compound_fidelity_failure": false,
+    "human_description": "",
+    "vision_text_signal": false,
+    "vision_text_evidence": "",
+    "unrequested_literal_object_visible": false
+  },
+  "semantic_dimension_scores": {
+    "subject_score": 0.75,
+    "atmosphere_score": 0.9,
+    "motif_score": 0.9,
+    "treatment_score": 0.7,
+    "audience_fit_score": 0.85,
+    "unrequested_literal_object_visible": false,
+    "unrequested_text_visible": null
+  },
+  "semantic_failed_dimensions": [],
+  "safe_region_retry": {
+    "previous_score": null,
+    "current_score": null,
+    "improved": null
+  },
+  "validation": {
+    "validation": {
+      "decision": "accepted",
+      "failure_category": null,
+      "diagnostic_findings": [],
+      "palette": {
+        "mode": "dominant",
+        "palette_match_ratio": 0.9972478693181818,
+        "off_palette_ratio": 0.002752130681818182,
+        "primary_ratio": 0.9691495028409091,
+        "secondary_ratio": 0.008611505681818182,
+        "requested_chromatic_ratio": 0.9777610085227273,
+        "neutral_ratio": 0.019486860795454544,
+        "unrequested_chromatic_ratio": 0.002752130681818182,
+        "largest_unrequested_region_ratio": 0.001065340909090909,
+        "primary_secondary_ratio": 112.54123711340206,
+        "secondary_presence": true,
+        "dominance_relationship": "FLEXIBLE",
+        "dominance_relationship_passed": true
+      },
+      "text": {
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 4,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        },
+        "detected": false,
+        "tokens": [
+          "ZAIN"
+        ],
+        "confirmed_tokens": [],
+        "text_lines": [],
+        "text_area_ratio": 0
+      },
+      "human": {
+        "detected": false,
+        "strong_signals": [],
+        "weak_signals": [
+          {
+            "source": "frontal_face",
+            "bbox": [
+              460,
+              5,
+              73,
+              73
+            ],
+            "weight": null,
+            "area_ratio": 0.005267309273785425,
+            "body_overlap": false,
+            "independent_face_overlap": false,
+            "confirmed": false,
+            "confirmation": "isolated cascade pattern"
+          }
+        ],
+        "decision_reason": "isolated ambiguous detector evidence"
+      },
+      "quality": {
+        "structural_edge_density": 0.30543101917613635,
+        "macro_structure_score": 1.0,
+        "coarse_edge_density": 0.22758838383838384,
+        "high_pass_mean": 4.223625659942627,
+        "boilerplate_score": 0.0,
+        "title_panel_score": 0.0,
+        "fine_line_pair_ratio": 0.0,
+        "macro_form_balance": 1.0,
+        "scene_density": {
+          "requested_density": "moderate",
+          "overall_edge_density": 0.1593,
+          "tile_edge_fractions": [
+            0.209,
+            0.2,
+            0.2651,
+            0.1455,
+            0.23,
+            0.2104,
+            0.0884,
+            0.0391,
+            0.071,
+            0.2393,
+            0.075,
+            0.1929,
+            0.0232,
+            0.1062,
+            0.1567,
+            0.2964
+          ],
+          "occupied_tile_fraction": 0.6875,
+          "quiet_tile_fraction": 0.125,
+          "safe_region_density": 0.1533,
+          "edge_distribution_balance": 0.0811,
+          "macro_form_balance": 1.0,
+          "normalized_measurements": {
+            "density_pressure": 0.7219
+          },
+          "thresholds_used": {
+            "density_pressure": 0.85,
+            "max_quiet_tile_fraction": 0.0625,
+            "occupied_tile_edge_fraction": 0.1,
+            "quiet_tile_edge_fraction": 0.04
+          },
+          "density_rule_triggered": null,
+          "decision": "PASS"
+        },
+        "global_density_decision": "PASS",
+        "explicit_safe_regions": {
+          "decision": "PASS",
+          "regions": {}
+        },
+        "explicit_safe_region_decision": "PASS",
+        "raster_score": 0.0
+      },
+      "brief_fidelity": {
+        "checked": true,
+        "subject_score": 0.75,
+        "atmosphere_score": 0.9,
+        "motif_score": 0.9,
+        "treatment_score": 0.7,
+        "audience_fit_score": 0.85,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "decision": "pass",
+        "reason": "The background features an elegant pink floral motif that creates a soft, feminine, and celebratory atmosphere. The floral patterns are integrated and cohesive, supporting the requested motif structure. It is suitable for an adult bridal celebration. The treatment is mostly calm, with gentle viewpoi",
+        "observed_evidence": [
+          "Large pink flowers with detailed petals and stamen",
+          "Swirling floral and leaf motifs in soft pink and cream",
+          "Butterfly silhouette in bottom left",
+          "Calm, empty pink background"
+        ],
+        "model": "minicpm-v4.5:latest",
+        "failure_category": null,
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "failed_dimensions": [],
+        "background_usability_score": 0.85,
+        "vision_human_signal": false,
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.75,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.7,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1102,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        },
+        "hard_dimensions": [
+          "subject_score",
+          "audience_fit_score"
+        ],
+        "hard_failed_dimensions": [],
+        "compound_fidelity_failure": false,
+        "human_description": "",
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false
+      }
+    },
+    "output_path": "/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-c.download.part",
+    "sha256": "86e28218aaefca67a0ca1107e1cc48ccce7269b0cc69d258784525c6469e57a2",
+    "width": 832,
+    "height": 1216,
+    "person_detection_count": 0,
+    "face_detection_count": 1,
+    "profile_detection_count": 0,
+    "upper_body_detection_count": 0,
+    "visual_quality_checked": true,
+    "visual_quality_passed": true,
+    "macro_structure_score": 1.0,
+    "coarse_edge_density": 0.22758838383838384,
+    "edge_density": 0.4630792791193182,
+    "structural_edge_density": 0.30543101917613635,
+    "horizontal_edge_density": 0.12321333451704546,
+    "vertical_edge_density": 0.10167347301136363,
+    "directional_edge_dominance": 0.26607395336576484,
+    "full_span_line_ratio": 0.0,
+    "fine_horizontal_pair_ratio": 0.0,
+    "fine_vertical_pair_ratio": 0.0,
+    "fine_line_pair_ratio": 0.0,
+    "fine_line_mean_delta": 2.692683696746826,
+    "image_entropy": 6.395028591156006,
+    "largest_quantised_colour_ratio": 0.30561967329545453,
+    "laplacian_variance": 477.1642761230469,
+    "highpass_mean": 4.223625659942627,
+    "coherent_edge_ratio": 0.92064,
+    "center_structural_edge_density": 0.29303207142500876,
+    "outer_structural_edge_density": 0.31537169592514097,
+    "center_local_contrast": 25.661819458007812,
+    "title_structural_edge_density": 0.5761612620508326,
+    "title_local_contrast": 41.39170455932617,
+    "programme_structural_edge_density": 0.22921982735219068,
+    "programme_local_contrast": 16.51781463623047,
+    "center_to_outer_edge_ratio": 0.9291641425379058,
+    "center_safe_region_passed": false,
+    "title_panel_score": 0.0,
+    "boilerplate_score": 0.0,
+    "largest_flat_rectangle_ratio": 0.0,
+    "flat_rectangular_coverage_ratio": 0.0,
+    "flat_coverage_ratio": 0.3424627130681818,
+    "long_axis_separator_ratio": 0.0,
+    "large_flat_rectangle_count": 0.0,
+    "centre_edge_density": 0.12162642045454546,
+    "perimeter_edge_density": 0.15832149621212122,
+    "centre_flat_ratio": 0.35795454545454547,
+    "bilateral_symmetry": 0.12456446886062622,
+    "irregular_frame_score": 0.0,
+    "lower_centre_edge_density": 0.04952330508474576,
+    "quiet_centre_evidence": 0.08296516567544605,
+    "scene_density": {
+      "requested_density": "moderate",
+      "overall_edge_density": 0.1593,
+      "tile_edge_fractions": [
+        0.209,
+        0.2,
+        0.2651,
+        0.1455,
+        0.23,
+        0.2104,
+        0.0884,
+        0.0391,
+        0.071,
+        0.2393,
+        0.075,
+        0.1929,
+        0.0232,
+        0.1062,
+        0.1567,
+        0.2964
+      ],
+      "occupied_tile_fraction": 0.6875,
+      "quiet_tile_fraction": 0.125,
+      "safe_region_density": 0.1533,
+      "edge_distribution_balance": 0.0811,
+      "macro_form_balance": 1.0,
+      "normalized_measurements": {
+        "density_pressure": 0.7219
+      },
+      "thresholds_used": {
+        "density_pressure": 0.85,
+        "max_quiet_tile_fraction": 0.0625,
+        "occupied_tile_edge_fraction": 0.1,
+        "quiet_tile_edge_fraction": 0.04
+      },
+      "density_rule_triggered": null,
+      "decision": "PASS"
+    },
+    "global_density_decision": "PASS",
+    "macro_form_balance": 1.0,
+    "explicit_safe_regions": {
+      "decision": "PASS",
+      "regions": {}
+    },
+    "explicit_safe_region_decision": "PASS",
+    "palette_checked": true,
+    "palette_mode": "dominant-requested-colour-families",
+    "incidental_neutral_ratio": 0.019486860795454544,
+    "largest_incidental_neutral_region_ratio": 0.00341796875,
+    "palette_match_ratio": 0.9972478693181818,
+    "off_palette_ratio": 0.002752130681818182,
+    "perceptual_in_family_ratio": 0.9972478693181818,
+    "unrelated_hue_ratio": 0.002752130681818182,
+    "requested_chromatic_ratio": 0.9777610085227273,
+    "structural_neutral_ratio": 0.019486860795454544,
+    "unrequested_chromatic_ratio": 0.002752130681818182,
+    "largest_unrequested_region_ratio": 0.001065340909090909,
+    "primary_ratio": 0.9691495028409091,
+    "secondary_ratio": 0.008611505681818182,
+    "requested_palette_mode": "dominant",
+    "tonal_derivative_ratio": 0.9400301846590909,
+    "primary_presence_ratio": 0.9691495028409091,
+    "secondary_presence_ratio": 0.008611505681818182,
+    "primary_family": "pink",
+    "secondary_family": "cream",
+    "primary_role": "primary",
+    "primary_secondary_ratio": 112.54123711340206,
+    "secondary_presence": true,
+    "dominance_relationship": "FLEXIBLE",
+    "dominance_relationship_passed": true,
+    "secondary_role": "secondary",
+    "secondary_minimum": 0.008,
+    "palette_relationship_source": "default",
+    "palette_role_warning": null,
+    "primary_colour_ratio": 0.9691495028409091,
+    "secondary_colour_ratio": 0.008611505681818182,
+    "requested_colour_counts": {
+      "pink": 21833,
+      "cream": 194
+    },
+    "requested_colour_family_counts": {
+      "pink": 21833,
+      "cream": 194
+    },
+    "accepted_tonal_breakdown": {
+      "pink": 0.9691051136363636,
+      "cream": 0.008611505681818182,
+      "rose gold": 4.438920454545455e-05
+    },
+    "unrequested_colour_breakdown": {
+      "champagne": 0.009144176136363636,
+      "beige": 0.006702769886363636,
+      "cream": 0.0028852982954545455,
+      "burgundy": 0.0014204545454545455,
+      "red": 0.0009765625,
+      "white": 0.00039950284090909093,
+      "rose gold": 0.0003107244318181818,
+      "peach": 0.00022194602272727272,
+      "maroon": 0.00013316761363636363,
+      "brown": 4.438920454545455e-05
+    },
+    "primary_descriptor": {
+      "raw": "pink",
+      "base_name": "pink",
+      "family_members": [
+        "hot pink",
+        "pink",
+        "rose"
+      ],
+      "modifiers": [],
+      "modifier_only": false
+    },
+    "secondary_descriptor": {
+      "raw": "cream",
+      "base_name": "cream",
+      "family_members": [
+        "cream"
+      ],
+      "modifiers": [],
+      "modifier_only": false
+    },
+    "ocr_tokens": [],
+    "ocr_diagnostics": {
+      "attempted": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "completed_variants": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "timed_out_variants": [],
+      "failed_variants": [],
+      "failure_reasons": {},
+      "completed_variant_count": 4,
+      "required_variant_count": 2,
+      "enhancement_variant_failures": [],
+      "evidence_sufficiency": true,
+      "decision": "complete"
+    },
+    "ocr_validation_attempts": 1,
+    "ocr_validation_sha256": "86e28218aaefca67a0ca1107e1cc48ccce7269b0cc69d258784525c6469e57a2",
+    "human_detection": {
+      "people": [],
+      "evidence": [
+        {
+          "source": "frontal_face",
+          "bbox": [
+            460,
+            5,
+            73,
+            73
+          ],
+          "weight": null,
+          "area_ratio": 0.005267309273785425,
+          "body_overlap": false,
+          "independent_face_overlap": false,
+          "confirmed": false,
+          "confirmation": "isolated cascade pattern"
+        }
+      ],
+      "strong_signals": [],
+      "weak_signals": [
+        {
+          "source": "frontal_face",
+          "bbox": [
+            460,
+            5,
+            73,
+            73
+          ],
+          "weight": null,
+          "area_ratio": 0.005267309273785425,
+          "body_overlap": false,
+          "independent_face_overlap": false,
+          "confirmed": false,
+          "confirmation": "isolated cascade pattern"
+        }
+      ],
+      "overlaps": [],
+      "people_weights": [],
+      "faces": [
+        [
+          460,
+          5,
+          73,
+          73
+        ]
+      ],
+      "profiles": [],
+      "upper_bodies": [],
+      "strong_upper_body_signal": false,
+      "ambiguous_face_signal": true,
+      "detected": false,
+      "human_detection_confidence": "low",
+      "human_detection_reason": "isolated detector patterns without independent confirmation",
+      "largest_detection_area_ratio": 0.005267309273785425,
+      "classical_human_signal": false,
+      "vision_human_signal": false,
+      "combined_human_decision": false,
+      "decision_reason": "isolated ambiguous detector evidence"
+    },
+    "all_failure_categories": []
+  },
+  "output_path": "/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-c.png",
+  "sha256": "86e28218aaefca67a0ca1107e1cc48ccce7269b0cc69d258784525c6469e57a2",
+  "width": 832,
+  "height": 1216,
+  "person_detection_count": 0,
+  "face_detection_count": 1,
+  "profile_detection_count": 0,
+  "upper_body_detection_count": 0,
+  "visual_quality_checked": true,
+  "visual_quality_passed": true,
+  "macro_structure_score": 1.0,
+  "coarse_edge_density": 0.22758838383838384,
+  "edge_density": 0.4630792791193182,
+  "structural_edge_density": 0.30543101917613635,
+  "horizontal_edge_density": 0.12321333451704546,
+  "vertical_edge_density": 0.10167347301136363,
+  "directional_edge_dominance": 0.26607395336576484,
+  "full_span_line_ratio": 0.0,
+  "fine_horizontal_pair_ratio": 0.0,
+  "fine_vertical_pair_ratio": 0.0,
+  "fine_line_pair_ratio": 0.0,
+  "fine_line_mean_delta": 2.692683696746826,
+  "image_entropy": 6.395028591156006,
+  "largest_quantised_colour_ratio": 0.30561967329545453,
+  "laplacian_variance": 477.1642761230469,
+  "highpass_mean": 4.223625659942627,
+  "coherent_edge_ratio": 0.92064,
+  "center_structural_edge_density": 0.29303207142500876,
+  "outer_structural_edge_density": 0.31537169592514097,
+  "center_local_contrast": 25.661819458007812,
+  "title_structural_edge_density": 0.5761612620508326,
+  "title_local_contrast": 41.39170455932617,
+  "programme_structural_edge_density": 0.22921982735219068,
+  "programme_local_contrast": 16.51781463623047,
+  "center_to_outer_edge_ratio": 0.9291641425379058,
+  "center_safe_region_passed": false,
+  "title_panel_score": 0.0,
+  "boilerplate_score": 0.0,
+  "largest_flat_rectangle_ratio": 0.0,
+  "flat_rectangular_coverage_ratio": 0.0,
+  "flat_coverage_ratio": 0.3424627130681818,
+  "long_axis_separator_ratio": 0.0,
+  "large_flat_rectangle_count": 0.0,
+  "centre_edge_density": 0.12162642045454546,
+  "perimeter_edge_density": 0.15832149621212122,
+  "centre_flat_ratio": 0.35795454545454547,
+  "bilateral_symmetry": 0.12456446886062622,
+  "irregular_frame_score": 0.0,
+  "lower_centre_edge_density": 0.04952330508474576,
+  "quiet_centre_evidence": 0.08296516567544605,
+  "scene_density": {
+    "requested_density": "moderate",
+    "overall_edge_density": 0.1593,
+    "tile_edge_fractions": [
+      0.209,
+      0.2,
+      0.2651,
+      0.1455,
+      0.23,
+      0.2104,
+      0.0884,
+      0.0391,
+      0.071,
+      0.2393,
+      0.075,
+      0.1929,
+      0.0232,
+      0.1062,
+      0.1567,
+      0.2964
+    ],
+    "occupied_tile_fraction": 0.6875,
+    "quiet_tile_fraction": 0.125,
+    "safe_region_density": 0.1533,
+    "edge_distribution_balance": 0.0811,
+    "macro_form_balance": 1.0,
+    "normalized_measurements": {
+      "density_pressure": 0.7219
+    },
+    "thresholds_used": {
+      "density_pressure": 0.85,
+      "max_quiet_tile_fraction": 0.0625,
+      "occupied_tile_edge_fraction": 0.1,
+      "quiet_tile_edge_fraction": 0.04
+    },
+    "density_rule_triggered": null,
+    "decision": "PASS"
+  },
+  "global_density_decision": "PASS",
+  "macro_form_balance": 1.0,
+  "explicit_safe_regions": {
+    "decision": "PASS",
+    "regions": {}
+  },
+  "explicit_safe_region_decision": "PASS",
+  "palette_checked": true,
+  "incidental_neutral_ratio": 0.019486860795454544,
+  "largest_incidental_neutral_region_ratio": 0.00341796875,
+  "palette_match_ratio": 0.9972478693181818,
+  "off_palette_ratio": 0.002752130681818182,
+  "perceptual_in_family_ratio": 0.9972478693181818,
+  "unrelated_hue_ratio": 0.002752130681818182,
+  "requested_chromatic_ratio": 0.9777610085227273,
+  "structural_neutral_ratio": 0.019486860795454544,
+  "unrequested_chromatic_ratio": 0.002752130681818182,
+  "largest_unrequested_region_ratio": 0.001065340909090909,
+  "primary_ratio": 0.9691495028409091,
+  "secondary_ratio": 0.008611505681818182,
+  "requested_palette_mode": "dominant",
+  "tonal_derivative_ratio": 0.9400301846590909,
+  "primary_presence_ratio": 0.9691495028409091,
+  "secondary_presence_ratio": 0.008611505681818182,
+  "primary_family": "pink",
+  "secondary_family": "cream",
+  "primary_role": "primary",
+  "primary_secondary_ratio": 112.54123711340206,
+  "secondary_presence": true,
+  "dominance_relationship": "FLEXIBLE",
+  "dominance_relationship_passed": true,
+  "secondary_role": "secondary",
+  "secondary_minimum": 0.008,
+  "palette_relationship_source": "default",
+  "palette_role_warning": null,
+  "primary_colour_ratio": 0.9691495028409091,
+  "secondary_colour_ratio": 0.008611505681818182,
+  "requested_colour_counts": {
+    "pink": 21833,
+    "cream": 194
+  },
+  "requested_colour_family_counts": {
+    "pink": 21833,
+    "cream": 194
+  },
+  "accepted_tonal_breakdown": {
+    "pink": 0.9691051136363636,
+    "cream": 0.008611505681818182,
+    "rose gold": 4.438920454545455e-05
+  },
+  "unrequested_colour_breakdown": {
+    "champagne": 0.009144176136363636,
+    "beige": 0.006702769886363636,
+    "cream": 0.0028852982954545455,
+    "burgundy": 0.0014204545454545455,
+    "red": 0.0009765625,
+    "white": 0.00039950284090909093,
+    "rose gold": 0.0003107244318181818,
+    "peach": 0.00022194602272727272,
+    "maroon": 0.00013316761363636363,
+    "brown": 4.438920454545455e-05
+  },
+  "primary_descriptor": {
+    "raw": "pink",
+    "base_name": "pink",
+    "family_members": [
+      "hot pink",
+      "pink",
+      "rose"
+    ],
+    "modifiers": [],
+    "modifier_only": false
+  },
+  "secondary_descriptor": {
+    "raw": "cream",
+    "base_name": "cream",
+    "family_members": [
+      "cream"
+    ],
+    "modifiers": [],
+    "modifier_only": false
+  },
+  "ocr_tokens": [],
+  "ocr_diagnostics": {
+    "attempted": [
+      "original",
+      "contrast",
+      "threshold",
+      "inverted"
+    ],
+    "completed_variants": [
+      "original",
+      "contrast",
+      "threshold",
+      "inverted"
+    ],
+    "timed_out_variants": [],
+    "failed_variants": [],
+    "failure_reasons": {},
+    "completed_variant_count": 4,
+    "required_variant_count": 2,
+    "enhancement_variant_failures": [],
+    "evidence_sufficiency": true,
+    "decision": "complete"
+  },
+  "ocr_validation_attempts": 1,
+  "ocr_validation_sha256": "86e28218aaefca67a0ca1107e1cc48ccce7269b0cc69d258784525c6469e57a2",
+  "human_detection": {
+    "people": [],
+    "evidence": [
+      {
+        "source": "frontal_face",
+        "bbox": [
+          460,
+          5,
+          73,
+          73
+        ],
+        "weight": null,
+        "area_ratio": 0.005267309273785425,
+        "body_overlap": false,
+        "independent_face_overlap": false,
+        "confirmed": false,
+        "confirmation": "isolated cascade pattern"
+      }
+    ],
+    "strong_signals": [],
+    "weak_signals": [
+      {
+        "source": "frontal_face",
+        "bbox": [
+          460,
+          5,
+          73,
+          73
+        ],
+        "weight": null,
+        "area_ratio": 0.005267309273785425,
+        "body_overlap": false,
+        "independent_face_overlap": false,
+        "confirmed": false,
+        "confirmation": "isolated cascade pattern"
+      }
+    ],
+    "overlaps": [],
+    "people_weights": [],
+    "faces": [
+      [
+        460,
+        5,
+        73,
+        73
+      ]
+    ],
+    "profiles": [],
+    "upper_bodies": [],
+    "strong_upper_body_signal": false,
+    "ambiguous_face_signal": true,
+    "detected": false,
+    "human_detection_confidence": "low",
+    "human_detection_reason": "isolated detector patterns without independent confirmation",
+    "largest_detection_area_ratio": 0.005267309273785425,
+    "classical_human_signal": false,
+    "vision_human_signal": false,
+    "combined_human_decision": false,
+    "decision_reason": "isolated ambiguous detector evidence"
+  },
+  "all_failure_categories": [],
+  "raw_validation": {
+    "validation": {
+      "decision": "accepted",
+      "failure_category": null,
+      "diagnostic_findings": [],
+      "palette": {
+        "mode": "dominant",
+        "palette_match_ratio": 0.9972478693181818,
+        "off_palette_ratio": 0.002752130681818182,
+        "primary_ratio": 0.9691495028409091,
+        "secondary_ratio": 0.008611505681818182,
+        "requested_chromatic_ratio": 0.9777610085227273,
+        "neutral_ratio": 0.019486860795454544,
+        "unrequested_chromatic_ratio": 0.002752130681818182,
+        "largest_unrequested_region_ratio": 0.001065340909090909,
+        "primary_secondary_ratio": 112.54123711340206,
+        "secondary_presence": true,
+        "dominance_relationship": "FLEXIBLE",
+        "dominance_relationship_passed": true
+      },
+      "text": {
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 4,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        },
+        "detected": false,
+        "tokens": [
+          "ZAIN"
+        ],
+        "confirmed_tokens": [],
+        "text_lines": [],
+        "text_area_ratio": 0
+      },
+      "human": {
+        "detected": false,
+        "strong_signals": [],
+        "weak_signals": [
+          {
+            "source": "frontal_face",
+            "bbox": [
+              460,
+              5,
+              73,
+              73
+            ],
+            "weight": null,
+            "area_ratio": 0.005267309273785425,
+            "body_overlap": false,
+            "independent_face_overlap": false,
+            "confirmed": false,
+            "confirmation": "isolated cascade pattern"
+          }
+        ],
+        "decision_reason": "isolated ambiguous detector evidence"
+      },
+      "quality": {
+        "structural_edge_density": 0.30543101917613635,
+        "macro_structure_score": 1.0,
+        "coarse_edge_density": 0.22758838383838384,
+        "high_pass_mean": 4.223625659942627,
+        "boilerplate_score": 0.0,
+        "title_panel_score": 0.0,
+        "fine_line_pair_ratio": 0.0,
+        "macro_form_balance": 1.0,
+        "scene_density": {
+          "requested_density": "moderate",
+          "overall_edge_density": 0.1593,
+          "tile_edge_fractions": [
+            0.209,
+            0.2,
+            0.2651,
+            0.1455,
+            0.23,
+            0.2104,
+            0.0884,
+            0.0391,
+            0.071,
+            0.2393,
+            0.075,
+            0.1929,
+            0.0232,
+            0.1062,
+            0.1567,
+            0.2964
+          ],
+          "occupied_tile_fraction": 0.6875,
+          "quiet_tile_fraction": 0.125,
+          "safe_region_density": 0.1533,
+          "edge_distribution_balance": 0.0811,
+          "macro_form_balance": 1.0,
+          "normalized_measurements": {
+            "density_pressure": 0.7219
+          },
+          "thresholds_used": {
+            "density_pressure": 0.85,
+            "max_quiet_tile_fraction": 0.0625,
+            "occupied_tile_edge_fraction": 0.1,
+            "quiet_tile_edge_fraction": 0.04
+          },
+          "density_rule_triggered": null,
+          "decision": "PASS"
+        },
+        "global_density_decision": "PASS",
+        "explicit_safe_regions": {
+          "decision": "PASS",
+          "regions": {}
+        },
+        "explicit_safe_region_decision": "PASS",
+        "raster_score": 0.0
+      }
+    },
+    "output_path": "/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-c.download.part",
+    "sha256": "86e28218aaefca67a0ca1107e1cc48ccce7269b0cc69d258784525c6469e57a2",
+    "width": 832,
+    "height": 1216,
+    "person_detection_count": 0,
+    "face_detection_count": 1,
+    "profile_detection_count": 0,
+    "upper_body_detection_count": 0,
+    "visual_quality_checked": true,
+    "visual_quality_passed": true,
+    "macro_structure_score": 1.0,
+    "coarse_edge_density": 0.22758838383838384,
+    "edge_density": 0.4630792791193182,
+    "structural_edge_density": 0.30543101917613635,
+    "horizontal_edge_density": 0.12321333451704546,
+    "vertical_edge_density": 0.10167347301136363,
+    "directional_edge_dominance": 0.26607395336576484,
+    "full_span_line_ratio": 0.0,
+    "fine_horizontal_pair_ratio": 0.0,
+    "fine_vertical_pair_ratio": 0.0,
+    "fine_line_pair_ratio": 0.0,
+    "fine_line_mean_delta": 2.692683696746826,
+    "image_entropy": 6.395028591156006,
+    "largest_quantised_colour_ratio": 0.30561967329545453,
+    "laplacian_variance": 477.1642761230469,
+    "highpass_mean": 4.223625659942627,
+    "coherent_edge_ratio": 0.92064,
+    "center_structural_edge_density": 0.29303207142500876,
+    "outer_structural_edge_density": 0.31537169592514097,
+    "center_local_contrast": 25.661819458007812,
+    "title_structural_edge_density": 0.5761612620508326,
+    "title_local_contrast": 41.39170455932617,
+    "programme_structural_edge_density": 0.22921982735219068,
+    "programme_local_contrast": 16.51781463623047,
+    "center_to_outer_edge_ratio": 0.9291641425379058,
+    "center_safe_region_passed": false,
+    "title_panel_score": 0.0,
+    "boilerplate_score": 0.0,
+    "largest_flat_rectangle_ratio": 0.0,
+    "flat_rectangular_coverage_ratio": 0.0,
+    "flat_coverage_ratio": 0.3424627130681818,
+    "long_axis_separator_ratio": 0.0,
+    "large_flat_rectangle_count": 0.0,
+    "centre_edge_density": 0.12162642045454546,
+    "perimeter_edge_density": 0.15832149621212122,
+    "centre_flat_ratio": 0.35795454545454547,
+    "bilateral_symmetry": 0.12456446886062622,
+    "irregular_frame_score": 0.0,
+    "lower_centre_edge_density": 0.04952330508474576,
+    "quiet_centre_evidence": 0.08296516567544605,
+    "scene_density": {
+      "requested_density": "moderate",
+      "overall_edge_density": 0.1593,
+      "tile_edge_fractions": [
+        0.209,
+        0.2,
+        0.2651,
+        0.1455,
+        0.23,
+        0.2104,
+        0.0884,
+        0.0391,
+        0.071,
+        0.2393,
+        0.075,
+        0.1929,
+        0.0232,
+        0.1062,
+        0.1567,
+        0.2964
+      ],
+      "occupied_tile_fraction": 0.6875,
+      "quiet_tile_fraction": 0.125,
+      "safe_region_density": 0.1533,
+      "edge_distribution_balance": 0.0811,
+      "macro_form_balance": 1.0,
+      "normalized_measurements": {
+        "density_pressure": 0.7219
+      },
+      "thresholds_used": {
+        "density_pressure": 0.85,
+        "max_quiet_tile_fraction": 0.0625,
+        "occupied_tile_edge_fraction": 0.1,
+        "quiet_tile_edge_fraction": 0.04
+      },
+      "density_rule_triggered": null,
+      "decision": "PASS"
+    },
+    "global_density_decision": "PASS",
+    "macro_form_balance": 1.0,
+    "explicit_safe_regions": {
+      "decision": "PASS",
+      "regions": {}
+    },
+    "explicit_safe_region_decision": "PASS",
+    "palette_checked": true,
+    "palette_mode": "dominant-requested-colour-families",
+    "incidental_neutral_ratio": 0.019486860795454544,
+    "largest_incidental_neutral_region_ratio": 0.00341796875,
+    "palette_match_ratio": 0.9972478693181818,
+    "off_palette_ratio": 0.002752130681818182,
+    "perceptual_in_family_ratio": 0.9972478693181818,
+    "unrelated_hue_ratio": 0.002752130681818182,
+    "requested_chromatic_ratio": 0.9777610085227273,
+    "structural_neutral_ratio": 0.019486860795454544,
+    "unrequested_chromatic_ratio": 0.002752130681818182,
+    "largest_unrequested_region_ratio": 0.001065340909090909,
+    "primary_ratio": 0.9691495028409091,
+    "secondary_ratio": 0.008611505681818182,
+    "requested_palette_mode": "dominant",
+    "tonal_derivative_ratio": 0.9400301846590909,
+    "primary_presence_ratio": 0.9691495028409091,
+    "secondary_presence_ratio": 0.008611505681818182,
+    "primary_family": "pink",
+    "secondary_family": "cream",
+    "primary_role": "primary",
+    "primary_secondary_ratio": 112.54123711340206,
+    "secondary_presence": true,
+    "dominance_relationship": "FLEXIBLE",
+    "dominance_relationship_passed": true,
+    "secondary_role": "secondary",
+    "secondary_minimum": 0.008,
+    "palette_relationship_source": "default",
+    "palette_role_warning": null,
+    "primary_colour_ratio": 0.9691495028409091,
+    "secondary_colour_ratio": 0.008611505681818182,
+    "requested_colour_counts": {
+      "pink": 21833,
+      "cream": 194
+    },
+    "requested_colour_family_counts": {
+      "pink": 21833,
+      "cream": 194
+    },
+    "accepted_tonal_breakdown": {
+      "pink": 0.9691051136363636,
+      "cream": 0.008611505681818182,
+      "rose gold": 4.438920454545455e-05
+    },
+    "unrequested_colour_breakdown": {
+      "champagne": 0.009144176136363636,
+      "beige": 0.006702769886363636,
+      "cream": 0.0028852982954545455,
+      "burgundy": 0.0014204545454545455,
+      "red": 0.0009765625,
+      "white": 0.00039950284090909093,
+      "rose gold": 0.0003107244318181818,
+      "peach": 0.00022194602272727272,
+      "maroon": 0.00013316761363636363,
+      "brown": 4.438920454545455e-05
+    },
+    "primary_descriptor": {
+      "raw": "pink",
+      "base_name": "pink",
+      "family_members": [
+        "hot pink",
+        "pink",
+        "rose"
+      ],
+      "modifiers": [],
+      "modifier_only": false
+    },
+    "secondary_descriptor": {
+      "raw": "cream",
+      "base_name": "cream",
+      "family_members": [
+        "cream"
+      ],
+      "modifiers": [],
+      "modifier_only": false
+    },
+    "ocr_tokens": [],
+    "ocr_diagnostics": {
+      "attempted": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "completed_variants": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "timed_out_variants": [],
+      "failed_variants": [],
+      "failure_reasons": {},
+      "completed_variant_count": 4,
+      "required_variant_count": 2,
+      "enhancement_variant_failures": [],
+      "evidence_sufficiency": true,
+      "decision": "complete"
+    },
+    "ocr_validation_attempts": 1,
+    "ocr_validation_sha256": "86e28218aaefca67a0ca1107e1cc48ccce7269b0cc69d258784525c6469e57a2",
+    "human_detection": {
+      "people": [],
+      "evidence": [
+        {
+          "source": "frontal_face",
+          "bbox": [
+            460,
+            5,
+            73,
+            73
+          ],
+          "weight": null,
+          "area_ratio": 0.005267309273785425,
+          "body_overlap": false,
+          "independent_face_overlap": false,
+          "confirmed": false,
+          "confirmation": "isolated cascade pattern"
+        }
+      ],
+      "strong_signals": [],
+      "weak_signals": [
+        {
+          "source": "frontal_face",
+          "bbox": [
+            460,
+            5,
+            73,
+            73
+          ],
+          "weight": null,
+          "area_ratio": 0.005267309273785425,
+          "body_overlap": false,
+          "independent_face_overlap": false,
+          "confirmed": false,
+          "confirmation": "isolated cascade pattern"
+        }
+      ],
+      "overlaps": [],
+      "people_weights": [],
+      "faces": [
+        [
+          460,
+          5,
+          73,
+          73
+        ]
+      ],
+      "profiles": [],
+      "upper_bodies": [],
+      "strong_upper_body_signal": false,
+      "ambiguous_face_signal": true,
+      "detected": false,
+      "human_detection_confidence": "low",
+      "human_detection_reason": "isolated detector patterns without independent confirmation",
+      "largest_detection_area_ratio": 0.005267309273785425,
+      "classical_human_signal": false,
+      "vision_human_signal": false,
+      "combined_human_decision": false,
+      "decision_reason": "isolated ambiguous detector evidence"
+    },
+    "all_failure_categories": []
+  },
+  "final_validation": {
+    "decision": "accepted",
+    "failure_category": null,
+    "diagnostic_findings": [],
+    "palette": {
+      "mode": "dominant",
+      "palette_match_ratio": 0.9972478693181818,
+      "off_palette_ratio": 0.002752130681818182,
+      "primary_ratio": 0.9691495028409091,
+      "secondary_ratio": 0.008611505681818182,
+      "requested_chromatic_ratio": 0.9777610085227273,
+      "neutral_ratio": 0.019486860795454544,
+      "unrequested_chromatic_ratio": 0.002752130681818182,
+      "largest_unrequested_region_ratio": 0.001065340909090909,
+      "primary_secondary_ratio": 112.54123711340206,
+      "secondary_presence": true,
+      "dominance_relationship": "FLEXIBLE",
+      "dominance_relationship_passed": true
+    },
+    "text": {
+      "ocr_diagnostics": {
+        "attempted": [
+          "original",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "completed_variants": [
+          "original",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "timed_out_variants": [],
+        "failed_variants": [],
+        "failure_reasons": {},
+        "completed_variant_count": 4,
+        "required_variant_count": 2,
+        "enhancement_variant_failures": [],
+        "evidence_sufficiency": true,
+        "decision": "complete"
+      },
+      "detected": false,
+      "tokens": [
+        "ZAIN"
+      ],
+      "confirmed_tokens": [],
+      "text_lines": [],
+      "text_area_ratio": 0
+    },
+    "human": {
+      "detected": false,
+      "strong_signals": [],
+      "weak_signals": [
+        {
+          "source": "frontal_face",
+          "bbox": [
+            460,
+            5,
+            73,
+            73
+          ],
+          "weight": null,
+          "area_ratio": 0.005267309273785425,
+          "body_overlap": false,
+          "independent_face_overlap": false,
+          "confirmed": false,
+          "confirmation": "isolated cascade pattern"
+        }
+      ],
+      "decision_reason": "isolated ambiguous detector evidence"
+    },
+    "quality": {
+      "structural_edge_density": 0.30543101917613635,
+      "macro_structure_score": 1.0,
+      "coarse_edge_density": 0.22758838383838384,
+      "high_pass_mean": 4.223625659942627,
+      "boilerplate_score": 0.0,
+      "title_panel_score": 0.0,
+      "fine_line_pair_ratio": 0.0,
+      "macro_form_balance": 1.0,
+      "scene_density": {
+        "requested_density": "moderate",
+        "overall_edge_density": 0.1593,
+        "tile_edge_fractions": [
+          0.209,
+          0.2,
+          0.2651,
+          0.1455,
+          0.23,
+          0.2104,
+          0.0884,
+          0.0391,
+          0.071,
+          0.2393,
+          0.075,
+          0.1929,
+          0.0232,
+          0.1062,
+          0.1567,
+          0.2964
+        ],
+        "occupied_tile_fraction": 0.6875,
+        "quiet_tile_fraction": 0.125,
+        "safe_region_density": 0.1533,
+        "edge_distribution_balance": 0.0811,
+        "macro_form_balance": 1.0,
+        "normalized_measurements": {
+          "density_pressure": 0.7219
+        },
+        "thresholds_used": {
+          "density_pressure": 0.85,
+          "max_quiet_tile_fraction": 0.0625,
+          "occupied_tile_edge_fraction": 0.1,
+          "quiet_tile_edge_fraction": 0.04
+        },
+        "density_rule_triggered": null,
+        "decision": "PASS"
+      },
+      "global_density_decision": "PASS",
+      "explicit_safe_regions": {
+        "decision": "PASS",
+        "regions": {}
+      },
+      "explicit_safe_region_decision": "PASS",
+      "raster_score": 0.0
+    },
+    "brief_fidelity": {
+      "checked": true,
+      "subject_score": 0.75,
+      "atmosphere_score": 0.9,
+      "motif_score": 0.9,
+      "treatment_score": 0.7,
+      "audience_fit_score": 0.85,
+      "thresholds": {
+        "subject_score": 0.55,
+        "atmosphere_score": 0.55,
+        "motif_score": 0.55,
+        "audience_fit_score": 0.55
+      },
+      "decision": "pass",
+      "reason": "The background features an elegant pink floral motif that creates a soft, feminine, and celebratory atmosphere. The floral patterns are integrated and cohesive, supporting the requested motif structure. It is suitable for an adult bridal celebration. The treatment is mostly calm, with gentle viewpoi",
+      "observed_evidence": [
+        "Large pink flowers with detailed petals and stamen",
+        "Swirling floral and leaf motifs in soft pink and cream",
+        "Butterfly silhouette in bottom left",
+        "Calm, empty pink background"
+      ],
+      "model": "minicpm-v4.5:latest",
+      "failure_category": null,
+      "dimension_availability": {
+        "subject_score": "PASS",
+        "atmosphere_score": "PASS",
+        "motif_score": "PASS",
+        "audience_fit_score": "PASS"
+      },
+      "failed_dimensions": [],
+      "background_usability_score": 0.85,
+      "vision_human_signal": false,
+      "vision_debug": {
+        "endpoint": "/api/chat",
+        "model": "minicpm-v4.5:latest",
+        "score_parsing": [
+          {
+            "dimension_name": "subject_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.75,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "atmosphere_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.9,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "motif_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.9,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "treatment_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.7,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "audience_fit_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.85,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "background_usability_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.85,
+            "parse_failure_reason": null
+          }
+        ],
+        "thinking_present": false,
+        "thinking_preview_length": 0,
+        "response_length": 1102,
+        "final_source": "message.content",
+        "raw_text_preview": "<omitted>",
+        "assessment_attempts": 1,
+        "http_status": 200,
+        "response_content_type": "application/json; charset=utf-8",
+        "response_shape": [
+          "created_at",
+          "done",
+          "done_reason",
+          "eval_count",
+          "eval_duration",
+          "load_duration",
+          "message",
+          "model",
+          "prompt_eval_count",
+          "prompt_eval_duration",
+          "total_duration"
+        ],
+        "unconfirmed_human_report": false
+      },
+      "hard_dimensions": [
+        "subject_score",
+        "audience_fit_score"
+      ],
+      "hard_failed_dimensions": [],
+      "compound_fidelity_failure": false,
+      "human_description": "",
+      "vision_text_signal": false,
+      "vision_text_evidence": "",
+      "unrequested_literal_object_visible": false
+    }
+  },
+  "palette_normalized": false,
+  "raw_palette_error": null,
+  "outcome_category": "PASS",
+  "raw_image_path": null,
+  "error": null,
+  "rejection_reason": null,
+  "remote_image": {
+    "filename": "c_00001_.png",
+    "subfolder": "programme-studio/CC9A13-522500/sdxl-1-0",
+    "type": "output"
+  },
+  "secondary_failure_categories": [],
+  "retry_failure_category": null,
+  "decision": "accepted",
+  "primary_failure_category": null,
+  "attempt_history": [
+    {
+      "attempt_count": 1,
+      "status": "complete",
+      "seed": 8430272953238029050,
+      "failure_category": null,
+      "primary_failure_category": null,
+      "retry_failure_category": null,
+      "rejection_reason": null,
+      "error": null,
+      "final_validation": {
+        "decision": "accepted",
+        "failure_category": null,
+        "diagnostic_findings": [],
+        "palette": {
+          "mode": "dominant",
+          "palette_match_ratio": 0.9972478693181818,
+          "off_palette_ratio": 0.002752130681818182,
+          "primary_ratio": 0.9691495028409091,
+          "secondary_ratio": 0.008611505681818182,
+          "requested_chromatic_ratio": 0.9777610085227273,
+          "neutral_ratio": 0.019486860795454544,
+          "unrequested_chromatic_ratio": 0.002752130681818182,
+          "largest_unrequested_region_ratio": 0.001065340909090909,
+          "primary_secondary_ratio": 112.54123711340206,
+          "secondary_presence": true,
+          "dominance_relationship": "FLEXIBLE",
+          "dominance_relationship_passed": true
+        },
+        "text": {
+          "ocr_diagnostics": {
+            "attempted": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "completed_variants": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "timed_out_variants": [],
+            "failed_variants": [],
+            "failure_reasons": {},
+            "completed_variant_count": 4,
+            "required_variant_count": 2,
+            "enhancement_variant_failures": [],
+            "evidence_sufficiency": true,
+            "decision": "complete"
+          },
+          "detected": false,
+          "tokens": [
+            "ZAIN"
+          ],
+          "confirmed_tokens": [],
+          "text_lines": [],
+          "text_area_ratio": 0
+        },
+        "human": {
+          "detected": false,
+          "strong_signals": [],
+          "weak_signals": [
+            {
+              "source": "frontal_face",
+              "bbox": [
+                460,
+                5,
+                73,
+                73
+              ],
+              "weight": null,
+              "area_ratio": 0.005267309273785425,
+              "body_overlap": false,
+              "independent_face_overlap": false,
+              "confirmed": false,
+              "confirmation": "isolated cascade pattern"
+            }
+          ],
+          "decision_reason": "isolated ambiguous detector evidence"
+        },
+        "quality": {
+          "structural_edge_density": 0.30543101917613635,
+          "macro_structure_score": 1.0,
+          "coarse_edge_density": 0.22758838383838384,
+          "high_pass_mean": 4.223625659942627,
+          "boilerplate_score": 0.0,
+          "title_panel_score": 0.0,
+          "fine_line_pair_ratio": 0.0,
+          "macro_form_balance": 1.0,
+          "scene_density": {
+            "requested_density": "moderate",
+            "overall_edge_density": 0.1593,
+            "tile_edge_fractions": [
+              0.209,
+              0.2,
+              0.2651,
+              0.1455,
+              0.23,
+              0.2104,
+              0.0884,
+              0.0391,
+              0.071,
+              0.2393,
+              0.075,
+              0.1929,
+              0.0232,
+              0.1062,
+              0.1567,
+              0.2964
+            ],
+            "occupied_tile_fraction": 0.6875,
+            "quiet_tile_fraction": 0.125,
+            "safe_region_density": 0.1533,
+            "edge_distribution_balance": 0.0811,
+            "macro_form_balance": 1.0,
+            "normalized_measurements": {
+              "density_pressure": 0.7219
+            },
+            "thresholds_used": {
+              "density_pressure": 0.85,
+              "max_quiet_tile_fraction": 0.0625,
+              "occupied_tile_edge_fraction": 0.1,
+              "quiet_tile_edge_fraction": 0.04
+            },
+            "density_rule_triggered": null,
+            "decision": "PASS"
+          },
+          "global_density_decision": "PASS",
+          "explicit_safe_regions": {
+            "decision": "PASS",
+            "regions": {}
+          },
+          "explicit_safe_region_decision": "PASS",
+          "raster_score": 0.0
+        },
+        "brief_fidelity": {
+          "checked": true,
+          "subject_score": 0.75,
+          "atmosphere_score": 0.9,
+          "motif_score": 0.9,
+          "treatment_score": 0.7,
+          "audience_fit_score": 0.85,
+          "thresholds": {
+            "subject_score": 0.55,
+            "atmosphere_score": 0.55,
+            "motif_score": 0.55,
+            "audience_fit_score": 0.55
+          },
+          "decision": "pass",
+          "reason": "The background features an elegant pink floral motif that creates a soft, feminine, and celebratory atmosphere. The floral patterns are integrated and cohesive, supporting the requested motif structure. It is suitable for an adult bridal celebration. The treatment is mostly calm, with gentle viewpoi",
+          "observed_evidence": [
+            "Large pink flowers with detailed petals and stamen",
+            "Swirling floral and leaf motifs in soft pink and cream",
+            "Butterfly silhouette in bottom left",
+            "Calm, empty pink background"
+          ],
+          "model": "minicpm-v4.5:latest",
+          "failure_category": null,
+          "dimension_availability": {
+            "subject_score": "PASS",
+            "atmosphere_score": "PASS",
+            "motif_score": "PASS",
+            "audience_fit_score": "PASS"
+          },
+          "failed_dimensions": [],
+          "background_usability_score": 0.85,
+          "vision_human_signal": false,
+          "vision_debug": {
+            "endpoint": "/api/chat",
+            "model": "minicpm-v4.5:latest",
+            "score_parsing": [
+              {
+                "dimension_name": "subject_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.75,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "atmosphere_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.9,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "motif_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.9,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "treatment_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.7,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "audience_fit_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "background_usability_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              }
+            ],
+            "thinking_present": false,
+            "thinking_preview_length": 0,
+            "response_length": 1102,
+            "final_source": "message.content",
+            "raw_text_preview": "<omitted>",
+            "assessment_attempts": 1,
+            "http_status": 200,
+            "response_content_type": "application/json; charset=utf-8",
+            "response_shape": [
+              "created_at",
+              "done",
+              "done_reason",
+              "eval_count",
+              "eval_duration",
+              "load_duration",
+              "message",
+              "model",
+              "prompt_eval_count",
+              "prompt_eval_duration",
+              "total_duration"
+            ],
+            "unconfirmed_human_report": false
+          },
+          "hard_dimensions": [
+            "subject_score",
+            "audience_fit_score"
+          ],
+          "hard_failed_dimensions": [],
+          "compound_fidelity_failure": false,
+          "human_description": "",
+          "vision_text_signal": false,
+          "vision_text_evidence": "",
+          "unrequested_literal_object_visible": false
+        }
+      },
+      "subject_adherence": {
+        "checked": true,
+        "score": 0.75,
+        "threshold": 0.55,
+        "subject": "Elegant pink floral celebration",
+        "anchors": [],
+        "model": "minicpm-v4.5:latest",
+        "decision": "pass",
+        "reason": "The background features an elegant pink floral motif that creates a soft, feminine, and celebratory atmosphere. The floral patterns are integrated and cohesive, supporting the requested motif structure. It is suitable for an adult bridal celebration. The treatment is mostly calm, with gentle viewpoi",
+        "subject_score": 0.75,
+        "atmosphere_score": 0.9,
+        "motif_score": 0.9,
+        "treatment_score": 0.7,
+        "audience_fit_score": 0.85,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "observed_evidence": [
+          "Large pink flowers with detailed petals and stamen",
+          "Swirling floral and leaf motifs in soft pink and cream",
+          "Butterfly silhouette in bottom left",
+          "Calm, empty pink background"
+        ],
+        "background_usability_score": 0.85,
+        "vision_human_signal": false,
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false,
+        "failure_category": null,
+        "compound_fidelity_failure": false,
+        "hard_dimensions": [
+          "subject_score",
+          "audience_fit_score"
+        ],
+        "hard_failed_dimensions": [],
+        "failed_dimensions": [],
+        "human_description": "",
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.75,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.7,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1102,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        }
+      },
+      "brief_fidelity": {
+        "checked": true,
+        "subject_score": 0.75,
+        "atmosphere_score": 0.9,
+        "motif_score": 0.9,
+        "treatment_score": 0.7,
+        "audience_fit_score": 0.85,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "decision": "pass",
+        "reason": "The background features an elegant pink floral motif that creates a soft, feminine, and celebratory atmosphere. The floral patterns are integrated and cohesive, supporting the requested motif structure. It is suitable for an adult bridal celebration. The treatment is mostly calm, with gentle viewpoi",
+        "observed_evidence": [
+          "Large pink flowers with detailed petals and stamen",
+          "Swirling floral and leaf motifs in soft pink and cream",
+          "Butterfly silhouette in bottom left",
+          "Calm, empty pink background"
+        ],
+        "model": "minicpm-v4.5:latest",
+        "failure_category": null,
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "failed_dimensions": [],
+        "background_usability_score": 0.85,
+        "vision_human_signal": false,
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.75,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.7,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1102,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        },
+        "hard_dimensions": [
+          "subject_score",
+          "audience_fit_score"
+        ],
+        "hard_failed_dimensions": [],
+        "compound_fidelity_failure": false,
+        "human_description": "",
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false
+      },
+      "raw_palette_error": null,
+      "raw_validation": {
+        "validation": {
+          "decision": "accepted",
+          "failure_category": null,
+          "diagnostic_findings": [],
+          "palette": {
+            "mode": "dominant",
+            "palette_match_ratio": 0.9972478693181818,
+            "off_palette_ratio": 0.002752130681818182,
+            "primary_ratio": 0.9691495028409091,
+            "secondary_ratio": 0.008611505681818182,
+            "requested_chromatic_ratio": 0.9777610085227273,
+            "neutral_ratio": 0.019486860795454544,
+            "unrequested_chromatic_ratio": 0.002752130681818182,
+            "largest_unrequested_region_ratio": 0.001065340909090909,
+            "primary_secondary_ratio": 112.54123711340206,
+            "secondary_presence": true,
+            "dominance_relationship": "FLEXIBLE",
+            "dominance_relationship_passed": true
+          },
+          "text": {
+            "ocr_diagnostics": {
+              "attempted": [
+                "original",
+                "contrast",
+                "threshold",
+                "inverted"
+              ],
+              "completed_variants": [
+                "original",
+                "contrast",
+                "threshold",
+                "inverted"
+              ],
+              "timed_out_variants": [],
+              "failed_variants": [],
+              "failure_reasons": {},
+              "completed_variant_count": 4,
+              "required_variant_count": 2,
+              "enhancement_variant_failures": [],
+              "evidence_sufficiency": true,
+              "decision": "complete"
+            },
+            "detected": false,
+            "tokens": [
+              "ZAIN"
+            ],
+            "confirmed_tokens": [],
+            "text_lines": [],
+            "text_area_ratio": 0
+          },
+          "human": {
+            "detected": false,
+            "strong_signals": [],
+            "weak_signals": [
+              {
+                "source": "frontal_face",
+                "bbox": [
+                  460,
+                  5,
+                  73,
+                  73
+                ],
+                "weight": null,
+                "area_ratio": 0.005267309273785425,
+                "body_overlap": false,
+                "independent_face_overlap": false,
+                "confirmed": false,
+                "confirmation": "isolated cascade pattern"
+              }
+            ],
+            "decision_reason": "isolated ambiguous detector evidence"
+          },
+          "quality": {
+            "structural_edge_density": 0.30543101917613635,
+            "macro_structure_score": 1.0,
+            "coarse_edge_density": 0.22758838383838384,
+            "high_pass_mean": 4.223625659942627,
+            "boilerplate_score": 0.0,
+            "title_panel_score": 0.0,
+            "fine_line_pair_ratio": 0.0,
+            "macro_form_balance": 1.0,
+            "scene_density": {
+              "requested_density": "moderate",
+              "overall_edge_density": 0.1593,
+              "tile_edge_fractions": [
+                0.209,
+                0.2,
+                0.2651,
+                0.1455,
+                0.23,
+                0.2104,
+                0.0884,
+                0.0391,
+                0.071,
+                0.2393,
+                0.075,
+                0.1929,
+                0.0232,
+                0.1062,
+                0.1567,
+                0.2964
+              ],
+              "occupied_tile_fraction": 0.6875,
+              "quiet_tile_fraction": 0.125,
+              "safe_region_density": 0.1533,
+              "edge_distribution_balance": 0.0811,
+              "macro_form_balance": 1.0,
+              "normalized_measurements": {
+                "density_pressure": 0.7219
+              },
+              "thresholds_used": {
+                "density_pressure": 0.85,
+                "max_quiet_tile_fraction": 0.0625,
+                "occupied_tile_edge_fraction": 0.1,
+                "quiet_tile_edge_fraction": 0.04
+              },
+              "density_rule_triggered": null,
+              "decision": "PASS"
+            },
+            "global_density_decision": "PASS",
+            "explicit_safe_regions": {
+              "decision": "PASS",
+              "regions": {}
+            },
+            "explicit_safe_region_decision": "PASS",
+            "raster_score": 0.0
+          }
+        },
+        "output_path": "/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-c.download.part",
+        "sha256": "86e28218aaefca67a0ca1107e1cc48ccce7269b0cc69d258784525c6469e57a2",
+        "width": 832,
+        "height": 1216,
+        "person_detection_count": 0,
+        "face_detection_count": 1,
+        "profile_detection_count": 0,
+        "upper_body_detection_count": 0,
+        "visual_quality_checked": true,
+        "visual_quality_passed": true,
+        "macro_structure_score": 1.0,
+        "coarse_edge_density": 0.22758838383838384,
+        "edge_density": 0.4630792791193182,
+        "structural_edge_density": 0.30543101917613635,
+        "horizontal_edge_density": 0.12321333451704546,
+        "vertical_edge_density": 0.10167347301136363,
+        "directional_edge_dominance": 0.26607395336576484,
+        "full_span_line_ratio": 0.0,
+        "fine_horizontal_pair_ratio": 0.0,
+        "fine_vertical_pair_ratio": 0.0,
+        "fine_line_pair_ratio": 0.0,
+        "fine_line_mean_delta": 2.692683696746826,
+        "image_entropy": 6.395028591156006,
+        "largest_quantised_colour_ratio": 0.30561967329545453,
+        "laplacian_variance": 477.1642761230469,
+        "highpass_mean": 4.223625659942627,
+        "coherent_edge_ratio": 0.92064,
+        "center_structural_edge_density": 0.29303207142500876,
+        "outer_structural_edge_density": 0.31537169592514097,
+        "center_local_contrast": 25.661819458007812,
+        "title_structural_edge_density": 0.5761612620508326,
+        "title_local_contrast": 41.39170455932617,
+        "programme_structural_edge_density": 0.22921982735219068,
+        "programme_local_contrast": 16.51781463623047,
+        "center_to_outer_edge_ratio": 0.9291641425379058,
+        "center_safe_region_passed": false,
+        "title_panel_score": 0.0,
+        "boilerplate_score": 0.0,
+        "largest_flat_rectangle_ratio": 0.0,
+        "flat_rectangular_coverage_ratio": 0.0,
+        "flat_coverage_ratio": 0.3424627130681818,
+        "long_axis_separator_ratio": 0.0,
+        "large_flat_rectangle_count": 0.0,
+        "centre_edge_density": 0.12162642045454546,
+        "perimeter_edge_density": 0.15832149621212122,
+        "centre_flat_ratio": 0.35795454545454547,
+        "bilateral_symmetry": 0.12456446886062622,
+        "irregular_frame_score": 0.0,
+        "lower_centre_edge_density": 0.04952330508474576,
+        "quiet_centre_evidence": 0.08296516567544605,
+        "scene_density": {
+          "requested_density": "moderate",
+          "overall_edge_density": 0.1593,
+          "tile_edge_fractions": [
+            0.209,
+            0.2,
+            0.2651,
+            0.1455,
+            0.23,
+            0.2104,
+            0.0884,
+            0.0391,
+            0.071,
+            0.2393,
+            0.075,
+            0.1929,
+            0.0232,
+            0.1062,
+            0.1567,
+            0.2964
+          ],
+          "occupied_tile_fraction": 0.6875,
+          "quiet_tile_fraction": 0.125,
+          "safe_region_density": 0.1533,
+          "edge_distribution_balance": 0.0811,
+          "macro_form_balance": 1.0,
+          "normalized_measurements": {
+            "density_pressure": 0.7219
+          },
+          "thresholds_used": {
+            "density_pressure": 0.85,
+            "max_quiet_tile_fraction": 0.0625,
+            "occupied_tile_edge_fraction": 0.1,
+            "quiet_tile_edge_fraction": 0.04
+          },
+          "density_rule_triggered": null,
+          "decision": "PASS"
+        },
+        "global_density_decision": "PASS",
+        "macro_form_balance": 1.0,
+        "explicit_safe_regions": {
+          "decision": "PASS",
+          "regions": {}
+        },
+        "explicit_safe_region_decision": "PASS",
+        "palette_checked": true,
+        "palette_mode": "dominant-requested-colour-families",
+        "incidental_neutral_ratio": 0.019486860795454544,
+        "largest_incidental_neutral_region_ratio": 0.00341796875,
+        "palette_match_ratio": 0.9972478693181818,
+        "off_palette_ratio": 0.002752130681818182,
+        "perceptual_in_family_ratio": 0.9972478693181818,
+        "unrelated_hue_ratio": 0.002752130681818182,
+        "requested_chromatic_ratio": 0.9777610085227273,
+        "structural_neutral_ratio": 0.019486860795454544,
+        "unrequested_chromatic_ratio": 0.002752130681818182,
+        "largest_unrequested_region_ratio": 0.001065340909090909,
+        "primary_ratio": 0.9691495028409091,
+        "secondary_ratio": 0.008611505681818182,
+        "requested_palette_mode": "dominant",
+        "tonal_derivative_ratio": 0.9400301846590909,
+        "primary_presence_ratio": 0.9691495028409091,
+        "secondary_presence_ratio": 0.008611505681818182,
+        "primary_family": "pink",
+        "secondary_family": "cream",
+        "primary_role": "primary",
+        "primary_secondary_ratio": 112.54123711340206,
+        "secondary_presence": true,
+        "dominance_relationship": "FLEXIBLE",
+        "dominance_relationship_passed": true,
+        "secondary_role": "secondary",
+        "secondary_minimum": 0.008,
+        "palette_relationship_source": "default",
+        "palette_role_warning": null,
+        "primary_colour_ratio": 0.9691495028409091,
+        "secondary_colour_ratio": 0.008611505681818182,
+        "requested_colour_counts": {
+          "pink": 21833,
+          "cream": 194
+        },
+        "requested_colour_family_counts": {
+          "pink": 21833,
+          "cream": 194
+        },
+        "accepted_tonal_breakdown": {
+          "pink": 0.9691051136363636,
+          "cream": 0.008611505681818182,
+          "rose gold": 4.438920454545455e-05
+        },
+        "unrequested_colour_breakdown": {
+          "champagne": 0.009144176136363636,
+          "beige": 0.006702769886363636,
+          "cream": 0.0028852982954545455,
+          "burgundy": 0.0014204545454545455,
+          "red": 0.0009765625,
+          "white": 0.00039950284090909093,
+          "rose gold": 0.0003107244318181818,
+          "peach": 0.00022194602272727272,
+          "maroon": 0.00013316761363636363,
+          "brown": 4.438920454545455e-05
+        },
+        "primary_descriptor": {
+          "raw": "pink",
+          "base_name": "pink",
+          "family_members": [
+            "hot pink",
+            "pink",
+            "rose"
+          ],
+          "modifiers": [],
+          "modifier_only": false
+        },
+        "secondary_descriptor": {
+          "raw": "cream",
+          "base_name": "cream",
+          "family_members": [
+            "cream"
+          ],
+          "modifiers": [],
+          "modifier_only": false
+        },
+        "ocr_tokens": [],
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 4,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        },
+        "ocr_validation_attempts": 1,
+        "ocr_validation_sha256": "86e28218aaefca67a0ca1107e1cc48ccce7269b0cc69d258784525c6469e57a2",
+        "human_detection": {
+          "people": [],
+          "evidence": [
+            {
+              "source": "frontal_face",
+              "bbox": [
+                460,
+                5,
+                73,
+                73
+              ],
+              "weight": null,
+              "area_ratio": 0.005267309273785425,
+              "body_overlap": false,
+              "independent_face_overlap": false,
+              "confirmed": false,
+              "confirmation": "isolated cascade pattern"
+            }
+          ],
+          "strong_signals": [],
+          "weak_signals": [
+            {
+              "source": "frontal_face",
+              "bbox": [
+                460,
+                5,
+                73,
+                73
+              ],
+              "weight": null,
+              "area_ratio": 0.005267309273785425,
+              "body_overlap": false,
+              "independent_face_overlap": false,
+              "confirmed": false,
+              "confirmation": "isolated cascade pattern"
+            }
+          ],
+          "overlaps": [],
+          "people_weights": [],
+          "faces": [
+            [
+              460,
+              5,
+              73,
+              73
+            ]
+          ],
+          "profiles": [],
+          "upper_bodies": [],
+          "strong_upper_body_signal": false,
+          "ambiguous_face_signal": true,
+          "detected": false,
+          "human_detection_confidence": "low",
+          "human_detection_reason": "isolated detector patterns without independent confirmation",
+          "largest_detection_area_ratio": 0.005267309273785425,
+          "classical_human_signal": false,
+          "vision_human_signal": false,
+          "combined_human_decision": false,
+          "decision_reason": "isolated ambiguous detector evidence"
+        },
+        "all_failure_categories": []
+      },
+      "raw_subject_adherence": null,
+      "palette_recovery": {
+        "eligible": false,
+        "attempted": false,
+        "source_off_palette_ratio": null,
+        "result": "not_attempted",
+        "failure_reason": null,
+        "normalized_off_palette_ratio": null,
+        "edge_geometry_similarity": null,
+        "structural_detail_preserved": null
+      }
+    }
+  ]
+}

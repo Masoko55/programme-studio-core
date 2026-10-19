@@ -31,6 +31,72 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_inconsistent_literal_claim_retries_then_only_literal_dimension_is_unavailable(self):
+        brief = {"primary_visual_subject": "layered abstract marks",
+                 "motif_literalization_policy": "motif_only",
+                 "visual_semantics": {"motif_descriptors": ["curved line pattern"]}}
+        scores = {"subject_score": .95, "motif_score": .92,
+                  "unrequested_literal_object_visible": True}
+        result, _ = self._assess(brief, scores)
+        self.assertEqual(result["subject_score"], .95)
+        self.assertEqual(result["motif_score"], .92)
+        self.assertEqual(result["literal_object_dimension_availability"], "UNAVAILABLE")
+        self.assertEqual(result["vision_debug"]["assessment_attempts"], 2)
+        self.assertNotEqual(result["decision"], "pass")
+        self.assertNotEqual(result["decision"], "UNREQUESTED_LITERAL_OBJECT")
+        self.assertFalse(hard_fidelity_failure(result))
+        valid, _ = self._assess(brief, {**scores, "unrequested_literal_object_visible": False})
+        self.assertEqual(valid["decision"], "pass")
+        self.assertEqual(valid["literal_object_dimension_availability"], "PASS")
+
+    def test_requested_literal_subject_is_not_unauthorized_motif_object(self):
+        for subject, visible in (("flowers in a garden", "flowers"),
+                                 ("foliage in a landscape", "foliage")):
+            with self.subTest(subject=subject):
+                brief = {"primary_visual_subject": subject,
+                         "authorized_literal_subject": subject,
+                         "motif_literalization_policy": "motif_only",
+                         "visual_semantics": {"motif_descriptors": ["repeating organic pattern"]}}
+                result, _ = self._assess(brief, {
+                    "subject_score": .95, "motif_score": .91,
+                    "unrequested_literal_object_visible": True,
+                    "unrequested_literal_object_evidence": {
+                        "object": visible, "location": "upper left",
+                        "why_unrequested": "claimed to originate only from the motif"}})
+                self.assertNotEqual(result["decision"], "UNREQUESTED_LITERAL_OBJECT")
+                self.assertEqual(result["subject_score"], .95)
+
+    def test_inspiration_word_does_not_authorize_its_literal_source_object(self):
+        brief = {"primary_visual_subject": "bird-inspired abstract geometry",
+                 "authorized_literal_subject": "",
+                 "motif_literalization_policy": "motif_only"}
+        result, _ = self._assess(brief, {
+            "subject_score": .95, "unrequested_literal_object_visible": True,
+            "unrequested_literal_object_evidence": {
+                "object": "bird", "location": "upper left",
+                "why_unrequested": "literal source of the pattern, absent from requested subject"}})
+        self.assertEqual(result["decision"], "UNREQUESTED_LITERAL_OBJECT")
+
+    def test_inconsistent_literal_claim_recovers_on_second_answer(self):
+        brief = {"primary_visual_subject": "abstract forms",
+                 "motif_literalization_policy": "motif_only"}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "candidate.png"
+            Image.new("RGB", (32, 32), "white").save(path)
+            def response(value):
+                result = Mock(status_code=200, headers={"content-type": "application/json"})
+                result.json.return_value = {"message": {"content": json.dumps(value)}}
+                return result
+            scores = {"subject_score": .95, "observed_evidence": ["abstract forms"]}
+            with patch("app.services.subject_adherence.httpx.post", side_effect=[
+                response({**scores, "unrequested_literal_object_visible": True}),
+                response({**scores, "unrequested_literal_object_visible": False})]) as send:
+                result = assess_subject_adherence(path, brief, model="minicpm-v4.5:latest")
+        self.assertEqual(send.call_count, 2)
+        self.assertIn("Recheck unrequested_literal_object_visible",
+                      send.call_args.kwargs["json"]["messages"][0]["content"])
+        self.assertEqual(result["decision"], "pass")
+
     def test_inferred_audience_mood_is_diagnostic_but_explicit_hard_audience_rejects(self):
         brief = {"primary_visual_subject": "layered abstract landscape",
                  "audience_context": "families", "age_group": "children",
@@ -179,10 +245,14 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
         )
         self.assertTrue(result["checked"])
         self.assertNotEqual(result["decision"], "unavailable")
+        self.assertEqual(result["literal_object_dimension_availability"], "NOT_REQUIRED")
 
     def test_unrequested_literal_objects_fail_policy_without_changing_subject_score(self):
         scores = {"subject_score": .95, "motif_score": .95,
-                  "unrequested_literal_object_visible": True}
+                  "unrequested_literal_object_visible": True,
+                  "unrequested_literal_object_evidence": {
+                      "object": "bird", "location": "upper left",
+                      "why_unrequested": "literal object introduced from motif, absent from requested subject"}}
         for motif in ("feather-like strokes", "repeating scale texture"):
             brief = {"primary_visual_subject": "abstract layered marks",
                      "visual_semantics": {"motif_descriptors": [motif]},

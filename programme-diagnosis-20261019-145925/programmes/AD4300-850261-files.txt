@@ -1,0 +1,8 @@
+REFERENCE=AD4300-850261
+
+2026-10-19 14:50:24.6680368210 22503 /home/ntlhari/NerdCode/programme-studio/data/programmes/AD4300-850261/prompts.json
+2026-10-19 14:50:24.6740367350 7660 /home/ntlhari/NerdCode/programme-studio/data/programmes/AD4300-850261/brief.json
+2026-10-19 14:50:24.6770366910 146 /home/ntlhari/NerdCode/programme-studio/data/programmes/AD4300-850261/probe-source.json
+2026-10-19 14:50:53.1546369190 1378778 /home/ntlhari/NerdCode/programme-studio/data/programmes/AD4300-850261/backgrounds/sd-3-5-medium/image-c.attempt-01.rejected.png
+2026-10-19 14:51:11.5323906200 1133419 /home/ntlhari/NerdCode/programme-studio/data/programmes/AD4300-850261/backgrounds/sd-3-5-medium/image-c.png
+2026-10-19 14:51:20.3562754990 189251 /home/ntlhari/NerdCode/programme-studio/data/programmes/AD4300-850261/backgrounds/sd-3-5-medium/image-c.json

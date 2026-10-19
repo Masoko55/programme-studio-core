@@ -158,4 +158,5 @@ def assess_explicit_safe_regions(density: dict, strategies: dict[str, str],
                          "region_source": "layout_guidance" if bounds else "strategy_fallback"}
     return {"decision": ("FAIL" if any(region["decision"] == "FAIL" for region in regions.values()) else
                          "BORDERLINE" if any(region["decision"] == "BORDERLINE" for region in regions.values()) else "PASS"),
+            "evaluation_status": "EVALUATED" if regions else "NOT_EVALUATED",
             "regions": regions}

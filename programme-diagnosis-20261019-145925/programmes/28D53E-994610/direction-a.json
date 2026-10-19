@@ -1,0 +1,33 @@
+{
+  "composition_strategy": "Create a composition where lush natural foliage dominates, presenting a panoramic view of a botanical garden from a low angle, emphasizing the height and density of the foliage. Use the central band of the image to highlight the most vibrant and varied foliage, while the edges of the frame are used for quieter, more subtle elements that still contribute to the cohesive botanical garden atmosphere.",
+  "focal_strategy": "Place the focal point on a particularly vibrant and lush section of the botanical garden, featuring a variety of leaf textures and colors. This focal area should capture the essence of the botanical garden, drawing the eye with its rich green hues and elegant cream accents.",
+  "depth_strategy": "Achieve a sense of depth by layering foliage from the foreground to the background, with the most detailed and vibrant foliage in the foreground and a softer, more blurred foliage in the background, creating an immersive natural landscape.",
+  "border_or_perimeter_strategy": "The perimeter of the image will be treated with a subtle blend of foliage edges, ensuring that the botanical garden atmosphere is consistent throughout the entire frame, with no abrupt transitions or empty spaces.",
+  "title_safe_region_strategy": "Create a safe-space for the title by positioning a slightly lighter area of foliage along the top third of the image, ensuring that the text will be clearly visible against the green background.",
+  "programme_safe_region_strategy": "Designate a safe-space for the programme information by incorporating a subtle, uniform area near the bottom of the image, ensuring it contrasts well with the green foliage while maintaining the botanical garden aesthetic.",
+  "direction_id": "A",
+  "role": "Visual background for a garden celebration event",
+  "positive_prompt": "Create an immersive botanical garden background for a garden celebration event, The scene should feature lush natural foliage in a natural landscape composition, with a warm, elegant, and peaceful atmosphere, Use a green and cream palette, with green dominating the main surfaces, The composition should emphasize the lushness and density of the foliage, with a panoramic view from a low angle, placing the focal point on a vibrant section of foliage, A green, cream palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: Use only the supplied visual motifs and treatment, Clarified visual language: motifs: lush natural foliage, motif structure: The motif of lush natural foliage should be consistent throughout the scene, creating a cohesive and immersive botanical garden atmosphere, atmosphere: warm, peaceful, composition: natural landscape, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+  "negative_prompt": "Do not include unrelated generic imagery, crowded center, readable text, people, characters, or any urban or industrial settings. Avoid bright or harsh lighting and ensure that no logos or headshots are present., person, human, human figure, man, woman, child, face, portrait, silhouette, body, head, hands, arms, legs, clothing, mannequin, character, fictional character, hero, superhero, masked character, mascot, costume, costumed figure, humanoid, text, typography, lettering, words, letters, numbers, writing, calligraphy, signature, logo, watermark, signage, unrequested chromatic design colours, colour drift, unrelated hues, large neutral areas that displace the requested colours, unrelated generic imagery, crowded centre",
+  "title_suggestions": [
+    "Botanical Garden Celebration",
+    "Garden of Serenity"
+  ],
+  "short_design_rationale": "This composition focuses on creating an immersive and visually appealing botanical garden atmosphere for a garden celebration event. The use of lush natural foliage, green and cream palette, and a natural landscape composition ensures that the event background aligns perfectly with the event theme, offering a warm, elegant, and peaceful setting.",
+  "layout_guidance": {
+    "title_zone": {
+      "x": 0.1,
+      "y": 0.08,
+      "width": 0.8,
+      "height": 0.12
+    },
+    "programme_zone": {
+      "x": 0.1,
+      "y": 0.47,
+      "width": 0.8,
+      "height": 0.4
+    },
+    "headshot_zone": null,
+    "logo_zone": null
+  }
+}

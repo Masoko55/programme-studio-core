@@ -1,0 +1,35 @@
+{
+  "composition_strategy": "Create a composition featuring a frontal view of dense foliage, with a strong focus on a left-side cluster of leaves and stems. The foliage will spill outwards towards the right, creating an asymmetrical balance. Use receding planes to imply depth, with the most detailed and vibrant foliage in the foreground gradually softening towards the background. The overall shape aims for a dynamic, asymmetric cluster within the frame.",
+  "focal_strategy": "Position the focal point on the upper-left cluster of foliage, highlighting intricate leaf details, subtle colour variations and delicate textures. This area should draw the eye with its vibrant green hues and carefully crafted highlights, contrasting slightly with the softer, more muted tones of the surrounding foliage.",
+  "depth_strategy": "Achieve a sense of depth through a receding plane strategy. Foreground foliage will be highly detailed and sharply focused, while subsequent layers will become progressively softer and more blurred, creating an illusion of depth and distance within the botanical garden setting.",
+  "border_or_perimeter_strategy": "The perimeter of the image will be open, allowing the foliage to visually 'breathe' and extend beyond the boundaries of the frame, enhancing the feeling of an immersive natural environment. Avoid hard edges or abrupt transitions; instead, allow the foliage to subtly fade or blur towards the edges.",
+  "title_safe_region_strategy": "Create a clear, uncluttered title safe area along the top third of the image, utilizing a lighter tonal variation within the foliage. This will ensure legibility of any overlaid text without disrupting the botanical garden atmosphere.",
+  "programme_safe_region_strategy": "Designate a programme safe-space along the bottom right edge of the image, employing a subtle shift in tonal value or texture within the foliage to differentiate it from the primary background. Maintain the overall botanical theme while providing a clear contrast for overlaid information.",
+  "direction_id": "B",
+  "role": "Immersive Botanical Vista",
+  "positive_prompt": "lush green foliage, soft natural light filtering through leaves, botanical garden atmosphere, vibrant cream accents, detailed organic forms, gentle shadows, peaceful and elegant ambiance, immersive natural landscape, A green, cream palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: Use only the supplied visual motifs and treatment, Clarified visual language: motifs: lush natural foliage, motif structure: The motif of lush natural foliage should be consistent throughout the scene, creating a cohesive and immersive botanical garden atmosphere, atmosphere: warm, elegant, peaceful, composition: natural landscape, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+  "negative_prompt": "urban settings, industrial elements, harsh lighting, artificial colours, people, characters, readable text, logos, geometric shapes, sharp edges, overcrowding, symmetry., person, human, human figure, man, woman, child, face, portrait, silhouette, body, head, hands, arms, legs, clothing, mannequin, character, fictional character, hero, superhero, masked character, mascot, costume, costumed figure, humanoid, text, typography, lettering, words, letters, numbers, writing, calligraphy, signature, logo, watermark, signage, unrequested chromatic design colours, colour drift, unrelated hues, large neutral areas that displace the requested colours, unrelated generic imagery, crowded centre",
+  "title_suggestions": [
+    "Botanical Bloom",
+    "Garden Sanctuary",
+    "Emerald Embrace",
+    "Verdant Vista"
+  ],
+  "short_design_rationale": "This direction offers a dynamic and immersive botanical experience, departing from the panoramic layered approach of Direction A. The asymmetrical composition and frontal viewpoint, combined with receding depth and an open perimeter, provide a unique visual perspective while maintaining the warm, elegant and peaceful atmosphere of the event.",
+  "layout_guidance": {
+    "title_zone": {
+      "x": 0.1,
+      "y": 0.08,
+      "width": 0.8,
+      "height": 0.12
+    },
+    "programme_zone": {
+      "x": 0.1,
+      "y": 0.47,
+      "width": 0.8,
+      "height": 0.4
+    },
+    "headshot_zone": null,
+    "logo_zone": null
+  }
+}

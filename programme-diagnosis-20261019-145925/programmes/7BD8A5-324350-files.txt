@@ -1,0 +1,9 @@
+REFERENCE=7BD8A5-324350
+
+2026-10-19 13:56:18.0961713750 19064 /home/ntlhari/NerdCode/programme-studio/data/programmes/7BD8A5-324350/prompts.json
+2026-10-19 13:56:18.1001713770 6538 /home/ntlhari/NerdCode/programme-studio/data/programmes/7BD8A5-324350/brief.json
+2026-10-19 13:56:18.1011713780 146 /home/ntlhari/NerdCode/programme-studio/data/programmes/7BD8A5-324350/probe-source.json
+2026-10-19 13:56:49.8441901850 1755432 /home/ntlhari/NerdCode/programme-studio/data/programmes/7BD8A5-324350/backgrounds/sd-3-5-medium/image-c.attempt-01.rejected.png
+2026-10-19 13:57:20.5282109330 1908176 /home/ntlhari/NerdCode/programme-studio/data/programmes/7BD8A5-324350/backgrounds/sd-3-5-medium/image-c.attempt-02.rejected.png
+2026-10-19 13:57:38.2172239850 1675436 /home/ntlhari/NerdCode/programme-studio/data/programmes/7BD8A5-324350/backgrounds/sd-3-5-medium/image-c.png
+2026-10-19 13:57:56.2942381120 258946 /home/ntlhari/NerdCode/programme-studio/data/programmes/7BD8A5-324350/backgrounds/sd-3-5-medium/image-c.json

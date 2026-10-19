@@ -1,0 +1,120 @@
+{
+  "session_id": "d9a5f3569e424e988b6effd9d3614c8b",
+  "status": "generated",
+  "answers": {
+    "event_type": "Garden celebration",
+    "theme": "Botanical garden",
+    "age_group": "Adults",
+    "primary_colour": "green",
+    "secondary_colour": "cream",
+    "creative_description": "A warm, elegant and peaceful garden celebration surrounded by lush natural foliage.",
+    "background_inspiration": "A layered botanical garden with leafy branches, organic plant forms, winding garden depth and natural foliage.",
+    "theme_reference_treatment": "Use leaves, stems, organic branching, layered foliage and natural garden depth with green as the dominant colour and cream as a soft supporting tone.",
+    "event_date": "2026-12-20",
+    "start_time": "15:00",
+    "title_preference": "Garden Celebration",
+    "venue": "Botanical Hall",
+    "timezone": "Africa/Johannesburg",
+    "programme": [
+      {
+        "time": "15:00",
+        "title": "Welcome",
+        "description": null
+      },
+      {
+        "time": "16:00",
+        "title": "Garden Reception",
+        "description": null
+      }
+    ],
+    "output_language": "en",
+    "accessibility_preferences": [
+      "high contrast",
+      "clear readable programme text"
+    ],
+    "asset_type": "none",
+    "asset_placement": null,
+    "headshot_shape": null,
+    "rights_and_consent_confirmed": null
+  },
+  "clarification_questions": [],
+  "creative_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "Garden celebration",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "outdoor setting",
+      "natural elements",
+      "lush foliage"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Botanical garden",
+    "reference_detected": false,
+    "reference_name": null,
+    "reference_type": "none",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "Create a background for a garden celebration with a botanical garden theme, featuring lush natural foliage, green as the dominant color, and cream as a soft supporting tone. The setting should evoke a warm, elegant, and peaceful atmosphere.",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "warm",
+        "elegant",
+        "peaceful"
+      ],
+      "audience_descriptors": [
+        "adults"
+      ],
+      "motif_descriptors": [
+        "leaves",
+        "stems",
+        "organic branching",
+        "layered foliage"
+      ],
+      "motif_structure_description": "The motifs should be interconnected through the use of organic branching and layered foliage, creating a cohesive and natural environment.",
+      "lighting_descriptors": [
+        "soft natural light"
+      ],
+      "material_descriptors": [
+        "natural materials"
+      ],
+      "texture_descriptors": [
+        "organic textures"
+      ],
+      "incompatible_treatments": [
+        "urban or industrial settings",
+        "bright or harsh lighting"
+      ],
+      "scene_family": "organic",
+      "composition_affinities": [
+        "natural elements",
+        "lush foliage"
+      ]
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SEMANTIC_INFERENCE",
+      "material_descriptors": "SEMANTIC_INFERENCE",
+      "texture_descriptors": "SEMANTIC_INFERENCE",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SEMANTIC_INFERENCE",
+      "composition_affinities": "SEMANTIC_INFERENCE"
+    },
+    "semantic_confidence": {},
+    "generation_constraints": [
+      "dominant color: green",
+      "secondary color: cream",
+      "no recognizable fictional characters or brands",
+      "no direct depiction of people or text",
+      "background only",
+      "no people",
+      "no characters",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "assets": {},
+  "reference_number": "CF6522-621470"
+}

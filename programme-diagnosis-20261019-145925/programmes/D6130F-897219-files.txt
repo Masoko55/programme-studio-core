@@ -1,0 +1,7 @@
+REFERENCE=D6130F-897219
+
+2026-10-19 13:51:24.7581604880 19064 /home/ntlhari/NerdCode/programme-studio/data/programmes/D6130F-897219/prompts.json
+2026-10-19 13:51:24.7641604850 6538 /home/ntlhari/NerdCode/programme-studio/data/programmes/D6130F-897219/brief.json
+2026-10-19 13:51:24.7651604840 139 /home/ntlhari/NerdCode/programme-studio/data/programmes/D6130F-897219/probe-source.json
+2026-10-19 13:51:31.4501567130 2222813 /home/ntlhari/NerdCode/programme-studio/data/programmes/D6130F-897219/backgrounds/flux-2/image-c.png
+2026-10-19 13:51:58.0151438960 136796 /home/ntlhari/NerdCode/programme-studio/data/programmes/D6130F-897219/backgrounds/flux-2/image-c.json

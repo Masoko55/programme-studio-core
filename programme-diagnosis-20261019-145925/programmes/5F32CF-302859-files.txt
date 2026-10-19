@@ -1,0 +1,15 @@
+REFERENCE=5F32CF-302859
+
+2026-10-19 14:26:20.9999096420 21435 /home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/prompts.json
+2026-10-19 14:26:21.0089097290 6723 /home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/brief.json
+2026-10-19 14:26:21.0109097490 146 /home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/probe-source.json
+2026-10-19 14:27:14.1744125310 2208290 /home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-01.rejected.png
+2026-10-19 14:28:45.6292284560 2479497 /home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-02.rejected.png
+2026-10-19 14:30:11.0179420720 2379064 /home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-03.rejected.png
+2026-10-19 14:30:50.1882559220 2139566 /home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-04.rejected.png
+2026-10-19 14:32:15.7679158420 2620110 /home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-05.rejected.png
+2026-10-19 14:32:55.6732127030 2142918 /home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-06.rejected.png
+2026-10-19 14:33:37.9745206280 2166031 /home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-07.rejected.png
+2026-10-19 14:34:21.7758327140 2239307 /home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-08.rejected.png
+2026-10-19 14:35:52.6254605200 2540110 /home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-09.rejected.png
+2026-10-19 14:35:52.6604607570 587673 /home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.json

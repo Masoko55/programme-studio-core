@@ -1,0 +1,115 @@
+{
+  "session_id": "f964e5aa77354171adc9e847a36dbc4e",
+  "status": "generated",
+  "answers": {
+    "event_type": "Children birthday party",
+    "theme": "Superhero city adventure",
+    "age_group": "Children aged 7 to 10",
+    "primary_colour": "royal blue",
+    "secondary_colour": "red",
+    "creative_description": "A joyful, playful and high-energy superhero-inspired birthday environment for children.",
+    "background_inspiration": "A stylized comic-book city skyline with angular architecture, layered urban depth and energetic movement.",
+    "theme_reference_treatment": "Use connected web-inspired geometry with radial strands and curved cross-links, bold comic-style architecture and dynamic movement. It may feel inspired by a web-slinging superhero theme but must not depict Spider-Man, any recognizable superhero, costume, mask, face or character.",
+    "event_date": "2026-12-05",
+    "start_time": "14:00",
+    "title_preference": "Kabelo's Superhero Birthday",
+    "venue": "Sunrise Family Hall",
+    "timezone": "Africa/Johannesburg",
+    "programme": [
+      {
+        "time": "14:00",
+        "title": "Welcome",
+        "description": null
+      },
+      {
+        "time": "15:00",
+        "title": "Games",
+        "description": null
+      },
+      {
+        "time": "16:00",
+        "title": "Cake",
+        "description": null
+      }
+    ],
+    "output_language": "en",
+    "accessibility_preferences": [
+      "high contrast",
+      "clear readable programme text"
+    ],
+    "asset_type": "none",
+    "asset_placement": null,
+    "headshot_shape": null,
+    "rights_and_consent_confirmed": null
+  },
+  "clarification_questions": [],
+  "creative_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "Children birthday party",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "Decorations and activities tailored for children",
+      "Bright and playful colors"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Superhero city adventure",
+    "reference_detected": true,
+    "reference_name": "Superhero theme",
+    "reference_type": "franchise",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "Create a stylized comic-book city skyline with angular architecture, layered urban depth, and dynamic movement. Use connected web-inspired geometry with radial strands and curved cross-links, bold comic-style architecture, and dynamic movement. Ensure the design is abstract and does not depict any recognizable superheroes, costumes, masks, faces, or characters.",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "joyful, playful, high-energy"
+      ],
+      "audience_descriptors": [
+        "Children aged 7 to 10"
+      ],
+      "motif_descriptors": [
+        "Web-inspired geometry"
+      ],
+      "motif_structure_description": "Radial strands and curved cross-links that connect and repeat throughout the design",
+      "lighting_descriptors": [
+        "Bright and dynamic"
+      ],
+      "material_descriptors": [
+        "Stylized comic-book materials"
+      ],
+      "texture_descriptors": [
+        "Smooth and sleek"
+      ],
+      "incompatible_treatments": [
+        "Direct depictions of recognizable superheroes, costumes, masks, faces, or characters"
+      ],
+      "scene_family": "architectural-interior",
+      "composition_affinities": [
+        "Dynamic and energetic compositions"
+      ]
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SEMANTIC_INFERENCE",
+      "material_descriptors": "SEMANTIC_INFERENCE",
+      "texture_descriptors": "SEMANTIC_INFERENCE",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SEMANTIC_INFERENCE",
+      "composition_affinities": "SEMANTIC_INFERENCE"
+    },
+    "semantic_confidence": {},
+    "generation_constraints": [
+      "Abstract visual language",
+      "No direct depictions of recognizable superheroes, costumes, masks, faces, or characters",
+      "background only",
+      "no people",
+      "no characters",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "assets": {},
+  "reference_number": "43B0B3-023947"
+}

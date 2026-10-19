@@ -1,0 +1,7 @@
+REFERENCE=A409E1-608032
+
+2026-10-19 14:49:24.1959640490 22503 /home/ntlhari/NerdCode/programme-studio/data/programmes/A409E1-608032/prompts.json
+2026-10-19 14:49:24.1999639840 7660 /home/ntlhari/NerdCode/programme-studio/data/programmes/A409E1-608032/brief.json
+2026-10-19 14:49:24.2009639670 146 /home/ntlhari/NerdCode/programme-studio/data/programmes/A409E1-608032/probe-source.json
+2026-10-19 14:49:46.7636050170 1317191 /home/ntlhari/NerdCode/programme-studio/data/programmes/A409E1-608032/backgrounds/sd-3-5-medium/image-a.png
+2026-10-19 14:49:56.5804537590 121698 /home/ntlhari/NerdCode/programme-studio/data/programmes/A409E1-608032/backgrounds/sd-3-5-medium/image-a.json

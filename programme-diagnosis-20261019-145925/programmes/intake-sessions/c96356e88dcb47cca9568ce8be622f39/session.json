@@ -1,0 +1,114 @@
+{
+  "session_id": "c96356e88dcb47cca9568ce8be622f39",
+  "status": "generated",
+  "answers": {
+    "event_type": "Corporate conference",
+    "theme": "Modern technology forum",
+    "age_group": "Adults",
+    "primary_colour": "navy",
+    "secondary_colour": "white",
+    "creative_description": "A professional, confident and modern technology conference with a clean premium atmosphere.",
+    "background_inspiration": "A clean contemporary technology hall with layered architectural panels, subtle connected geometry and professional spatial depth.",
+    "theme_reference_treatment": "Use restrained architectural technology cues, subtle connected geometry and clean professional forms without turning the scene into science-fiction concept art.",
+    "event_date": "2026-12-21",
+    "start_time": "09:00",
+    "title_preference": "Technology Forum",
+    "venue": "Innovation Centre",
+    "timezone": "Africa/Johannesburg",
+    "programme": [
+      {
+        "time": "09:00",
+        "title": "Opening",
+        "description": null
+      },
+      {
+        "time": "10:00",
+        "title": "Keynote",
+        "description": null
+      },
+      {
+        "time": "11:30",
+        "title": "Panel",
+        "description": null
+      }
+    ],
+    "output_language": "en",
+    "accessibility_preferences": [
+      "high contrast",
+      "clear readable programme text"
+    ],
+    "asset_type": "none",
+    "asset_placement": null,
+    "headshot_shape": null,
+    "rights_and_consent_confirmed": null
+  },
+  "clarification_questions": [],
+  "creative_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "Corporate conference",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "Professional attire, formal setting, presentation screens, conference hall layout"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Modern technology forum",
+    "reference_detected": false,
+    "reference_name": null,
+    "reference_type": "none",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "Generate a clean, contemporary technology hall with layered architectural panels, subtle connected geometry, and professional spatial depth. Ensure the atmosphere is premium and modern, reflecting the theme of a technology forum.",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "Professional, modern, premium"
+      ],
+      "audience_descriptors": [
+        "Adults"
+      ],
+      "motif_descriptors": [
+        "Layered architectural panels, subtle connected geometry"
+      ],
+      "motif_structure_description": "The motif of layered architectural panels and subtle connected geometry should be visibly connected through repetition and layering to create a cohesive and professional environment.",
+      "lighting_descriptors": [
+        "Subtle, professional lighting"
+      ],
+      "material_descriptors": [
+        "Modern, sleek materials"
+      ],
+      "texture_descriptors": [
+        "Smooth, polished textures"
+      ],
+      "incompatible_treatments": [
+        "Science-fiction concept art, overly decorative or cluttered designs"
+      ],
+      "scene_family": "architectural-interior",
+      "composition_affinities": [
+        "Symmetrical, balanced compositions"
+      ]
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SEMANTIC_INFERENCE",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SEMANTIC_INFERENCE",
+      "material_descriptors": "SEMANTIC_INFERENCE",
+      "texture_descriptors": "SEMANTIC_INFERENCE",
+      "incompatible_treatments": "SEMANTIC_INFERENCE",
+      "scene_family": "SEMANTIC_INFERENCE",
+      "composition_affinities": "SEMANTIC_INFERENCE"
+    },
+    "semantic_confidence": {},
+    "generation_constraints": [
+      "High contrast",
+      "Clear readable programme text",
+      "background only",
+      "no people",
+      "no characters",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "assets": {},
+  "reference_number": "FD4232-121165"
+}

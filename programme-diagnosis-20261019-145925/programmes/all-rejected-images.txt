@@ -1,0 +1,475 @@
+
+--- 766C26-216262 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-a.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-a.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-a.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-a.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-a.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-a.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-a.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-a.attempt-09.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-b.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-b.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-b.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-b.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-b.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-b.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-b.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-b.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-c.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-c.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-c.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-c.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-c.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-c.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-c.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/flux-2/image-c.attempt-09.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-a.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-a.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-a.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-a.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-a.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-a.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-a.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-a.attempt-09.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-b.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-b.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-b.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-b.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-c.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-c.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-c.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-c.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-c.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-c.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sd-3-5-medium/image-c.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-a.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-a.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-a.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-a.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-a.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-a.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-a.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-a.attempt-09.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-b.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-b.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-b.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-c.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-c.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-c.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-c.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-c.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-c.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-c.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/766C26-216262/backgrounds/sdxl-1-0/image-c.attempt-09.rejected.png
+
+--- 22F1AC-978962 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-a.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-a.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-a.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-a.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-a.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-a.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-a.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-a.attempt-09.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-b.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-b.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-b.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-b.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-b.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-b.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-b.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-b.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-b.attempt-09.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-c.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-c.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-c.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-c.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-c.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-c.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-c.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/flux-2/image-c.attempt-09.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-a.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-b.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-b.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-b.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sd-3-5-medium/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-a.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-a.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-a.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-a.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-a.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-a.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-a.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-a.attempt-09.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-b.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-b.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-b.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-b.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-b.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-b.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-b.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-b.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-b.attempt-09.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-c.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-c.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-c.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-c.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-c.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-c.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-c.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/22F1AC-978962/backgrounds/sdxl-1-0/image-c.attempt-09.rejected.png
+
+--- CC9A13-522500 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/flux-2/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/flux-2/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sd-3-5-medium/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sd-3-5-medium/image-b.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sd-3-5-medium/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-a.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-a.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-a.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-a.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-a.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-a.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-a.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC9A13-522500/backgrounds/sdxl-1-0/image-a.attempt-09.rejected.png
+
+--- 28D53E-994610 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/flux-2/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/flux-2/image-c.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/flux-2/image-c.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/flux-2/image-c.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/flux-2/image-c.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/flux-2/image-c.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/flux-2/image-c.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/flux-2/image-c.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/flux-2/image-c.attempt-09.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-a.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-a.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-a.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-a.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-a.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-a.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-a.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-a.attempt-09.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-b.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-b.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-b.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-b.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-b.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-b.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-b.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-b.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-b.attempt-09.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-c.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-c.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-c.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-c.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-c.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-c.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-c.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sd-3-5-medium/image-c.attempt-09.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-a.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-a.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-a.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-a.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-a.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-a.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-a.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-a.attempt-09.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-b.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-b.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-b.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-b.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-b.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-b.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-b.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-b.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-b.attempt-09.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-c.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-c.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-c.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-c.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-c.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-c.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-c.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/28D53E-994610/backgrounds/sdxl-1-0/image-c.attempt-09.rejected.png
+
+--- intake-sessions ---
+
+--- D37C33-644795 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/D37C33-644795/backgrounds/flux-2/image-c.attempt-01.rejected.png
+
+--- 222DE9-982440 ---
+
+--- 913935-763095 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/913935-763095/backgrounds/flux-2/image-b.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/913935-763095/backgrounds/flux-2/image-b.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/913935-763095/backgrounds/flux-2/image-b.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/913935-763095/backgrounds/flux-2/image-b.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/913935-763095/backgrounds/flux-2/image-b.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/913935-763095/backgrounds/flux-2/image-b.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/913935-763095/backgrounds/flux-2/image-b.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/913935-763095/backgrounds/flux-2/image-b.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/913935-763095/backgrounds/flux-2/image-b.attempt-09.rejected.png
+
+--- EAF1F1-598752 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/EAF1F1-598752/backgrounds/flux-2/image-c.attempt-09.rejected.png
+
+--- 789921-536003 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/789921-536003/backgrounds/sdxl-1-0/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/789921-536003/backgrounds/sdxl-1-0/image-a.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/789921-536003/backgrounds/sdxl-1-0/image-a.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/789921-536003/backgrounds/sdxl-1-0/image-a.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/789921-536003/backgrounds/sdxl-1-0/image-a.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/789921-536003/backgrounds/sdxl-1-0/image-a.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/789921-536003/backgrounds/sdxl-1-0/image-a.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/789921-536003/backgrounds/sdxl-1-0/image-a.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/789921-536003/backgrounds/sdxl-1-0/image-a.attempt-09.rejected.png
+
+--- 382724-021090 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/382724-021090/backgrounds/sdxl-1-0/image-b.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/382724-021090/backgrounds/sdxl-1-0/image-b.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/382724-021090/backgrounds/sdxl-1-0/image-b.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/382724-021090/backgrounds/sdxl-1-0/image-b.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/382724-021090/backgrounds/sdxl-1-0/image-b.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/382724-021090/backgrounds/sdxl-1-0/image-b.attempt-06.rejected.png
+
+--- 570F03-722937 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/570F03-722937/backgrounds/sdxl-1-0/image-c.attempt-01.rejected.png
+
+--- 9FD906-587838 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/9FD906-587838/backgrounds/sd-3-5-medium/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/9FD906-587838/backgrounds/sd-3-5-medium/image-a.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/9FD906-587838/backgrounds/sd-3-5-medium/image-a.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/9FD906-587838/backgrounds/sd-3-5-medium/image-a.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/9FD906-587838/backgrounds/sd-3-5-medium/image-a.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/9FD906-587838/backgrounds/sd-3-5-medium/image-a.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/9FD906-587838/backgrounds/sd-3-5-medium/image-a.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/9FD906-587838/backgrounds/sd-3-5-medium/image-a.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/9FD906-587838/backgrounds/sd-3-5-medium/image-a.attempt-09.rejected.png
+
+--- 7C89D3-822590 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/7C89D3-822590/backgrounds/sd-3-5-medium/image-b.attempt-09.rejected.png
+
+--- 77C725-048219 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/77C725-048219/backgrounds/sd-3-5-medium/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/77C725-048219/backgrounds/sd-3-5-medium/image-c.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/77C725-048219/backgrounds/sd-3-5-medium/image-c.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/77C725-048219/backgrounds/sd-3-5-medium/image-c.attempt-04.rejected.png
+
+--- CC6E9C-144420 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC6E9C-144420/backgrounds/flux-2/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC6E9C-144420/backgrounds/flux-2/image-a.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC6E9C-144420/backgrounds/flux-2/image-a.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC6E9C-144420/backgrounds/flux-2/image-a.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC6E9C-144420/backgrounds/flux-2/image-a.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC6E9C-144420/backgrounds/flux-2/image-a.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC6E9C-144420/backgrounds/flux-2/image-a.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC6E9C-144420/backgrounds/flux-2/image-a.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/CC6E9C-144420/backgrounds/flux-2/image-a.attempt-09.rejected.png
+
+--- 3D7C17-768444 ---
+
+--- C8A5F5-195433 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C8A5F5-195433/backgrounds/flux-2/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C8A5F5-195433/backgrounds/flux-2/image-c.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C8A5F5-195433/backgrounds/flux-2/image-c.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C8A5F5-195433/backgrounds/flux-2/image-c.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C8A5F5-195433/backgrounds/flux-2/image-c.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C8A5F5-195433/backgrounds/flux-2/image-c.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C8A5F5-195433/backgrounds/flux-2/image-c.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C8A5F5-195433/backgrounds/flux-2/image-c.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C8A5F5-195433/backgrounds/flux-2/image-c.attempt-09.rejected.png
+
+--- 8A0449-439194 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/8A0449-439194/backgrounds/sdxl-1-0/image-a.attempt-09.rejected.png
+
+--- FB4270-721556 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/FB4270-721556/backgrounds/sdxl-1-0/image-b.attempt-01.rejected.png
+
+--- A0D728-525342 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/A0D728-525342/backgrounds/sdxl-1-0/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/A0D728-525342/backgrounds/sdxl-1-0/image-c.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/A0D728-525342/backgrounds/sdxl-1-0/image-c.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/A0D728-525342/backgrounds/sdxl-1-0/image-c.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/A0D728-525342/backgrounds/sdxl-1-0/image-c.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/A0D728-525342/backgrounds/sdxl-1-0/image-c.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/A0D728-525342/backgrounds/sdxl-1-0/image-c.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/A0D728-525342/backgrounds/sdxl-1-0/image-c.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/A0D728-525342/backgrounds/sdxl-1-0/image-c.attempt-09.rejected.png
+
+--- 22F008-377097 ---
+
+--- A2687A-316851 ---
+
+--- EFDF69-194931 ---
+
+--- 0A416C-627468 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/0A416C-627468/backgrounds/flux-2/image-a.attempt-01.rejected.png
+
+--- 0336F3-428644 ---
+
+--- D6130F-897219 ---
+
+--- 83CD6A-630508 ---
+
+--- D4A480-192318 ---
+
+--- 275405-132127 ---
+
+--- C10F3C-936996 ---
+
+--- B2EA56-388940 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/B2EA56-388940/backgrounds/sd-3-5-medium/image-b.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/B2EA56-388940/backgrounds/sd-3-5-medium/image-b.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/B2EA56-388940/backgrounds/sd-3-5-medium/image-b.attempt-03.rejected.png
+
+--- 7BD8A5-324350 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/7BD8A5-324350/backgrounds/sd-3-5-medium/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/7BD8A5-324350/backgrounds/sd-3-5-medium/image-c.attempt-02.rejected.png
+
+--- 5B9165-153627 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5B9165-153627/backgrounds/flux-2/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5B9165-153627/backgrounds/flux-2/image-a.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5B9165-153627/backgrounds/flux-2/image-a.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5B9165-153627/backgrounds/flux-2/image-a.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5B9165-153627/backgrounds/flux-2/image-a.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5B9165-153627/backgrounds/flux-2/image-a.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5B9165-153627/backgrounds/flux-2/image-a.attempt-07.rejected.png
+
+--- 5F7453-745686 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F7453-745686/backgrounds/flux-2/image-b.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F7453-745686/backgrounds/flux-2/image-b.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F7453-745686/backgrounds/flux-2/image-b.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F7453-745686/backgrounds/flux-2/image-b.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F7453-745686/backgrounds/flux-2/image-b.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F7453-745686/backgrounds/flux-2/image-b.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F7453-745686/backgrounds/flux-2/image-b.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F7453-745686/backgrounds/flux-2/image-b.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F7453-745686/backgrounds/flux-2/image-b.attempt-09.rejected.png
+
+--- FD98E8-138845 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/FD98E8-138845/backgrounds/flux-2/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/FD98E8-138845/backgrounds/flux-2/image-c.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/FD98E8-138845/backgrounds/flux-2/image-c.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/FD98E8-138845/backgrounds/flux-2/image-c.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/FD98E8-138845/backgrounds/flux-2/image-c.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/FD98E8-138845/backgrounds/flux-2/image-c.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/FD98E8-138845/backgrounds/flux-2/image-c.attempt-07.rejected.png
+
+--- DEDE55-288221 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/DEDE55-288221/backgrounds/sdxl-1-0/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/DEDE55-288221/backgrounds/sdxl-1-0/image-a.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/DEDE55-288221/backgrounds/sdxl-1-0/image-a.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/DEDE55-288221/backgrounds/sdxl-1-0/image-a.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/DEDE55-288221/backgrounds/sdxl-1-0/image-a.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/DEDE55-288221/backgrounds/sdxl-1-0/image-a.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/DEDE55-288221/backgrounds/sdxl-1-0/image-a.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/DEDE55-288221/backgrounds/sdxl-1-0/image-a.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/DEDE55-288221/backgrounds/sdxl-1-0/image-a.attempt-09.rejected.png
+
+--- C7622A-004223 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C7622A-004223/backgrounds/sdxl-1-0/image-b.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C7622A-004223/backgrounds/sdxl-1-0/image-b.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C7622A-004223/backgrounds/sdxl-1-0/image-b.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C7622A-004223/backgrounds/sdxl-1-0/image-b.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C7622A-004223/backgrounds/sdxl-1-0/image-b.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C7622A-004223/backgrounds/sdxl-1-0/image-b.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C7622A-004223/backgrounds/sdxl-1-0/image-b.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C7622A-004223/backgrounds/sdxl-1-0/image-b.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/C7622A-004223/backgrounds/sdxl-1-0/image-b.attempt-09.rejected.png
+
+--- 384F5F-724618 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/384F5F-724618/backgrounds/sdxl-1-0/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/384F5F-724618/backgrounds/sdxl-1-0/image-c.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/384F5F-724618/backgrounds/sdxl-1-0/image-c.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/384F5F-724618/backgrounds/sdxl-1-0/image-c.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/384F5F-724618/backgrounds/sdxl-1-0/image-c.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/384F5F-724618/backgrounds/sdxl-1-0/image-c.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/384F5F-724618/backgrounds/sdxl-1-0/image-c.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/384F5F-724618/backgrounds/sdxl-1-0/image-c.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/384F5F-724618/backgrounds/sdxl-1-0/image-c.attempt-09.rejected.png
+
+--- 5F32CF-302859 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-05.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-06.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-07.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-08.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/5F32CF-302859/backgrounds/sd-3-5-medium/image-a.attempt-09.rejected.png
+
+--- A28273-263407 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/A28273-263407/backgrounds/sd-3-5-medium/image-b.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/A28273-263407/backgrounds/sd-3-5-medium/image-b.attempt-02.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/A28273-263407/backgrounds/sd-3-5-medium/image-b.attempt-03.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/A28273-263407/backgrounds/sd-3-5-medium/image-b.attempt-04.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/A28273-263407/backgrounds/sd-3-5-medium/image-b.attempt-05.rejected.png
+
+--- 0BB686-825578 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/0BB686-825578/backgrounds/sd-3-5-medium/image-c.attempt-01.rejected.png
+/home/ntlhari/NerdCode/programme-studio/data/programmes/0BB686-825578/backgrounds/sd-3-5-medium/image-c.attempt-02.rejected.png
+
+--- 501566-162774 ---
+
+--- BCF887-815168 ---
+
+--- 6798D3-857086 ---
+
+--- 521982-575200 ---
+
+--- 87F7B5-472084 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/87F7B5-472084/backgrounds/sdxl-1-0/image-b.attempt-01.rejected.png
+
+--- 311AC2-030933 ---
+
+--- A409E1-608032 ---
+
+--- CE608F-358065 ---
+
+--- AD4300-850261 ---
+/home/ntlhari/NerdCode/programme-studio/data/programmes/AD4300-850261/backgrounds/sd-3-5-medium/image-c.attempt-01.rejected.png

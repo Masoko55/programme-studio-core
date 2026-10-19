@@ -1,0 +1,3120 @@
+{
+  "reference_number": "28D53E-994610",
+  "source_reference": "28D53E-994610",
+  "source_prompt_manifest": {
+    "prompt_schema_version": "1.0",
+    "semantic_contract_version": "1.0",
+    "creative_direction_version": "2.0",
+    "prompt_generation_sha256": "98f9f52fdff48ad62f391af87c225635c30bd6bbee909fe4cebf42d1e6fa55d0",
+    "hash_verified": true,
+    "freshness_status": "CURRENT",
+    "created_at": "2026-10-19T09:11:59.184720Z"
+  },
+  "engine_id": "flux-2",
+  "direction_id": "A",
+  "seed": 7586879105619108790,
+  "workflow_sha256": "b9498819101ec4a334d00570f581b5b1a18b62a4e80b1900a9ebb77ac9b9c2a9",
+  "effective_workflow": {
+    "workflow_sha256": "b9498819101ec4a334d00570f581b5b1a18b62a4e80b1900a9ebb77ac9b9c2a9"
+  },
+  "request_id": "acf52600-0fcb-43bd-a40c-c5a276efd84c",
+  "status": "complete",
+  "attempt_count": 1,
+  "positive_prompt": "Visual subject: Botanical garden. Mood: warm, elegant, peaceful. Audience: adults. Motif: The motif of lush natural foliage should be consistent throughout. Motif as abstract pattern structure; no unrequested literal objects Palette: green, cream; green clearly visible in substantial design elements; cream clearly visible; primary visual mass, secondary accents; neutrals support. Composition: panoramic viewpoint, low viewpoint, horizontal flow, layered depth. Lighting: soft natural light. Continuous background artwork with integrated calm visual space. The visible chromatic design is restricted to the requested families: green, cream. Tonal variations within those families are allowed. Lighting changes brightness while preserving those families. Keep green distinctly green, avoiding mint green, turquoise, aqua, teal, lime, cyan drift; Keep cream distinctly cream, avoiding champagne, gold, beige, yellow, orange, brown drift. Environment-only composition; uninterrupted visual surfaces. Purely pictorial background surfaces; no words, letters, numbers, logos, signage or watermarks.",
+  "workflow": {
+    "1": {
+      "class_type": "UNETLoader",
+      "inputs": {
+        "unet_name": "flux-2-klein-4b.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    "2": {
+      "class_type": "CLIPLoader",
+      "inputs": {
+        "clip_name": "qwen_3_4b.safetensors",
+        "type": "flux2",
+        "device": "default"
+      }
+    },
+    "3": {
+      "class_type": "VAELoader",
+      "inputs": {
+        "vae_name": "flux2-vae.safetensors"
+      }
+    },
+    "4": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "Visual subject: Botanical garden. Mood: warm, elegant, peaceful. Audience: adults. Motif: The motif of lush natural foliage should be consistent throughout. Motif as abstract pattern structure; no unrequested literal objects Palette: green, cream; green clearly visible in substantial design elements; cream clearly visible; primary visual mass, secondary accents; neutrals support. Composition: panoramic viewpoint, low viewpoint, horizontal flow, layered depth. Lighting: soft natural light. Continuous background artwork with integrated calm visual space. The visible chromatic design is restricted to the requested families: green, cream. Tonal variations within those families are allowed. Lighting changes brightness while preserving those families. Keep green distinctly green, avoiding mint green, turquoise, aqua, teal, lime, cyan drift; Keep cream distinctly cream, avoiding champagne, gold, beige, yellow, orange, brown drift. Environment-only composition; uninterrupted visual surfaces. Purely pictorial background surfaces; no words, letters, numbers, logos, signage or watermarks.",
+        "clip": [
+          "2",
+          0
+        ]
+      }
+    },
+    "5": {
+      "class_type": "FluxGuidance",
+      "inputs": {
+        "guidance": 1.0,
+        "conditioning": [
+          "4",
+          0
+        ]
+      }
+    },
+    "6": {
+      "class_type": "BasicGuider",
+      "inputs": {
+        "model": [
+          "1",
+          0
+        ],
+        "conditioning": [
+          "5",
+          0
+        ]
+      }
+    },
+    "7": {
+      "class_type": "RandomNoise",
+      "inputs": {
+        "noise_seed": 7586879105619108790
+      }
+    },
+    "8": {
+      "class_type": "KSamplerSelect",
+      "inputs": {
+        "sampler_name": "euler"
+      }
+    },
+    "9": {
+      "class_type": "Flux2Scheduler",
+      "inputs": {
+        "steps": 4,
+        "width": 1024,
+        "height": 1408
+      }
+    },
+    "10": {
+      "class_type": "EmptyFlux2LatentImage",
+      "inputs": {
+        "width": 1024,
+        "height": 1408,
+        "batch_size": 1
+      }
+    },
+    "11": {
+      "class_type": "SamplerCustomAdvanced",
+      "inputs": {
+        "noise": [
+          "7",
+          0
+        ],
+        "guider": [
+          "6",
+          0
+        ],
+        "sampler": [
+          "8",
+          0
+        ],
+        "sigmas": [
+          "9",
+          0
+        ],
+        "latent_image": [
+          "10",
+          0
+        ]
+      }
+    },
+    "12": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "11",
+          0
+        ],
+        "vae": [
+          "3",
+          0
+        ]
+      }
+    },
+    "13": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "filename_prefix": "programme-studio/28D53E-994610/flux-2/a",
+        "images": [
+          "12",
+          0
+        ]
+      }
+    }
+  },
+  "spec_sha256": "c8da7040979f19d0b878703ad973f57b25419f024f44a9f9e19b9dc43fa227fa",
+  "SPEC_SHA256": "c8da7040979f19d0b878703ad973f57b25419f024f44a9f9e19b9dc43fa227fa",
+  "ENGINE": "flux-2",
+  "DIRECTION": "A",
+  "DIRECTION_ROLE": "Visual background for a garden celebration event",
+  "ATTEMPT": 1,
+  "RETRY_STAGE": "normal",
+  "SEED": 7586879105619108790,
+  "candidate_spec_sha256": "c8da7040979f19d0b878703ad973f57b25419f024f44a9f9e19b9dc43fa227fa",
+  "semantic_contract_version": "1.0",
+  "semantic_contract_sha256": "61d7e52acfc5ab975c34dae1c703c80edb72991ff9a1a80b6260fa1bcf1ef30e",
+  "semantic_consistency": {
+    "conflicts": [],
+    "requires_clarification": false,
+    "valid": true
+  },
+  "semantic_completeness": {
+    "fields": {
+      "atmosphere_descriptors": "PRESENT",
+      "audience_descriptors": "PRESENT",
+      "composition_affinities": "PRESENT",
+      "material_descriptors": "PRESENT",
+      "motif_descriptors": "PRESENT",
+      "motif_structure_description": "PRESENT",
+      "palette": "PRESENT",
+      "primary_visual_subject": "PRESENT"
+    },
+    "ready": true,
+    "score": 1.0
+  },
+  "vision_model": "minicpm-v4.5:latest",
+  "ocr_config": {
+    "timeout_seconds": 7.0
+  },
+  "direction_role": "Visual background for a garden celebration event",
+  "creative_concept": "Create an immersive botanical garden background for a garden celebration event, The scene should feature lush natural foliage in a natural landscape composition, with a warm, elegant, and peaceful atmosphere, Use a green and cream palette, with green dominating the main surfaces, The composition should emphasize the lushness and density of the foliage, with a panoramic view from a low angle, placing the focal point on a vibrant section of foliage, A green, cream palette, requested colours dominate with natural tonal variation, Requested colours control the main surfaces and visual mass, Small bounded achromatic shadows, highlights and fine structural linework may support the design, Third chromatic design colour presence remains negligible, Visual subject: Use only the supplied visual motifs and treatment, Clarified visual language: motifs: lush natural foliage, motif structure: The motif of lush natural foliage should be consistent throughout the scene, creating a cohesive and immersive botanical garden atmosphere, atmosphere: warm, peaceful, composition: natural landscape, Original brief-specific composition, coherent visual hierarchy, intentional calm negative space, balanced depth and gentle tonal modelling, Theme references are represented through brief-grounded abstract geometry, patterns, spatial structure, atmosphere and colour relationships, Architecture, environment, materials, textures and lighting are used only when supported by the brief",
+  "visual_anchors": [],
+  "composition_strategy": "Create a composition where lush natural foliage dominates, presenting a panoramic view of a botanical garden from a low angle, emphasizing the height and density of the foliage. Use the central band of the image to highlight the most vibrant and varied foliage, while the edges of the frame are used for quieter, more subtle elements that still contribute to the cohesive botanical garden atmosphere.",
+  "resolved_palette": [
+    {
+      "colour": "green",
+      "role": "primary"
+    },
+    {
+      "colour": "cream",
+      "role": "secondary"
+    }
+  ],
+  "palette_mode": "dominant-requested-colour-families",
+  "requested_primary": "green",
+  "requested_secondary": "cream",
+  "palette_roles": [
+    "primary",
+    "secondary"
+  ],
+  "safe_region_strategy": {
+    "title": "Create a safe-space for the title by positioning a slightly lighter area of foliage along the top third of the image, ensuring that the text will be clearly visible against the green background.",
+    "programme": "Designate a safe-space for the programme information by incorporating a subtle, uniform area near the bottom of the image, ensuring it contrasts well with the green foliage while maintaining the botanical garden aesthetic."
+  },
+  "sampling_profile": null,
+  "sampling_profile_name": null,
+  "sampling_profile_stage": "normal",
+  "sampling_profile_failure_history": {
+    "counts": {},
+    "consecutive_category": "INITIAL",
+    "consecutive_count": 0
+  },
+  "selection_reason": "INITIAL: engine_default",
+  "failure_history": {
+    "counts": {},
+    "consecutive_category": "INITIAL",
+    "consecutive_count": 0
+  },
+  "renderer_recovery_type": "baseline",
+  "generation_mode": "native_text_to_image",
+  "GENERATION_MODE": "native_text_to_image",
+  "TEMPLATE_CONDITIONING_ENABLED": false,
+  "MASKED_DENOISING_ENABLED": false,
+  "TEMPLATE_PATH": null,
+  "template_conditioning": {
+    "enabled": false,
+    "masked_denoising_enabled": false
+  },
+  "negative_prompt": null,
+  "adaptations": [
+    "Negative prompt omitted because the configured FLUX workflow does not expose negative conditioning."
+  ],
+  "retry_stage": "normal",
+  "failure_category": null,
+  "compiled_prompt": {
+    "positive": "Visual subject: Botanical garden. Mood: warm, elegant, peaceful. Audience: adults. Motif: The motif of lush natural foliage should be consistent throughout. Motif as abstract pattern structure; no unrequested literal objects Palette: green, cream; green clearly visible in substantial design elements; cream clearly visible; primary visual mass, secondary accents; neutrals support. Composition: panoramic viewpoint, low viewpoint, horizontal flow, layered depth. Lighting: soft natural light. Continuous background artwork with integrated calm visual space. The visible chromatic design is restricted to the requested families: green, cream. Tonal variations within those families are allowed. Lighting changes brightness while preserving those families. Keep green distinctly green, avoiding mint green, turquoise, aqua, teal, lime, cyan drift; Keep cream distinctly cream, avoiding champagne, gold, beige, yellow, orange, brown drift. Environment-only composition; uninterrupted visual surfaces. Purely pictorial background surfaces; no words, letters, numbers, logos, signage or watermarks.",
+    "negative": "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels",
+    "clip_l": "Visual subject: Botanical garden.",
+    "clip_g": "Visual subject: Botanical garden. Mood: warm, elegant, peaceful. Audience: adults. Motif: The motif of lush natural foliage should be consistent throughout. Motif as abstract pattern structure; no unrequested literal objects Palette: green, cream; green clearly visible in substantial design elements; cream clearly visible; primary visual mass, secondary accents; neutrals support. Composition: panoramic viewpoint, low viewpoint, horizontal flow, layered depth. Lighting: soft natural light.",
+    "t5": null,
+    "negative_prompt_channel_active": false,
+    "negative_semantics_preserved": true,
+    "incompatible_treatments": [
+      "urban or industrial settings",
+      "bright or harsh lighting"
+    ],
+    "semantic_contract_sha256": "61d7e52acfc5ab975c34dae1c703c80edb72991ff9a1a80b6260fa1bcf1ef30e",
+    "conditioning_coverage": {
+      "subject": [
+        "positive",
+        "clip_l",
+        "clip_g"
+      ],
+      "atmosphere": [
+        "positive",
+        "clip_l",
+        "clip_g"
+      ],
+      "audience": [
+        "positive",
+        "clip_l",
+        "clip_g"
+      ],
+      "motif": [
+        "positive",
+        "clip_l",
+        "clip_g"
+      ],
+      "treatment": [],
+      "palette": [
+        "positive",
+        "clip_l",
+        "clip_g"
+      ],
+      "scene_family": [],
+      "incompatible_treatments": []
+    },
+    "engine_capabilities": {
+      "negative_prompt_channel": false,
+      "multi_encoder": false,
+      "long_context_encoder": false,
+      "supports_shift": true
+    },
+    "prompt_budget": {
+      "positive": {
+        "characters": 1094,
+        "approx_tokens": 139,
+        "budget_risk": false
+      },
+      "negative": {
+        "characters": 105,
+        "approx_tokens": 13,
+        "budget_risk": false
+      },
+      "clip_l": {
+        "characters": 33,
+        "approx_tokens": 4,
+        "budget_risk": false
+      },
+      "clip_g": {
+        "characters": 493,
+        "approx_tokens": 63,
+        "budget_risk": false
+      },
+      "t5": {
+        "characters": 0,
+        "approx_tokens": 0,
+        "budget_risk": false
+      }
+    },
+    "truncated": false,
+    "retry_strength_level": "BASE"
+  },
+  "conditioning_coverage": {
+    "subject": [
+      "positive",
+      "clip_l",
+      "clip_g"
+    ],
+    "atmosphere": [
+      "positive",
+      "clip_l",
+      "clip_g"
+    ],
+    "audience": [
+      "positive",
+      "clip_l",
+      "clip_g"
+    ],
+    "motif": [
+      "positive",
+      "clip_l",
+      "clip_g"
+    ],
+    "treatment": [],
+    "palette": [
+      "positive",
+      "clip_l",
+      "clip_g"
+    ],
+    "scene_family": [],
+    "incompatible_treatments": []
+  },
+  "prompt_budget": {
+    "positive": {
+      "characters": 1094,
+      "approx_tokens": 139,
+      "budget_risk": false
+    },
+    "negative": {
+      "characters": 105,
+      "approx_tokens": 13,
+      "budget_risk": false
+    },
+    "clip_l": {
+      "characters": 33,
+      "approx_tokens": 4,
+      "budget_risk": false
+    },
+    "clip_g": {
+      "characters": 493,
+      "approx_tokens": 63,
+      "budget_risk": false
+    },
+    "t5": {
+      "characters": 0,
+      "approx_tokens": 0,
+      "budget_risk": false
+    }
+  },
+  "engine_capabilities": {
+    "negative_prompt_channel": false,
+    "multi_encoder": false,
+    "long_context_encoder": false,
+    "supports_shift": true
+  },
+  "reproducibility_manifest": {
+    "reference": "28D53E-994610",
+    "source_reference": "28D53E-994610",
+    "semantic_contract_version": "1.0",
+    "semantic_contract_sha256": "61d7e52acfc5ab975c34dae1c703c80edb72991ff9a1a80b6260fa1bcf1ef30e",
+    "candidate_spec_sha256": "c8da7040979f19d0b878703ad973f57b25419f024f44a9f9e19b9dc43fa227fa",
+    "engine": "flux-2",
+    "engine_models": [
+      "flux-2-klein-4b.safetensors"
+    ],
+    "workflow_sha256": "b9498819101ec4a334d00570f581b5b1a18b62a4e80b1900a9ebb77ac9b9c2a9",
+    "effective_workflow_values": {
+      "workflow_sha256": "b9498819101ec4a334d00570f581b5b1a18b62a4e80b1900a9ebb77ac9b9c2a9"
+    },
+    "direction": "A",
+    "sampling_profile": null,
+    "sampler_name": "euler",
+    "scheduler": null,
+    "cfg": null,
+    "steps": 4,
+    "shift": null,
+    "width": 1024,
+    "height": 1408,
+    "seed": 7586879105619108790,
+    "compiled_prompt_sha256": {
+      "positive": "96c0b7c5ba74f4841d2552d3b6bd04dbcc225227d375e915fb767fc16934b66a",
+      "negative": "d34ab161dd3bbe951d641f661f381c9c8554f3eb3d5ed283342f2bf361317e4c",
+      "clip_l": "d6e4a4c24c038c1784a13cbc6287e7fe4f1d0ed7b67451bf4b8237eae8f103dd",
+      "clip_g": "197b0516f6e20a67995c6c76f58bd1d55eccd1e3c85c64eec62a60180b23eff9",
+      "t5": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "conditioning_lengths": {
+      "positive": {
+        "characters": 1094,
+        "approx_tokens": 139,
+        "budget_risk": false
+      },
+      "negative": {
+        "characters": 105,
+        "approx_tokens": 13,
+        "budget_risk": false
+      },
+      "clip_l": {
+        "characters": 33,
+        "approx_tokens": 4,
+        "budget_risk": false
+      },
+      "clip_g": {
+        "characters": 493,
+        "approx_tokens": 63,
+        "budget_risk": false
+      },
+      "t5": {
+        "characters": 0,
+        "approx_tokens": 0,
+        "budget_risk": false
+      }
+    },
+    "vision_model": "minicpm-v4.5:latest",
+    "ocr_config": {
+      "timeout_seconds": 7.0
+    },
+    "validator_version": null,
+    "retry_attempt": 1,
+    "retry_stage": "normal",
+    "failure_history": {
+      "counts": {},
+      "consecutive_category": "INITIAL",
+      "consecutive_count": 0
+    },
+    "image_sha256": "d129b6fbc287d3f7996de9bda41b9ffe0735464ec5557e862419b7de3fe7c6ce"
+  },
+  "prompt_id": "32578c88-a55a-4590-93df-6abbe3f88e78",
+  "palette_recovery": {
+    "eligible": false,
+    "attempted": false,
+    "source_off_palette_ratio": null,
+    "result": "not_attempted",
+    "failure_reason": null,
+    "normalized_off_palette_ratio": null,
+    "edge_geometry_similarity": null,
+    "structural_detail_preserved": null
+  },
+  "direction_similarity_score": 0.0,
+  "direction_similarity": 0.0,
+  "direction_similarity_diagnostics": {
+    "similarity": 0.0,
+    "closest_peer": null,
+    "peer_comparisons": []
+  },
+  "subject_adherence": {
+    "checked": true,
+    "score": 0.9,
+    "threshold": 0.55,
+    "subject": "Botanical garden",
+    "anchors": [],
+    "model": "minicpm-v4.5:latest",
+    "decision": "pass",
+    "reason": "The subject aligns with a botanical garden, but the dense foliage and mist create a tropical or jungle-like atmosphere rather than the requested 'lush natural foliage' in a garden setting. The atmosphere is peaceful but leans towards 'exotic' rather than 'warm, elegant, peaceful.' The motif of lush ",
+    "subject_score": 0.9,
+    "atmosphere_score": 0.85,
+    "motif_score": 0.9,
+    "treatment_score": 0.85,
+    "audience_fit_score": 0.8,
+    "thresholds": {
+      "subject_score": 0.55,
+      "atmosphere_score": 0.55,
+      "motif_score": 0.55,
+      "audience_fit_score": 0.55
+    },
+    "observed_evidence": [
+      "Dense tropical foliage (various green leaves, palms, ferns)",
+      "Faint mist or fog in the background",
+      "Pathway (light beige) through the foliage",
+      "Soft, diffused lighting (no harsh shadows)"
+    ],
+    "background_usability_score": 0.8,
+    "vision_human_signal": false,
+    "vision_text_signal": false,
+    "vision_text_evidence": "",
+    "unrequested_literal_object_visible": false,
+    "failure_category": null,
+    "compound_fidelity_failure": false,
+    "hard_dimensions": [
+      "subject_score",
+      "audience_fit_score"
+    ],
+    "hard_failed_dimensions": [],
+    "failed_dimensions": [],
+    "human_description": "",
+    "dimension_availability": {
+      "subject_score": "PASS",
+      "atmosphere_score": "PASS",
+      "motif_score": "PASS",
+      "audience_fit_score": "PASS"
+    },
+    "vision_debug": {
+      "endpoint": "/api/chat",
+      "model": "minicpm-v4.5:latest",
+      "score_parsing": [
+        {
+          "dimension_name": "subject_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.9,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "atmosphere_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.85,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "motif_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.9,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "treatment_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.85,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "audience_fit_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.8,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "background_usability_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.8,
+          "parse_failure_reason": null
+        }
+      ],
+      "thinking_present": false,
+      "thinking_preview_length": 0,
+      "response_length": 1406,
+      "final_source": "message.content",
+      "raw_text_preview": "<omitted>",
+      "assessment_attempts": 1,
+      "http_status": 200,
+      "response_content_type": "application/json; charset=utf-8",
+      "response_shape": [
+        "created_at",
+        "done",
+        "done_reason",
+        "eval_count",
+        "eval_duration",
+        "load_duration",
+        "message",
+        "model",
+        "prompt_eval_count",
+        "prompt_eval_duration",
+        "total_duration"
+      ],
+      "unconfirmed_human_report": false
+    }
+  },
+  "brief_fidelity": {
+    "checked": true,
+    "subject_score": 0.9,
+    "atmosphere_score": 0.85,
+    "motif_score": 0.9,
+    "treatment_score": 0.85,
+    "audience_fit_score": 0.8,
+    "thresholds": {
+      "subject_score": 0.55,
+      "atmosphere_score": 0.55,
+      "motif_score": 0.55,
+      "audience_fit_score": 0.55
+    },
+    "decision": "pass",
+    "reason": "The subject aligns with a botanical garden, but the dense foliage and mist create a tropical or jungle-like atmosphere rather than the requested 'lush natural foliage' in a garden setting. The atmosphere is peaceful but leans towards 'exotic' rather than 'warm, elegant, peaceful.' The motif of lush ",
+    "observed_evidence": [
+      "Dense tropical foliage (various green leaves, palms, ferns)",
+      "Faint mist or fog in the background",
+      "Pathway (light beige) through the foliage",
+      "Soft, diffused lighting (no harsh shadows)"
+    ],
+    "model": "minicpm-v4.5:latest",
+    "failure_category": null,
+    "dimension_availability": {
+      "subject_score": "PASS",
+      "atmosphere_score": "PASS",
+      "motif_score": "PASS",
+      "audience_fit_score": "PASS"
+    },
+    "failed_dimensions": [],
+    "background_usability_score": 0.8,
+    "vision_human_signal": false,
+    "vision_debug": {
+      "endpoint": "/api/chat",
+      "model": "minicpm-v4.5:latest",
+      "score_parsing": [
+        {
+          "dimension_name": "subject_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.9,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "atmosphere_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.85,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "motif_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.9,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "treatment_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.85,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "audience_fit_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.8,
+          "parse_failure_reason": null
+        },
+        {
+          "dimension_name": "background_usability_score",
+          "input_type": "float",
+          "extracted_field": null,
+          "parsed_value": 0.8,
+          "parse_failure_reason": null
+        }
+      ],
+      "thinking_present": false,
+      "thinking_preview_length": 0,
+      "response_length": 1406,
+      "final_source": "message.content",
+      "raw_text_preview": "<omitted>",
+      "assessment_attempts": 1,
+      "http_status": 200,
+      "response_content_type": "application/json; charset=utf-8",
+      "response_shape": [
+        "created_at",
+        "done",
+        "done_reason",
+        "eval_count",
+        "eval_duration",
+        "load_duration",
+        "message",
+        "model",
+        "prompt_eval_count",
+        "prompt_eval_duration",
+        "total_duration"
+      ],
+      "unconfirmed_human_report": false
+    },
+    "hard_dimensions": [
+      "subject_score",
+      "audience_fit_score"
+    ],
+    "hard_failed_dimensions": [],
+    "compound_fidelity_failure": false,
+    "human_description": "",
+    "vision_text_signal": false,
+    "vision_text_evidence": "",
+    "unrequested_literal_object_visible": false
+  },
+  "semantic_dimension_scores": {
+    "subject_score": 0.9,
+    "atmosphere_score": 0.85,
+    "motif_score": 0.9,
+    "treatment_score": 0.85,
+    "audience_fit_score": 0.8,
+    "unrequested_literal_object_visible": false,
+    "unrequested_text_visible": null
+  },
+  "semantic_failed_dimensions": [],
+  "safe_region_retry": {
+    "previous_score": null,
+    "current_score": null,
+    "improved": null
+  },
+  "validation": {
+    "validation": {
+      "decision": "accepted",
+      "failure_category": null,
+      "diagnostic_findings": [
+        "DENSITY_DRIFT"
+      ],
+      "palette": {
+        "mode": "dominant",
+        "palette_match_ratio": 0.9993785511363636,
+        "off_palette_ratio": 0.0006214488636363636,
+        "primary_ratio": 0.4640891335227273,
+        "secondary_ratio": 0.3835227272727273,
+        "requested_chromatic_ratio": 0.8476118607954546,
+        "neutral_ratio": 0.1517666903409091,
+        "unrequested_chromatic_ratio": 0.0006214488636363636,
+        "largest_unrequested_region_ratio": 8.87784090909091e-05,
+        "primary_secondary_ratio": 1.2100694444444444,
+        "secondary_presence": true,
+        "dominance_relationship": "FLEXIBLE",
+        "dominance_relationship_passed": true
+      },
+      "text": {
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 4,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        },
+        "detected": false,
+        "tokens": [
+          "Nery"
+        ],
+        "confirmed_tokens": [],
+        "text_lines": [],
+        "text_area_ratio": 0
+      },
+      "human": {
+        "detected": false,
+        "strong_signals": [],
+        "weak_signals": [
+          {
+            "source": "hog",
+            "bbox": [
+              215,
+              251,
+              76,
+              152
+            ],
+            "weight": 0.5832637366838753,
+            "area_ratio": 0.009693877551020408,
+            "confirmed": false,
+            "confirmation": "insufficient shape or confidence"
+          },
+          {
+            "source": "hog",
+            "bbox": [
+              299,
+              256,
+              76,
+              152
+            ],
+            "weight": 0.6095093726180494,
+            "area_ratio": 0.009693877551020408,
+            "confirmed": false,
+            "confirmation": "insufficient shape or confidence"
+          }
+        ],
+        "decision_reason": "no human evidence"
+      },
+      "quality": {
+        "structural_edge_density": 0.5679931640625,
+        "macro_structure_score": 1.0,
+        "coarse_edge_density": 0.2840909090909091,
+        "high_pass_mean": 11.435883522033691,
+        "boilerplate_score": 0.0,
+        "title_panel_score": 0.0,
+        "fine_line_pair_ratio": 0.0,
+        "macro_form_balance": 1.0,
+        "scene_density": {
+          "requested_density": "moderate",
+          "overall_edge_density": 0.2395,
+          "tile_edge_fractions": [
+            0.1372,
+            0.0757,
+            0.1096,
+            0.2139,
+            0.2712,
+            0.272,
+            0.2139,
+            0.303,
+            0.2798,
+            0.3147,
+            0.2634,
+            0.312,
+            0.27,
+            0.2805,
+            0.262,
+            0.2532
+          ],
+          "occupied_tile_fraction": 0.9375,
+          "quiet_tile_fraction": 0.0,
+          "safe_region_density": 0.266,
+          "edge_distribution_balance": 0.0698,
+          "macro_form_balance": 1.0,
+          "normalized_measurements": {
+            "density_pressure": 0.8719
+          },
+          "thresholds_used": {
+            "density_pressure": 0.85,
+            "max_quiet_tile_fraction": 0.0625,
+            "occupied_tile_edge_fraction": 0.1,
+            "quiet_tile_edge_fraction": 0.04
+          },
+          "density_rule_triggered": "spatial_crowding",
+          "decision": "DENSITY_DRIFT"
+        },
+        "global_density_decision": "DENSITY_DRIFT",
+        "explicit_safe_regions": {
+          "decision": "PASS",
+          "regions": {}
+        },
+        "explicit_safe_region_decision": "PASS",
+        "raster_score": 0.0
+      },
+      "brief_fidelity": {
+        "checked": true,
+        "subject_score": 0.9,
+        "atmosphere_score": 0.85,
+        "motif_score": 0.9,
+        "treatment_score": 0.85,
+        "audience_fit_score": 0.8,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "decision": "pass",
+        "reason": "The subject aligns with a botanical garden, but the dense foliage and mist create a tropical or jungle-like atmosphere rather than the requested 'lush natural foliage' in a garden setting. The atmosphere is peaceful but leans towards 'exotic' rather than 'warm, elegant, peaceful.' The motif of lush ",
+        "observed_evidence": [
+          "Dense tropical foliage (various green leaves, palms, ferns)",
+          "Faint mist or fog in the background",
+          "Pathway (light beige) through the foliage",
+          "Soft, diffused lighting (no harsh shadows)"
+        ],
+        "model": "minicpm-v4.5:latest",
+        "failure_category": null,
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "failed_dimensions": [],
+        "background_usability_score": 0.8,
+        "vision_human_signal": false,
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1406,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        },
+        "hard_dimensions": [
+          "subject_score",
+          "audience_fit_score"
+        ],
+        "hard_failed_dimensions": [],
+        "compound_fidelity_failure": false,
+        "human_description": "",
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false
+      }
+    },
+    "output_path": "/data/programmes/28D53E-994610/backgrounds/flux-2/image-a.download.part",
+    "sha256": "d129b6fbc287d3f7996de9bda41b9ffe0735464ec5557e862419b7de3fe7c6ce",
+    "width": 1024,
+    "height": 1408,
+    "person_detection_count": 0,
+    "face_detection_count": 0,
+    "profile_detection_count": 0,
+    "upper_body_detection_count": 0,
+    "visual_quality_checked": true,
+    "visual_quality_passed": true,
+    "macro_structure_score": 1.0,
+    "coarse_edge_density": 0.2840909090909091,
+    "edge_density": 0.6275301846590909,
+    "structural_edge_density": 0.5679931640625,
+    "horizontal_edge_density": 0.12769664417613635,
+    "vertical_edge_density": 0.1658047762784091,
+    "directional_edge_dominance": 0.26421800947867297,
+    "full_span_line_ratio": 0.0,
+    "fine_horizontal_pair_ratio": 0.0,
+    "fine_vertical_pair_ratio": 0.0,
+    "fine_line_pair_ratio": 0.0,
+    "fine_line_mean_delta": 6.86372184753418,
+    "image_entropy": 7.538155555725098,
+    "largest_quantised_colour_ratio": 0.14345481178977273,
+    "laplacian_variance": 3833.146240234375,
+    "highpass_mean": 11.435883522033691,
+    "coherent_edge_ratio": 0.8568826309570697,
+    "center_structural_edge_density": 0.5840191530749663,
+    "outer_structural_edge_density": 0.5551445595233334,
+    "center_local_contrast": 61.46013641357422,
+    "title_structural_edge_density": 0.16441717791411042,
+    "title_local_contrast": 16.61414337158203,
+    "programme_structural_edge_density": 0.7136109452196102,
+    "programme_local_contrast": 58.31682205200195,
+    "center_to_outer_edge_ratio": 1.052012747051733,
+    "center_safe_region_passed": false,
+    "title_panel_score": 0.0,
+    "boilerplate_score": 0.0,
+    "largest_flat_rectangle_ratio": 0.0,
+    "flat_rectangular_coverage_ratio": 0.0,
+    "flat_coverage_ratio": 0.09983132102272728,
+    "long_axis_separator_ratio": 0.0,
+    "large_flat_rectangle_count": 0.0,
+    "centre_edge_density": 0.49556107954545453,
+    "perimeter_edge_density": 0.3710345643939394,
+    "centre_flat_ratio": 0.054509943181818184,
+    "bilateral_symmetry": 0.8060149550437927,
+    "irregular_frame_score": 0.0,
+    "lower_centre_edge_density": 0.5460805084745762,
+    "quiet_centre_evidence": 0.0,
+    "scene_density": {
+      "requested_density": "moderate",
+      "overall_edge_density": 0.2395,
+      "tile_edge_fractions": [
+        0.1372,
+        0.0757,
+        0.1096,
+        0.2139,
+        0.2712,
+        0.272,
+        0.2139,
+        0.303,
+        0.2798,
+        0.3147,
+        0.2634,
+        0.312,
+        0.27,
+        0.2805,
+        0.262,
+        0.2532
+      ],
+      "occupied_tile_fraction": 0.9375,
+      "quiet_tile_fraction": 0.0,
+      "safe_region_density": 0.266,
+      "edge_distribution_balance": 0.0698,
+      "macro_form_balance": 1.0,
+      "normalized_measurements": {
+        "density_pressure": 0.8719
+      },
+      "thresholds_used": {
+        "density_pressure": 0.85,
+        "max_quiet_tile_fraction": 0.0625,
+        "occupied_tile_edge_fraction": 0.1,
+        "quiet_tile_edge_fraction": 0.04
+      },
+      "density_rule_triggered": "spatial_crowding",
+      "decision": "DENSITY_DRIFT"
+    },
+    "global_density_decision": "DENSITY_DRIFT",
+    "macro_form_balance": 1.0,
+    "explicit_safe_regions": {
+      "decision": "PASS",
+      "regions": {}
+    },
+    "explicit_safe_region_decision": "PASS",
+    "palette_checked": true,
+    "palette_mode": "dominant-requested-colour-families",
+    "incidental_neutral_ratio": 0.1517666903409091,
+    "largest_incidental_neutral_region_ratio": 0.020951704545454544,
+    "palette_match_ratio": 0.9993785511363636,
+    "off_palette_ratio": 0.0006214488636363636,
+    "perceptual_in_family_ratio": 0.9993785511363636,
+    "unrelated_hue_ratio": 0.0006214488636363636,
+    "requested_chromatic_ratio": 0.8476118607954546,
+    "structural_neutral_ratio": 0.1517666903409091,
+    "unrequested_chromatic_ratio": 0.0006214488636363636,
+    "largest_unrequested_region_ratio": 8.87784090909091e-05,
+    "primary_ratio": 0.4640891335227273,
+    "secondary_ratio": 0.3835227272727273,
+    "requested_palette_mode": "dominant",
+    "tonal_derivative_ratio": 0.6097745028409091,
+    "primary_presence_ratio": 0.4640891335227273,
+    "secondary_presence_ratio": 0.3835227272727273,
+    "primary_family": "green",
+    "secondary_family": "cream",
+    "primary_role": "primary",
+    "primary_secondary_ratio": 1.2100694444444444,
+    "secondary_presence": true,
+    "dominance_relationship": "FLEXIBLE",
+    "dominance_relationship_passed": true,
+    "secondary_role": "secondary",
+    "secondary_minimum": 0.008,
+    "palette_relationship_source": "default",
+    "palette_role_warning": null,
+    "primary_colour_ratio": 0.4640891335227273,
+    "secondary_colour_ratio": 0.3835227272727273,
+    "requested_colour_counts": {
+      "green": 10455,
+      "cream": 8640
+    },
+    "requested_colour_family_counts": {
+      "green": 10455,
+      "cream": 8640
+    },
+    "accepted_tonal_breakdown": {
+      "green": 0.462890625,
+      "cream": 0.3835227272727273,
+      "grey": 0.0011541193181818182,
+      "beige": 4.438920454545455e-05
+    },
+    "unrequested_colour_breakdown": {
+      "grey": 0.10085227272727272,
+      "silver": 0.024547230113636364,
+      "beige": 0.016645951704545456,
+      "white": 0.004305752840909091,
+      "brown": 0.0028852982954545455,
+      "charcoal": 0.002752130681818182,
+      "black": 0.00022194602272727272,
+      "cream": 0.0001775568181818182
+    },
+    "primary_descriptor": {
+      "raw": "green",
+      "base_name": "green",
+      "family_members": [
+        "forest green",
+        "green"
+      ],
+      "modifiers": [],
+      "modifier_only": false
+    },
+    "secondary_descriptor": {
+      "raw": "cream",
+      "base_name": "cream",
+      "family_members": [
+        "cream"
+      ],
+      "modifiers": [],
+      "modifier_only": false
+    },
+    "ocr_tokens": [],
+    "ocr_diagnostics": {
+      "attempted": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "completed_variants": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "timed_out_variants": [],
+      "failed_variants": [],
+      "failure_reasons": {},
+      "completed_variant_count": 4,
+      "required_variant_count": 2,
+      "enhancement_variant_failures": [],
+      "evidence_sufficiency": true,
+      "decision": "complete"
+    },
+    "ocr_validation_attempts": 1,
+    "ocr_validation_sha256": "d129b6fbc287d3f7996de9bda41b9ffe0735464ec5557e862419b7de3fe7c6ce",
+    "human_detection": {
+      "people": [],
+      "evidence": [
+        {
+          "source": "hog",
+          "bbox": [
+            215,
+            251,
+            76,
+            152
+          ],
+          "weight": 0.5832637366838753,
+          "area_ratio": 0.009693877551020408,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        },
+        {
+          "source": "hog",
+          "bbox": [
+            299,
+            256,
+            76,
+            152
+          ],
+          "weight": 0.6095093726180494,
+          "area_ratio": 0.009693877551020408,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        }
+      ],
+      "strong_signals": [],
+      "weak_signals": [
+        {
+          "source": "hog",
+          "bbox": [
+            215,
+            251,
+            76,
+            152
+          ],
+          "weight": 0.5832637366838753,
+          "area_ratio": 0.009693877551020408,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        },
+        {
+          "source": "hog",
+          "bbox": [
+            299,
+            256,
+            76,
+            152
+          ],
+          "weight": 0.6095093726180494,
+          "area_ratio": 0.009693877551020408,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        }
+      ],
+      "overlaps": [],
+      "people_weights": [],
+      "faces": [],
+      "profiles": [],
+      "upper_bodies": [],
+      "strong_upper_body_signal": false,
+      "ambiguous_face_signal": false,
+      "detected": false,
+      "human_detection_confidence": "low",
+      "human_detection_reason": "isolated detector patterns without independent confirmation",
+      "largest_detection_area_ratio": 0.009693877551020408,
+      "classical_human_signal": false,
+      "vision_human_signal": false,
+      "combined_human_decision": false,
+      "decision_reason": "no human evidence"
+    },
+    "all_failure_categories": []
+  },
+  "output_path": "/data/programmes/28D53E-994610/backgrounds/flux-2/image-a.png",
+  "sha256": "d129b6fbc287d3f7996de9bda41b9ffe0735464ec5557e862419b7de3fe7c6ce",
+  "width": 1024,
+  "height": 1408,
+  "person_detection_count": 0,
+  "face_detection_count": 0,
+  "profile_detection_count": 0,
+  "upper_body_detection_count": 0,
+  "visual_quality_checked": true,
+  "visual_quality_passed": true,
+  "macro_structure_score": 1.0,
+  "coarse_edge_density": 0.2840909090909091,
+  "edge_density": 0.6275301846590909,
+  "structural_edge_density": 0.5679931640625,
+  "horizontal_edge_density": 0.12769664417613635,
+  "vertical_edge_density": 0.1658047762784091,
+  "directional_edge_dominance": 0.26421800947867297,
+  "full_span_line_ratio": 0.0,
+  "fine_horizontal_pair_ratio": 0.0,
+  "fine_vertical_pair_ratio": 0.0,
+  "fine_line_pair_ratio": 0.0,
+  "fine_line_mean_delta": 6.86372184753418,
+  "image_entropy": 7.538155555725098,
+  "largest_quantised_colour_ratio": 0.14345481178977273,
+  "laplacian_variance": 3833.146240234375,
+  "highpass_mean": 11.435883522033691,
+  "coherent_edge_ratio": 0.8568826309570697,
+  "center_structural_edge_density": 0.5840191530749663,
+  "outer_structural_edge_density": 0.5551445595233334,
+  "center_local_contrast": 61.46013641357422,
+  "title_structural_edge_density": 0.16441717791411042,
+  "title_local_contrast": 16.61414337158203,
+  "programme_structural_edge_density": 0.7136109452196102,
+  "programme_local_contrast": 58.31682205200195,
+  "center_to_outer_edge_ratio": 1.052012747051733,
+  "center_safe_region_passed": false,
+  "title_panel_score": 0.0,
+  "boilerplate_score": 0.0,
+  "largest_flat_rectangle_ratio": 0.0,
+  "flat_rectangular_coverage_ratio": 0.0,
+  "flat_coverage_ratio": 0.09983132102272728,
+  "long_axis_separator_ratio": 0.0,
+  "large_flat_rectangle_count": 0.0,
+  "centre_edge_density": 0.49556107954545453,
+  "perimeter_edge_density": 0.3710345643939394,
+  "centre_flat_ratio": 0.054509943181818184,
+  "bilateral_symmetry": 0.8060149550437927,
+  "irregular_frame_score": 0.0,
+  "lower_centre_edge_density": 0.5460805084745762,
+  "quiet_centre_evidence": 0.0,
+  "scene_density": {
+    "requested_density": "moderate",
+    "overall_edge_density": 0.2395,
+    "tile_edge_fractions": [
+      0.1372,
+      0.0757,
+      0.1096,
+      0.2139,
+      0.2712,
+      0.272,
+      0.2139,
+      0.303,
+      0.2798,
+      0.3147,
+      0.2634,
+      0.312,
+      0.27,
+      0.2805,
+      0.262,
+      0.2532
+    ],
+    "occupied_tile_fraction": 0.9375,
+    "quiet_tile_fraction": 0.0,
+    "safe_region_density": 0.266,
+    "edge_distribution_balance": 0.0698,
+    "macro_form_balance": 1.0,
+    "normalized_measurements": {
+      "density_pressure": 0.8719
+    },
+    "thresholds_used": {
+      "density_pressure": 0.85,
+      "max_quiet_tile_fraction": 0.0625,
+      "occupied_tile_edge_fraction": 0.1,
+      "quiet_tile_edge_fraction": 0.04
+    },
+    "density_rule_triggered": "spatial_crowding",
+    "decision": "DENSITY_DRIFT"
+  },
+  "global_density_decision": "DENSITY_DRIFT",
+  "macro_form_balance": 1.0,
+  "explicit_safe_regions": {
+    "decision": "PASS",
+    "regions": {}
+  },
+  "explicit_safe_region_decision": "PASS",
+  "palette_checked": true,
+  "incidental_neutral_ratio": 0.1517666903409091,
+  "largest_incidental_neutral_region_ratio": 0.020951704545454544,
+  "palette_match_ratio": 0.9993785511363636,
+  "off_palette_ratio": 0.0006214488636363636,
+  "perceptual_in_family_ratio": 0.9993785511363636,
+  "unrelated_hue_ratio": 0.0006214488636363636,
+  "requested_chromatic_ratio": 0.8476118607954546,
+  "structural_neutral_ratio": 0.1517666903409091,
+  "unrequested_chromatic_ratio": 0.0006214488636363636,
+  "largest_unrequested_region_ratio": 8.87784090909091e-05,
+  "primary_ratio": 0.4640891335227273,
+  "secondary_ratio": 0.3835227272727273,
+  "requested_palette_mode": "dominant",
+  "tonal_derivative_ratio": 0.6097745028409091,
+  "primary_presence_ratio": 0.4640891335227273,
+  "secondary_presence_ratio": 0.3835227272727273,
+  "primary_family": "green",
+  "secondary_family": "cream",
+  "primary_role": "primary",
+  "primary_secondary_ratio": 1.2100694444444444,
+  "secondary_presence": true,
+  "dominance_relationship": "FLEXIBLE",
+  "dominance_relationship_passed": true,
+  "secondary_role": "secondary",
+  "secondary_minimum": 0.008,
+  "palette_relationship_source": "default",
+  "palette_role_warning": null,
+  "primary_colour_ratio": 0.4640891335227273,
+  "secondary_colour_ratio": 0.3835227272727273,
+  "requested_colour_counts": {
+    "green": 10455,
+    "cream": 8640
+  },
+  "requested_colour_family_counts": {
+    "green": 10455,
+    "cream": 8640
+  },
+  "accepted_tonal_breakdown": {
+    "green": 0.462890625,
+    "cream": 0.3835227272727273,
+    "grey": 0.0011541193181818182,
+    "beige": 4.438920454545455e-05
+  },
+  "unrequested_colour_breakdown": {
+    "grey": 0.10085227272727272,
+    "silver": 0.024547230113636364,
+    "beige": 0.016645951704545456,
+    "white": 0.004305752840909091,
+    "brown": 0.0028852982954545455,
+    "charcoal": 0.002752130681818182,
+    "black": 0.00022194602272727272,
+    "cream": 0.0001775568181818182
+  },
+  "primary_descriptor": {
+    "raw": "green",
+    "base_name": "green",
+    "family_members": [
+      "forest green",
+      "green"
+    ],
+    "modifiers": [],
+    "modifier_only": false
+  },
+  "secondary_descriptor": {
+    "raw": "cream",
+    "base_name": "cream",
+    "family_members": [
+      "cream"
+    ],
+    "modifiers": [],
+    "modifier_only": false
+  },
+  "ocr_tokens": [],
+  "ocr_diagnostics": {
+    "attempted": [
+      "original",
+      "contrast",
+      "threshold",
+      "inverted"
+    ],
+    "completed_variants": [
+      "original",
+      "contrast",
+      "threshold",
+      "inverted"
+    ],
+    "timed_out_variants": [],
+    "failed_variants": [],
+    "failure_reasons": {},
+    "completed_variant_count": 4,
+    "required_variant_count": 2,
+    "enhancement_variant_failures": [],
+    "evidence_sufficiency": true,
+    "decision": "complete"
+  },
+  "ocr_validation_attempts": 1,
+  "ocr_validation_sha256": "d129b6fbc287d3f7996de9bda41b9ffe0735464ec5557e862419b7de3fe7c6ce",
+  "human_detection": {
+    "people": [],
+    "evidence": [
+      {
+        "source": "hog",
+        "bbox": [
+          215,
+          251,
+          76,
+          152
+        ],
+        "weight": 0.5832637366838753,
+        "area_ratio": 0.009693877551020408,
+        "confirmed": false,
+        "confirmation": "insufficient shape or confidence"
+      },
+      {
+        "source": "hog",
+        "bbox": [
+          299,
+          256,
+          76,
+          152
+        ],
+        "weight": 0.6095093726180494,
+        "area_ratio": 0.009693877551020408,
+        "confirmed": false,
+        "confirmation": "insufficient shape or confidence"
+      }
+    ],
+    "strong_signals": [],
+    "weak_signals": [
+      {
+        "source": "hog",
+        "bbox": [
+          215,
+          251,
+          76,
+          152
+        ],
+        "weight": 0.5832637366838753,
+        "area_ratio": 0.009693877551020408,
+        "confirmed": false,
+        "confirmation": "insufficient shape or confidence"
+      },
+      {
+        "source": "hog",
+        "bbox": [
+          299,
+          256,
+          76,
+          152
+        ],
+        "weight": 0.6095093726180494,
+        "area_ratio": 0.009693877551020408,
+        "confirmed": false,
+        "confirmation": "insufficient shape or confidence"
+      }
+    ],
+    "overlaps": [],
+    "people_weights": [],
+    "faces": [],
+    "profiles": [],
+    "upper_bodies": [],
+    "strong_upper_body_signal": false,
+    "ambiguous_face_signal": false,
+    "detected": false,
+    "human_detection_confidence": "low",
+    "human_detection_reason": "isolated detector patterns without independent confirmation",
+    "largest_detection_area_ratio": 0.009693877551020408,
+    "classical_human_signal": false,
+    "vision_human_signal": false,
+    "combined_human_decision": false,
+    "decision_reason": "no human evidence"
+  },
+  "all_failure_categories": [],
+  "raw_validation": {
+    "validation": {
+      "decision": "accepted",
+      "failure_category": null,
+      "diagnostic_findings": [
+        "DENSITY_DRIFT"
+      ],
+      "palette": {
+        "mode": "dominant",
+        "palette_match_ratio": 0.9993785511363636,
+        "off_palette_ratio": 0.0006214488636363636,
+        "primary_ratio": 0.4640891335227273,
+        "secondary_ratio": 0.3835227272727273,
+        "requested_chromatic_ratio": 0.8476118607954546,
+        "neutral_ratio": 0.1517666903409091,
+        "unrequested_chromatic_ratio": 0.0006214488636363636,
+        "largest_unrequested_region_ratio": 8.87784090909091e-05,
+        "primary_secondary_ratio": 1.2100694444444444,
+        "secondary_presence": true,
+        "dominance_relationship": "FLEXIBLE",
+        "dominance_relationship_passed": true
+      },
+      "text": {
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 4,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        },
+        "detected": false,
+        "tokens": [
+          "Nery"
+        ],
+        "confirmed_tokens": [],
+        "text_lines": [],
+        "text_area_ratio": 0
+      },
+      "human": {
+        "detected": false,
+        "strong_signals": [],
+        "weak_signals": [
+          {
+            "source": "hog",
+            "bbox": [
+              215,
+              251,
+              76,
+              152
+            ],
+            "weight": 0.5832637366838753,
+            "area_ratio": 0.009693877551020408,
+            "confirmed": false,
+            "confirmation": "insufficient shape or confidence"
+          },
+          {
+            "source": "hog",
+            "bbox": [
+              299,
+              256,
+              76,
+              152
+            ],
+            "weight": 0.6095093726180494,
+            "area_ratio": 0.009693877551020408,
+            "confirmed": false,
+            "confirmation": "insufficient shape or confidence"
+          }
+        ],
+        "decision_reason": "no human evidence"
+      },
+      "quality": {
+        "structural_edge_density": 0.5679931640625,
+        "macro_structure_score": 1.0,
+        "coarse_edge_density": 0.2840909090909091,
+        "high_pass_mean": 11.435883522033691,
+        "boilerplate_score": 0.0,
+        "title_panel_score": 0.0,
+        "fine_line_pair_ratio": 0.0,
+        "macro_form_balance": 1.0,
+        "scene_density": {
+          "requested_density": "moderate",
+          "overall_edge_density": 0.2395,
+          "tile_edge_fractions": [
+            0.1372,
+            0.0757,
+            0.1096,
+            0.2139,
+            0.2712,
+            0.272,
+            0.2139,
+            0.303,
+            0.2798,
+            0.3147,
+            0.2634,
+            0.312,
+            0.27,
+            0.2805,
+            0.262,
+            0.2532
+          ],
+          "occupied_tile_fraction": 0.9375,
+          "quiet_tile_fraction": 0.0,
+          "safe_region_density": 0.266,
+          "edge_distribution_balance": 0.0698,
+          "macro_form_balance": 1.0,
+          "normalized_measurements": {
+            "density_pressure": 0.8719
+          },
+          "thresholds_used": {
+            "density_pressure": 0.85,
+            "max_quiet_tile_fraction": 0.0625,
+            "occupied_tile_edge_fraction": 0.1,
+            "quiet_tile_edge_fraction": 0.04
+          },
+          "density_rule_triggered": "spatial_crowding",
+          "decision": "DENSITY_DRIFT"
+        },
+        "global_density_decision": "DENSITY_DRIFT",
+        "explicit_safe_regions": {
+          "decision": "PASS",
+          "regions": {}
+        },
+        "explicit_safe_region_decision": "PASS",
+        "raster_score": 0.0
+      }
+    },
+    "output_path": "/data/programmes/28D53E-994610/backgrounds/flux-2/image-a.download.part",
+    "sha256": "d129b6fbc287d3f7996de9bda41b9ffe0735464ec5557e862419b7de3fe7c6ce",
+    "width": 1024,
+    "height": 1408,
+    "person_detection_count": 0,
+    "face_detection_count": 0,
+    "profile_detection_count": 0,
+    "upper_body_detection_count": 0,
+    "visual_quality_checked": true,
+    "visual_quality_passed": true,
+    "macro_structure_score": 1.0,
+    "coarse_edge_density": 0.2840909090909091,
+    "edge_density": 0.6275301846590909,
+    "structural_edge_density": 0.5679931640625,
+    "horizontal_edge_density": 0.12769664417613635,
+    "vertical_edge_density": 0.1658047762784091,
+    "directional_edge_dominance": 0.26421800947867297,
+    "full_span_line_ratio": 0.0,
+    "fine_horizontal_pair_ratio": 0.0,
+    "fine_vertical_pair_ratio": 0.0,
+    "fine_line_pair_ratio": 0.0,
+    "fine_line_mean_delta": 6.86372184753418,
+    "image_entropy": 7.538155555725098,
+    "largest_quantised_colour_ratio": 0.14345481178977273,
+    "laplacian_variance": 3833.146240234375,
+    "highpass_mean": 11.435883522033691,
+    "coherent_edge_ratio": 0.8568826309570697,
+    "center_structural_edge_density": 0.5840191530749663,
+    "outer_structural_edge_density": 0.5551445595233334,
+    "center_local_contrast": 61.46013641357422,
+    "title_structural_edge_density": 0.16441717791411042,
+    "title_local_contrast": 16.61414337158203,
+    "programme_structural_edge_density": 0.7136109452196102,
+    "programme_local_contrast": 58.31682205200195,
+    "center_to_outer_edge_ratio": 1.052012747051733,
+    "center_safe_region_passed": false,
+    "title_panel_score": 0.0,
+    "boilerplate_score": 0.0,
+    "largest_flat_rectangle_ratio": 0.0,
+    "flat_rectangular_coverage_ratio": 0.0,
+    "flat_coverage_ratio": 0.09983132102272728,
+    "long_axis_separator_ratio": 0.0,
+    "large_flat_rectangle_count": 0.0,
+    "centre_edge_density": 0.49556107954545453,
+    "perimeter_edge_density": 0.3710345643939394,
+    "centre_flat_ratio": 0.054509943181818184,
+    "bilateral_symmetry": 0.8060149550437927,
+    "irregular_frame_score": 0.0,
+    "lower_centre_edge_density": 0.5460805084745762,
+    "quiet_centre_evidence": 0.0,
+    "scene_density": {
+      "requested_density": "moderate",
+      "overall_edge_density": 0.2395,
+      "tile_edge_fractions": [
+        0.1372,
+        0.0757,
+        0.1096,
+        0.2139,
+        0.2712,
+        0.272,
+        0.2139,
+        0.303,
+        0.2798,
+        0.3147,
+        0.2634,
+        0.312,
+        0.27,
+        0.2805,
+        0.262,
+        0.2532
+      ],
+      "occupied_tile_fraction": 0.9375,
+      "quiet_tile_fraction": 0.0,
+      "safe_region_density": 0.266,
+      "edge_distribution_balance": 0.0698,
+      "macro_form_balance": 1.0,
+      "normalized_measurements": {
+        "density_pressure": 0.8719
+      },
+      "thresholds_used": {
+        "density_pressure": 0.85,
+        "max_quiet_tile_fraction": 0.0625,
+        "occupied_tile_edge_fraction": 0.1,
+        "quiet_tile_edge_fraction": 0.04
+      },
+      "density_rule_triggered": "spatial_crowding",
+      "decision": "DENSITY_DRIFT"
+    },
+    "global_density_decision": "DENSITY_DRIFT",
+    "macro_form_balance": 1.0,
+    "explicit_safe_regions": {
+      "decision": "PASS",
+      "regions": {}
+    },
+    "explicit_safe_region_decision": "PASS",
+    "palette_checked": true,
+    "palette_mode": "dominant-requested-colour-families",
+    "incidental_neutral_ratio": 0.1517666903409091,
+    "largest_incidental_neutral_region_ratio": 0.020951704545454544,
+    "palette_match_ratio": 0.9993785511363636,
+    "off_palette_ratio": 0.0006214488636363636,
+    "perceptual_in_family_ratio": 0.9993785511363636,
+    "unrelated_hue_ratio": 0.0006214488636363636,
+    "requested_chromatic_ratio": 0.8476118607954546,
+    "structural_neutral_ratio": 0.1517666903409091,
+    "unrequested_chromatic_ratio": 0.0006214488636363636,
+    "largest_unrequested_region_ratio": 8.87784090909091e-05,
+    "primary_ratio": 0.4640891335227273,
+    "secondary_ratio": 0.3835227272727273,
+    "requested_palette_mode": "dominant",
+    "tonal_derivative_ratio": 0.6097745028409091,
+    "primary_presence_ratio": 0.4640891335227273,
+    "secondary_presence_ratio": 0.3835227272727273,
+    "primary_family": "green",
+    "secondary_family": "cream",
+    "primary_role": "primary",
+    "primary_secondary_ratio": 1.2100694444444444,
+    "secondary_presence": true,
+    "dominance_relationship": "FLEXIBLE",
+    "dominance_relationship_passed": true,
+    "secondary_role": "secondary",
+    "secondary_minimum": 0.008,
+    "palette_relationship_source": "default",
+    "palette_role_warning": null,
+    "primary_colour_ratio": 0.4640891335227273,
+    "secondary_colour_ratio": 0.3835227272727273,
+    "requested_colour_counts": {
+      "green": 10455,
+      "cream": 8640
+    },
+    "requested_colour_family_counts": {
+      "green": 10455,
+      "cream": 8640
+    },
+    "accepted_tonal_breakdown": {
+      "green": 0.462890625,
+      "cream": 0.3835227272727273,
+      "grey": 0.0011541193181818182,
+      "beige": 4.438920454545455e-05
+    },
+    "unrequested_colour_breakdown": {
+      "grey": 0.10085227272727272,
+      "silver": 0.024547230113636364,
+      "beige": 0.016645951704545456,
+      "white": 0.004305752840909091,
+      "brown": 0.0028852982954545455,
+      "charcoal": 0.002752130681818182,
+      "black": 0.00022194602272727272,
+      "cream": 0.0001775568181818182
+    },
+    "primary_descriptor": {
+      "raw": "green",
+      "base_name": "green",
+      "family_members": [
+        "forest green",
+        "green"
+      ],
+      "modifiers": [],
+      "modifier_only": false
+    },
+    "secondary_descriptor": {
+      "raw": "cream",
+      "base_name": "cream",
+      "family_members": [
+        "cream"
+      ],
+      "modifiers": [],
+      "modifier_only": false
+    },
+    "ocr_tokens": [],
+    "ocr_diagnostics": {
+      "attempted": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "completed_variants": [
+        "original",
+        "contrast",
+        "threshold",
+        "inverted"
+      ],
+      "timed_out_variants": [],
+      "failed_variants": [],
+      "failure_reasons": {},
+      "completed_variant_count": 4,
+      "required_variant_count": 2,
+      "enhancement_variant_failures": [],
+      "evidence_sufficiency": true,
+      "decision": "complete"
+    },
+    "ocr_validation_attempts": 1,
+    "ocr_validation_sha256": "d129b6fbc287d3f7996de9bda41b9ffe0735464ec5557e862419b7de3fe7c6ce",
+    "human_detection": {
+      "people": [],
+      "evidence": [
+        {
+          "source": "hog",
+          "bbox": [
+            215,
+            251,
+            76,
+            152
+          ],
+          "weight": 0.5832637366838753,
+          "area_ratio": 0.009693877551020408,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        },
+        {
+          "source": "hog",
+          "bbox": [
+            299,
+            256,
+            76,
+            152
+          ],
+          "weight": 0.6095093726180494,
+          "area_ratio": 0.009693877551020408,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        }
+      ],
+      "strong_signals": [],
+      "weak_signals": [
+        {
+          "source": "hog",
+          "bbox": [
+            215,
+            251,
+            76,
+            152
+          ],
+          "weight": 0.5832637366838753,
+          "area_ratio": 0.009693877551020408,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        },
+        {
+          "source": "hog",
+          "bbox": [
+            299,
+            256,
+            76,
+            152
+          ],
+          "weight": 0.6095093726180494,
+          "area_ratio": 0.009693877551020408,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        }
+      ],
+      "overlaps": [],
+      "people_weights": [],
+      "faces": [],
+      "profiles": [],
+      "upper_bodies": [],
+      "strong_upper_body_signal": false,
+      "ambiguous_face_signal": false,
+      "detected": false,
+      "human_detection_confidence": "low",
+      "human_detection_reason": "isolated detector patterns without independent confirmation",
+      "largest_detection_area_ratio": 0.009693877551020408,
+      "classical_human_signal": false,
+      "vision_human_signal": false,
+      "combined_human_decision": false,
+      "decision_reason": "no human evidence"
+    },
+    "all_failure_categories": []
+  },
+  "final_validation": {
+    "decision": "accepted",
+    "failure_category": null,
+    "diagnostic_findings": [
+      "DENSITY_DRIFT"
+    ],
+    "palette": {
+      "mode": "dominant",
+      "palette_match_ratio": 0.9993785511363636,
+      "off_palette_ratio": 0.0006214488636363636,
+      "primary_ratio": 0.4640891335227273,
+      "secondary_ratio": 0.3835227272727273,
+      "requested_chromatic_ratio": 0.8476118607954546,
+      "neutral_ratio": 0.1517666903409091,
+      "unrequested_chromatic_ratio": 0.0006214488636363636,
+      "largest_unrequested_region_ratio": 8.87784090909091e-05,
+      "primary_secondary_ratio": 1.2100694444444444,
+      "secondary_presence": true,
+      "dominance_relationship": "FLEXIBLE",
+      "dominance_relationship_passed": true
+    },
+    "text": {
+      "ocr_diagnostics": {
+        "attempted": [
+          "original",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "completed_variants": [
+          "original",
+          "contrast",
+          "threshold",
+          "inverted"
+        ],
+        "timed_out_variants": [],
+        "failed_variants": [],
+        "failure_reasons": {},
+        "completed_variant_count": 4,
+        "required_variant_count": 2,
+        "enhancement_variant_failures": [],
+        "evidence_sufficiency": true,
+        "decision": "complete"
+      },
+      "detected": false,
+      "tokens": [
+        "Nery"
+      ],
+      "confirmed_tokens": [],
+      "text_lines": [],
+      "text_area_ratio": 0
+    },
+    "human": {
+      "detected": false,
+      "strong_signals": [],
+      "weak_signals": [
+        {
+          "source": "hog",
+          "bbox": [
+            215,
+            251,
+            76,
+            152
+          ],
+          "weight": 0.5832637366838753,
+          "area_ratio": 0.009693877551020408,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        },
+        {
+          "source": "hog",
+          "bbox": [
+            299,
+            256,
+            76,
+            152
+          ],
+          "weight": 0.6095093726180494,
+          "area_ratio": 0.009693877551020408,
+          "confirmed": false,
+          "confirmation": "insufficient shape or confidence"
+        }
+      ],
+      "decision_reason": "no human evidence"
+    },
+    "quality": {
+      "structural_edge_density": 0.5679931640625,
+      "macro_structure_score": 1.0,
+      "coarse_edge_density": 0.2840909090909091,
+      "high_pass_mean": 11.435883522033691,
+      "boilerplate_score": 0.0,
+      "title_panel_score": 0.0,
+      "fine_line_pair_ratio": 0.0,
+      "macro_form_balance": 1.0,
+      "scene_density": {
+        "requested_density": "moderate",
+        "overall_edge_density": 0.2395,
+        "tile_edge_fractions": [
+          0.1372,
+          0.0757,
+          0.1096,
+          0.2139,
+          0.2712,
+          0.272,
+          0.2139,
+          0.303,
+          0.2798,
+          0.3147,
+          0.2634,
+          0.312,
+          0.27,
+          0.2805,
+          0.262,
+          0.2532
+        ],
+        "occupied_tile_fraction": 0.9375,
+        "quiet_tile_fraction": 0.0,
+        "safe_region_density": 0.266,
+        "edge_distribution_balance": 0.0698,
+        "macro_form_balance": 1.0,
+        "normalized_measurements": {
+          "density_pressure": 0.8719
+        },
+        "thresholds_used": {
+          "density_pressure": 0.85,
+          "max_quiet_tile_fraction": 0.0625,
+          "occupied_tile_edge_fraction": 0.1,
+          "quiet_tile_edge_fraction": 0.04
+        },
+        "density_rule_triggered": "spatial_crowding",
+        "decision": "DENSITY_DRIFT"
+      },
+      "global_density_decision": "DENSITY_DRIFT",
+      "explicit_safe_regions": {
+        "decision": "PASS",
+        "regions": {}
+      },
+      "explicit_safe_region_decision": "PASS",
+      "raster_score": 0.0
+    },
+    "brief_fidelity": {
+      "checked": true,
+      "subject_score": 0.9,
+      "atmosphere_score": 0.85,
+      "motif_score": 0.9,
+      "treatment_score": 0.85,
+      "audience_fit_score": 0.8,
+      "thresholds": {
+        "subject_score": 0.55,
+        "atmosphere_score": 0.55,
+        "motif_score": 0.55,
+        "audience_fit_score": 0.55
+      },
+      "decision": "pass",
+      "reason": "The subject aligns with a botanical garden, but the dense foliage and mist create a tropical or jungle-like atmosphere rather than the requested 'lush natural foliage' in a garden setting. The atmosphere is peaceful but leans towards 'exotic' rather than 'warm, elegant, peaceful.' The motif of lush ",
+      "observed_evidence": [
+        "Dense tropical foliage (various green leaves, palms, ferns)",
+        "Faint mist or fog in the background",
+        "Pathway (light beige) through the foliage",
+        "Soft, diffused lighting (no harsh shadows)"
+      ],
+      "model": "minicpm-v4.5:latest",
+      "failure_category": null,
+      "dimension_availability": {
+        "subject_score": "PASS",
+        "atmosphere_score": "PASS",
+        "motif_score": "PASS",
+        "audience_fit_score": "PASS"
+      },
+      "failed_dimensions": [],
+      "background_usability_score": 0.8,
+      "vision_human_signal": false,
+      "vision_debug": {
+        "endpoint": "/api/chat",
+        "model": "minicpm-v4.5:latest",
+        "score_parsing": [
+          {
+            "dimension_name": "subject_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.9,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "atmosphere_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.85,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "motif_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.9,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "treatment_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.85,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "audience_fit_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.8,
+            "parse_failure_reason": null
+          },
+          {
+            "dimension_name": "background_usability_score",
+            "input_type": "float",
+            "extracted_field": null,
+            "parsed_value": 0.8,
+            "parse_failure_reason": null
+          }
+        ],
+        "thinking_present": false,
+        "thinking_preview_length": 0,
+        "response_length": 1406,
+        "final_source": "message.content",
+        "raw_text_preview": "<omitted>",
+        "assessment_attempts": 1,
+        "http_status": 200,
+        "response_content_type": "application/json; charset=utf-8",
+        "response_shape": [
+          "created_at",
+          "done",
+          "done_reason",
+          "eval_count",
+          "eval_duration",
+          "load_duration",
+          "message",
+          "model",
+          "prompt_eval_count",
+          "prompt_eval_duration",
+          "total_duration"
+        ],
+        "unconfirmed_human_report": false
+      },
+      "hard_dimensions": [
+        "subject_score",
+        "audience_fit_score"
+      ],
+      "hard_failed_dimensions": [],
+      "compound_fidelity_failure": false,
+      "human_description": "",
+      "vision_text_signal": false,
+      "vision_text_evidence": "",
+      "unrequested_literal_object_visible": false
+    }
+  },
+  "palette_normalized": false,
+  "raw_palette_error": null,
+  "outcome_category": "PASS",
+  "raw_image_path": null,
+  "error": null,
+  "rejection_reason": null,
+  "remote_image": {
+    "filename": "a_00001_.png",
+    "subfolder": "programme-studio/28D53E-994610/flux-2",
+    "type": "output"
+  },
+  "secondary_failure_categories": [],
+  "retry_failure_category": null,
+  "decision": "accepted",
+  "primary_failure_category": null,
+  "attempt_history": [
+    {
+      "attempt_count": 1,
+      "status": "complete",
+      "seed": 7586879105619108790,
+      "failure_category": null,
+      "primary_failure_category": null,
+      "retry_failure_category": null,
+      "rejection_reason": null,
+      "error": null,
+      "final_validation": {
+        "decision": "accepted",
+        "failure_category": null,
+        "diagnostic_findings": [
+          "DENSITY_DRIFT"
+        ],
+        "palette": {
+          "mode": "dominant",
+          "palette_match_ratio": 0.9993785511363636,
+          "off_palette_ratio": 0.0006214488636363636,
+          "primary_ratio": 0.4640891335227273,
+          "secondary_ratio": 0.3835227272727273,
+          "requested_chromatic_ratio": 0.8476118607954546,
+          "neutral_ratio": 0.1517666903409091,
+          "unrequested_chromatic_ratio": 0.0006214488636363636,
+          "largest_unrequested_region_ratio": 8.87784090909091e-05,
+          "primary_secondary_ratio": 1.2100694444444444,
+          "secondary_presence": true,
+          "dominance_relationship": "FLEXIBLE",
+          "dominance_relationship_passed": true
+        },
+        "text": {
+          "ocr_diagnostics": {
+            "attempted": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "completed_variants": [
+              "original",
+              "contrast",
+              "threshold",
+              "inverted"
+            ],
+            "timed_out_variants": [],
+            "failed_variants": [],
+            "failure_reasons": {},
+            "completed_variant_count": 4,
+            "required_variant_count": 2,
+            "enhancement_variant_failures": [],
+            "evidence_sufficiency": true,
+            "decision": "complete"
+          },
+          "detected": false,
+          "tokens": [
+            "Nery"
+          ],
+          "confirmed_tokens": [],
+          "text_lines": [],
+          "text_area_ratio": 0
+        },
+        "human": {
+          "detected": false,
+          "strong_signals": [],
+          "weak_signals": [
+            {
+              "source": "hog",
+              "bbox": [
+                215,
+                251,
+                76,
+                152
+              ],
+              "weight": 0.5832637366838753,
+              "area_ratio": 0.009693877551020408,
+              "confirmed": false,
+              "confirmation": "insufficient shape or confidence"
+            },
+            {
+              "source": "hog",
+              "bbox": [
+                299,
+                256,
+                76,
+                152
+              ],
+              "weight": 0.6095093726180494,
+              "area_ratio": 0.009693877551020408,
+              "confirmed": false,
+              "confirmation": "insufficient shape or confidence"
+            }
+          ],
+          "decision_reason": "no human evidence"
+        },
+        "quality": {
+          "structural_edge_density": 0.5679931640625,
+          "macro_structure_score": 1.0,
+          "coarse_edge_density": 0.2840909090909091,
+          "high_pass_mean": 11.435883522033691,
+          "boilerplate_score": 0.0,
+          "title_panel_score": 0.0,
+          "fine_line_pair_ratio": 0.0,
+          "macro_form_balance": 1.0,
+          "scene_density": {
+            "requested_density": "moderate",
+            "overall_edge_density": 0.2395,
+            "tile_edge_fractions": [
+              0.1372,
+              0.0757,
+              0.1096,
+              0.2139,
+              0.2712,
+              0.272,
+              0.2139,
+              0.303,
+              0.2798,
+              0.3147,
+              0.2634,
+              0.312,
+              0.27,
+              0.2805,
+              0.262,
+              0.2532
+            ],
+            "occupied_tile_fraction": 0.9375,
+            "quiet_tile_fraction": 0.0,
+            "safe_region_density": 0.266,
+            "edge_distribution_balance": 0.0698,
+            "macro_form_balance": 1.0,
+            "normalized_measurements": {
+              "density_pressure": 0.8719
+            },
+            "thresholds_used": {
+              "density_pressure": 0.85,
+              "max_quiet_tile_fraction": 0.0625,
+              "occupied_tile_edge_fraction": 0.1,
+              "quiet_tile_edge_fraction": 0.04
+            },
+            "density_rule_triggered": "spatial_crowding",
+            "decision": "DENSITY_DRIFT"
+          },
+          "global_density_decision": "DENSITY_DRIFT",
+          "explicit_safe_regions": {
+            "decision": "PASS",
+            "regions": {}
+          },
+          "explicit_safe_region_decision": "PASS",
+          "raster_score": 0.0
+        },
+        "brief_fidelity": {
+          "checked": true,
+          "subject_score": 0.9,
+          "atmosphere_score": 0.85,
+          "motif_score": 0.9,
+          "treatment_score": 0.85,
+          "audience_fit_score": 0.8,
+          "thresholds": {
+            "subject_score": 0.55,
+            "atmosphere_score": 0.55,
+            "motif_score": 0.55,
+            "audience_fit_score": 0.55
+          },
+          "decision": "pass",
+          "reason": "The subject aligns with a botanical garden, but the dense foliage and mist create a tropical or jungle-like atmosphere rather than the requested 'lush natural foliage' in a garden setting. The atmosphere is peaceful but leans towards 'exotic' rather than 'warm, elegant, peaceful.' The motif of lush ",
+          "observed_evidence": [
+            "Dense tropical foliage (various green leaves, palms, ferns)",
+            "Faint mist or fog in the background",
+            "Pathway (light beige) through the foliage",
+            "Soft, diffused lighting (no harsh shadows)"
+          ],
+          "model": "minicpm-v4.5:latest",
+          "failure_category": null,
+          "dimension_availability": {
+            "subject_score": "PASS",
+            "atmosphere_score": "PASS",
+            "motif_score": "PASS",
+            "audience_fit_score": "PASS"
+          },
+          "failed_dimensions": [],
+          "background_usability_score": 0.8,
+          "vision_human_signal": false,
+          "vision_debug": {
+            "endpoint": "/api/chat",
+            "model": "minicpm-v4.5:latest",
+            "score_parsing": [
+              {
+                "dimension_name": "subject_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.9,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "atmosphere_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "motif_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.9,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "treatment_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.85,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "audience_fit_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.8,
+                "parse_failure_reason": null
+              },
+              {
+                "dimension_name": "background_usability_score",
+                "input_type": "float",
+                "extracted_field": null,
+                "parsed_value": 0.8,
+                "parse_failure_reason": null
+              }
+            ],
+            "thinking_present": false,
+            "thinking_preview_length": 0,
+            "response_length": 1406,
+            "final_source": "message.content",
+            "raw_text_preview": "<omitted>",
+            "assessment_attempts": 1,
+            "http_status": 200,
+            "response_content_type": "application/json; charset=utf-8",
+            "response_shape": [
+              "created_at",
+              "done",
+              "done_reason",
+              "eval_count",
+              "eval_duration",
+              "load_duration",
+              "message",
+              "model",
+              "prompt_eval_count",
+              "prompt_eval_duration",
+              "total_duration"
+            ],
+            "unconfirmed_human_report": false
+          },
+          "hard_dimensions": [
+            "subject_score",
+            "audience_fit_score"
+          ],
+          "hard_failed_dimensions": [],
+          "compound_fidelity_failure": false,
+          "human_description": "",
+          "vision_text_signal": false,
+          "vision_text_evidence": "",
+          "unrequested_literal_object_visible": false
+        }
+      },
+      "subject_adherence": {
+        "checked": true,
+        "score": 0.9,
+        "threshold": 0.55,
+        "subject": "Botanical garden",
+        "anchors": [],
+        "model": "minicpm-v4.5:latest",
+        "decision": "pass",
+        "reason": "The subject aligns with a botanical garden, but the dense foliage and mist create a tropical or jungle-like atmosphere rather than the requested 'lush natural foliage' in a garden setting. The atmosphere is peaceful but leans towards 'exotic' rather than 'warm, elegant, peaceful.' The motif of lush ",
+        "subject_score": 0.9,
+        "atmosphere_score": 0.85,
+        "motif_score": 0.9,
+        "treatment_score": 0.85,
+        "audience_fit_score": 0.8,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "observed_evidence": [
+          "Dense tropical foliage (various green leaves, palms, ferns)",
+          "Faint mist or fog in the background",
+          "Pathway (light beige) through the foliage",
+          "Soft, diffused lighting (no harsh shadows)"
+        ],
+        "background_usability_score": 0.8,
+        "vision_human_signal": false,
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false,
+        "failure_category": null,
+        "compound_fidelity_failure": false,
+        "hard_dimensions": [
+          "subject_score",
+          "audience_fit_score"
+        ],
+        "hard_failed_dimensions": [],
+        "failed_dimensions": [],
+        "human_description": "",
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1406,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        }
+      },
+      "brief_fidelity": {
+        "checked": true,
+        "subject_score": 0.9,
+        "atmosphere_score": 0.85,
+        "motif_score": 0.9,
+        "treatment_score": 0.85,
+        "audience_fit_score": 0.8,
+        "thresholds": {
+          "subject_score": 0.55,
+          "atmosphere_score": 0.55,
+          "motif_score": 0.55,
+          "audience_fit_score": 0.55
+        },
+        "decision": "pass",
+        "reason": "The subject aligns with a botanical garden, but the dense foliage and mist create a tropical or jungle-like atmosphere rather than the requested 'lush natural foliage' in a garden setting. The atmosphere is peaceful but leans towards 'exotic' rather than 'warm, elegant, peaceful.' The motif of lush ",
+        "observed_evidence": [
+          "Dense tropical foliage (various green leaves, palms, ferns)",
+          "Faint mist or fog in the background",
+          "Pathway (light beige) through the foliage",
+          "Soft, diffused lighting (no harsh shadows)"
+        ],
+        "model": "minicpm-v4.5:latest",
+        "failure_category": null,
+        "dimension_availability": {
+          "subject_score": "PASS",
+          "atmosphere_score": "PASS",
+          "motif_score": "PASS",
+          "audience_fit_score": "PASS"
+        },
+        "failed_dimensions": [],
+        "background_usability_score": 0.8,
+        "vision_human_signal": false,
+        "vision_debug": {
+          "endpoint": "/api/chat",
+          "model": "minicpm-v4.5:latest",
+          "score_parsing": [
+            {
+              "dimension_name": "subject_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "atmosphere_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "motif_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.9,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "treatment_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.85,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "audience_fit_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            },
+            {
+              "dimension_name": "background_usability_score",
+              "input_type": "float",
+              "extracted_field": null,
+              "parsed_value": 0.8,
+              "parse_failure_reason": null
+            }
+          ],
+          "thinking_present": false,
+          "thinking_preview_length": 0,
+          "response_length": 1406,
+          "final_source": "message.content",
+          "raw_text_preview": "<omitted>",
+          "assessment_attempts": 1,
+          "http_status": 200,
+          "response_content_type": "application/json; charset=utf-8",
+          "response_shape": [
+            "created_at",
+            "done",
+            "done_reason",
+            "eval_count",
+            "eval_duration",
+            "load_duration",
+            "message",
+            "model",
+            "prompt_eval_count",
+            "prompt_eval_duration",
+            "total_duration"
+          ],
+          "unconfirmed_human_report": false
+        },
+        "hard_dimensions": [
+          "subject_score",
+          "audience_fit_score"
+        ],
+        "hard_failed_dimensions": [],
+        "compound_fidelity_failure": false,
+        "human_description": "",
+        "vision_text_signal": false,
+        "vision_text_evidence": "",
+        "unrequested_literal_object_visible": false
+      },
+      "raw_palette_error": null,
+      "raw_validation": {
+        "validation": {
+          "decision": "accepted",
+          "failure_category": null,
+          "diagnostic_findings": [
+            "DENSITY_DRIFT"
+          ],
+          "palette": {
+            "mode": "dominant",
+            "palette_match_ratio": 0.9993785511363636,
+            "off_palette_ratio": 0.0006214488636363636,
+            "primary_ratio": 0.4640891335227273,
+            "secondary_ratio": 0.3835227272727273,
+            "requested_chromatic_ratio": 0.8476118607954546,
+            "neutral_ratio": 0.1517666903409091,
+            "unrequested_chromatic_ratio": 0.0006214488636363636,
+            "largest_unrequested_region_ratio": 8.87784090909091e-05,
+            "primary_secondary_ratio": 1.2100694444444444,
+            "secondary_presence": true,
+            "dominance_relationship": "FLEXIBLE",
+            "dominance_relationship_passed": true
+          },
+          "text": {
+            "ocr_diagnostics": {
+              "attempted": [
+                "original",
+                "contrast",
+                "threshold",
+                "inverted"
+              ],
+              "completed_variants": [
+                "original",
+                "contrast",
+                "threshold",
+                "inverted"
+              ],
+              "timed_out_variants": [],
+              "failed_variants": [],
+              "failure_reasons": {},
+              "completed_variant_count": 4,
+              "required_variant_count": 2,
+              "enhancement_variant_failures": [],
+              "evidence_sufficiency": true,
+              "decision": "complete"
+            },
+            "detected": false,
+            "tokens": [
+              "Nery"
+            ],
+            "confirmed_tokens": [],
+            "text_lines": [],
+            "text_area_ratio": 0
+          },
+          "human": {
+            "detected": false,
+            "strong_signals": [],
+            "weak_signals": [
+              {
+                "source": "hog",
+                "bbox": [
+                  215,
+                  251,
+                  76,
+                  152
+                ],
+                "weight": 0.5832637366838753,
+                "area_ratio": 0.009693877551020408,
+                "confirmed": false,
+                "confirmation": "insufficient shape or confidence"
+              },
+              {
+                "source": "hog",
+                "bbox": [
+                  299,
+                  256,
+                  76,
+                  152
+                ],
+                "weight": 0.6095093726180494,
+                "area_ratio": 0.009693877551020408,
+                "confirmed": false,
+                "confirmation": "insufficient shape or confidence"
+              }
+            ],
+            "decision_reason": "no human evidence"
+          },
+          "quality": {
+            "structural_edge_density": 0.5679931640625,
+            "macro_structure_score": 1.0,
+            "coarse_edge_density": 0.2840909090909091,
+            "high_pass_mean": 11.435883522033691,
+            "boilerplate_score": 0.0,
+            "title_panel_score": 0.0,
+            "fine_line_pair_ratio": 0.0,
+            "macro_form_balance": 1.0,
+            "scene_density": {
+              "requested_density": "moderate",
+              "overall_edge_density": 0.2395,
+              "tile_edge_fractions": [
+                0.1372,
+                0.0757,
+                0.1096,
+                0.2139,
+                0.2712,
+                0.272,
+                0.2139,
+                0.303,
+                0.2798,
+                0.3147,
+                0.2634,
+                0.312,
+                0.27,
+                0.2805,
+                0.262,
+                0.2532
+              ],
+              "occupied_tile_fraction": 0.9375,
+              "quiet_tile_fraction": 0.0,
+              "safe_region_density": 0.266,
+              "edge_distribution_balance": 0.0698,
+              "macro_form_balance": 1.0,
+              "normalized_measurements": {
+                "density_pressure": 0.8719
+              },
+              "thresholds_used": {
+                "density_pressure": 0.85,
+                "max_quiet_tile_fraction": 0.0625,
+                "occupied_tile_edge_fraction": 0.1,
+                "quiet_tile_edge_fraction": 0.04
+              },
+              "density_rule_triggered": "spatial_crowding",
+              "decision": "DENSITY_DRIFT"
+            },
+            "global_density_decision": "DENSITY_DRIFT",
+            "explicit_safe_regions": {
+              "decision": "PASS",
+              "regions": {}
+            },
+            "explicit_safe_region_decision": "PASS",
+            "raster_score": 0.0
+          }
+        },
+        "output_path": "/data/programmes/28D53E-994610/backgrounds/flux-2/image-a.download.part",
+        "sha256": "d129b6fbc287d3f7996de9bda41b9ffe0735464ec5557e862419b7de3fe7c6ce",
+        "width": 1024,
+        "height": 1408,
+        "person_detection_count": 0,
+        "face_detection_count": 0,
+        "profile_detection_count": 0,
+        "upper_body_detection_count": 0,
+        "visual_quality_checked": true,
+        "visual_quality_passed": true,
+        "macro_structure_score": 1.0,
+        "coarse_edge_density": 0.2840909090909091,
+        "edge_density": 0.6275301846590909,
+        "structural_edge_density": 0.5679931640625,
+        "horizontal_edge_density": 0.12769664417613635,
+        "vertical_edge_density": 0.1658047762784091,
+        "directional_edge_dominance": 0.26421800947867297,
+        "full_span_line_ratio": 0.0,
+        "fine_horizontal_pair_ratio": 0.0,
+        "fine_vertical_pair_ratio": 0.0,
+        "fine_line_pair_ratio": 0.0,
+        "fine_line_mean_delta": 6.86372184753418,
+        "image_entropy": 7.538155555725098,
+        "largest_quantised_colour_ratio": 0.14345481178977273,
+        "laplacian_variance": 3833.146240234375,
+        "highpass_mean": 11.435883522033691,
+        "coherent_edge_ratio": 0.8568826309570697,
+        "center_structural_edge_density": 0.5840191530749663,
+        "outer_structural_edge_density": 0.5551445595233334,
+        "center_local_contrast": 61.46013641357422,
+        "title_structural_edge_density": 0.16441717791411042,
+        "title_local_contrast": 16.61414337158203,
+        "programme_structural_edge_density": 0.7136109452196102,
+        "programme_local_contrast": 58.31682205200195,
+        "center_to_outer_edge_ratio": 1.052012747051733,
+        "center_safe_region_passed": false,
+        "title_panel_score": 0.0,
+        "boilerplate_score": 0.0,
+        "largest_flat_rectangle_ratio": 0.0,
+        "flat_rectangular_coverage_ratio": 0.0,
+        "flat_coverage_ratio": 0.09983132102272728,
+        "long_axis_separator_ratio": 0.0,
+        "large_flat_rectangle_count": 0.0,
+        "centre_edge_density": 0.49556107954545453,
+        "perimeter_edge_density": 0.3710345643939394,
+        "centre_flat_ratio": 0.054509943181818184,
+        "bilateral_symmetry": 0.8060149550437927,
+        "irregular_frame_score": 0.0,
+        "lower_centre_edge_density": 0.5460805084745762,
+        "quiet_centre_evidence": 0.0,
+        "scene_density": {
+          "requested_density": "moderate",
+          "overall_edge_density": 0.2395,
+          "tile_edge_fractions": [
+            0.1372,
+            0.0757,
+            0.1096,
+            0.2139,
+            0.2712,
+            0.272,
+            0.2139,
+            0.303,
+            0.2798,
+            0.3147,
+            0.2634,
+            0.312,
+            0.27,
+            0.2805,
+            0.262,
+            0.2532
+          ],
+          "occupied_tile_fraction": 0.9375,
+          "quiet_tile_fraction": 0.0,
+          "safe_region_density": 0.266,
+          "edge_distribution_balance": 0.0698,
+          "macro_form_balance": 1.0,
+          "normalized_measurements": {
+            "density_pressure": 0.8719
+          },
+          "thresholds_used": {
+            "density_pressure": 0.85,
+            "max_quiet_tile_fraction": 0.0625,
+            "occupied_tile_edge_fraction": 0.1,
+            "quiet_tile_edge_fraction": 0.04
+          },
+          "density_rule_triggered": "spatial_crowding",
+          "decision": "DENSITY_DRIFT"
+        },
+        "global_density_decision": "DENSITY_DRIFT",
+        "macro_form_balance": 1.0,
+        "explicit_safe_regions": {
+          "decision": "PASS",
+          "regions": {}
+        },
+        "explicit_safe_region_decision": "PASS",
+        "palette_checked": true,
+        "palette_mode": "dominant-requested-colour-families",
+        "incidental_neutral_ratio": 0.1517666903409091,
+        "largest_incidental_neutral_region_ratio": 0.020951704545454544,
+        "palette_match_ratio": 0.9993785511363636,
+        "off_palette_ratio": 0.0006214488636363636,
+        "perceptual_in_family_ratio": 0.9993785511363636,
+        "unrelated_hue_ratio": 0.0006214488636363636,
+        "requested_chromatic_ratio": 0.8476118607954546,
+        "structural_neutral_ratio": 0.1517666903409091,
+        "unrequested_chromatic_ratio": 0.0006214488636363636,
+        "largest_unrequested_region_ratio": 8.87784090909091e-05,
+        "primary_ratio": 0.4640891335227273,
+        "secondary_ratio": 0.3835227272727273,
+        "requested_palette_mode": "dominant",
+        "tonal_derivative_ratio": 0.6097745028409091,
+        "primary_presence_ratio": 0.4640891335227273,
+        "secondary_presence_ratio": 0.3835227272727273,
+        "primary_family": "green",
+        "secondary_family": "cream",
+        "primary_role": "primary",
+        "primary_secondary_ratio": 1.2100694444444444,
+        "secondary_presence": true,
+        "dominance_relationship": "FLEXIBLE",
+        "dominance_relationship_passed": true,
+        "secondary_role": "secondary",
+        "secondary_minimum": 0.008,
+        "palette_relationship_source": "default",
+        "palette_role_warning": null,
+        "primary_colour_ratio": 0.4640891335227273,
+        "secondary_colour_ratio": 0.3835227272727273,
+        "requested_colour_counts": {
+          "green": 10455,
+          "cream": 8640
+        },
+        "requested_colour_family_counts": {
+          "green": 10455,
+          "cream": 8640
+        },
+        "accepted_tonal_breakdown": {
+          "green": 0.462890625,
+          "cream": 0.3835227272727273,
+          "grey": 0.0011541193181818182,
+          "beige": 4.438920454545455e-05
+        },
+        "unrequested_colour_breakdown": {
+          "grey": 0.10085227272727272,
+          "silver": 0.024547230113636364,
+          "beige": 0.016645951704545456,
+          "white": 0.004305752840909091,
+          "brown": 0.0028852982954545455,
+          "charcoal": 0.002752130681818182,
+          "black": 0.00022194602272727272,
+          "cream": 0.0001775568181818182
+        },
+        "primary_descriptor": {
+          "raw": "green",
+          "base_name": "green",
+          "family_members": [
+            "forest green",
+            "green"
+          ],
+          "modifiers": [],
+          "modifier_only": false
+        },
+        "secondary_descriptor": {
+          "raw": "cream",
+          "base_name": "cream",
+          "family_members": [
+            "cream"
+          ],
+          "modifiers": [],
+          "modifier_only": false
+        },
+        "ocr_tokens": [],
+        "ocr_diagnostics": {
+          "attempted": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "completed_variants": [
+            "original",
+            "contrast",
+            "threshold",
+            "inverted"
+          ],
+          "timed_out_variants": [],
+          "failed_variants": [],
+          "failure_reasons": {},
+          "completed_variant_count": 4,
+          "required_variant_count": 2,
+          "enhancement_variant_failures": [],
+          "evidence_sufficiency": true,
+          "decision": "complete"
+        },
+        "ocr_validation_attempts": 1,
+        "ocr_validation_sha256": "d129b6fbc287d3f7996de9bda41b9ffe0735464ec5557e862419b7de3fe7c6ce",
+        "human_detection": {
+          "people": [],
+          "evidence": [
+            {
+              "source": "hog",
+              "bbox": [
+                215,
+                251,
+                76,
+                152
+              ],
+              "weight": 0.5832637366838753,
+              "area_ratio": 0.009693877551020408,
+              "confirmed": false,
+              "confirmation": "insufficient shape or confidence"
+            },
+            {
+              "source": "hog",
+              "bbox": [
+                299,
+                256,
+                76,
+                152
+              ],
+              "weight": 0.6095093726180494,
+              "area_ratio": 0.009693877551020408,
+              "confirmed": false,
+              "confirmation": "insufficient shape or confidence"
+            }
+          ],
+          "strong_signals": [],
+          "weak_signals": [
+            {
+              "source": "hog",
+              "bbox": [
+                215,
+                251,
+                76,
+                152
+              ],
+              "weight": 0.5832637366838753,
+              "area_ratio": 0.009693877551020408,
+              "confirmed": false,
+              "confirmation": "insufficient shape or confidence"
+            },
+            {
+              "source": "hog",
+              "bbox": [
+                299,
+                256,
+                76,
+                152
+              ],
+              "weight": 0.6095093726180494,
+              "area_ratio": 0.009693877551020408,
+              "confirmed": false,
+              "confirmation": "insufficient shape or confidence"
+            }
+          ],
+          "overlaps": [],
+          "people_weights": [],
+          "faces": [],
+          "profiles": [],
+          "upper_bodies": [],
+          "strong_upper_body_signal": false,
+          "ambiguous_face_signal": false,
+          "detected": false,
+          "human_detection_confidence": "low",
+          "human_detection_reason": "isolated detector patterns without independent confirmation",
+          "largest_detection_area_ratio": 0.009693877551020408,
+          "classical_human_signal": false,
+          "vision_human_signal": false,
+          "combined_human_decision": false,
+          "decision_reason": "no human evidence"
+        },
+        "all_failure_categories": []
+      },
+      "raw_subject_adherence": null,
+      "palette_recovery": {
+        "eligible": false,
+        "attempted": false,
+        "source_off_palette_ratio": null,
+        "result": "not_attempted",
+        "failure_reason": null,
+        "normalized_off_palette_ratio": null,
+        "edge_geometry_similarity": null,
+        "structural_detail_preserved": null
+      }
+    }
+  ]
+}

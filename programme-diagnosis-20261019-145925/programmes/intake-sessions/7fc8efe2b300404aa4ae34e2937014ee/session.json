@@ -1,0 +1,104 @@
+{
+  "session_id": "7fc8efe2b300404aa4ae34e2937014ee",
+  "status": "generated",
+  "answers": {
+    "event_type": "Children birthday party",
+    "theme": "Superheroes",
+    "age_group": "Children aged 7 to 10",
+    "primary_colour": "blue",
+    "secondary_colour": "red",
+    "creative_description": "A kids party for a kid who is into superheroes, most especially spiderman.",
+    "background_inspiration": "A spiderman inspired theme for a kid's birthday",
+    "theme_reference_treatment": "Spiderman inspired visual traits",
+    "event_date": "2026-12-05",
+    "start_time": "14:00",
+    "title_preference": "Kabelo's Superhero Birthday",
+    "venue": "Sunrise Family Hall",
+    "timezone": "Africa/Johannesburg",
+    "programme": [
+      {
+        "time": "14:00",
+        "title": "Welcome",
+        "description": null
+      },
+      {
+        "time": "15:00",
+        "title": "Games",
+        "description": null
+      },
+      {
+        "time": "16:00",
+        "title": "Cake",
+        "description": null
+      }
+    ],
+    "output_language": "en",
+    "accessibility_preferences": [
+      "high contrast",
+      "clear readable programme text"
+    ],
+    "asset_type": "none",
+    "asset_placement": null,
+    "headshot_shape": null,
+    "rights_and_consent_confirmed": null
+  },
+  "clarification_questions": [],
+  "creative_context": {
+    "event_type_status": "known",
+    "event_type_interpretation": "Children birthday party",
+    "well_known_event_type": true,
+    "event_visual_conventions": [
+      "Decorations, balloons, cake, games"
+    ],
+    "theme_status": "known",
+    "theme_interpretation": "Superheroes",
+    "reference_detected": true,
+    "reference_name": "Spider-Man",
+    "reference_type": "character",
+    "reference_needs_clarification": false,
+    "background_generation_summary": "Create a background for a superhero-themed children's birthday party, focusing on Spider-Man inspired visual traits.",
+    "visual_semantics": {
+      "atmosphere_descriptors": [
+        "Energetic, playful"
+      ],
+      "audience_descriptors": [
+        "Children aged 7 to 10"
+      ],
+      "motif_descriptors": [],
+      "motif_structure_description": "Spider webs should be visible throughout the background, connecting different elements of the scene.",
+      "lighting_descriptors": [],
+      "material_descriptors": [],
+      "texture_descriptors": [],
+      "incompatible_treatments": [],
+      "scene_family": "architectural-interior",
+      "composition_affinities": []
+    },
+    "semantic_provenance": {
+      "atmosphere_descriptors": "SEMANTIC_INFERENCE",
+      "audience_descriptors": "SEMANTIC_INFERENCE",
+      "motif_descriptors": "SAFE_FALLBACK",
+      "motif_structure_description": "SEMANTIC_INFERENCE",
+      "lighting_descriptors": "SAFE_FALLBACK",
+      "material_descriptors": "SAFE_FALLBACK",
+      "texture_descriptors": "SAFE_FALLBACK",
+      "incompatible_treatments": "SAFE_FALLBACK",
+      "scene_family": "SEMANTIC_INFERENCE",
+      "composition_affinities": "SAFE_FALLBACK"
+    },
+    "semantic_confidence": {},
+    "generation_constraints": [
+      "No readable programme/title text",
+      "No logos",
+      "No characters or people",
+      "background only",
+      "no people",
+      "no characters",
+      "no logos",
+      "no readable text",
+      "leave quiet areas for later overlays"
+    ],
+    "clarification_questions": []
+  },
+  "assets": {},
+  "reference_number": "54D077-537922"
+}

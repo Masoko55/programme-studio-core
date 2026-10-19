@@ -1,0 +1,7 @@
+REFERENCE=EFDF69-194931
+
+2026-10-19 13:43:30.9822285600 18775 /home/ntlhari/NerdCode/programme-studio/data/programmes/EFDF69-194931/prompts.json
+2026-10-19 13:43:30.9862285420 7421 /home/ntlhari/NerdCode/programme-studio/data/programmes/EFDF69-194931/brief.json
+2026-10-19 13:43:30.9882285330 146 /home/ntlhari/NerdCode/programme-studio/data/programmes/EFDF69-194931/probe-source.json
+2026-10-19 13:43:48.5261510620 1538688 /home/ntlhari/NerdCode/programme-studio/data/programmes/EFDF69-194931/backgrounds/sd-3-5-medium/image-c.png
+2026-10-19 13:44:00.2421014370 150791 /home/ntlhari/NerdCode/programme-studio/data/programmes/EFDF69-194931/backgrounds/sd-3-5-medium/image-c.json

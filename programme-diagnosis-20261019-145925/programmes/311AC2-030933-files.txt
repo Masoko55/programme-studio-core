@@ -1,0 +1,7 @@
+REFERENCE=311AC2-030933
+
+2026-10-19 14:49:04.8632845810 22503 /home/ntlhari/NerdCode/programme-studio/data/programmes/311AC2-030933/prompts.json
+2026-10-19 14:49:04.8662845300 7660 /home/ntlhari/NerdCode/programme-studio/data/programmes/311AC2-030933/brief.json
+2026-10-19 14:49:04.8672845130 141 /home/ntlhari/NerdCode/programme-studio/data/programmes/311AC2-030933/probe-source.json
+2026-10-19 14:49:15.3341094620 1222574 /home/ntlhari/NerdCode/programme-studio/data/programmes/311AC2-030933/backgrounds/sdxl-1-0/image-c.png
+2026-10-19 14:49:23.9399682120 130447 /home/ntlhari/NerdCode/programme-studio/data/programmes/311AC2-030933/backgrounds/sdxl-1-0/image-c.json

@@ -549,7 +549,10 @@ def _palette_recovery_source_is_eligible(diagnostics: dict | None,
     if not isinstance(diagnostics, dict):
         return False
     report = diagnostics.get("validation") or {}
-    if report.get("diagnostic_findings"):
+    if report.get("decision") == "rejected" or any(
+        finding != "SAFE_REGION_BORDERLINE"
+        for finding in report.get("diagnostic_findings") or []
+    ):
         return False
     if adherence is not None and adherence.get("decision") != "pass":
         return False

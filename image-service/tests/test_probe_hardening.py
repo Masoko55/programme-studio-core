@@ -38,6 +38,9 @@ class ProbeHardeningTests(unittest.TestCase):
         record = {"semantic_failed_dimensions": ["motif_score", "treatment_score", "future_score"]}
         self.assertEqual(_semantic_failure_categories(record), ["MOTIF_DRIFT", "TREATMENT_DRIFT"])
         self.assertEqual(record["unknown_semantic_failed_dimensions"], ["future_score"])
+        mixed = {"semantic_failed_dimensions": ["subject_score", "treatment_score"],
+                 "subject_adherence": {"hard_failed_dimensions": ["treatment_score"]}}
+        self.assertEqual(_semantic_failure_categories(mixed), ["TREATMENT_DRIFT"])
 
     def test_treatment_failure_keeps_palette_or_human_primary_and_retry_history(self):
         source = document()
@@ -92,7 +95,8 @@ class ProbeHardeningTests(unittest.TestCase):
                     ComfyUIClient()._validate_downloaded_candidate(record, False,
                         Path(root) / "image-a.png", candidate, {}, ("navy", "gold"))
             self.assertEqual(record["primary_failure_category"], "TREATMENT_DRIFT")
-            self.assertIn("MOTIF_DRIFT", record["all_failure_categories"])
+            self.assertIn("motif_score", record["semantic_failed_dimensions"])
+            self.assertNotIn("MOTIF_DRIFT", record["all_failure_categories"])
             self.assertIn("TREATMENT_DRIFT", record["all_failure_categories"])
 
     def test_default_palette_relationship_is_diagnostic(self):

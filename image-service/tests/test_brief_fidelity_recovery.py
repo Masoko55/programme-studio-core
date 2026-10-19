@@ -31,6 +31,44 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_inferred_audience_mood_is_diagnostic_but_explicit_hard_audience_rejects(self):
+        brief = {"primary_visual_subject": "layered abstract landscape",
+                 "audience_context": "families", "age_group": "children",
+                 "visual_semantics": {"audience_descriptors": ["welcoming"]},
+                 "semantic_provenance": {"audience_descriptors": "SEMANTIC_INFERENCE"}}
+        scores = {"subject_score": .9, "audience_fit_score": .3}
+        result, _ = self._assess(brief, scores)
+        self.assertEqual(result["audience_fit_score"], .3)
+        self.assertIn("audience_fit_score", result["failed_dimensions"])
+        self.assertNotIn("audience_fit_score", result["hard_failed_dimensions"])
+        self.assertFalse(hard_fidelity_failure(result))
+        brief["hard_dimensions"] = ["audience_fit_score"]
+        hard, _ = self._assess(brief, scores)
+        self.assertIn("audience_fit_score", hard["hard_failed_dimensions"])
+        self.assertTrue(hard_fidelity_failure(hard))
+
+    def test_vision_human_requires_anatomy_or_posture_and_location(self):
+        brief = {"primary_visual_subject": "architectural shapes"}
+        base = {"subject_score": .9, "human_visible": True}
+        for description in ("figure-like floral shape", "possible silhouette", "human-like geometry at left"):
+            result, _ = self._assess(brief, {**base, "human_description": description})
+            self.assertIsNone(result["vision_human_signal"])
+            self.assertTrue(result["vision_debug"]["unconfirmed_human_report"])
+        for description in ("standing person on the left", "small upright person beside doorway"):
+            result, _ = self._assess(brief, {**base, "human_description": description})
+            self.assertTrue(result["vision_human_signal"])
+
+    def test_good_subject_with_weak_treatment_keeps_its_category(self):
+        brief = {"primary_visual_subject": "layered city forms",
+                 "theme_reference_treatment": "first-person movement through the city",
+                 "semantic_provenance": {"theme_reference_treatment": "USER_EXPLICIT"}}
+        result, _ = self._assess(brief, {"subject_score": .95, "treatment_score": .1,
+                                          "motif_score": .9, "atmosphere_score": .9})
+        self.assertEqual(result["subject_score"], .95)
+        self.assertEqual(result["decision"], "TREATMENT_DRIFT")
+        self.assertEqual(result["failure_category"], "TREATMENT_DRIFT")
+        self.assertNotIn("subject_score", result["hard_failed_dimensions"])
+
     def test_malformed_json_once_then_valid_uses_same_candidate(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "candidate.png"
@@ -332,6 +370,7 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                 "audience_context": (
                     "children"
                 ),
+                "hard_dimensions": ["audience_fit_score"],
                 "creative_description": (
                     "joyful playful celebration"
                 ),

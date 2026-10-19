@@ -29,6 +29,19 @@ SEMANTIC_FAILURE_CATEGORIES = {
 }
 
 
+def _confirmed_human_answer(visible: object, description: str) -> bool | None:
+    """A vision yes needs visible anatomy or posture at a stated location."""
+    if visible is False:
+        return False
+    if visible is not True:
+        return None
+    anatomy = re.search(r"\b(?:person|human|man|woman|child|figure|face|head|body|torso)\b", description, re.I)
+    detail = re.search(r"\b(?:face|head|body|torso|arms?|legs?|upright|standing|walking|seated|sitting)\b", description, re.I)
+    location = re.search(r"\b(?:left|right|top|bottom|upper|lower|center|centre|foreground|background|"
+                         r"beside|near|behind|doorway|horizon|middle)\b", description, re.I)
+    return True if anatomy and detail and location else None
+
+
 def select_vision_endpoint(model_name: str) -> str:
     """Use the endpoint verified for the installed MiniCPM vision model."""
     return "/api/chat" if model_name.strip().casefold().startswith("minicpm-v4.5") else "/api/generate"
@@ -632,8 +645,8 @@ def assess_subject_adherence(
             debug["assessment_attempts"] = assessment_attempt + 1
             try:
                 answer = _model_answer(payload, endpoint)
-                vision_human = answer.get("human_visible") if isinstance(answer.get("human_visible"), bool) else None
                 human_description = str(answer.get("human_description") or "")[:240]
+                vision_human = _confirmed_human_answer(answer.get("human_visible"), human_description)
                 missing = [field for field in required if field not in answer and
                            not (field == "subject_score" and "score" in answer)]
                 if (visual_design.get("motif_literalization_policy") == "motif_only" and
@@ -796,24 +809,14 @@ def assess_subject_adherence(
                 "Vision response lacks boolean unrequested_literal_object_visible"
             )
 
-        vision_human = (
-            answer.get(
-                "human_visible"
-            )
-        )
-
-        if not isinstance(
-            vision_human,
-            bool,
-        ):
-            vision_human = None
-
         human_description = str(
             answer.get(
                 "human_description"
             )
             or ""
         )[:240]
+        vision_human = _confirmed_human_answer(answer.get("human_visible"), human_description)
+        debug["unconfirmed_human_report"] = answer.get("human_visible") is True and vision_human is not True
 
         scores = {}
 
@@ -1001,12 +1004,7 @@ def assess_subject_adherence(
                 "audience_descriptors"
             )
             in explicit_sources
-            or visual_design.get(
-                "audience_context"
-            )
-            or visual_design.get(
-                "age_group"
-            )
+            or "audience_fit_score" in visual_design.get("hard_dimensions", [])
         )
     ):
         hard_dimensions.append(

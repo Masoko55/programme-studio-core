@@ -2139,7 +2139,14 @@ def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int) -
     for target in targets:
         target_lab = target["lab"]
         target_chroma = float(np.hypot(target_lab[1], target_lab[2]))
-        if chroma < 8 or target_chroma < 8:
+        if chroma < 3 or target_chroma < 8:
+            continue
+        distance = float(np.linalg.norm(pixel_lab - target_lab))
+        # Very pale requested pigments retain a measurable cast even when a
+        # display-name lookup would call their highlights generic white.
+        # Require close luminance and chromatic direction; truly achromatic
+        # white and unrelated pale hues remain outside the family.
+        if chroma < 8 and (light < 70 or target_lab[0] < 70 or distance > 19):
             continue
         cosine = float(np.clip((a * target_lab[1] + b * target_lab[2]) /
                                (chroma * target_chroma), -1, 1))
@@ -2149,10 +2156,10 @@ def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int) -
         # LAB angle captures pigment identity better than RGB-nearest names:
         # a lit blue can move toward sky blue without becoming cyan/teal.
         # Keep saturated, distant hues outside the requested family.
-        limit = (60 if chroma < target_chroma * 0.65 else
+        limit = (32 if chroma < 8 else
+                 60 if chroma < target_chroma * 0.65 else
                  43 if chroma < 26 else 42)
         if angle <= limit:
-            distance = float(np.linalg.norm(pixel_lab - target_lab))
             if (distance > 12 and
                     (chroma > target_chroma * 1.5 or
                      (chroma > target_chroma * 1.1 and angle > 18))):
@@ -2161,7 +2168,7 @@ def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int) -
             # chromatic neighbour must remain close in both colour spaces.
             hue_limit = (17 if chroma < 26 or chroma < target_chroma * 0.7
                          else 11)
-            if (distance > 12 and
+            if (chroma >= 8 and distance > 12 and
                     _hue_distance(pixel_hue, target["hue"]) > hue_limit):
                 continue
             matches.append((angle + distance * 0.2, target["name"]))

@@ -384,7 +384,10 @@ def _semantic_failure_categories(record: dict) -> list[str]:
     """Translate known failed dimensions and retain unknown ones for diagnosis."""
     categories = []
     unknown = []
-    for field in record.get("semantic_failed_dimensions") or []:
+    assessment = record.get("subject_adherence") or {}
+    fields = (assessment.get("hard_failed_dimensions") if "hard_failed_dimensions" in assessment
+              else record.get("semantic_failed_dimensions")) or []
+    for field in fields:
         category = SEMANTIC_FAILURE_CATEGORIES.get(field)
         if category:
             categories.append(category)
@@ -393,6 +396,20 @@ def _semantic_failure_categories(record: dict) -> list[str]:
     if unknown:
         record["unknown_semantic_failed_dimensions"] = unknown
     return list(dict.fromkeys(categories))
+
+
+def _record_safe_region_retry(record: dict, validation: dict) -> None:
+    """Compare the latest explicit-region usability with the previous attempt."""
+    def score(item: dict) -> float | None:
+        regions = ((item.get("quality") or {}).get("explicit_safe_regions") or {}).get("regions") or {}
+        values = [region.get("usability_score") for region in regions.values()]
+        return round(min(values), 4) if values and all(isinstance(value, (int, float)) for value in values) else None
+
+    current = score(validation)
+    previous_attempts = record.get("rejected_attempts") or []
+    previous = score(previous_attempts[-1].get("validation") or {}) if previous_attempts else None
+    record["safe_region_retry"] = {"previous_score": previous, "current_score": current,
+                                   "improved": current > previous if current is not None and previous is not None else None}
 
 
 def write_json(path: Path, record: dict) -> None:
@@ -532,7 +549,10 @@ def _palette_recovery_source_is_eligible(diagnostics: dict | None,
     if not isinstance(diagnostics, dict):
         return False
     report = diagnostics.get("validation") or {}
-    if report.get("diagnostic_findings"):
+    if report.get("decision") == "rejected" or any(
+        finding != "SAFE_REGION_BORDERLINE"
+        for finding in report.get("diagnostic_findings") or []
+    ):
         return False
     if adherence is not None and adherence.get("decision") != "pass":
         return False
@@ -1830,7 +1850,7 @@ def validate_background(
             safe_regions = assess_explicit_safe_regions(density, {
                 "title": str(visual_design.get("title_safe_region_strategy") or ""),
                 "programme": str(visual_design.get("programme_safe_region_strategy") or ""),
-            }, image)
+            }, image, visual_design.get("layout_guidance"))
             quality_result["explicit_safe_regions"] = safe_regions
             quality_result["explicit_safe_region_decision"] = safe_regions["decision"]
             if safe_regions["decision"] == "FAIL":
@@ -1838,6 +1858,8 @@ def validate_background(
                                 if region["decision"] == "FAIL"]
                 problems.append(("DENSE_SAFE_REGION", "DENSE_SAFE_REGION: high-contrast visual interference in " +
                                  ", ".join(failed_names) + " region"))
+            elif safe_regions["decision"] == "BORDERLINE":
+                problems.append(("SAFE_REGION_BORDERLINE", "Named text region has visual detail but usable calm area"))
 
         palette_result = {
             "palette_checked": False,
@@ -2611,7 +2633,8 @@ class ComfyUIClient:
                 load_prompts_document(reference_number), engine_id, direction_id
             )
             visual_design = {**candidate_spec.visual_design,
-                             "semantic_provenance": candidate_spec.semantic_contract.get("semantic_provenance", {})}
+                             "semantic_provenance": candidate_spec.semantic_contract.get("semantic_provenance", {}),
+                             "layout_guidance": candidate_spec.layout_guidance}
         except FileNotFoundError:
             # Legacy fixture records can be validated without a prompts file.
             visual_design = None
@@ -2676,6 +2699,7 @@ class ComfyUIClient:
                     vision_human_signal=adherence_result.get("vision_human_signal") if adherence_result else None,
                 )
                 validation = raw_validation
+                _record_safe_region_retry(record, raw_validation.get("validation") or {})
                 if adherence_result:
                     if hard_fidelity_failure(adherence_result):
                         category = ("VISION_UNAVAILABLE" if adherence_result["decision"] == "unavailable"
@@ -2700,6 +2724,7 @@ class ComfyUIClient:
                 diagnostics = getattr(error, "diagnostics", None)
                 if diagnostics:
                     record.update(diagnostics)
+                    _record_safe_region_retry(record, diagnostics.get("validation") or {})
                     recovery["source_off_palette_ratio"] = diagnostics.get("off_palette_ratio")
                 if adherence_result and adherence_result.get("decision") != "pass":
                     combined = record.get("all_failure_categories") or [classify_failure(str(error))]
@@ -3082,7 +3107,8 @@ class ComfyUIClient:
         ):
             try:
                 spec = build_candidate_spec(load_prompts_document(reference_number), engine_id, direction_id)
-                design = {**spec.visual_design, "semantic_provenance": spec.semantic_contract.get("semantic_provenance", {})}
+                design = {**spec.visual_design, "semantic_provenance": spec.semantic_contract.get("semantic_provenance", {}),
+                          "layout_guidance": spec.layout_guidance}
                 subject = assess_subject_adherence(image_path, design)
                 previous_hard_failure = hard_fidelity_failure(previous.get("subject_adherence"))
                 if subject.get("decision") != "unavailable":

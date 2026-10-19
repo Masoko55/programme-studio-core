@@ -109,12 +109,22 @@ class SamplingRecoveryTests(
                  "largest_unrequested_region_ratio": .01,
                  "validation": {"diagnostic_findings": []}}
         self.assertTrue(_palette_recovery_source_is_eligible(sound, {"decision": "pass"}))
+        borderline = {**sound, "validation": {
+            "decision": "accepted", "diagnostic_findings": ["SAFE_REGION_BORDERLINE"]}}
+        for engine in ("sdxl-1-0", "sd-3-5-medium"):
+            with self.subTest(engine=engine):
+                self.assertTrue(_recoverable_palette_error(
+                    "off-palette ratio 0.12, largest unrelated region 0.01", engine))
+                self.assertTrue(_palette_recovery_source_is_eligible(borderline, {"decision": "pass"}))
         for changes in (
             {"primary_ratio": .01}, {"secondary_ratio": 0},
             {"requested_chromatic_ratio": .04, "structural_neutral_ratio": .9},
             {"largest_unrequested_region_ratio": .18},
             {"validation": {"diagnostic_findings": ["RASTER"]}},
             {"validation": {"diagnostic_findings": ["FLAT"]}},
+            {"validation": {"diagnostic_findings": ["SAFE_REGION_BORDERLINE", "RASTER"]}},
+            {"validation": {"decision": "rejected", "diagnostic_findings": ["SAFE_REGION_BORDERLINE"],
+                            "failure_category": "DENSE_SAFE_REGION"}},
         ):
             with self.subTest(changes=changes):
                 self.assertFalse(_palette_recovery_source_is_eligible({**sound, **changes},

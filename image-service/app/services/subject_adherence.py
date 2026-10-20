@@ -35,11 +35,16 @@ def _confirmed_human_answer(visible: object, description: str) -> bool | None:
         return False
     if visible is not True:
         return None
-    anatomy = re.search(r"\b(?:person|human|man|woman|child|figure|face|head|body|torso)\b", description, re.I)
-    detail = re.search(r"\b(?:face|head|body|torso|arms?|legs?|upright|standing|walking|seated|sitting)\b", description, re.I)
+    anatomy = re.search(r"\b(?:person|human|man|woman|child|figure|face|head|body|torso)\b(?!-like\b)", description, re.I)
+    detail = re.search(r"\b(?:face|head|body|torso|arms?|legs?|upright|standing|walking|seated|sitting)\b(?!-like\b)", description, re.I)
     location = re.search(r"\b(?:left|right|top|bottom|upper|lower|center|centre|foreground|background|"
                          r"beside|near|behind|doorway|horizon|middle)\b", description, re.I)
-    return True if anatomy and detail and location else None
+    if anatomy and detail and location:
+        return True
+    people = re.search(r"\b(?:people|persons?|humans?|men|women|children)\b(?!-like\b)", description, re.I)
+    distant = re.search(r"\b(?:distant|background|far\s+(?:away|end)|at\s+(?:the\s+)?end\s+of)\b", description, re.I)
+    corroborated = re.search(r"\b(?:small|several|multiple|two|three|four|\d+|walking|standing|seated|upright)\b", description, re.I)
+    return True if people and distant and corroborated else None
 
 
 def _supported_literal_object_claim(answer: dict, visual_design: dict) -> bool:

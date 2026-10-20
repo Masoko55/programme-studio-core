@@ -124,6 +124,35 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
             result, _ = self._assess(brief, {**base, "human_description": description})
             self.assertTrue(result["vision_human_signal"])
 
+    def test_explicit_distant_people_report_is_confirmed_without_anatomy_detail(self):
+        brief = {"primary_visual_subject": "architectural shapes"}
+        descriptions = (
+            "Two small, distant human figures: visible only as silhouettes, posture upright, "
+            "location at far end of the hallway, facing away from the viewer.",
+            "three small people at the end of the corridor",
+            "several people in the background",
+            "a distant person walking beside the doorway",
+        )
+        for description in descriptions:
+            with self.subTest(description=description):
+                result, _ = self._assess(brief, {
+                    "subject_score": .9, "human_visible": True,
+                    "human_description": description})
+                self.assertTrue(result["vision_human_signal"])
+                self.assertFalse(result["vision_debug"]["unconfirmed_human_report"])
+
+        for description in (
+            "face-like floral structure in the background",
+            "human-like decorative pattern in the distance",
+            "figure-like architecture at the far end",
+            "weak isolated cascade hit beside the doorway",
+        ):
+            with self.subTest(description=description):
+                result, _ = self._assess(brief, {
+                    "subject_score": .9, "human_visible": True,
+                    "human_description": description})
+                self.assertIsNone(result["vision_human_signal"])
+
     def test_good_subject_with_weak_treatment_keeps_its_category(self):
         brief = {"primary_visual_subject": "layered city forms",
                  "theme_reference_treatment": "first-person movement through the city",

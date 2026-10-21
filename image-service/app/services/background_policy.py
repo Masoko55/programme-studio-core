@@ -2168,8 +2168,13 @@ def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int) -
             # chromatic neighbour must remain close in both colour spaces.
             hue_limit = (17 if chroma < 26 or chroma < target_chroma * 0.7
                          else 11)
+            # Muted pigment shadows can shift HSV hue substantially while
+            # retaining the source pigment's LAB chromatic direction.
+            muted_direction_match = (light <= target_lab[0] and
+                                     chroma <= target_chroma * 0.8 and angle <= 32)
             if (chroma >= 8 and distance > 12 and
-                    _hue_distance(pixel_hue, target["hue"]) > hue_limit):
+                    _hue_distance(pixel_hue, target["hue"]) > hue_limit and
+                    not muted_direction_match):
                 continue
             matches.append((angle + distance * 0.2, target["name"]))
     return min(matches)[1] if matches else None

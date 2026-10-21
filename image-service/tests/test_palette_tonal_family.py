@@ -57,6 +57,17 @@ class PaletteTonalFamilyTests(unittest.TestCase):
                 self.assertLess(result["off_palette_ratio"], .01)
                 self.assertGreater(result["primary_ratio"], .6)
 
+    def test_muted_requested_pigment_keeps_family_without_admitting_third_hue(self):
+        olive_shade = (112, 128, 64)
+        result = validate_palette(blocks("green", olive_shade, "cream"), "green", "cream",
+                                  mode="dominant", quality_result={})
+        self.assertLess(result["off_palette_ratio"], .01)
+        self.assertGreater(result["primary_ratio"], .6)
+        with self.assertRaises(ValueError) as invalid:
+            validate_palette(blocks("green", "orange", "cream"), "green", "cream",
+                             mode="dominant", quality_result={})
+        self.assertGreater(invalid.exception.palette_metrics["largest_unrequested_region_ratio"], .035)
+
     def test_pale_warm_cream_is_credited_before_structural_neutral(self):
         result = validate_palette(blocks("green", (248, 245, 234)), "green", "cream",
                                   mode="dominant", quality_result={})

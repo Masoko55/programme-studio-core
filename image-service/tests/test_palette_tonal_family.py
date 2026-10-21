@@ -28,6 +28,33 @@ def assess(image, mode="dominant"):
 
 
 class PaletteTonalFamilyTests(unittest.TestCase):
+    def test_distributed_requested_blend_is_not_a_declared_colour(self):
+        pixels = np.empty((176, 128, 3), dtype=np.uint8)
+        pixels[:, :64] = NAMED_COLOURS["green"]
+        pixels[:, 64:] = NAMED_COLOURS["cream"]
+        for x in range(4, 124, 12):
+            pixels[16:128, x:x + 2] = (162, 195, 146)
+        result = validate_palette(Image.fromarray(pixels), "green", "cream",
+                                  quality_result={})
+        self.assertGreater(result["requested_palette_blend_ratio"], .05)
+        self.assertLess(result["off_palette_ratio"], .01)
+        self.assertLess(result["primary_ratio"] + result["secondary_ratio"], .96)
+
+    def test_broad_pale_secondary_can_support_chromatic_primary(self):
+        image = blocks(*(["green"] * 40 + ["cream"] * 60))
+        result = validate_palette(image, "green", "cream", mode="dominant",
+                                  relationship="green dominant with cream supporting",
+                                  relationship_source="user_explicit", quality_result={})
+        self.assertTrue(result["dominance_relationship_passed"])
+        self.assertLess(result["primary_ratio"], result["secondary_ratio"])
+
+    def test_tiny_primary_and_similarly_chromatic_reverse_area_still_fail(self):
+        for primary, secondary, primary_share in (("green", "cream", 10), ("blue", "red", 40)):
+            with self.subTest(primary=primary), self.assertRaisesRegex(ValueError, "PALETTE_ROLE_DRIFT"):
+                validate_palette(blocks(*([primary] * primary_share + [secondary] * (100 - primary_share))),
+                                 primary, secondary, relationship=f"{primary} dominant with {secondary} supporting",
+                                 relationship_source="user_explicit", quality_result={})
+
     def test_default_chromatic_palette_rejects_neutral_visual_majority(self):
         image = blocks(*(["blue"] * 39 + ["red"] * 6 + ["white"] * 55))
         with self.assertRaisesRegex(ValueError, "PALETTE_ROLE_DRIFT"):

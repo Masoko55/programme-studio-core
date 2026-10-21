@@ -102,7 +102,7 @@ class PaletteTonalFamilyTests(unittest.TestCase):
         self.assertGreater(result["primary_ratio"], .4)
         self.assertGreater(result["secondary_ratio"], .4)
 
-        for third in ("orange", "brown", "gold", "purple", "cyan", "blue", "red"):
+        for third in ("orange", "peach", "brown", "gold", "purple", "lavender", "cyan", "blue", "red"):
             with self.subTest(third=third), self.assertRaises(ValueError) as rejected:
                 validate_palette(blocks("green", "cream", third), "green", "cream",
                                  mode="dominant", quality_result={})

@@ -2858,6 +2858,8 @@ def validate_palette(
     )
     perceptual_metrics = {
         "requested_palette_blend_ratio": len(palette_blend_pixels) / total if bounded_blend else 0.0,
+        "primary_chromatic_mass": chromatic_mass.get(primary_name, 0.0) / total,
+        "secondary_chromatic_mass": chromatic_mass.get(secondary_name, 0.0) / total,
         "perceptual_in_family_ratio": 1.0 - off_palette_ratio,
         "unrelated_hue_ratio": unrelated_hue_count / total,
         "requested_chromatic_ratio": requested_chromatic_ratio,

@@ -68,6 +68,24 @@ class PaletteTonalFamilyTests(unittest.TestCase):
                              mode="dominant", quality_result={})
         self.assertGreater(invalid.exception.palette_metrics["largest_unrequested_region_ratio"], .035)
 
+    def test_lit_pigment_and_shaded_light_pigment_follow_requested_chromatic_direction(self):
+        image = blocks("green", (144, 160, 96), (160, 160, 112), "cream")
+        result = validate_palette(image, "green", "cream", mode="dominant", quality_result={})
+        self.assertLess(result["off_palette_ratio"], .01)
+        self.assertGreater(result["primary_ratio"], .4)
+        self.assertGreater(result["secondary_ratio"], .4)
+
+        for third in ("orange", "brown", "gold", "purple", "cyan", "blue", "red"):
+            with self.subTest(third=third), self.assertRaises(ValueError) as rejected:
+                validate_palette(blocks("green", "cream", third), "green", "cream",
+                                 mode="dominant", quality_result={})
+            self.assertGreater(rejected.exception.palette_metrics["largest_unrequested_region_ratio"], .035)
+
+        deeper_cream_shadow = (176, 176, 112)
+        deeper = validate_palette(blocks("green", "green", deeper_cream_shadow, "cream"),
+                                  "green", "cream", mode="dominant", quality_result={})
+        self.assertLess(deeper["off_palette_ratio"], .01)
+
     def test_pale_warm_cream_is_credited_before_structural_neutral(self):
         result = validate_palette(blocks("green", (248, 245, 234)), "green", "cream",
                                   mode="dominant", quality_result={})

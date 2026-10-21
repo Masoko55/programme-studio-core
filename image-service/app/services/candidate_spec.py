@@ -96,6 +96,18 @@ def _motif_literalization(contract: dict, subject: str, has_reference) -> tuple[
     return policy, authorized
 
 
+def _characters_explicitly_prohibited(constraints: list[str]) -> bool:
+    """Recognize explicit bans on depicted characters or character-like figures."""
+    subject = r"(?:characters?|fictional figures?|humanoid figures?|costumed figures?|superhero figures?)"
+    qualifier = r"(?:(?:any|all|depicted|visible)\s+){0,2}"
+    paired_people = r"(?:(?:people|persons|humans)\s+(?:or|and)\s+)?"
+    leading = rf"\b(?:no|without|exclude|avoid)\s+{qualifier}{paired_people}{subject}\b"
+    imperative = rf"\bdo not\s+(?:depict|show|include|render|feature)\s+{qualifier}{subject}\b"
+    trailing = rf"\b{subject}\b\W+(?:are\W+)?(?:prohibited|forbidden|excluded|not allowed)\b"
+    return any(re.search(rf"(?:{leading}|{imperative}|{trailing})", item, re.I)
+               for item in constraints)
+
+
 def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> CandidateSpec:
     brief = document.get("brief")
     if not isinstance(brief, dict):
@@ -146,9 +158,7 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
     generation_constraints = (values(context, "generation_constraints")
                               if isinstance(context, dict) else [])
     generation_constraints.extend(values(brief, "negative_constraints"))
-    characters_prohibited = any(re.search(
-        r"\b(?:no|without|exclude|avoid)\b.{0,30}\bcharacters?\b", item, re.I,
-    ) for item in generation_constraints)
+    characters_prohibited = _characters_explicitly_prohibited(generation_constraints)
     semantics = brief.get("visual_semantics")
     if not isinstance(semantics, dict) and isinstance(context, dict):
         semantics = context.get("visual_semantics")

@@ -42,6 +42,29 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
         self.assertEqual(failure_category("CHARACTER: depicted humanoid figure"), "CHARACTER")
         self.assertEqual(runtime_retry_category("CHARACTER: depicted costumed figure"), "CHARACTER")
 
+    def test_character_prohibition_requires_explicit_constraint_grammar(self):
+        prohibitions = (
+            "No people or characters", "Do not depict characters",
+            "Do not show any fictional figures", "No humanoid figures",
+            "No costumed figures", "No superhero figures", "Characters prohibited",
+        )
+        non_prohibitions = (
+            "No text or logos", "Avoid buildings",
+            "Use abstract character in the composition", "Batman-inspired colours",
+            "Spider-Man-inspired web geometry", "Hulk-inspired fractured shapes",
+            "strong character in the visual style",
+            "No text or logos; characters are allowed",
+            "No logos and use characters",
+        )
+        for constraint in prohibitions + non_prohibitions:
+            with self.subTest(constraint=constraint):
+                document = fixture(1, "celebration", "abstract geometry", "blue", "red",
+                                   "dominant", "style inspired", "asymmetric")
+                document["brief"]["grill_me_context"] = {"generation_constraints": [constraint]}
+                spec = build_candidate_spec(document, "sdxl-1-0", "A")
+                self.assertEqual(spec.visual_design["characters_prohibited"],
+                                 constraint in prohibitions)
+
     def test_prohibited_depicted_character_is_a_hard_semantic_failure(self):
         design = {"primary_visual_subject": "abstract celebratory background",
                   "characters_prohibited": True}

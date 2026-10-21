@@ -7,7 +7,10 @@ import colorsys
 import re
 
 from app.services.candidate_spec import CandidateSpec
-from app.services.background_policy import COLOUR_ALIASES, COLOUR_FAMILIES, NAMED_COLOURS, NEUTRAL_NAMES, palette_relationship_policy
+from app.services.background_policy import (COLOUR_ALIASES, COLOUR_FAMILIES, NAMED_COLOURS,
+                                            NEUTRAL_NAMES, named_colour_is_requested_tone,
+                                            palette_negative_contract,
+                                            palette_relationship_policy)
 from app.services.engine_capabilities import engine_capabilities
 
 
@@ -205,12 +208,13 @@ def _affirmative_palette(spec: CandidateSpec) -> str:
             "preserving those families. " + _chromatic_boundaries(spec))
 
 
-def _chromatic_boundaries(spec: CandidateSpec) -> str:
-    """Name nearby unrequested hues using the validator's colour metadata."""
+def _nearby_unrequested_hues(spec: CandidateSpec) -> tuple[tuple[str, tuple[str, ...]], ...]:
+    """Select nearby chromatic drift on either side of each requested family."""
     requested = [COLOUR_ALIASES.get(str(item["colour"]).casefold(), str(item["colour"]).casefold())
                  for item in spec.visual_design["requested_palette"]]
     allowed = set().union(*(COLOUR_FAMILIES.get(name, {name}) for name in requested))
-    clauses = []
+    requested_rgb = [(name, NAMED_COLOURS[name]) for name in requested if name in NAMED_COLOURS]
+    boundaries = []
     for name in requested:
         rgb = NAMED_COLOURS.get(name)
         if not rgb:
@@ -218,19 +222,51 @@ def _chromatic_boundaries(spec: CandidateSpec) -> str:
         hue, saturation, _ = colorsys.rgb_to_hsv(*(channel / 255 for channel in rgb))
         if saturation < .18:
             continue
-        alternatives = []
+        sides = {-1: [], 1: []}
         for other, other_rgb in NAMED_COLOURS.items():
-            if other in allowed or other in {"black", "white", "grey", "silver", "charcoal"}:
+            if (other in allowed or other in NEUTRAL_NAMES or
+                    named_colour_is_requested_tone(other_rgb, requested_rgb)):
                 continue
             other_hue, other_saturation, _ = colorsys.rgb_to_hsv(*(channel / 255 for channel in other_rgb))
-            distance = min(abs(hue - other_hue), 1 - abs(hue - other_hue))
-            if other_saturation >= .25 and distance <= .16:
-                alternatives.append((distance, other))
-        alternatives.sort()
-        if alternatives:
-            names = [item for _, item in alternatives[:6]]
-            clauses.append(f"Keep {name} distinctly {name}, avoiding {', '.join(names)} drift")
+            signed_distance = (other_hue - hue + .5) % 1 - .5
+            distance = abs(signed_distance)
+            # Near-identical hues can be ordinary tonal derivatives. Exclude
+            # only a bounded neighbouring drift, not every named shade.
+            if other_saturation >= .25 and .075 <= distance <= .16:
+                sides[1 if signed_distance > 0 else -1].append((distance, other))
+        names = tuple(min(side)[1] for side in sides.values() if side)
+        if names:
+            boundaries.append((name, names))
+    return tuple(boundaries)
+
+
+def _chromatic_boundaries(spec: CandidateSpec) -> str:
+    """Describe nearby drift using the same metadata as negative conditioning."""
+    clauses = [f"Keep {name} distinctly {name}, avoiding {', '.join(neighbours)} drift"
+               for name, neighbours in _nearby_unrequested_hues(spec)]
     return "; ".join(clauses) + ("." if clauses else "")
+
+
+def _palette_negative(spec: CandidateSpec, stage: str, category: str, history) -> str:
+    """Supply only exclusions to engines that expose negative conditioning."""
+    base = palette_negative_contract(spec.primary_colour, spec.secondary_colour)
+    boundaries = _nearby_unrequested_hues(spec)
+    # SD3.5 repeats the negative in three encoder fields, so keep one nearby
+    # exclusion per requested pigment there; SDXL can carry both sides.
+    nearby = (tuple(dict.fromkeys(neighbours[0] for _, neighbours in boundaries))
+              if spec.engine_id == "sd-3-5-medium" else
+              tuple(dict.fromkeys(neighbour for _, neighbours in boundaries for neighbour in neighbours)))
+    if nearby:
+        base += ", " + ", ".join(nearby)
+    if category in _PALETTE_FAILURES or _persistent_palette_correction(history, category):
+        pressure = {
+            "normal": "unrelated chromatic accents",
+            "targeted_recovery": "independent off-palette chromatic surfaces",
+            "strict_recovery": "substantial independent third-colour regions",
+            "rescue": "unrelated chromatic accents, third-colour fields on principal chromatic surfaces",
+        }[stage]
+        base += ", " + pressure
+    return base
 
 
 def _atmosphere(spec: CandidateSpec) -> str:
@@ -671,6 +707,8 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     palette = _palette(spec)
     composition = _composition(spec)
     correction = _CORRECTIONS.get(category, "")
+    if category == "PALETTE_OFF":
+        correction = _join_sections(correction, _palette_retry_focus(stage))
     if category == "DIRECTION_DUPLICATE":
         recovery = (
             "Emphasize this direction's stated focal location and perimeter rhythm."
@@ -700,6 +738,8 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
             negative += ", " + _scene_tone(spec)[1]
     else:
         negative = "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels"
+    if engine_capabilities(spec.engine_id)["negative_prompt_channel"]:
+        negative += ", " + _palette_negative(spec, stage, category, failure_history)
     extra_negative = {
         "RASTER": ", scanlines, raster grid",
         "NOISE": ", grain, noise",
@@ -874,8 +914,19 @@ _RETRY_CORRECTIONS = {
 }
 
 
+def _palette_retry_focus(stage: str) -> str:
+    return {
+        "normal": "Keep requested colour families on principal design surfaces; suppress unrelated chromatic accents while retaining shading.",
+        "targeted_recovery": "Keep subject, motif and composition; confine chromatic design to requested families and remove independent third-colour regions.",
+        "strict_recovery": "Keep subject, motif and composition; make requested families the only substantial chromatic fields, with no independent third-colour regions.",
+        "rescue": "Requested families must occupy the principal chromatic surfaces; unrelated chromatic accents must be absent or negligible. Retain permitted neutral shading, subject, motif and composition.",
+    }[stage]
+
+
 def _runtime_correction(category: str, stage: str) -> str:
     requirement = _RETRY_CORRECTIONS[category]
+    if category == "PALETTE_OFF":
+        requirement = _join_sections(requirement, _palette_retry_focus(stage))
     emphasis = {
         "normal": "Correct the failed dimension conservatively:",
         "targeted_recovery": "Make the failed requirement substantially more visible:",
@@ -937,11 +988,14 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     strength = retry_strength_level(attempt)
     full_correction = (_runtime_correction(runtime_retry_category(reason), compiled.retry_stage)
                        if attempt > 1 else "")
-    correction = (f"{compiled.retry_stage}: " +
-                  _first_words(full_correction.split(": ", 1)[-1].split(" Preserve all original", 1)[0], 18)
+    short_correction = (_palette_retry_focus(compiled.retry_stage)
+                        if runtime_retry_category(reason) == "PALETTE_OFF" and full_correction else
+                        full_correction.split(": ", 1)[-1].split(" Preserve all original", 1)[0]
+                        if full_correction else "")
+    correction = (f"{compiled.retry_stage}: " + _first_words(short_correction, 18)
                   if full_correction else "")
     persistent_palette = (_persistent_palette_correction(failure_history, runtime_retry_category(reason))
-                          if spec.engine_id == "sdxl-1-0" and attempt > 1 else "")
+                          if spec.engine_id in {"sdxl-1-0", "sd-3-5-medium"} and attempt > 1 else "")
     subject_line = f"Visual subject: {subject}."
     short_subject_line = f"Visual subject: {_first_words(subject, 9)}."
     anchor_line = f"Anchors: {_first_words(anchors, 14)}." if anchors else ""
@@ -997,7 +1051,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
               if spec.engine_id == "sdxl-1-0" else
               _join_sections(short_subject_line, sd35_event_line, sd35_audience_line, mood_line,
                              short_treatment_line, spatial_line, short_palette_line,
-                             correction) if spec.engine_id == "sd-3-5-medium" else
+                             persistent_palette, correction) if spec.engine_id == "sd-3-5-medium" else
               _join_sections(subject_line, mood_line, audience_line, motif_line, motif_policy_line,
                              treatment_line, palette_line, spatial_line, style_line, light_line))
     positive_source = clip_g.replace(short_subject_line, subject_line, 1).replace(short_treatment_line, treatment_line, 1) if spec.engine_id != "flux-2" else clip_g
@@ -1011,7 +1065,8 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     t5 = _join_sections(subject_line, anchor_line, sd35_event_line, sd35_audience_line,
                        mood_line, audience_line if spec.engine_id != "sd-3-5-medium" else "",
                        motif_line, motif_policy_line,
-                       treatment_line, palette_line, spatial_line, style_line, light_line, correction)
+                       treatment_line, palette_line, spatial_line, style_line, light_line,
+                       persistent_palette, correction)
     def clean(value: str) -> str:
         value = _background_only(value, spec)
         return re.sub(r"\b(?:8k|4k|masterpiece|ultra[- ]detailed|trending on artstation|"

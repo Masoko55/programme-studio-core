@@ -153,6 +153,27 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                     "human_description": description})
                 self.assertIsNone(result["vision_human_signal"])
 
+    def test_human_evidence_confirms_empty_description_without_ambiguous_shape_false_positive(self):
+        brief = {"primary_visual_subject": "architectural shapes"}
+        person, _ = self._assess(brief, {
+            "subject_score": .9, "human_visible": True, "human_description": "",
+            "observed_evidence": ["One person in a suit (formal, posture upright, walking in foreground)"],
+        })
+        self.assertTrue(person["vision_human_signal"])
+        self.assertFalse(person["vision_debug"]["unconfirmed_human_report"])
+
+        for evidence in (
+            "face-like floral structure in the background",
+            "figure-like architecture at the far end",
+            "human-like geometry beside the doorway",
+        ):
+            with self.subTest(evidence=evidence):
+                ambiguous, _ = self._assess(brief, {
+                    "subject_score": .9, "human_visible": True, "human_description": "",
+                    "observed_evidence": [evidence],
+                })
+                self.assertIsNone(ambiguous["vision_human_signal"])
+
     def test_good_subject_with_weak_treatment_keeps_its_category(self):
         brief = {"primary_visual_subject": "layered city forms",
                  "theme_reference_treatment": "first-person movement through the city",
@@ -358,13 +379,13 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                 "message": {
                     "content": json.dumps(
                         {
-                            **scores,
                             "observed_evidence": [
                                 "visible forms"
                             ],
                             "reason": (
                                 "brief fit"
                             ),
+                            **scores,
                         }
                     )
                 }

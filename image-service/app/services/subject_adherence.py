@@ -47,6 +47,17 @@ def _confirmed_human_answer(visible: object, description: str) -> bool | None:
     return True if people and distant and corroborated else None
 
 
+def _confirmed_human_evidence(visible: object, description: str, evidence: object) -> bool | None:
+    """Use each structured observation independently when the description is sparse."""
+    confirmed = _confirmed_human_answer(visible, description)
+    if confirmed is not None or visible is not True or not isinstance(evidence, list):
+        return confirmed
+    for observation in evidence:
+        if isinstance(observation, str) and _confirmed_human_answer(True, observation) is True:
+            return True
+    return None
+
+
 def _supported_literal_object_claim(answer: dict, visual_design: dict) -> bool:
     """A hard literal-object claim needs an object, location and contract reason."""
     evidence = answer.get("unrequested_literal_object_evidence")
@@ -680,7 +691,10 @@ def assess_subject_adherence(
             try:
                 answer = _model_answer(payload, endpoint)
                 human_description = str(answer.get("human_description") or "")[:240]
-                vision_human = _confirmed_human_answer(answer.get("human_visible"), human_description)
+                vision_human = _confirmed_human_evidence(
+                    answer.get("human_visible"), human_description,
+                    answer.get("observed_evidence", answer.get("matched_anchors", [])),
+                )
                 missing = [field for field in required if field not in answer and
                            not (field == "subject_score" and "score" in answer)]
                 if (visual_design.get("motif_literalization_policy") == "motif_only" and
@@ -862,7 +876,10 @@ def assess_subject_adherence(
             )
             or ""
         )[:240]
-        vision_human = _confirmed_human_answer(answer.get("human_visible"), human_description)
+        vision_human = _confirmed_human_evidence(
+            answer.get("human_visible"), human_description,
+            answer.get("observed_evidence", answer.get("matched_anchors", [])),
+        )
         debug["unconfirmed_human_report"] = answer.get("human_visible") is True and vision_human is not True
 
         scores = {}

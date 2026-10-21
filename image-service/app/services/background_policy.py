@@ -1607,23 +1607,9 @@ def palette_negative_contract(
         )
     )
 
-    if not measurable:
-        return (
-            "off-palette colours, colour drift, "
-            "unrequested accent colours, multicolour palette, "
-            "rainbow colours, unrelated hues"
-        )
-
-    return (
-        "off-palette colours, colour drift, "
-        "unrequested accent colours, multicolour palette, "
-        "rainbow colours, unrelated hues. "
-        "Avoid large unrelated third-colour regions. "
-        "Keep the design grounded in the requested colour families: "
-        + ", ".join(
-            measurable
-        )
-    )
+    if set(measurable) == {"black", "white"}:
+        return "chromatic contamination, saturated accents, multicolour or rainbow palette"
+    return "off-palette, unrelated accents, rainbow/multicolour, third-colour fields"
 
 
 def sanitize_background_prompt(
@@ -2249,6 +2235,23 @@ def _borderline_tonal_family(pixel_lab, targets: list[dict], pixel_hue: int) -> 
         if float(np.degrees(np.arccos(cosine))) <= 60:
             matches.append((hue_distance, target["name"]))
     return min(matches)[1] if matches else None
+
+
+def named_colour_is_requested_tone(candidate_rgb: tuple[int, int, int],
+                                   requested: list[tuple[str, tuple[int, int, int]]]) -> bool:
+    """Use the validator's perceptual family tests before excluding a named hue."""
+    def lab(rgb: tuple[int, int, int]):
+        value = cv2.cvtColor(np.uint8([[rgb]]), cv2.COLOR_RGB2LAB)[0, 0].astype(np.float32)
+        value[0] *= 100.0 / 255.0
+        value[1:] -= 128.0
+        return value
+
+    targets = [{"name": name, "lab": lab(rgb), "hue": _rgb_to_hsv(rgb)[0]}
+               for name, rgb in requested]
+    pixel_lab = lab(candidate_rgb)
+    pixel_hue = _rgb_to_hsv(candidate_rgb)[0]
+    return bool(_perceptual_palette_family(pixel_lab, targets, pixel_hue) or
+                _borderline_tonal_family(pixel_lab, targets, pixel_hue))
 
 
 def _validate_palette_balance(primary_name, primary_rgb, primary_descriptor, secondary_name, secondary_rgb, requested_counts: dict, total: int) -> tuple[float | None, float | None]:

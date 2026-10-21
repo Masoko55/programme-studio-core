@@ -1336,19 +1336,20 @@ def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = 
             if item["crop_confirmed"]:
                 item["passes"].add("crop")
 
+    contrast = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(np.asarray(grey))
     array = np.asarray(grey.resize((grey.width * 2, grey.height * 2)), dtype=np.uint8)
     enhanced = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(array)
     binary = cv2.adaptiveThreshold(enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                    cv2.THRESH_BINARY, 31, 9)
-    for pass_name, variant in (("contrast", enhanced), ("threshold", binary),
-                               ("inverted", 255 - binary)):
+    for pass_name, variant, scale in (("contrast", contrast, 1.0), ("threshold", binary, 2.0),
+                                      ("inverted", 255 - binary, 2.0)):
         try:
             result = _ocr_data(Image.fromarray(variant), "--psm 11", pass_name, diagnostics)
         except StopIteration:  # Unit-test mocks may provide only the first passes.
             break
         if result is None:
             continue
-        for candidate in _ocr_items(result, image.size, scale=2.0):
+        for candidate in _ocr_items(result, image.size, scale=scale):
             if candidate["confidence"] < 55:
                 continue
             match = next((item for item in items if _ocr_same_region(item, candidate)), None)

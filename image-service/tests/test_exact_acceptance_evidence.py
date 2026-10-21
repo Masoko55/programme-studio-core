@@ -108,8 +108,9 @@ class ExactOcrCases(unittest.TestCase):
     def evaluate(self, first, repeats=(), crops=False):
         image = Image.new("RGB", (300, 400), "white")
         scaled_repeats = []
-        for result in repeats:
-            scaled_repeats.append({key: ([value * 2 for value in values] if key in {"left", "top", "width", "height"} else values)
+        for index, result in enumerate(repeats):
+            scaled_repeats.append({key: ([value * (1 if index == 0 else 2) for value in values]
+                                          if key in {"left", "top", "width", "height"} else values)
                                    for key, values in result.items()})
         passes = [first, *scaled_repeats]
         passes.extend([ocr_data()] * (4 - len(passes)))

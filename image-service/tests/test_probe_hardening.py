@@ -239,6 +239,39 @@ class ProbeHardeningTests(unittest.TestCase):
         self.assertFalse(sufficient["text_detected"])
         self.assertEqual(run({"original"})["ocr_diagnostics"]["decision"], "OCR_PARTIAL_INSUFFICIENT")
 
+    def test_required_contrast_ocr_uses_source_resolution(self):
+        dimensions = {}
+
+        def fake(image, _config, variant, diagnostics):
+            dimensions[variant] = image.size
+            diagnostics["attempted"].append(variant)
+            diagnostics["completed_variants"].append(variant)
+            return {"text": [], "conf": []}
+
+        with patch("app.services.comfyui_client._ocr_data", side_effect=fake):
+            result = detect_text_evidence(Image.new("RGB", (896, 1280), "white"))
+        self.assertEqual(dimensions["original"], (896, 1280))
+        self.assertEqual(dimensions["contrast"], (896, 1280))
+        self.assertTrue(result["ocr_diagnostics"]["evidence_sufficiency"])
+
+    def test_required_views_confirm_text_with_optional_timeout(self):
+        def fake(_image, _config, variant, diagnostics):
+            diagnostics["attempted"].append(variant)
+            if variant in {"threshold", "inverted"}:
+                diagnostics["timed_out_variants"].append(variant)
+                return None
+            diagnostics["completed_variants"].append(variant)
+            if variant in {"original", "contrast"}:
+                return {"text": ["BIRTHDAY"], "conf": ["95"], "left": [8],
+                        "top": [8], "width": [90], "height": [20]}
+            return {"text": [], "conf": []}
+
+        with patch("app.services.comfyui_client._ocr_data", side_effect=fake):
+            result = detect_text_evidence(Image.new("RGB", (128, 128), "white"))
+        self.assertTrue(result["text_detected"])
+        self.assertIn("BIRTHDAY", result["confirmed_tokens"])
+        self.assertEqual(result["ocr_diagnostics"]["decision"], "OCR_PARTIAL_SUFFICIENT")
+
     def test_vision_disambiguates_weak_face_without_overriding_clear_human_or_text(self):
         with tempfile.TemporaryDirectory() as root:
             path = Path(root) / "image.png"

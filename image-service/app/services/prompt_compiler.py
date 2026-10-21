@@ -61,7 +61,7 @@ def failure_category(reason: str) -> str:
     if re.match(r"^text(?:\b|_)", text):
         return "TEXT_OR_LOGO" if text.startswith("text_or_logo") else "TEXT"
     for category in ("UNREQUESTED_LITERAL_OBJECT", "DENSE_SAFE_REGION", "TEXT_OR_LOGO",
-                     "PALETTE_ROLE_DRIFT", "SUBJECT_DRIFT", "TREATMENT_DRIFT", "HUMAN",
+                     "PALETTE_ROLE_DRIFT", "SUBJECT_DRIFT", "TREATMENT_DRIFT", "CHARACTER", "HUMAN",
                      "VISION_UNAVAILABLE", "VALIDATOR_UNAVAILABLE"):
         if category.casefold() in text:
             return category
@@ -448,6 +448,7 @@ def _motif_policy_instruction(spec: CandidateSpec) -> str:
 
 _CORRECTIONS = {
     "HUMAN": "Remove people, faces, silhouettes and humanoid shapes from this same background scene.",
+    "CHARACTER": "Remove depicted fictional, costumed or mascot figures; retain only the requested non-character visual motifs.",
     "TEXT": "Render uninterrupted visual surfaces and coherent image forms across the scene; keep calm areas integrated into the artwork.",
     "TEXT_OR_LOGO": "Render uninterrupted visual surfaces without words, logos or letter-like clusters.",
     "UNREQUESTED_LITERAL_OBJECT": "Keep the requested motif as pattern structure without adding its unrequested literal source object.",
@@ -844,6 +845,7 @@ _RETRY_CORRECTIONS = {
     "TEXT_OR_LOGO": "Use continuous visual surfaces without glyph- or signage-like marks.",
     "UNREQUESTED_LITERAL_OBJECT": "Keep the supplied motif abstract; omit its unrequested literal source object.",
     "HUMAN": "Render only the requested non-human environment and motifs, without figures.",
+    "CHARACTER": "Render only the requested non-character environment and abstract motifs, without depicted figures or mascots.",
     "PALETTE_OFF": "Strengthen the requested colour families and relationship while retaining shading character.",
     "PALETTE_ROLE_DRIFT": "Restore the requested primary-to-secondary visual-mass relationship.",
     "PRIMARY_MISSING": "Increase the requested primary colour across substantial surfaces without weakening the secondary.",

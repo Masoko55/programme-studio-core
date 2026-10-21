@@ -2156,6 +2156,28 @@ def _requested_pigment_direction_match(pixel_lab, target_lab) -> bool:
             angle <= 30 and distance <= 36)
 
 
+def _requested_palette_blend(pixel_lab, targets: list[dict]) -> bool:
+    """Recognize an interior, bounded LAB transition between requested pigments."""
+    for left_index, left in enumerate(targets):
+        for right in targets[left_index + 1:]:
+            start, end = left["lab"], right["lab"]
+            direction = end - start
+            length_squared = float(np.dot(direction, direction))
+            if length_squared < 400:
+                continue
+            position = float(np.dot(pixel_lab - start, direction) / length_squared)
+            if not .2 <= position <= .8:
+                continue
+            perpendicular = float(np.linalg.norm(pixel_lab - (start + position * direction)))
+            chroma = float(np.linalg.norm(pixel_lab[1:]))
+            endpoint_chroma = max(float(np.linalg.norm(start[1:])), float(np.linalg.norm(end[1:])))
+            if (perpendicular <= 10 and chroma <= endpoint_chroma * 1.2 and
+                    min(start[0], end[0]) - 8 <= pixel_lab[0] <= max(start[0], end[0]) + 8 and
+                    min(np.linalg.norm(pixel_lab - start), np.linalg.norm(pixel_lab - end)) >= 12):
+                return True
+    return False
+
+
 def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int) -> str | None:
     """Match a pigment across shading while keeping unrelated hue separate."""
     light, a, b = (float(value) for value in pixel_lab)
@@ -2367,7 +2389,8 @@ def palette_relationship_policy(relationship: str | None, source: str | None,
 def _palette_role_metrics(primary_name: str | None, secondary_name: str | None,
                           counts: dict, total: int, relationship: str | None,
                           mode: str | None, palette: list[dict] | None,
-                          relationship_source: str | None = None) -> dict:
+                          relationship_source: str | None = None,
+                          chromatic_mass: dict[str, float] | None = None) -> dict:
     """Check declared colour roles separately from family membership."""
     phrase = str(relationship or "").casefold()
     roles = [str(item.get("role") or "").casefold() for item in (palette or []) if isinstance(item, dict)]
@@ -2389,7 +2412,22 @@ def _palette_role_metrics(primary_name: str | None, secondary_name: str | None,
                  abs(primary_ratio - secondary_ratio) <= .20 if relation == "BALANCED" else
                  secondary_ratio >= primary_ratio + MIN_PRIMARY_DOMINANCE_MARGIN if relation == "SECONDARY_DOMINANT" else
                  primary_ratio >= secondary_ratio + MIN_PRIMARY_DOMINANCE_MARGIN)
+    primary_mass = (chromatic_mass or {}).get(primary_name, 0.0) / total if primary_name else 0.0
+    secondary_mass = (chromatic_mass or {}).get(secondary_name, 0.0) / total if secondary_name else 0.0
+    primary_mean = primary_mass / primary_ratio if primary_ratio else 0.0
+    secondary_mean = secondary_mass / secondary_ratio if secondary_ratio else 0.0
+    prominence_applied = False
+    if (relation == "PRIMARY_DOMINANT" and not dominance and chromatic_mass is not None
+            and primary_ratio is not None and secondary_ratio is not None
+            and primary_ratio >= .25 and primary_ratio >= secondary_ratio * .5
+            and primary_mean >= 25 and secondary_mean <= primary_mean * .65
+            and primary_mass >= secondary_mass * 1.1):
+        dominance = True
+        prominence_applied = True
     metrics = {"primary_ratio": primary_ratio, "secondary_ratio": secondary_ratio,
+               "primary_chromatic_mass": primary_mass, "secondary_chromatic_mass": secondary_mass,
+               "primary_mean_chroma": primary_mean, "secondary_mean_chroma": secondary_mean,
+               "dominance_by_chromatic_prominence": prominence_applied,
                "primary_family": primary_name, "secondary_family": secondary_name,
                "primary_role": primary_role,
                "primary_secondary_ratio": (primary_ratio / secondary_ratio if secondary_ratio else None),
@@ -2686,6 +2724,7 @@ def validate_palette(
         str,
         int,
     ] = {}
+    chromatic_mass = dict.fromkeys(requested_counts, 0.0)
 
     off_palette_count = 0
     incidental_neutral_count = 0
@@ -2693,6 +2732,8 @@ def validate_palette(
     unrelated_chromatic_mask = np.zeros(total, dtype=np.uint8)
     ambiguous_tonal_mask = np.zeros(total, dtype=np.uint8)
     ambiguous_tonal_pixels = []
+    palette_blend_mask = np.zeros(total, dtype=np.uint8)
+    palette_blend_pixels = []
 
     off_palette_named_counts: dict[
         str,
@@ -2718,6 +2759,10 @@ def validate_palette(
                 family = "grey" if "grey" in requested_neutrals else "gray"
         if family is None:
             family = _perceptual_palette_family(lab, requested_targets, int(hue))
+        if family is None and not exclusive_palette and _requested_palette_blend(lab, requested_targets):
+            palette_blend_mask[index] = 1
+            palette_blend_pixels.append(index)
+            continue
         nearest_name = _nearest_named_colour(rgb_pixels[index]) if family is None else family
         if family is None and not exclusive_palette:
             tonal_family = _borderline_tonal_family(lab, requested_targets, int(hue))
@@ -2749,7 +2794,20 @@ def validate_palette(
             off_palette_named_counts[tonal_name] = off_palette_named_counts.get(tonal_name, 0) + 1
             continue
         requested_counts[family] = requested_counts.get(family, 0) + 1
+        chromatic_mass[family] = chromatic_mass.get(family, 0.0) + chroma
         accepted_tonal_counts[tonal_name] = accepted_tonal_counts.get(tonal_name, 0) + 1
+
+    _, _, blend_regions, _ = cv2.connectedComponentsWithStats(
+        palette_blend_mask.reshape(176, 128), 8,
+    )
+    largest_blend_region = (int(np.max(blend_regions[1:, cv2.CC_STAT_AREA])) / total
+                            if len(blend_regions) > 1 else 0.0)
+    bounded_blend = (len(palette_blend_pixels) / total <= .12 and largest_blend_region <= .035)
+    if not bounded_blend:
+        for index in palette_blend_pixels:
+            unrelated_hue_count += 1
+            off_palette_count += 1
+            unrelated_chromatic_mask[index] = 1
 
     # Ambiguous adjacent hues may be incidental when dispersed. A coherent
     # region remains a separate design colour; established family members do
@@ -2768,6 +2826,7 @@ def validate_palette(
             off_palette_count -= 1
             unrelated_chromatic_mask[index] = 0
             requested_counts[family] = requested_counts.get(family, 0) + 1
+            chromatic_mass[family] = chromatic_mass.get(family, 0.0) + float(np.linalg.norm(lab_pixels[index, 1:]))
             accepted_tonal_counts[tonal_name] = accepted_tonal_counts.get(tonal_name, 0) + 1
             off_palette_named_counts[tonal_name] -= 1
             tonal_derivative_count += 1
@@ -2798,6 +2857,9 @@ def validate_palette(
         (off_palette_count if exclusive_palette else unrelated_hue_count) / total
     )
     perceptual_metrics = {
+        "requested_palette_blend_ratio": len(palette_blend_pixels) / total if bounded_blend else 0.0,
+        "primary_chromatic_mass": chromatic_mass.get(primary_name, 0.0) / total,
+        "secondary_chromatic_mass": chromatic_mass.get(secondary_name, 0.0) / total,
         "perceptual_in_family_ratio": 1.0 - off_palette_ratio,
         "unrelated_hue_ratio": unrelated_hue_count / total,
         "requested_chromatic_ratio": requested_chromatic_ratio,
@@ -2908,7 +2970,8 @@ def validate_palette(
 
     try:
         role_metrics = _palette_role_metrics(primary_name, secondary_name, requested_counts,
-                                              total, relationship, mode, palette, relationship_source)
+                                              total, relationship, mode, palette, relationship_source,
+                                              chromatic_mass)
     except ValueError as error:
         error.palette_metrics = {"off_palette_ratio": off_palette_ratio, **perceptual_metrics,
                                  **getattr(error, "palette_metrics", {}), "palette_mode": mode or "dominant"}

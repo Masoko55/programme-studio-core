@@ -21,6 +21,7 @@ from app.services.comfyui_client import (
     validate_background,
 )
 from app.services.prompt_compiler import compile_candidate_prompt
+from app.services.prompt_compiler import failure_category, runtime_retry_category
 from app.services.sampling_profiles import profile_by_name
 from app.services.subject_adherence import (
     assess_subject_adherence,
@@ -31,6 +32,63 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_explicit_character_constraint_reaches_frozen_candidate_and_retry(self):
+        document = fixture(1, "celebration", "abstract geometry", "blue", "red", "dominant",
+                           "style inspired", "asymmetric")
+        document["brief"]["grill_me_context"] = {"generation_constraints": ["No people or characters"]}
+        spec = build_candidate_spec(document, "sdxl-1-0", "A")
+        self.assertTrue(spec.visual_design["characters_prohibited"])
+        self.assertEqual(failure_category("CHARACTER: depicted costumed figure"), "CHARACTER")
+        self.assertEqual(failure_category("CHARACTER: depicted humanoid figure"), "CHARACTER")
+        self.assertEqual(runtime_retry_category("CHARACTER: depicted costumed figure"), "CHARACTER")
+
+    def test_prohibited_depicted_character_is_a_hard_semantic_failure(self):
+        design = {"primary_visual_subject": "abstract celebratory background",
+                  "characters_prohibited": True}
+        for evidence in ("masked costumed figure with raised arm at center",
+                         "stylized comic humanoid with body and legs at left",
+                         "fictional character with cape and flying pose in foreground",
+                         "large superhero-like silhouette with body and outstretched arm"):
+            with self.subTest(evidence=evidence):
+                result, _ = self._assess(design, {
+                    "subject_score": .95, "human_visible": False,
+                    "character_visible": True, "character_description": evidence,
+                    "unrequested_literal_object_visible": False})
+                self.assertEqual(result["decision"], "CHARACTER")
+                self.assertTrue(hard_fidelity_failure(result))
+
+    def test_character_motifs_and_abstract_shapes_are_not_characters(self):
+        design = {"primary_visual_subject": "abstract background", "characters_prohibited": True}
+        for evidence in ("spider-web geometry", "bat-shaped abstract motif", "black and yellow shapes",
+                         "foliage", "floral pattern", "architecture", "face-like decoration",
+                         "human-like geometry", "sculpture-like form with a face pattern",
+                         "abstract silhouette without body evidence"):
+            with self.subTest(evidence=evidence):
+                result, _ = self._assess(design, {"subject_score": .95,
+                    "character_visible": False, "character_description": evidence})
+                self.assertEqual(result["decision"], "pass")
+        allowed, _ = self._assess({"primary_visual_subject": "illustrated character",
+                                   "authorized_literal_subject": "illustrated character"},
+                                  {"subject_score": .95, "character_visible": True,
+                                   "character_description": "costumed figure at center"})
+        self.assertEqual(allowed["decision"], "pass")
+
+    def test_structured_character_evidence_overrides_inconsistent_boolean(self):
+        design = {"primary_visual_subject": "abstract celebratory background",
+                  "characters_prohibited": True}
+        result, _ = self._assess(design, {"subject_score": 1.0, "human_visible": False,
+            "character_visible": False, "observed_evidence": ["Heroic superhero figure in dynamic pose"],
+            "unrequested_literal_object_visible": False})
+        self.assertEqual(result["decision"], "CHARACTER")
+        self.assertIn("figure", result["character_description"])
+        missing, _ = self._assess(design, {"subject_score": .9,
+            "observed_evidence": ["abstract web pattern"]})
+        self.assertEqual(missing["decision"], "unavailable")
+        self.assertTrue(hard_fidelity_failure(missing))
+        malformed, _ = self._assess(design, {"subject_score": .9,
+            "character_visible": "false", "observed_evidence": ["abstract web pattern"]})
+        self.assertEqual(malformed["decision"], "unavailable")
+
     def test_inconsistent_literal_claim_retries_then_only_literal_dimension_is_unavailable(self):
         brief = {"primary_visual_subject": "layered abstract marks",
                  "motif_literalization_policy": "motif_only",

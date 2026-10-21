@@ -517,7 +517,7 @@ def _select_sdxl_profile(
         return SDXL_COMPOSITION_RESCUE
     if history.consecutive_category == "SUBJECT_DRIFT":
         return SDXL_SUBJECT_RESCUE
-    if history.consecutive_category in {"TEXT", "HUMAN"} and stage == "normal":
+    if history.consecutive_category in {"TEXT", "HUMAN", "CHARACTER"} and stage == "normal":
         return SDXL_BASELINE
     palette_count = (
         history.count(
@@ -629,7 +629,7 @@ def _select_sd35_profile(
         return SD35_SUBJECT_RESCUE
     if history.consecutive_category in {"FLAT", "GRADIENT", "DIRECTION_DUPLICATE"}:
         return SD35_STRUCTURAL_RESCUE
-    if history.consecutive_category in {"TEXT", "HUMAN"} and stage == "normal":
+    if history.consecutive_category in {"TEXT", "HUMAN", "CHARACTER"} and stage == "normal":
         return SD35_PRODUCTION_BASELINE
     raster_count = (
         history.count(
@@ -804,6 +804,7 @@ def profile_selection_diagnostics(profile: SamplingProfile | None,
         "PALETTE_OFF": "palette", "PRIMARY_MISSING": "palette",
         "SECONDARY_MISSING": "palette", "TEXT": "prompt_only",
         "HUMAN": "prompt_only",
+        "CHARACTER": "prompt_only",
     }.get(category, "baseline")
     return {
         "selection_reason": f"{category}: {profile.name if profile else 'engine_default'}",

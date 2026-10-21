@@ -25,6 +25,7 @@ SEMANTIC_FAILURE_CATEGORIES = {
     "treatment_score": "TREATMENT_DRIFT",
     "audience_fit_score": "AUDIENCE_DRIFT",
     "unrequested_literal_object_visible": "UNREQUESTED_LITERAL_OBJECT",
+    "character_visible": "CHARACTER",
     "unrequested_text_visible": "TEXT_OR_LOGO",
 }
 
@@ -56,6 +57,28 @@ def _confirmed_human_evidence(visible: object, description: str, evidence: objec
         if isinstance(observation, str) and _confirmed_human_answer(True, observation) is True:
             return True
     return None
+
+
+def _confirmed_character_evidence(visible: object, description: str, evidence: object) -> bool | None:
+    """Require a depicted figure with body/costume evidence, not a motif resemblance."""
+    observations = [description] if visible is True else []
+    if isinstance(evidence, list):
+        observations.extend(item for item in evidence if isinstance(item, str))
+    for observation in observations:
+        if re.search(r"\b(?:no|without|absent)\s+(?:depicted\s+)?(?:character|figure|humanoid|mascot|silhouette)\b",
+                     observation, re.I):
+            continue
+        if (re.search(r"\b(?:abstract|geometric|decorative|pattern|sculptur\w*)\b", observation, re.I)
+                and not re.search(r"\b(?:body|torso|arms?|legs?|pose|posture|standing|running|flying)\b",
+                                  observation, re.I)):
+            continue
+        figure = re.search(r"\b(?:character|figure|humanoid|mascot|silhouette|costumed)\b", observation, re.I)
+        detail = re.search(r"\b(?:mask(?:ed)?|costume(?:d)?|cape|body|torso|head|face|arms?|legs?|"
+                           r"posture|pose|standing|running|flying)\b", observation, re.I)
+        if figure and detail and not re.search(r"\b(?:figure|human|face)[- ]like\s+(?:geometry|pattern|decoration)\b",
+                                               observation, re.I):
+            return True
+    return False if visible is False else None
 
 
 def _supported_literal_object_claim(answer: dict, visual_design: dict) -> bool:
@@ -163,6 +186,8 @@ def brief_fidelity_record(result: dict) -> dict:
             "vision_text_signal",
             "vision_text_evidence",
             "unrequested_literal_object_visible",
+            "character_visible",
+            "character_description",
         )
     }
 
@@ -504,6 +529,8 @@ def assess_subject_adherence(
         "vision_text_signal": None,
         "vision_text_evidence": "",
         "unrequested_literal_object_visible": None,
+        "character_visible": None,
+        "character_description": "",
         "literal_object_dimension_availability": "UNAVAILABLE",
     }
 
@@ -518,7 +545,7 @@ def assess_subject_adherence(
                 field: "UNAVAILABLE"
                 for field
                 in required
-            },
+            } | ({"character_visible": "UNAVAILABLE"} if visual_design.get("characters_prohibited") else {}),
         }
 
     with Image.open(
@@ -552,6 +579,12 @@ def assess_subject_adherence(
         "Judge visible subject, global atmosphere, motif topology, and audience fit separately. "
         "Also give background_usability_score for hierarchy, controlled density, and usable calm space, "
         "and human_visible as a boolean based on visible human evidence, including small or distant people. "
+        "When characters are prohibited, independently report character_visible as a JSON boolean. "
+        "A character is a visibly depicted fictional or stylized humanoid, masked or costumed figure, "
+        "or mascot with concrete body, costume or posture evidence. Ordinary animals, flowers, "
+        "architecture, web or bat patterns, abstract geometry and face-like decoration are not characters. "
+        "If character_visible is true, give character_description with the visible figure and body, "
+        "costume or posture evidence. "
         "Give human_description with concrete visible body, face, posture and location evidence when a person is present. "
         "Do not judge colours. Do not infer a subject or motif from decorative lines alone. "
         "A motif pattern does not authorize an unrequested literal source object; count such an object against subject fit. "
@@ -606,6 +639,8 @@ def assess_subject_adherence(
         + str(visual_design.get("motif_literalization_policy") or "literal_allowed")
         + ". Explicitly authorized literal subject: "
         + str(visual_design.get("authorized_literal_subject") or "none")[:200]
+        + ". Characters prohibited by explicit brief: "
+        + str(bool(visual_design.get("characters_prohibited"))).lower()
         + ". Set unrequested_literal_object_visible true only for a clearly visible literal object "
         "introduced solely from a motif and absent from the explicitly authorized subject; otherwise set false"
         + ". Motif prominence: "
@@ -700,6 +735,10 @@ def assess_subject_adherence(
                 if (visual_design.get("motif_literalization_policy") == "motif_only" and
                         not isinstance(answer.get("unrequested_literal_object_visible"), bool)):
                     missing.append("boolean unrequested_literal_object_visible")
+                if (visual_design.get("characters_prohibited") and
+                        not isinstance(answer.get("character_visible"), bool) and
+                        _confirmed_character_evidence(None, "", answer.get("observed_evidence")) is not True):
+                    missing.append("boolean character_visible")
                 if missing:
                     raise ValueError("Vision response lacks " + ", ".join(missing))
                 for field in required:
@@ -707,6 +746,10 @@ def assess_subject_adherence(
                                            field, [])
                 if not isinstance(answer.get("observed_evidence", answer.get("matched_anchors", [])), list):
                     raise ValueError("Vision response lacks observed evidence")
+                if (visual_design.get("characters_prohibited") and answer.get("character_visible") is True and
+                        _confirmed_character_evidence(True, str(answer.get("character_description") or ""),
+                                                      answer.get("observed_evidence")) is not True):
+                    raise ValueError("Vision response lacks concrete depicted-character evidence")
                 if (visual_design.get("motif_literalization_policy") == "motif_only" and
                         answer.get("unrequested_literal_object_visible") is True and
                         not _supported_literal_object_claim(answer, visual_design)):
@@ -870,6 +913,11 @@ def assess_subject_adherence(
                 "Vision response lacks boolean unrequested_literal_object_visible"
             )
 
+        if (visual_design.get("characters_prohibited") and
+                not isinstance(answer.get("character_visible"), bool) and
+                _confirmed_character_evidence(None, "", answer.get("observed_evidence")) is not True):
+            raise ValueError("Vision response lacks boolean character_visible")
+
         human_description = str(
             answer.get(
                 "human_description"
@@ -981,12 +1029,21 @@ def assess_subject_adherence(
                 field: "UNAVAILABLE"
                 for field
                 in required
-            },
+            } | ({"character_visible": "UNAVAILABLE"} if visual_design.get("characters_prohibited") else {}),
         }
 
     unauthorized_literal = (not literal_evidence_unavailable and
                             visual_design.get("motif_literalization_policy") == "motif_only"
                             and answer.get("unrequested_literal_object_visible") is True)
+    character_description = str(answer.get("character_description") or "")[:240]
+    prohibited_character = bool(visual_design.get("characters_prohibited") and
+                                _confirmed_character_evidence(answer.get("character_visible"),
+                                                              character_description,
+                                                              answer.get("observed_evidence")) is True)
+    character_evidence = (character_description if _confirmed_character_evidence(True, character_description, []) is True else next(
+        (str(item) for item in answer.get("observed_evidence", [])
+         if isinstance(item, str) and _confirmed_character_evidence(None, "", [item]) is True), ""
+    )) if prohibited_character else ""
     if unauthorized_literal:
         debug["unrequested_literal_object_visible"] = True
 
@@ -1108,13 +1165,17 @@ def assess_subject_adherence(
         hard_failed.append("unrequested_text_visible")
     if unauthorized_literal:
         hard_failed.append("unrequested_literal_object_visible")
+    if prohibited_character:
+        hard_failed.append("character_visible")
 
     # Only a real subject failure should become SUBJECT_DRIFT.
     #
     # A defining explicit motif can still be a hard semantic failure, but it
     # must remain MOTIF_DRIFT so retry compilation strengthens the motif
     # instead of unnecessarily rebuilding the whole requested subject.
-    if text_signal:
+    if prohibited_character:
+        decision = "CHARACTER"
+    elif text_signal:
         decision = "TEXT_OR_LOGO"
     elif unauthorized_literal:
         decision = "UNREQUESTED_LITERAL_OBJECT"
@@ -1169,10 +1230,13 @@ def assess_subject_adherence(
         ],
         **scores,
         "decision": decision,
-        "failure_category": ("TEXT_OR_LOGO" if text_signal else
+        "failure_category": ("CHARACTER" if prohibited_character else
+                             "TEXT_OR_LOGO" if text_signal else
                              "UNREQUESTED_LITERAL_OBJECT" if unauthorized_literal else
                              SEMANTIC_FAILURE_CATEGORIES[worst] if worst else None),
         "unrequested_literal_object_visible": None if literal_evidence_unavailable else unauthorized_literal,
+        "character_visible": prohibited_character if visual_design.get("characters_prohibited") else None,
+        "character_description": character_evidence,
         "literal_object_dimension_availability": ("NOT_REQUIRED" if visual_design.get("motif_literalization_policy") != "motif_only" else
                                                   "UNAVAILABLE" if literal_evidence_unavailable else
                                                   "FAIL" if unauthorized_literal else "PASS"),
@@ -1217,13 +1281,15 @@ def assess_subject_adherence(
             in required
         } | ({"unrequested_literal_object_visible": "UNAVAILABLE" if literal_evidence_unavailable else
               "FAIL" if unauthorized_literal else "PASS"}
-             if visual_design.get("motif_literalization_policy") == "motif_only" else {}),
-        "reason": str(
+             if visual_design.get("motif_literalization_policy") == "motif_only" else {}) | (
+                 {"character_visible": "FAIL" if prohibited_character else "PASS"}
+                 if visual_design.get("characters_prohibited") else {}),
+        "reason": ("Prohibited depicted character: " + character_evidence if prohibited_character else str(
             answer.get(
                 "reason"
             )
             or ""
-        )[:300],
+        ))[:300],
         "observed_evidence": [
             str(
                 item

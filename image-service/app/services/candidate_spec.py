@@ -143,6 +143,12 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
             and not visual_sentence and not field(brief, "theme_reference_treatment") else "",
     ) if value]
     context = brief.get("grill_me_context")
+    generation_constraints = (values(context, "generation_constraints")
+                              if isinstance(context, dict) else [])
+    generation_constraints.extend(values(brief, "negative_constraints"))
+    characters_prohibited = any(re.search(
+        r"\b(?:no|without|exclude|avoid)\b.{0,30}\bcharacters?\b", item, re.I,
+    ) for item in generation_constraints)
     semantics = brief.get("visual_semantics")
     if not isinstance(semantics, dict) and isinstance(context, dict):
         semantics = context.get("visual_semantics")
@@ -306,6 +312,7 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         "depth_strategy": field(direction, "depth_strategy"),
         "border_or_perimeter_strategy": field(direction, "border_or_perimeter_strategy"),
         "negative_constraints": values(brief, "negative_constraints"),
+        "characters_prohibited": characters_prohibited,
         "title_safe_region_strategy": field(direction, "title_safe_region_strategy"),
         "programme_safe_region_strategy": field(direction, "programme_safe_region_strategy"),
         "abstraction_level": contract["abstraction_level"],

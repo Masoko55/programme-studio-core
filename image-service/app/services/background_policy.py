@@ -2131,6 +2131,31 @@ def _classify_palette_pixel(
     return (best_target["name"] if best_target is not None else None), nearest
 
 
+def _requested_pigment_direction_match(pixel_lab, target_lab) -> bool:
+    """Recognize bounded shading near a requested pigment's neutral-to-pigment ray."""
+    light = float(pixel_lab[0])
+    target_light = float(target_lab[0])
+    pigment = np.asarray(target_lab[1:], dtype=np.float32)
+    pixel = np.asarray(pixel_lab[1:], dtype=np.float32)
+    target_chroma = float(np.linalg.norm(pigment))
+    chroma = float(np.linalg.norm(pixel))
+    if target_chroma < 8 or chroma < 3:
+        return False
+    projection = float(np.dot(pixel, pigment) / (target_chroma * target_chroma))
+    cross_track = float(np.linalg.norm(pixel - projection * pigment))
+    angle = float(np.degrees(np.arccos(np.clip(
+        np.dot(pixel, pigment) / (chroma * target_chroma), -1, 1,
+    ))))
+    distance = float(np.linalg.norm(pixel_lab - target_lab))
+    if target_chroma >= 25:
+        return (target_light <= light <= target_light + 15 and
+                .45 <= projection <= .8 and cross_track <= 19 and
+                angle <= 33 and distance <= 34)
+    return (target_light >= 75 and target_light - 26 <= light <= target_light + 8 and
+            .5 <= projection <= 1.8 and cross_track <= 18 and
+            angle <= 30 and distance <= 36)
+
+
 def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int) -> str | None:
     """Match a pigment across shading while keeping unrelated hue separate."""
     light, a, b = (float(value) for value in pixel_lab)
@@ -2151,6 +2176,9 @@ def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int) -
         cosine = float(np.clip((a * target_lab[1] + b * target_lab[2]) /
                                (chroma * target_chroma), -1, 1))
         angle = float(np.degrees(np.arccos(cosine)))
+        if _requested_pigment_direction_match(pixel_lab, target_lab):
+            matches.append((angle + distance * 0.2, target["name"]))
+            continue
         # A low-chroma petal shadow has less reliable hue than a saturated
         # third colour. It still needs a perceptual connection to the pigment.
         # LAB angle captures pigment identity better than RGB-nearest names:
@@ -2168,8 +2196,13 @@ def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int) -
             # chromatic neighbour must remain close in both colour spaces.
             hue_limit = (17 if chroma < 26 or chroma < target_chroma * 0.7
                          else 11)
+            # Muted pigment shadows can shift HSV hue substantially while
+            # retaining the source pigment's LAB chromatic direction.
+            muted_direction_match = (light <= target_lab[0] and
+                                     chroma <= target_chroma * 0.8 and angle <= 32)
             if (chroma >= 8 and distance > 12 and
-                    _hue_distance(pixel_hue, target["hue"]) > hue_limit):
+                    _hue_distance(pixel_hue, target["hue"]) > hue_limit and
+                    not muted_direction_match):
                 continue
             matches.append((angle + distance * 0.2, target["name"]))
     return min(matches)[1] if matches else None

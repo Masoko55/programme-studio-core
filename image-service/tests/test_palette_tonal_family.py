@@ -95,6 +95,16 @@ class PaletteTonalFamilyTests(unittest.TestCase):
                              mode="dominant", quality_result={})
         self.assertGreater(invalid.exception.palette_metrics["largest_unrequested_region_ratio"], .035)
 
+    def test_darker_muted_pigment_direction_does_not_admit_warm_third_colour(self):
+        muted_shade = (116, 124, 75)
+        result = validate_palette(blocks("green", muted_shade, "cream"), "green", "cream",
+                                  mode="dominant", quality_result={})
+        self.assertLess(result["off_palette_ratio"], .01)
+        for third in ("brown", "gold", "orange", "peach"):
+            with self.subTest(third=third), self.assertRaises(ValueError):
+                validate_palette(blocks("green", third, "cream"), "green", "cream",
+                                 mode="dominant", quality_result={})
+
     def test_lit_pigment_and_shaded_light_pigment_follow_requested_chromatic_direction(self):
         image = blocks("green", (144, 160, 96), (160, 160, 112), "cream")
         result = validate_palette(image, "green", "cream", mode="dominant", quality_result={})

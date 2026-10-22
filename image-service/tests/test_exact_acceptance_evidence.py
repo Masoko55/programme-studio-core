@@ -5,6 +5,7 @@ from unittest.mock import patch
 from PIL import Image, ImageDraw, ImageOps
 
 from app.services.background_policy import detect_human_signals
+from app.services.subject_adherence import _confirmed_human_answer
 from app.services.comfyui_client import _pseudo_text_evidence, detect_text_evidence, detected_text_tokens
 from app.services.composition_diversity import boilerplate_metrics
 
@@ -152,6 +153,12 @@ class ExactOcrCases(unittest.TestCase):
 
 
 class ExactHumanCases(unittest.TestCase):
+    def test_located_human_silhouette_is_confirmed_without_anatomy(self):
+        self.assertTrue(_confirmed_human_answer(
+            True, "Silhouettes of elegantly dressed adults: a couple dancing in the foreground"))
+        self.assertIsNone(_confirmed_human_answer(
+            True, "Abstract human-like silhouette geometry across the foreground"))
+
     def evaluate(self, *, hog=(), face=(), profile=(), upper=(), confirmed=()):
         class FakeHog:
             def setSVMDetector(self, value):
@@ -195,6 +202,13 @@ class ExactHumanCases(unittest.TestCase):
     def test_strong_hog_person(self):
         result = self.evaluate(hog=[((80, 100, 64, 180), 1.7)])
         self.assertTrue(result["detected"])
+        self.assert_diagnostics(result)
+
+    def test_separate_moderate_hog_windows_are_not_independent_confirmation(self):
+        result = self.evaluate(hog=[((35, 90, 64, 180), 0.9),
+                                    ((210, 210, 64, 180), 1.0)])
+        self.assertFalse(result["detected"])
+        self.assertEqual(len(result["weak_signals"]), 2)
         self.assert_diagnostics(result)
 
     def test_repeat_scale_face(self):

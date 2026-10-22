@@ -738,6 +738,8 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
             negative += ", " + _scene_tone(spec)[1]
     else:
         negative = "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels"
+    if spec.visual_design.get("characters_prohibited"):
+        negative += ", depicted human figures, humanoid silhouettes, masked or costumed figures, character portraits"
     if engine_capabilities(spec.engine_id)["negative_prompt_channel"]:
         negative += ", " + _palette_negative(spec, stage, category, failure_history)
     extra_negative = {
@@ -778,6 +780,9 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         f"Correction: {correction}" if correction else "",
     ) if section)
     positive = _background_only(_exclude_incompatible(positive, spec), spec)
+    figure_contract = ("Environment and abstract motif only; depict no human or costumed figures."
+                       if spec.visual_design.get("characters_prohibited") else "")
+    positive = _join_sections(positive, figure_contract)
     if not engine_capabilities(spec.engine_id)["negative_prompt_channel"]:
         positive = _join_sections(
             positive,
@@ -786,8 +791,8 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
             "continuous scene composition, calm tonal breathing room, and recognizable subject forms."
         )
     clip_l = _background_only(clip_l, spec)
-    clip_g = _background_only(clip_g, spec)
-    t5 = _background_only(t5, spec) if spec.engine_id == "sd-3-5-medium" else None
+    clip_g = _join_sections(_background_only(clip_g, spec), figure_contract)
+    t5 = _join_sections(_background_only(t5, spec), figure_contract) if spec.engine_id == "sd-3-5-medium" else None
     channels = {"positive": positive, "clip_l": clip_l, "clip_g": clip_g, "t5": t5 or ""}
     contract = spec.semantic_contract
     probes = {
@@ -949,6 +954,23 @@ def _persistent_palette_correction(history, latest: str) -> str:
     return "Persistent palette recovery: restore the requested colour-family relationship and visual-mass roles."
 
 
+def _intrusion_contract(history, latest: str) -> tuple[str, str]:
+    """Keep a confirmed figure exclusion after a different retry failure."""
+    counts = getattr(history, "counts", history if isinstance(history, dict) else {}) or {}
+    human = latest == "HUMAN" or int(counts.get("HUMAN", 0)) > 0
+    character = latest == "CHARACTER" or int(counts.get("CHARACTER", 0)) > 0
+    if not (human or character):
+        return "", ""
+    positive = ("Keep this same background scene and permitted abstract motifs; "
+                "depict no human, mascot or costumed figures.")
+    exclusions = []
+    if human:
+        exclusions.extend(("depicted people", "human figures", "human silhouettes"))
+    if character:
+        exclusions.extend(("depicted costumed figures", "character portraits", "mascot figures"))
+    return positive, ", ".join(exclusions)
+
+
 def _structural_treatment_features(text: str) -> set[str]:
     text = text.casefold()
     patterns = {
@@ -996,6 +1018,10 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                   if full_correction else "")
     persistent_palette = (_persistent_palette_correction(failure_history, runtime_retry_category(reason))
                           if spec.engine_id in {"sdxl-1-0", "sd-3-5-medium"} and attempt > 1 else "")
+    intrusion_positive, intrusion_negative = _intrusion_contract(
+        failure_history, runtime_retry_category(reason) if attempt > 1 else "INITIAL")
+    figure_contract = ("Environment and abstract motif only; depict no human or costumed figures."
+                       if design.get("characters_prohibited") and not intrusion_positive else "")
     subject_line = f"Visual subject: {subject}."
     short_subject_line = f"Visual subject: {_first_words(subject, 9)}."
     anchor_line = f"Anchors: {_first_words(anchors, 14)}." if anchors else ""
@@ -1047,13 +1073,14 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
               if spec.engine_id == "sd-3-5-medium" else _join_sections(subject_line, anchor_line))
     clip_g = (_join_sections(short_subject_line, mood_line, audience_line, short_treatment_line,
                             spatial_line, motif_policy_line, short_palette_line,
-                            persistent_palette, correction)
+                            persistent_palette, figure_contract, intrusion_positive, correction)
               if spec.engine_id == "sdxl-1-0" else
               _join_sections(short_subject_line, sd35_event_line, sd35_audience_line, mood_line,
                              short_treatment_line, spatial_line, short_palette_line,
-                             persistent_palette, correction) if spec.engine_id == "sd-3-5-medium" else
+                             persistent_palette, figure_contract, intrusion_positive, correction) if spec.engine_id == "sd-3-5-medium" else
               _join_sections(subject_line, mood_line, audience_line, motif_line, motif_policy_line,
-                             treatment_line, palette_line, spatial_line, style_line, light_line))
+                             treatment_line, palette_line, spatial_line, style_line, light_line,
+                             figure_contract, intrusion_positive))
     positive_source = clip_g.replace(short_subject_line, subject_line, 1).replace(short_treatment_line, treatment_line, 1) if spec.engine_id != "flux-2" else clip_g
     positive = _join_sections(positive_source.replace(correction, "") if correction else positive_source,
                              motif_line if motif_line not in clip_g else "",
@@ -1066,7 +1093,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                        mood_line, audience_line if spec.engine_id != "sd-3-5-medium" else "",
                        motif_line, motif_policy_line,
                        treatment_line, palette_line, spatial_line, style_line, light_line,
-                       persistent_palette, correction)
+                       persistent_palette, figure_contract, intrusion_positive, correction)
     def clean(value: str) -> str:
         value = _background_only(value, spec)
         return re.sub(r"\b(?:8k|4k|masterpiece|ultra[- ]detailed|trending on artstation|"
@@ -1091,7 +1118,11 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
         coverage["event_context"] = [channel for channel, value in
                                      (("clip_l", clip_l), ("clip_g", clip_g), ("t5", t5))
                                      if sd35_event and sd35_event.casefold() in cleaned[channel].casefold()]
-    updated: CompiledPrompt = replace(compiled, positive=cleaned["positive"], clip_l=cleaned["clip_l"],
+    negative = compiled.negative
+    if compiled.negative_prompt_channel_active and intrusion_negative:
+        negative = f"{negative}, {intrusion_negative}"
+    updated: CompiledPrompt = replace(compiled, positive=cleaned["positive"], negative=negative,
+                                      clip_l=cleaned["clip_l"],
                                       clip_g=cleaned["clip_g"], t5=cleaned["t5"] if spec.engine_id == "sd-3-5-medium" else None,
                                       failure_category=runtime_retry_category(reason), retry_stage=compiled.retry_stage,
                                       retry_strength_level=strength, conditioning_coverage=coverage,

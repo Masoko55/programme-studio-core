@@ -79,6 +79,20 @@ def _safe_spatial_treatment(raw: str, affinities: list[str]) -> str:
     return "; ".join(dict.fromkeys(parts))
 
 
+def _reference_visual_traits(inspiration: str, reference_pattern: str) -> str:
+    """Keep explicit visual traits without a named or depicted subject."""
+    sentence = re.split(r"(?<=[.!?])\s+", inspiration.strip(), maxsplit=1)[0]
+    match = re.search(r"\busing\s+(.+)", sentence, re.I)
+    if not match:
+        return ""
+    traits = match.group(1).strip(" ,.;")
+    if (not traits or (reference_pattern and re.search(reference_pattern, traits, re.I))
+            or re.search(r"\b(?:people|persons?|humans?|figures?|characters?|superheroes?|"
+                         r"costumes?|masks?|faces?|bodies|silhouettes?|protagonists?)\b", traits, re.I)):
+        return ""
+    return traits
+
+
 def _motif_literalization(contract: dict, subject: str, has_reference) -> tuple[str, str]:
     """Separate a motif's visual pattern from an explicitly requested subject."""
     motifs = " ".join((*contract["motif_descriptors"], contract["motif_structure_description"]))
@@ -254,23 +268,40 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
     def has_reference(text: str) -> bool:
         return bool(reference_pattern and re.search(reference_pattern, text, re.I))
 
+    reference_traits = (_reference_visual_traits(field(brief, "background_inspiration"), reference_pattern)
+                        if reference_name and characters_prohibited else "")
+
+    def reference_subject_pressure(text: str) -> bool:
+        return bool(has_reference(text) or (reference_name and characters_prohibited and
+                    re.search(r"\b[\w-]+-inspired\s+(?:background|scene|artwork)\b", text, re.I)))
+
+    def figure_subject_pressure(text: str) -> bool:
+        return bool(reference_name and characters_prohibited and re.search(
+            r"\b(?:superheroes?|characters?|persons?|people|humanoids?|costumes?|masked figures?)\b",
+            text, re.I))
+
     semantic_motifs = [*contract["motif_descriptors"]]
     structure = contract["motif_structure_description"]
     if structure:
         semantic_motifs.append(structure)
-    semantic_motifs = [item for item in dict.fromkeys(semantic_motifs) if not has_reference(item)]
+    semantic_motifs = [item for item in dict.fromkeys(semantic_motifs)
+                       if not has_reference(item) and not figure_subject_pressure(item)]
+    render_visual_semantics = {key: contract[key] for key in visual_semantics}
     if reference_name:
-        visual_semantics["motif_descriptors"] = [item for item in contract["motif_descriptors"]
-                                                 if not has_reference(item)]
-        visual_semantics["motif_structure_description"] = (
-            structure if not has_reference(structure) else ", ".join(semantic_motifs))
+        render_visual_semantics["motif_descriptors"] = [item for item in contract["motif_descriptors"]
+                                                        if not has_reference(item) and not figure_subject_pressure(item)]
+        render_visual_semantics["motif_structure_description"] = (
+            structure if not has_reference(structure) and not figure_subject_pressure(structure)
+            else reference_traits or ", ".join(semantic_motifs))
     safe_scene = contract["scene_family"] if contract["scene_family"] != "general" else ""
     render_subject = contract["primary_visual_subject"]
-    if has_reference(render_subject):
-        if not semantic_motifs:
+    if reference_subject_pressure(render_subject):
+        if not semantic_motifs and not reference_traits:
             raise ValueError("Detected reference lacks a renderable semantic motif")
-        render_subject = ", ".join(semantic_motifs)
-    render_anchors = [item for item in contract["visual_anchors"] if not has_reference(item)]
+        render_subject = reference_traits or ", ".join(semantic_motifs)
+    render_anchors = [reference_traits if reference_subject_pressure(item) else item
+                      for item in contract["visual_anchors"] if not has_reference(item) or reference_traits]
+    render_anchors = list(dict.fromkeys(item for item in render_anchors if item))
     if reference_name and not render_anchors:
         render_anchors = semantic_motifs or ([safe_scene] if safe_scene else [])
     render_treatment = contract["theme_reference_treatment"]
@@ -278,7 +309,9 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         render_treatment = _safe_spatial_treatment(
             render_treatment, [item for item in contract["composition_affinities"] if not has_reference(item)])
         if not render_treatment:
-            render_treatment = structure if structure and not has_reference(structure) else ", ".join(semantic_motifs)
+            render_treatment = (reference_traits or
+                                (structure if structure and not has_reference(structure)
+                                 else ", ".join(semantic_motifs)))
     else:
         render_treatment = re.split(
             r"\b(?:do not|don't|never|avoid|without|no people|no characters|no text)\b",
@@ -294,7 +327,7 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         "audience_context": field(brief, "audience_context"),
         "age_group": field(brief, "age_group"),
         "creative_description": field(brief, "creative_description"),
-        "visual_semantics": {key: contract[key] for key in visual_semantics},
+        "visual_semantics": render_visual_semantics,
         "semantic_contract_version": VERSION,
         "semantic_contract_sha256": contract_hash(contract),
         "semantic_consistency": consistency,

@@ -13,7 +13,7 @@ from app.schemas.creative_direction import (
 from app.services.ollama import (
     generate_text,
 )
-from app.services.grill_me_semantic import grounded_scene_family
+from app.services.grill_me_semantic import grounded_scene_family, renderable_brief
 from app.services.direction_diversity import (
     locked_structural_fields,
     materialize_locked_structural_fields,
@@ -97,6 +97,7 @@ def resolve_palette_mode(brief: dict) -> str:
 
 def direction_structural_summary(direction: CreativeDirectionOutput, brief: dict) -> dict:
     """Carry a previous direction's spatial plan into later direction prompts."""
+    brief = renderable_brief(brief)
     return {
         "direction_id": direction.direction_id,
         "composition_strategy": direction.composition_strategy,
@@ -790,6 +791,7 @@ def reference_visual_language(
     brief: dict,
 ) -> str:
     """Build descriptive visual language without named-reference or exclusion leakage."""
+    brief = renderable_brief(brief)
     parts = []
 
     semantics = (
@@ -985,6 +987,7 @@ def background_design_summary(
     brief: dict,
 ) -> str:
     """Describe the requested artwork without imposing a stock layout."""
+    brief = renderable_brief(brief)
     return (
         "User background inspiration: "
         + _background_inspiration(brief)
@@ -1004,6 +1007,7 @@ def background_positive_requirements(
     brief: dict,
 ) -> str:
     """Return descriptive visual requirements only."""
+    brief = renderable_brief(brief)
     subject = (
         _renderable_subject_description(
             brief
@@ -1030,6 +1034,7 @@ def fallback_prompt(
     brief: dict,
     role: str,
 ) -> str:
+    brief = renderable_brief(brief)
     palette = (
         positive_palette_description(
             brief
@@ -1308,6 +1313,7 @@ def build_creative_direction_prompt(
     previous_directions: list[str] | None = None,
     diversity_constraints: dict | None = None,
 ) -> str:
+    brief = renderable_brief(brief)
     asset_type = (
         str(
             brief.get(

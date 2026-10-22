@@ -270,6 +270,26 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                 })
                 self.assertIsNone(ambiguous["vision_human_signal"])
 
+    def test_split_human_evidence_and_clothed_child_are_confirmed(self):
+        brief = {"primary_visual_subject": "abstract shapes"}
+        for description, evidence in (
+            ("A child is visible.", ["Visible face and upper body", "Standing near the lower centre"]),
+            ("", ["Child (subject) with white shirt, red and blue cake"]),
+        ):
+            with self.subTest(description=description):
+                result, _ = self._assess(brief, {
+                    "subject_score": .9, "human_visible": True,
+                    "human_description": description, "observed_evidence": evidence})
+                self.assertIs(result["vision_human_signal"], True)
+        for description, evidence in (
+            ("", []),
+            ("Face-like geometric decoration", ["abstract pattern in the lower centre"]),
+        ):
+            result, _ = self._assess(brief, {
+                "subject_score": .9, "human_visible": True,
+                "human_description": description, "observed_evidence": evidence})
+            self.assertIsNone(result["vision_human_signal"])
+
     def test_good_subject_with_weak_treatment_keeps_its_category(self):
         brief = {"primary_visual_subject": "layered city forms",
                  "theme_reference_treatment": "first-person movement through the city",

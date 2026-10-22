@@ -156,6 +156,29 @@ class PaletteTonalFamilyTests(unittest.TestCase):
             with self.subTest(third=third), self.assertRaisesRegex(ValueError, "not requested"):
                 assess(blocks("blue", "red", third))
 
+    def test_dominant_chromatic_limits_keep_neutrals_and_reject_small_third_regions(self):
+        neutral = assess(blocks(*(["blue"] * 55 + ["red"] * 20 + ["white"] * 15 +
+                                  ["grey"] * 5 + ["black"] * 5)))
+        self.assertGreater(neutral["structural_neutral_ratio"], .1)
+        self.assertLess(neutral["unrequested_chromatic_ratio"], .02)
+
+        pixels = np.asarray(blocks(*(["blue"] * 50 + ["red"] * 50))).copy()
+        pixels[20:32, 20:28] = NAMED_COLOURS["yellow"]
+        small = assess(Image.fromarray(pixels))
+        self.assertLess(small["unrequested_chromatic_ratio"], .02)
+
+        pixels[20:42, 20:44] = NAMED_COLOURS["yellow"]
+        with self.assertRaisesRegex(ValueError, "not requested") as raised:
+            assess(Image.fromarray(pixels))
+        self.assertGreater(raised.exception.palette_metrics["largest_unrequested_region_ratio"], .01)
+
+        scattered = np.asarray(blocks(*(["blue"] * 50 + ["red"] * 50))).copy()
+        for x in range(8, 120, 14):
+            scattered[12:26, x:x + 8] = NAMED_COLOURS["yellow"]
+        with self.assertRaisesRegex(ValueError, "not requested") as raised:
+            assess(Image.fromarray(scattered))
+        self.assertGreater(raised.exception.palette_metrics["unrequested_chromatic_ratio"], .02)
+
     def test_explicit_strict_palette_retains_stricter_gate(self):
         with self.assertRaisesRegex(ValueError, "not requested"):
             assess(blocks("blue", "red", BLUE_SHADE, RED_SHADE), mode="strict")

@@ -2204,10 +2204,14 @@ def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int) -
             # chromatic neighbour must remain close in both colour spaces.
             hue_limit = (17 if chroma < 26 or chroma < target_chroma * 0.7
                          else 11)
-            # Muted pigment shadows can shift HSV hue substantially while
-            # retaining the source pigment's LAB chromatic direction.
+            # Muted pigment shadows can shift toward a neighbouring display
+            # hue while retaining the pigment's LAB direction. Bound both
+            # the chromatic angle and HSV distance so an independent warm field
+            # still stays outside the requested family.
             muted_direction_match = (light <= target_lab[0] and
-                                     chroma <= target_chroma * 0.8 and angle <= 32)
+                                     chroma <= target_chroma * 0.8 and
+                                     angle <= 38 and
+                                     _hue_distance(pixel_hue, target["hue"]) <= 36)
             if (chroma >= 8 and distance > 12 and
                     _hue_distance(pixel_hue, target["hue"]) > hue_limit and
                     not muted_direction_match):
@@ -3402,21 +3406,18 @@ def detect_human_signals(
                 if item["source"] == "hog" and item["bbox"] == box:
                     item.update(confirmed=True, small_person_corroborated=True,
                                 confirmation="small upright HOG and coherent independent face/profile/upper-body evidence")
-    multiple_distinct_people = any(
-        not _boxes_overlap(first, second)
-        for index, first in enumerate(people)
-        for second in people[index + 1:]
-    )
     credible_people = []
     credible_weights = []
     for box, weight in zip(people, people_weights):
-        corroborated = (weight >= 1.5 or multiple_distinct_people
+        # Separate windows from one HOG detector are still one source of
+        # evidence; repeated background patterns can produce several at once.
+        corroborated = (weight >= 1.5
                         or any(_boxes_overlap(box, other) for other in corroborators))
         for item in evidence:
             if item["source"] == "hog" and item["bbox"] == box:
                 item["confirmed"] = corroborated
                 item["confirmation"] = item["confirmation"] if item.get("small_person_corroborated") else (
-                    "strong HOG weight, distinct people, or independent detector overlap"
+                    "strong HOG weight or independent detector overlap"
                     if corroborated else "moderate HOG pattern without independent corroboration"
                 )
         if corroborated:

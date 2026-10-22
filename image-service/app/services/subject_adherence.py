@@ -42,6 +42,13 @@ def _confirmed_human_answer(visible: object, description: str) -> bool | None:
                          r"beside|near|behind|doorway|horizon|middle)\b", description, re.I)
     if anatomy and detail and location:
         return True
+    human_noun = r"(?:human|persons?|people|adults?|children|child|couples?|guests?|men|women|man|woman)"
+    human_silhouette = re.search(
+        rf"\b(?:{human_noun}\s+silhouettes?|silhouettes?\s+of\s+(?:\w+\s+){{0,3}}{human_noun})\b",
+        description, re.I,
+    )
+    if human_silhouette and location:
+        return True
     people = re.search(r"\b(?:people|persons?|humans?|men|women|children)\b(?!-like\b)", description, re.I)
     distant = re.search(r"\b(?:distant|background|far\s+(?:away|end)|at\s+(?:the\s+)?end\s+of)\b", description, re.I)
     corroborated = re.search(r"\b(?:small|several|multiple|two|three|four|\d+|walking|standing|seated|upright)\b", description, re.I)

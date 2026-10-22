@@ -359,6 +359,47 @@ class CandidateSpecCompilerTests(unittest.TestCase):
                         self.assertEqual(compiled.failure_category, "MOTIF_DRIFT")
                         self.assertEqual(compiled.positive.count("Make the supplied motif topology visible"), 1)
 
+    def test_named_character_reference_keeps_explicit_visual_traits_without_figure_pressure(self):
+        examples = (
+            ("Solar Sentinel", "blue and red", "restrained web motifs and energetic comic-style movement"),
+            ("Night Guardian", "black and yellow", "angular wing-like motifs and nocturnal comic movement"),
+            ("Emerald Titan", "green and purple", "powerful fractured abstract shapes and impact-like movement"),
+        )
+        for name, colours, traits in examples:
+            document = document_for(CASES[0])
+            document["brief"].update(
+                background_inspiration=(f"A superhero-inspired background using {colours} with {traits}. "
+                                        f"Do not depict {name} or any character."),
+                theme_reference_treatment=f"Use {name}-inspired colours.",
+                grill_me_context={"reference_detected": True, "reference_name": name,
+                                  "generation_constraints": ["No people or characters"]},
+                visual_semantics={"motif_descriptors": ["abstract geometric motifs"],
+                                  "motif_structure_description": "interconnected abstract motifs"},
+            )
+            for engine in ("flux-2", "sdxl-1-0", "sd-3-5-medium"):
+                with self.subTest(name=name, engine=engine):
+                    spec = build_candidate_spec(document, engine, "B")
+                    self.assertIn(traits, spec.visual_design["primary_visual_subject"])
+                    self.assertIn(traits, spec.visual_design["theme_reference_treatment"])
+                    compiled = compile_candidate_prompt(spec, 1, concise=True)
+                    active = " ".join((compiled.positive, compiled.clip_g, compiled.t5 or ""))
+                    self.assertIn(traits, active)
+                    self.assertNotIn(name, active)
+                    self.assertNotIn("superhero-inspired", active)
+                    self.assertIn("no human or costumed figures", active)
+                    workflow = build_workflow(engine, compiled.positive, compiled.negative,
+                                              123, "reference-test", compiled_prompt=compiled)
+                    if engine == "flux-2":
+                        self.assertFalse(compiled.negative_prompt_channel_active)
+                        self.assertNotIn("40", workflow)
+                        self.assertIn("no human or costumed figures", workflow["4"]["inputs"]["text"])
+                    else:
+                        self.assertIn("masked or costumed figures", compiled.negative)
+                        negative = workflow["40"]["inputs"]
+                        fields = (negative["text"],) if engine == "sdxl-1-0" else (
+                            negative["clip_l"], negative["clip_g"], negative["t5xxl"])
+                        self.assertTrue(all("masked or costumed figures" in field for field in fields))
+
     def test_motif_drift_routes_to_motif_correction(self):
         self.assertEqual(runtime_retry_category("MOTIF_DRIFT: missing motif"), "MOTIF_DRIFT")
 

@@ -221,7 +221,7 @@ class GrillMeBackgroundInspirationTests(unittest.TestCase):
         self.assertTrue(any("traversal" in item for item in affinities))
         self.assertFalse(any("Solar Sentinel" in item or "armour" in item for item in affinities))
 
-    def test_vague_reference_keeps_only_safe_supported_inference(self):
+    def test_vague_reference_does_not_authorize_inferred_traits(self):
         answers = {"theme_reference_treatment": "Solar Sentinel inspired visual traits",
                    "background_inspiration": "Solar Sentinel inspired background"}
         review = {
@@ -243,16 +243,16 @@ class GrillMeBackgroundInspirationTests(unittest.TestCase):
         self.assertTrue(context["reference_detected"])
         self.assertEqual((context["reference_name"], context["reference_type"]),
                          ("Solar Sentinel", "character"))
-        self.assertFalse(context["reference_needs_clarification"])
+        self.assertTrue(context["reference_needs_clarification"])
         semantics = context["visual_semantics"]
-        self.assertEqual(semantics["motif_descriptors"], ["interconnected radial patterns"])
+        self.assertEqual(semantics["motif_descriptors"], [])
         for key in ("material_descriptors", "texture_descriptors", "lighting_descriptors",
                     "composition_affinities"):
             self.assertEqual(semantics[key], [])
             self.assertNotIn(key, context["semantic_confidence"])
         self.assertEqual(semantics["scene_family"], "general")
-        self.assertEqual(context["semantic_provenance"]["motif_descriptors"], "SEMANTIC_INFERENCE")
-        self.assertEqual(context["semantic_confidence"]["motif_descriptors"], .8)
+        self.assertEqual(context["semantic_provenance"]["motif_descriptors"], "SAFE_FALLBACK")
+        self.assertNotIn("motif_descriptors", context["semantic_confidence"])
 
     def test_explicit_reference_visual_detail_survives(self):
         answers = {

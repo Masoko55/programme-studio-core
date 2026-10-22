@@ -202,6 +202,7 @@ class OcrConfirmationTests(
             "pytesseract.image_to_data",
             side_effect=[
                 first_pass,
+                {"text": [], "conf": [], "left": [], "top": [], "width": [], "height": []},
                 second_pass,
             ],
         ):

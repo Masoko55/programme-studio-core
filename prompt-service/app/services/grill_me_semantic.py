@@ -74,9 +74,70 @@ def _unresolved_reference_like(answers: dict) -> bool:
     return bool(_unresolved_reference_fields(answers))
 
 
+_TREATMENT_EXCLUSION = re.compile(
+    r"\b(?:do not|don't|never|avoid|without|must not|should not|no)\b", re.I
+)
+_TRAIT_FILLER = {"a", "an", "and", "as", "background", "design", "for", "in", "into",
+                 "motif", "motifs", "of", "or", "pattern", "patterns", "reference",
+                 "should", "the", "to", "use", "visual", "with"}
+
+
+def _treatment_parts(treatment: str, reference_name: str) -> tuple[str, list[str]]:
+    """Separate selected visual traits from explicit bans without interpreting a theme."""
+    approved, excluded = [], []
+    for clause in re.split(r"[.;]+", treatment):
+        clause = clause.strip()
+        if not clause:
+            continue
+        match = _TREATMENT_EXCLUSION.search(clause)
+        if match:
+            selected = re.sub(r"\b(?:but|and)\s*$", "", clause[:match.start()].strip(), flags=re.I).strip()
+            if selected:
+                approved.append(selected)
+            objects = re.sub(r"^(?:add|depict|draw|include|show|use|render)\s+", "",
+                             clause[match.end():].strip(), flags=re.I)
+            for object_name in re.split(r",|\s+or\s+", objects):
+                object_name = re.sub(r"^(?:any|the|a|an)\s+", "", object_name.strip(), flags=re.I)
+                if reference_name and reference_name.casefold() in object_name.casefold():
+                    object_name = "depicted named reference"
+                if object_name:
+                    excluded.append(object_name)
+        else:
+            approved.append(clause)
+    return "; ".join(approved), list(dict.fromkeys(excluded))
+
+
+def _trait_terms(value: str) -> set[str]:
+    return {token[:5] if len(token) >= 5 else token.removesuffix("s")
+            for token in re.findall(r"[a-z]+", value.casefold())
+            if token not in _TRAIT_FILLER and len(token) > 2}
+
+
+def _selected_reference_trait(phrase: str, approved: str, excluded: list[str]) -> bool:
+    terms = _trait_terms(phrase)
+    if any(terms & _trait_terms(item) for item in excluded):
+        return False
+    return bool(terms & _trait_terms(approved))
+
+
 def renderable_brief(brief: dict) -> dict:
     """Keep only explicit safe visual intent when a reference stayed unresolved."""
     context = brief.get("grill_me_context") or {}
+    if context.get("reference_detected") and brief.get("theme_reference_treatment"):
+        name = str(context.get("reference_name") or "").strip()
+        approved, _ = _treatment_parts(str(brief["theme_reference_treatment"]), name)
+        result = dict(brief)
+        result["theme_reference_treatment"] = approved
+        if name:
+            for field in _REFERENCE_SOURCE_FIELDS:
+                value = str(result.get(field) or "")
+                if re.search(re.escape(name), value, re.I):
+                    result[field] = "" if field != "background_inspiration" else re.sub(
+                        rf"\b(?:inspired by\s*)?{re.escape(name)}(?:[- ]inspired)?\b",
+                        "", value, flags=re.I).strip(" ,.;-")
+        if not result.get("background_inspiration"):
+            result["background_inspiration"] = approved
+        return result
     if context.get("reference_rendering_mode") != "safe_treatment_only":
         return brief
 
@@ -100,6 +161,25 @@ def renderable_brief(brief: dict) -> dict:
         return value
 
     return scrub(result)
+
+
+def model_facing_brief(brief: dict) -> dict:
+    """Keep confirmed reference identity in metadata, outside the direction model input."""
+    context = brief.get("grill_me_context") or {}
+    name = str(context.get("reference_name") or "").strip() if context.get("reference_detected") else ""
+    if not name:
+        return dict(brief)
+
+    def scrub(value):
+        if isinstance(value, str):
+            return "" if re.search(re.escape(name), value, re.I) else value
+        if isinstance(value, list):
+            return [scrub(item) for item in value]
+        if isinstance(value, dict):
+            return {key: scrub(item) for key, item in value.items()}
+        return value
+
+    return scrub(brief)
 
 
 DEFAULT_CONTEXT = {
@@ -454,7 +534,8 @@ def _explicit_spatial_treatment(treatment: str) -> list[str]:
         result.append("immersive first-person viewpoint")
     if re.search(r"\b(?:view from above|aerial view|overhead view)\b", text):
         result.append("aerial viewpoint")
-    if re.search(r"\b(?:swing\w*|fly\w*|mov\w*|travel\w*|travers\w*|glid\w*|rush\w*)\b", text):
+    if re.search(r"\b(?:swing\w*|fly\w*|travel\w*|travers\w*|glid\w*|rush\w*|"
+                 r"mov\w*\s+(?:through|across|past|between|over))\b", text):
         result.append("forward traversal and receding spatial depth")
     if re.search(r"\b(?:swing\w*|arcing|sweeping)\s+(?:through|across|past|between|over)\b", text):
         result.append("arcing spatial motion")
@@ -577,30 +658,36 @@ def _safe_context(
         context.update(event_type_status="provided", event_type_interpretation=event)
     if theme and context.get("theme_status") != "known":
         context.update(theme_status="known", theme_interpretation=theme)
+    exclusions = []
     if context.get("reference_detected"):
         reference_name = str(context.get("reference_name") or "").strip()
         treatment = _theme_reference_treatment(answers)
         vague = _vague_reference_treatment(treatment, reference_name)
         explicit_spatial = _explicit_spatial_treatment(treatment) if not vague else []
-        support = " ".join(str(answers.get(key) or "") for key in (
-            "creative_description", "background_inspiration", "theme_reference_treatment",
-        )).casefold()
+        approved, exclusions = _treatment_parts(treatment, reference_name)
+        support = " ".join((approved, str(answers.get("creative_description") or ""),
+                            str(answers.get("background_inspiration") or "")))
         semantics = context["visual_semantics"]
         for key, content in semantics.items():
             if key == "scene_family":
-                if vague and not (isinstance(supplied_semantics, dict) and key in supplied_semantics):
+                if (vague or any(_trait_terms(item) & _trait_terms("architecture buildings interior")
+                                 for item in exclusions)) and not (
+                        isinstance(supplied_semantics, dict) and key in supplied_semantics):
                     semantics[key] = "general"
                 continue
             explicit = isinstance(supplied_semantics, dict) and key in supplied_semantics
             if isinstance(content, list):
                 semantics[key] = [phrase for phrase in content
                                   if _safe_inferred_reference_phrase(phrase, reference_name)
-                                  and (explicit or key not in {
-                                      "material_descriptors", "texture_descriptors",
-                                      "lighting_descriptors", "composition_affinities",
-                                  } or (not vague and phrase.casefold() in support))]
-            elif content and not _safe_inferred_reference_phrase(content, reference_name):
+                                  and (key == "incompatible_treatments" or
+                                       (not any(_trait_terms(phrase) & _trait_terms(item)
+                                                for item in exclusions) and
+                                        (explicit or _selected_reference_trait(phrase, support, exclusions))))]
+            elif content and (not _safe_inferred_reference_phrase(content, reference_name)
+                              or (not explicit and not _selected_reference_trait(content, support, exclusions))):
                 semantics[key] = ""
+        semantics["incompatible_treatments"] = list(dict.fromkeys(
+            [*semantics["incompatible_treatments"], *exclusions]))[:8]
         context["visual_semantics"] = semantics
         if explicit_spatial:
             semantics["composition_affinities"] = list(dict.fromkeys(
@@ -608,6 +695,7 @@ def _safe_context(
     context["semantic_provenance"] = {
         key: ("SAFE_FALLBACK" if not content or (key == "scene_family" and content == "general"
                                     and not (isinstance(supplied_semantics, dict) and key in supplied_semantics)) else
+              "GRILL_ME_CLARIFIED" if key == "incompatible_treatments" and exclusions else
               "USER_EXPLICIT" if isinstance(supplied_semantics, dict) and key in supplied_semantics else
               "SEMANTIC_INFERENCE" if key in raw_semantics else
               "USER_EXPLICIT" if (key == "atmosphere_descriptors" and answers.get("creative_description"))
@@ -659,7 +747,7 @@ def _safe_context(
 
     if (
         reference_detected
-        and not treatment
+        and (not treatment or _vague_reference_treatment(treatment, str(context.get("reference_name") or "")))
     ):
         context[
             "reference_needs_clarification"

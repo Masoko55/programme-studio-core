@@ -1852,12 +1852,16 @@ def validate_background(
         )
         classical_human_signal = bool(human_signals["detected"])
         ambiguous_human_signal = bool(human_signals.get("ambiguous_face_signal"))
+        strong_signals = human_signals.get("strong_signals") or []
+        hog_only_disagreement = (vision_human_signal is False and bool(strong_signals) and
+                                 all(item.get("source") == "hog" for item in strong_signals))
         human_signals["classical_human_signal"] = classical_human_signal
         human_signals["vision_human_signal"] = vision_human_signal
-        human_signals["detected"] = classical_human_signal or vision_human_signal is True
+        human_signals["detected"] = (classical_human_signal and not hog_only_disagreement) or vision_human_signal is True
         human_signals["combined_human_decision"] = human_signals["detected"]
         human_signals["decision_reason"] = (
             "vision confirmed visible human" if vision_human_signal is True else
+            "HOG-only evidence contradicted by vision" if hog_only_disagreement else
             human_signals.get("human_detection_reason") if classical_human_signal else
             "isolated ambiguous detector evidence" if ambiguous_human_signal else
             "no human evidence"

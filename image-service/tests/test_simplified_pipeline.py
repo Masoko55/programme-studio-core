@@ -19,6 +19,28 @@ from tests.test_semantic_foundation import document
 
 
 class SimplifiedPipelineTests(unittest.TestCase):
+    def test_hog_only_vision_disagreement_does_not_override_independent_human_evidence(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "image.png"
+            Image.new("RGB", (896, 1280), "white").save(path)
+            ocr = {"confirmed_tokens": [], "ocr_diagnostics": {"decision": "complete"},
+                   "text_detected": False, "tokens": [], "text_lines": [], "text_area_ratio": 0}
+            human = {"detected": True, "ambiguous_face_signal": False,
+                     "strong_signals": [{"source": "hog", "weight": 1.6}], "weak_signals": [],
+                     "people": [(300, 450, 70, 140)], "faces": [], "profiles": [], "upper_bodies": [],
+                     "human_detection_reason": "strong HOG weight"}
+            with patch("app.services.comfyui_client._cached_text_evidence", return_value=ocr), \
+                 patch("app.services.comfyui_client.detect_human_signals", side_effect=lambda _: dict(human)), \
+                 patch("app.services.comfyui_client.boilerplate_metrics", return_value={"boilerplate_score": 0}), \
+                 patch("app.services.comfyui_client.validate_visual_quality", return_value={}):
+                result = validate_background(path, enforce_palette=False, vision_human_signal=False)
+                self.assertEqual(result["validation"]["decision"], "accepted")
+                with self.assertRaisesRegex(ValueError, "human"):
+                    validate_background(path, enforce_palette=False, vision_human_signal=None)
+                human["strong_signals"].append({"source": "frontal_face", "confirmed": True})
+                with self.assertRaisesRegex(ValueError, "human"):
+                    validate_background(path, enforce_palette=False, vision_human_signal=False)
+
     def test_safe_region_retry_records_comparable_scores(self):
         record = {"rejected_attempts": [{"validation": {"quality": {"explicit_safe_regions": {
             "regions": {"title": {"usability_score": .125}}}}}}]}

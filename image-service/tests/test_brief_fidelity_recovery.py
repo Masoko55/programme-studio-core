@@ -33,6 +33,19 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_vision_rubric_scores_background_fit_without_requiring_literal_event_scene(self):
+        for subject in ("formal abstract geometry", "decorative flowers", "quiet floral forms"):
+            with self.subTest(subject=subject):
+                _, prompt = self._assess(
+                    {"primary_visual_subject": subject,
+                     "event_context": "a gathering",
+                     "visual_semantics": {"motif_descriptors": [subject]}},
+                    {"subject_score": .9, "motif_score": .9,
+                     "atmosphere_score": .9, "human_visible": False})
+                self.assertIn("visual background artwork", prompt)
+                self.assertIn("Do not require visible attendees", prompt)
+                self.assertIn("Judge visible subject", prompt)
+
     def test_vision_guidance_uses_generic_motif_and_figure_evidence(self):
         _, prompt = self._assess(
             {"primary_visual_subject": "repeated symbolic motif",
@@ -289,6 +302,14 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                 "subject_score": .9, "human_visible": True,
                 "human_description": description, "observed_evidence": evidence})
             self.assertIsNone(result["vision_human_signal"])
+
+    def test_centrally_located_figure_with_torso_is_confirmed(self):
+        result, _ = self._assess(
+            {"primary_visual_subject": "abstract formal background"},
+            {"subject_score": .9, "human_visible": True,
+             "human_description": "Visible torso and suit jacket. Subject occupies central vertical panel.",
+             "observed_evidence": ["Stylized figure in suit and tie"]})
+        self.assertIs(result["vision_human_signal"], True)
 
     def test_good_subject_with_weak_treatment_keeps_its_category(self):
         brief = {"primary_visual_subject": "layered city forms",

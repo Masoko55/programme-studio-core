@@ -428,7 +428,8 @@ class CandidateSpecCompilerTests(unittest.TestCase):
     def test_figure_prohibitions_use_generic_subject_categories(self):
         for constraint in ("No people or characters", "No characters",
                            "Do not depict characters", "Without human or costumed figures",
-                           "No masked figures", "No superheroes"):
+                           "No masked figures", "No fictional figures",
+                           "No humanoid figures", "No mascot figures"):
             with self.subTest(constraint=constraint):
                 self.assertTrue(_characters_explicitly_prohibited([constraint]))
 

@@ -322,7 +322,7 @@ class GrillMeBackgroundInspirationTests(unittest.TestCase):
             ["background_inspiration"],
         )
 
-    def test_original_superhero_brief_detects_reference_across_fields(self):
+    def test_semantic_review_detects_reference_across_fields(self):
         answers = {
             "event_type": "Children birthday party",
             "theme": "Superheroes",
@@ -339,7 +339,8 @@ class GrillMeBackgroundInspirationTests(unittest.TestCase):
             "theme_reference_treatment": None,
         }
 
-        context = _safe_context({}, answers)
+        context = _safe_context({"reference_detected": True, "reference_name": "Spiderman",
+                                 "reference_type": "character"}, answers)
 
         self.assertTrue(context["reference_detected"])
         self.assertEqual(context["reference_name"], "Spiderman")
@@ -371,6 +372,30 @@ class GrillMeBackgroundInspirationTests(unittest.TestCase):
 
         self.assertFalse(context["reference_detected"])
         self.assertEqual(context["reference_type"], "none")
+
+    def test_unreviewed_inspired_name_does_not_imply_character(self):
+        context = _safe_context({}, {"theme": "Crimson Oracle-inspired",
+                                     "background_inspiration": "Crimson Oracle-inspired motifs"})
+        self.assertFalse(context["reference_detected"])
+        self.assertIsNone(context["reference_name"])
+        reviewed = _safe_context({"reference_detected": True, "reference_name": "Crimson Oracle",
+                                  "reference_type": "character"},
+                                 {"theme": "Crimson Oracle-inspired"})
+        self.assertTrue(reviewed["reference_detected"])
+        self.assertEqual(reviewed["reference_name"], "Crimson Oracle")
+
+    def test_novel_event_uses_semantic_review_without_name_lookup(self):
+        answers = {"event_type": "Community Innovation Exchange"}
+        provided = _safe_context({}, answers)
+        self.assertEqual(provided["event_type_status"], "provided")
+        self.assertEqual(provided["event_type_interpretation"], answers["event_type"])
+        self.assertFalse(provided["well_known_event_type"])
+        reviewed = _safe_context({"event_type_status": "clear",
+                                  "event_type_interpretation": "A community innovation gathering",
+                                  "well_known_event_type": True}, answers)
+        self.assertEqual(reviewed["event_type_status"], "known")
+        self.assertEqual(reviewed["event_type_interpretation"], "A community innovation gathering")
+        self.assertTrue(reviewed["well_known_event_type"])
 
     def test_existing_reference_detection_is_not_overwritten(self):
         context = _safe_context(

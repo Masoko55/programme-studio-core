@@ -508,39 +508,13 @@ def _safe_context(
 
     event = str(answers.get("event_type") or "").strip()
     theme = str(answers.get("theme") or "").strip()
-    if event and re.search(r"\b(birthday|party|wedding|shower|graduation|gala|ceremony|funeral|conference|celebration)\b", event, re.I):
-        context.update(event_type_status="known", event_type_interpretation=event,
-                       well_known_event_type=True)
+    if event and context["event_type_status"] in {"clear", "known"}:
+        context["event_type_status"] = "known"
+        context["event_type_interpretation"] = context["event_type_interpretation"] or event
+    elif event and context["event_type_status"] == "unknown":
+        context.update(event_type_status="provided", event_type_interpretation=event)
     if theme and context.get("theme_status") != "known":
         context.update(theme_status="known", theme_interpretation=theme)
-    reference_text = " ".join(
-        str(answers.get(field) or "")
-        for field in (
-            "theme",
-            "creative_description",
-            "background_inspiration",
-            "theme_reference_treatment",
-        )
-    )
-    reference = re.search(
-        r"\b(?:a|an|the)?\s*([\w-]{4,})[- ]inspired\b",
-        reference_text,
-        re.I,
-    )
-    if (
-        reference
-        and re.search(
-            r"\b(?:\w*hero(?:es)?|characters?|franchises?|fictional)\b",
-            reference_text,
-            re.I,
-        )
-        and not context.get("reference_detected")
-    ):
-        context.update(
-            reference_detected=True,
-            reference_name=reference.group(1).replace("-", " ").title(),
-            reference_type="character",
-        )
     if context.get("reference_detected"):
         reference_name = str(context.get("reference_name") or "").strip()
         treatment = _theme_reference_treatment(answers)

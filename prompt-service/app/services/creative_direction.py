@@ -53,10 +53,10 @@ POSITIVE_PROMPT_FORBIDDEN_TERMS = (
     "display",
     "character",
     "characters",
-    "hero",
-    "heroes",
     "masked person",
     "masked character",
+    "human silhouette",
+    "character silhouette",
     "costume",
     "costumed",
 )
@@ -775,7 +775,7 @@ def _safe_visual_phrase(value: str | None) -> str:
         if any(
             re.search(rf"\b{re.escape(term)}\b", clause, re.IGNORECASE)
             for term in POSITIVE_PROMPT_FORBIDDEN_TERMS
-        ) or re.search(r"\b\w*hero(?:es)?\b", clause, re.IGNORECASE):
+        ):
             continue
         if _is_negative_instruction_clause(
             clause

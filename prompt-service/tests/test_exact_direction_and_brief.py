@@ -75,7 +75,12 @@ class ExactGrillMeBrief(unittest.TestCase):
             "background_inspiration": "A stylised comic-book city skyline with bold angular architecture, spider webs, layered city depth and energetic spatial movement.",
             "theme_reference_treatment": "Use radial web-inspired geometry, angular architecture, speed-line energy and strong blue-red colour relationships without depicting any character.",
         }
-        context = _safe_context({}, answers)
+        context = _safe_context({"event_type_status": "clear",
+                                 "event_type_interpretation": "Children birthday party",
+                                 "well_known_event_type": True,
+                                 "reference_detected": True,
+                                 "reference_name": "Spiderman",
+                                 "reference_type": "character"}, answers)
         self.assertEqual(context["event_type_status"], "known")
         self.assertEqual(context["theme_status"], "known")
         self.assertTrue(context["reference_detected"])

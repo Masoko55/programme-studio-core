@@ -19,10 +19,10 @@ from app.services.validation import (
 
 
 class CreativeDirectionGenericityTests(unittest.TestCase):
-    def test_heroic_figure_words_do_not_enter_visual_phrase(self):
+    def test_figure_words_are_filtered_without_rejecting_hero_layout_terms(self):
         self.assertEqual(
-            _safe_visual_phrase("superhero silhouette, concentric motifs, fictional hero portrait"),
-            "concentric motifs",
+            _safe_visual_phrase("masked figure silhouette, hero image, character portrait"),
+            "hero image",
         )
 
     def test_reference_translation_does_not_authorize_ungrounded_architecture(self):

@@ -38,7 +38,7 @@ def _confirmed_human_answer(visible: object, description: str) -> bool | None:
         return None
     anatomy = re.search(r"\b(?:person|human|man|woman|child|figure|face|head|body|torso)\b(?!-like\b)", description, re.I)
     detail = re.search(r"\b(?:face|head|body|torso|arms?|legs?|upright|standing|walking|seated|sitting)\b(?!-like\b)", description, re.I)
-    location = re.search(r"\b(?:left|right|top|bottom|upper|lower|center|centre|foreground|background|"
+    location = re.search(r"\b(?:left|right|top|bottom|upper|lower|center|centre|central|foreground|background|"
                          r"beside|near|behind|doorway|horizon|middle)\b", description, re.I)
     if anatomy and detail and location:
         return True
@@ -599,6 +599,9 @@ def assess_subject_adherence(
         "Assess this background against the requested brief using independent scores between 0 and 1: "
         "subject_score, atmosphere_score, motif_score, audience_fit_score, and treatment_score when requested. "
         "Judge visible subject, global atmosphere, motif topology, and audience fit separately. "
+        "Judge whether visible forms work as visual background artwork for the requested event, theme and subject. "
+        "Do not require visible attendees, a venue or literal event objects unless explicitly requested; "
+        "an absent explicitly required subject or defining motif still scores low in its own dimension. "
         "Also give background_usability_score for hierarchy, controlled density, and usable calm space, "
         "and human_visible as a boolean based on visible human evidence, including small or distant people. "
         "When characters are prohibited, independently report character_visible as a JSON boolean. "

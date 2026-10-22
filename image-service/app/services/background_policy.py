@@ -2164,7 +2164,8 @@ def _requested_palette_blend(pixel_lab, targets: list[dict]) -> bool:
     return False
 
 
-def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int) -> str | None:
+def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int,
+                               allow_saturated_tones: bool = False) -> str | None:
     """Match a pigment across shading while keeping unrelated hue separate."""
     light, a, b = (float(value) for value in pixel_lab)
     chroma = float(np.hypot(a, b))
@@ -2185,6 +2186,18 @@ def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int) -
                                (chroma * target_chroma), -1, 1))
         angle = float(np.degrees(np.arccos(cosine)))
         if _requested_pigment_direction_match(pixel_lab, target_lab):
+            matches.append((angle + distance * 0.2, target["name"]))
+            continue
+        # In dominant mode rendered highlights and shaded pigment can move
+        # beyond the exact target's chroma and hue limits while retaining its
+        # LAB direction. Keep both the chroma and hue movement bounded.
+        if (allow_saturated_tones and target_chroma >= 25 and
+                ((target_chroma * 1.1 < chroma <= target_chroma * 2.2 and
+                  abs(light - float(target_lab[0])) <= 35) or
+                 (target_chroma * 0.75 <= chroma <= target_chroma * 1.1 and
+                  abs(light - float(target_lab[0])) <= 20)) and
+                angle <= 18 and
+                _hue_distance(pixel_hue, target["hue"]) <= 18):
             matches.append((angle + distance * 0.2, target["name"]))
             continue
         # A low-chroma petal shadow has less reliable hue than a saturated
@@ -2765,7 +2778,8 @@ def validate_palette(
             elif "grey" in requested_neutrals or "gray" in requested_neutrals:
                 family = "grey" if "grey" in requested_neutrals else "gray"
         if family is None:
-            family = _perceptual_palette_family(lab, requested_targets, int(hue))
+            family = _perceptual_palette_family(lab, requested_targets, int(hue),
+                                                allow_saturated_tones=not exclusive_palette)
         if family is None and not exclusive_palette and _requested_palette_blend(lab, requested_targets):
             palette_blend_mask[index] = 1
             palette_blend_pixels.append(index)
@@ -2809,7 +2823,13 @@ def validate_palette(
     )
     largest_blend_region = (int(np.max(blend_regions[1:, cv2.CC_STAT_AREA])) / total
                             if len(blend_regions) > 1 else 0.0)
-    bounded_blend = (len(palette_blend_pixels) / total <= .12 and largest_blend_region <= .035)
+    blend_ratio = len(palette_blend_pixels) / total
+    # Many small transitions along the requested-colour segment may add up
+    # across a textured image. A single independent field remains ineligible.
+    bounded_blend = (largest_blend_region <= .035 and
+                     (blend_ratio <= .12 or
+                      (blend_ratio <= .20 and
+                       largest_blend_region <= blend_ratio * .2)))
     if not bounded_blend:
         for index in palette_blend_pixels:
             unrelated_hue_count += 1
@@ -2923,8 +2943,8 @@ def validate_palette(
         )
     }
 
-    palette_limit = 0.01 if exclusive_palette else 0.02
-    region_limit = 0.035 if exclusive_palette else 0.01
+    palette_limit = 0.01 if exclusive_palette else MAX_OFF_PALETTE_RATIO
+    region_limit = 0.035
     if off_palette_ratio > palette_limit or largest_unrequested_region > region_limit:
         top_unrequested = [
             (

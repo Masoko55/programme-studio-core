@@ -526,10 +526,7 @@ def _first_words(value: str, limit: int) -> str:
 
 def _background_only(text: str, spec: CandidateSpec) -> str:
     """Keep planning labels out of image-model conditioning."""
-    exclusions = [spec.direction_role,
-                  "Architectural Master", "Comic Book Cityscape Illustrator",
-                  "Creative Direction for A4 Portrait Event Background",
-                  *spec.visual_design.get("render_exclusion_text", [])]
+    exclusions = [spec.direction_role, *spec.visual_design.get("render_exclusion_text", [])]
     for phrase in sorted(exclusions, key=len, reverse=True):
         phrase = str(phrase).strip()
         if len(phrase) >= 4:

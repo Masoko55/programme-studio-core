@@ -1,5 +1,7 @@
 import asyncio
+import inspect
 import json
+import re
 import unittest
 from unittest.mock import AsyncMock, patch
 
@@ -19,6 +21,19 @@ from app.services.validation import (
 
 
 class CreativeDirectionGenericityTests(unittest.TestCase):
+    def test_active_direction_policy_uses_generic_figure_categories(self):
+        payload = json.loads(build_creative_direction_prompt(
+            {"event_type": "celebration", "background_inspiration": "layered geometry"},
+            "A", "visual designer"))
+        policy = " ".join(payload["requirements"]).lower()
+        self.assertNotIn("superhero", policy)
+        self.assertNotIn(" hero", policy)
+        self.assertIn("masked or costumed figure", policy)
+        active_policy = inspect.getsource(build_creative_direction_prompt) + inspect.getsource(generate_creative_direction)
+        self.assertIsNone(re.search(
+            r"\b(?:Spider-Man|Spiderman|Batman|Hulk|superhero|superheroes)\b",
+            active_policy, re.I))
+
     def test_figure_words_are_filtered_without_rejecting_hero_layout_terms(self):
         self.assertEqual(
             _safe_visual_phrase("masked figure silhouette, hero image, character portrait"),

@@ -8,10 +8,11 @@ from app.schemas.grill_me import GrillMeAnswers, GrillMeSession, ProgrammeItem
 from app.services.creative_direction import (
     background_design_summary,
     background_positive_requirements,
+    build_creative_direction_prompt,
     reference_visual_language,
 )
 from app.services.grill_me_semantic import _safe_context, review_creative_context
-from app.services.grill_me_service import evaluate_session, freeze_for_generation
+from app.services.grill_me_service import apply_clarifications, evaluate_session, freeze_for_generation
 from app.services.semantic_contract import build_semantic_contract, resolve_palette_relationship
 
 
@@ -75,6 +76,85 @@ class GrillMeBackgroundInspirationTests(unittest.TestCase):
         self.assertFalse(context["reference_detected"])
         self.assertFalse(context["reference_needs_clarification"])
         self.assertEqual(context["clarification_questions"], [])
+        self.assertEqual(context["reference_rendering_mode"], "safe_treatment_only")
+
+    def test_unresolved_reference_treatment_reaches_prompt_without_identity(self):
+        treatment = ("Use burgundy and ivory with concentric motifs and flowing directional "
+                     "movement. Do not depict any person or character.")
+        cases = (
+            {"theme": "Crimson Oracle-inspired"},
+            {"background_inspiration": "Crimson Oracle-inspired background with layered motion"},
+            {"creative_description": "A celebration inspired by Crimson Oracle"},
+            {"theme": "Crimson Oracle-inspired",
+             "background_inspiration": "Crimson Oracle-inspired background with layered motion",
+             "creative_description": "A celebration inspired by Crimson Oracle"},
+        )
+        for source in cases:
+            with self.subTest(source=source):
+                answers = {**source, "theme_reference_treatment": treatment}
+                context = self._review_failure(answers)
+                self.assertFalse(context["reference_detected"])
+                self.assertIsNone(context["reference_name"])
+                self.assertEqual(context["reference_type"], "none")
+                self.assertFalse(context["reference_needs_clarification"])
+                brief = {**answers, "event_type": "celebration", "age_group": "family",
+                         "primary_colour": "burgundy", "secondary_colour": "ivory",
+                         "grill_me_context": context, "visual_semantics": context["visual_semantics"]}
+                prompt = build_creative_direction_prompt(brief, "A", "visual designer")
+                self.assertNotIn("Crimson Oracle", prompt)
+                for trait in ("burgundy", "ivory", "concentric motifs", "flowing directional movement"):
+                    self.assertIn(trait, prompt)
+
+    def test_unresolved_reference_preserves_safe_background_and_freeze_handoff(self):
+        treatment = ("Use burgundy and ivory with concentric motifs and flowing directional "
+                     "movement. Do not depict any person or character.")
+        answers = GrillMeAnswers(
+            event_type="celebration", theme="Crimson Oracle-inspired", age_group="family",
+            primary_colour="burgundy", secondary_colour="ivory",
+            creative_description="Soft flowing geometry", title_preference="Welcome",
+            event_date="2026-10-15", start_time="10:00",
+            background_inspiration="Layered translucent arches with diagonal depth",
+            theme_reference_treatment=treatment,
+            programme=[ProgrammeItem(time="10:00", title="Arrival")],
+        )
+        context = self._review_failure(answers.model_dump())
+        session = GrillMeSession(session_id="test", status="ready", answers=answers,
+                                creative_context=context)
+        hydrated = GrillMeSession.model_validate_json(session.model_dump_json())
+        with (patch("app.services.grill_me_service.load_session", return_value=hydrated),
+              patch("app.services.grill_me_service.evaluate_session", return_value=[]),
+              patch("app.services.grill_me_service._save")):
+            _, background, _ = freeze_for_generation("test", "ABCDEF-123456")
+        self.assertEqual(background["grill_me_context"]["reference_rendering_mode"],
+                         "safe_treatment_only")
+        self.assertNotIn("Crimson Oracle", str(background))
+        self.assertIn("Layered translucent arches", str(background))
+        self.assertIn("concentric motifs", build_creative_direction_prompt(
+            background, "B", "visual designer"))
+
+    def test_unresolved_reference_clarification_persists_rendering_mode(self):
+        treatment = ("Use burgundy and ivory with concentric motifs and flowing directional "
+                     "movement. Do not depict any person or character.")
+        answers = GrillMeAnswers(
+            event_type="celebration", theme="Crimson Oracle-inspired", age_group="family",
+            primary_colour="burgundy", secondary_colour="ivory",
+            creative_description="Soft flowing geometry", title_preference="Welcome",
+            event_date="2026-10-15", start_time="10:00",
+            background_inspiration="Layered translucent arches with diagonal depth",
+            programme=[ProgrammeItem(time="10:00", title="Arrival")],
+        )
+        session = GrillMeSession(session_id="test", status="clarification_required", answers=answers,
+                                creative_context=self._review_failure(answers.model_dump()))
+        self.assertTrue(session.creative_context["reference_needs_clarification"])
+        with (patch("app.services.grill_me_service.load_session", return_value=session),
+              patch("app.services.grill_me_service._save", side_effect=lambda value: value),
+              patch("app.services.grill_me_service.review_creative_context",
+                    side_effect=self._review_failure)):
+            updated = apply_clarifications("test", {"theme_reference_treatment": treatment})
+        hydrated = GrillMeSession.model_validate_json(updated.model_dump_json())
+        self.assertFalse(hydrated.creative_context["reference_needs_clarification"])
+        self.assertEqual(hydrated.creative_context["reference_rendering_mode"],
+                         "safe_treatment_only")
 
     def test_semantic_visual_structure_resolves_background_without_noun_lookup(self):
         context = _safe_context({"visual_semantics": {

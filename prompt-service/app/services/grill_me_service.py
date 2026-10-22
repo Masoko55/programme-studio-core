@@ -20,6 +20,7 @@ from app.schemas.grill_me import (
 
 from app.services.grill_me_semantic import (
     review_creative_context,
+    renderable_brief,
 )
 from app.services.creative_direction import resolve_palette_mode
 from app.services.semantic_contract import build_semantic_contract, contract_hash, resolve_palette_relationship
@@ -1430,6 +1431,7 @@ def freeze_for_generation(
             text_flow
         ),
     }
+    background_brief = renderable_brief(background_brief)
     background_brief["palette_mode"] = resolve_palette_mode(background_brief)
     background_brief["palette_relationship"], background_brief["palette_relationship_source"] = resolve_palette_relationship(background_brief)
     contract = build_semantic_contract(background_brief)

@@ -56,13 +56,50 @@ def _background_context_needs_clarification(answers: dict, context: dict | None 
     return not _detailed_visual_prose(description)
 
 
+_REFERENCE_SOURCE_FIELDS = ("theme", "creative_description", "background_inspiration")
+_UNRESOLVED_REFERENCE_PATTERN = re.compile(
+    r"\b[A-Z][\w-]*(?:\s+[A-Z][\w-]*)+[- ]inspired\b|"
+    r"\b[A-Z][\w]*-[A-Z][\w]*-inspired\b|"
+    r"\binspired by [A-Z][\w-]*(?:\s+[A-Z][\w-]*)+\b"
+)
+
+
+def _unresolved_reference_fields(answers: dict) -> list[str]:
+    """Locate ambiguous source fields without guessing a reference identity."""
+    return [field for field in _REFERENCE_SOURCE_FIELDS
+            if _UNRESOLVED_REFERENCE_PATTERN.search(str(answers.get(field) or ""))]
+
+
 def _unresolved_reference_like(answers: dict) -> bool:
-    """Flag ambiguity in a multiword named-looking inspiration; infer no identity."""
-    text = " ".join(str(answers.get(field) or "") for field in
-                    ("theme", "creative_description", "background_inspiration"))
-    return bool(re.search(
-        r"\b[A-Z][\w-]*(?:\s+[A-Z][\w-]*)+[- ]inspired\b|"
-        r"\b[A-Z][\w]*-[A-Z][\w]*-inspired\b", text))
+    return bool(_unresolved_reference_fields(answers))
+
+
+def renderable_brief(brief: dict) -> dict:
+    """Keep only explicit safe visual intent when a reference stayed unresolved."""
+    context = brief.get("grill_me_context") or {}
+    if context.get("reference_rendering_mode") != "safe_treatment_only":
+        return brief
+
+    fields = set(context.get("unresolved_reference_fields") or ())
+    treatment = str(brief.get("theme_reference_treatment") or "").strip()
+    result = dict(brief)
+    for field in _REFERENCE_SOURCE_FIELDS:
+        if field in fields:
+            result[field] = ""
+    if not result.get("background_inspiration"):
+        result["background_inspiration"] = treatment
+
+    def scrub(value):
+        if isinstance(value, str):
+            return "" if _UNRESOLVED_REFERENCE_PATTERN.search(value) else value
+        if isinstance(value, list):
+            cleaned = [scrub(item) for item in value]
+            return [item for item in cleaned if item]
+        if isinstance(value, dict):
+            return {key: scrub(item) for key, item in value.items()}
+        return value
+
+    return scrub(result)
 
 
 DEFAULT_CONTEXT = {
@@ -76,6 +113,8 @@ DEFAULT_CONTEXT = {
     "reference_name": None,
     "reference_type": "none",
     "reference_needs_clarification": False,
+    "reference_rendering_mode": "normal",
+    "unresolved_reference_fields": [],
     "background_generation_summary": None,
     "scene_family_evidence": None,
     "visual_semantics": {},
@@ -478,6 +517,9 @@ def _safe_context(
 
     context = dict(DEFAULT_CONTEXT)
     context.update({key: item for key, item in value.items() if key in context})
+    # The rendering state is established locally from this review outcome.
+    context["reference_rendering_mode"] = "normal"
+    context["unresolved_reference_fields"] = []
     raw_semantics = context.get("visual_semantics")
     if not isinstance(raw_semantics, dict):
         raw_semantics = {}
@@ -686,9 +728,13 @@ def _safe_context(
             )
         ]
 
-    unresolved_reference_question = (not semantic_review_available and not reference_detected
-            and _unresolved_reference_like(answers)
-            and not _detailed_visual_prose(treatment, minimum_words=10))
+    unresolved_fields = (_unresolved_reference_fields(answers)
+                         if not semantic_review_available and not reference_detected else [])
+    treatment_sufficient = _detailed_visual_prose(treatment, minimum_words=10)
+    unresolved_reference_question = bool(unresolved_fields and not treatment_sufficient)
+    if unresolved_fields and treatment_sufficient:
+        context["reference_rendering_mode"] = "safe_treatment_only"
+        context["unresolved_reference_fields"] = unresolved_fields
     if unresolved_reference_question:
         context["reference_needs_clarification"] = True
         questions = [item for item in questions

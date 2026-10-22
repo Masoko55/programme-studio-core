@@ -87,8 +87,9 @@ def _reference_visual_traits(inspiration: str, reference_pattern: str) -> str:
         return ""
     traits = match.group(1).strip(" ,.;")
     if (not traits or (reference_pattern and re.search(reference_pattern, traits, re.I))
-            or re.search(r"\b(?:people|persons?|humans?|figures?|characters?|superheroes?|"
-                         r"costumes?|masks?|faces?|bodies|silhouettes?|protagonists?)\b", traits, re.I)):
+            or re.search(r"\b(?:people|persons?|humans?|figures?|characters?|fictional figures?|"
+                         r"humanoids?|mascots?|costumes?|masks?|faces?|bodies|"
+                         r"silhouettes?|protagonists?|\w*hero(?:es)?)\b", traits, re.I)):
         return ""
     return traits
 
@@ -112,9 +113,9 @@ def _motif_literalization(contract: dict, subject: str, has_reference) -> tuple[
 
 def _characters_explicitly_prohibited(constraints: list[str]) -> bool:
     """Recognize explicit bans on depicted characters or character-like figures."""
-    subject = r"(?:characters?|fictional figures?|humanoid figures?|costumed figures?|superhero figures?)"
+    subject = r"(?:characters?|fictional figures?|humanoid figures?|costumed figures?|masked figures?|mascot figures?|human silhouettes?|\w*hero(?:es)?)"
     qualifier = r"(?:(?:any|all|depicted|visible)\s+){0,2}"
-    paired_people = r"(?:(?:people|persons|humans)\s+(?:or|and)\s+)?"
+    paired_people = r"(?:(?:people|persons?|humans?)\s+(?:or|and)\s+)?"
     leading = rf"\b(?:no|without|exclude|avoid)\s+{qualifier}{paired_people}{subject}\b"
     imperative = rf"\bdo not\s+(?:depict|show|include|render|feature)\s+{qualifier}{subject}\b"
     trailing = rf"\b{subject}\b\W+(?:are\W+)?(?:prohibited|forbidden|excluded|not allowed)\b"
@@ -277,7 +278,8 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
 
     def figure_subject_pressure(text: str) -> bool:
         return bool(reference_name and characters_prohibited and re.search(
-            r"\b(?:superheroes?|characters?|persons?|people|humanoids?|costumes?|masked figures?)\b",
+            r"\b(?:characters?|fictional figures?|persons?|people|humanoids?|mascots?|"
+            r"costumes?|masked figures?|\w*hero(?:es)?)\b",
             text, re.I))
 
     semantic_motifs = [*contract["motif_descriptors"]]

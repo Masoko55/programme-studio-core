@@ -107,10 +107,8 @@ def _review_prompt(
                 "the event category has recognizable visual conventions."
             ),
             (
-                "Examples of established event categories include "
-                "birthday party, kids party, bridal shower, baby shower, "
-                "wedding, graduation, black-tie event, awards ceremony, "
-                "corporate function and similar event types."
+                "Use the event category and its stated audience to infer "
+                "appropriate visual conventions without assuming a fixed event list."
             ),
             (
                 "Determine whether the theme references a recognizable "
@@ -118,9 +116,8 @@ def _review_prompt(
                 "cultural property, sports property or visual style."
             ),
             (
-                "Examples include Spider-Man, Batman, Barbie, Disney, "
-                "Marvel, Harry Potter, Formula 1, Great Gatsby, "
-                "Roaring Twenties and similar references."
+                "Detect references from the supplied brief, including named "
+                "characters, franchises, people, brands, eras and styles."
             ),
             (
                 "Use semantic understanding rather than requiring "
@@ -139,7 +136,7 @@ def _review_prompt(
             ),
             (
                 "Do not decide that a generic creative_description such "
-                "as 'fun superhero birthday celebration' is sufficient "
+                "as 'a fun themed celebration' is sufficient "
                 "to replace theme_reference_treatment."
             ),
             (
@@ -533,7 +530,7 @@ def _safe_context(
     if (
         reference
         and re.search(
-            r"\b(superheroes?|characters?|franchises?|fictional)\b",
+            r"\b(?:\w*hero(?:es)?|characters?|franchises?|fictional)\b",
             reference_text,
             re.I,
         )

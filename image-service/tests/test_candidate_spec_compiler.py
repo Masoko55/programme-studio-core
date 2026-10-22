@@ -1,6 +1,6 @@
 import unittest
 
-from app.services.candidate_spec import build_candidate_spec
+from app.services.candidate_spec import _characters_explicitly_prohibited, build_candidate_spec
 from app.services.prompt_compiler import (_background_only, _treatment_covered, compile_candidate_prompt,
                                           failure_category, runtime_retry_category)
 from app.services.comfyui_client import build_workflow
@@ -399,6 +399,38 @@ class CandidateSpecCompilerTests(unittest.TestCase):
                         fields = (negative["text"],) if engine == "sdxl-1-0" else (
                             negative["clip_l"], negative["clip_g"], negative["t5xxl"])
                         self.assertTrue(all("masked or costumed figures" in field for field in fields))
+
+    def test_arbitrary_reference_without_genre_word_keeps_traits_and_figure_ban(self):
+        name = "Crimson Oracle"
+        traits = "burgundy and ivory with concentric motifs and flowing directional movement"
+        document = document_for(CASES[0])
+        document["brief"].update(
+            background_inspiration=f"An atmospheric background using {traits}. No depicted figure.",
+            theme_reference_treatment=f"Use {name}-inspired colours.",
+            grill_me_context={"reference_detected": True, "reference_name": name,
+                              "generation_constraints": ["Without human or costumed figures"]},
+            visual_semantics={"motif_descriptors": ["concentric motifs"],
+                              "motif_structure_description": "flowing directional movement"},
+        )
+        for engine in ("flux-2", "sdxl-1-0", "sd-3-5-medium"):
+            with self.subTest(engine=engine):
+                spec = build_candidate_spec(document, engine, "B")
+                self.assertTrue(spec.visual_design["characters_prohibited"])
+                self.assertIn(traits, spec.visual_design["primary_visual_subject"])
+                compiled = compile_candidate_prompt(spec, 1, concise=True)
+                active = " ".join((compiled.positive, compiled.clip_g, compiled.t5 or ""))
+                self.assertIn(traits, active)
+                self.assertNotIn(name, active)
+                self.assertIn("no human or costumed figures", active)
+                if engine != "flux-2":
+                    self.assertIn("masked or costumed figures", compiled.negative)
+
+    def test_figure_prohibitions_use_generic_subject_categories(self):
+        for constraint in ("No people or characters", "No characters",
+                           "Do not depict characters", "Without human or costumed figures",
+                           "No masked figures", "No superheroes"):
+            with self.subTest(constraint=constraint):
+                self.assertTrue(_characters_explicitly_prohibited([constraint]))
 
     def test_motif_drift_routes_to_motif_correction(self):
         self.assertEqual(runtime_retry_category("MOTIF_DRIFT: missing motif"), "MOTIF_DRIFT")

@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import AsyncMock, patch
 
 from app.services.creative_direction import (
+    _safe_visual_phrase,
     background_design_summary,
     background_positive_requirements,
     build_creative_direction_prompt,
@@ -18,6 +19,12 @@ from app.services.validation import (
 
 
 class CreativeDirectionGenericityTests(unittest.TestCase):
+    def test_heroic_figure_words_do_not_enter_visual_phrase(self):
+        self.assertEqual(
+            _safe_visual_phrase("superhero silhouette, concentric motifs, fictional hero portrait"),
+            "concentric motifs",
+        )
+
     def test_reference_translation_does_not_authorize_ungrounded_architecture(self):
         brief = {"event_type": "celebration", "theme": "recognizable fictional character",
                  "background_inspiration": "abstract curved shapes"}

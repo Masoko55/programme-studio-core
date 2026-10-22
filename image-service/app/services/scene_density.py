@@ -94,16 +94,10 @@ def _overlay_interference(image: Image.Image, rows: list[int], columns: list[int
                                        (edge_density >= .13 and high_frequency >= .08))
     broad_form = (broad_contrast >= 80 and broad_edge_density >= .008 and
                   edge_density < .06 and high_frequency < .16)
-    # Broad planes and silhouettes can leave ample room for legible type.
-    # Hard failure needs sharp detail across nearly the entire named area.
-    # Broad low-frequency structure can fragment the coarse calm-cell grid
-    # without filling the named text area with competing small detail.
-    fragmented_broad_form = (broad_contrast >= 80 and broad_edge_density >= .008 and
-                             calm_fraction >= .30 and high_frequency <= .35)
-    unusable = dense_detail and window_area == 0 and not fragmented_broad_form
+    # Visual activity informs typography placement; it does not reject artwork.
     borderline = dense_detail or broad_form or (contrast >= 65 and edge_density >= .09 and calm_fraction <= .5)
-    decision = "FAIL" if unusable else "BORDERLINE" if borderline else "PASS"
-    reason = ("dense_high_contrast_detail" if unusable else
+    decision = "BORDERLINE" if borderline else "PASS"
+    reason = ("dense_visual_detail" if dense_detail and window_area == 0 else
               "detail_with_calm_area" if dense_detail else
               "large_contrasting_form" if broad_form else
               "moderate_local_detail" if borderline else None)

@@ -38,8 +38,9 @@ class SafeRegionUsabilityTests(unittest.TestCase):
             draw.line((coordinate, 0, coordinate, 255), fill="black", width=2)
             draw.line((0, coordinate, 255, coordinate), fill="black", width=2)
         result = self.assess(image)
-        self.assertEqual(result["decision"], "FAIL")
-        self.assertEqual(result["regions"]["title"]["reason"], "dense_high_contrast_detail")
+        self.assertEqual(result["decision"], "BORDERLINE")
+        self.assertEqual(result["regions"]["title"]["reason"], "dense_visual_detail")
+        self.assertGreater(result["regions"]["title"]["local_edge_density"], .1)
 
     def test_ornate_edges_leave_contiguous_title_window(self):
         image = Image.new("RGB", (512, 512), "#ebe4d7")
@@ -71,7 +72,9 @@ class SafeRegionUsabilityTests(unittest.TestCase):
                 x, y = column * 32, row * 32
                 for offset in range(0, 32, 4):
                     draw.line((x + offset, y, x + offset, y + 31), fill="black", width=2)
-        self.assertEqual(self.assess(image)["decision"], "FAIL")
+        result = self.assess(image)
+        self.assertEqual(result["decision"], "BORDERLINE")
+        self.assertEqual(result["regions"]["title"]["largest_calm_window_fraction"], 0)
 
     def test_dense_crossing_pattern_still_has_no_overlay_window(self):
         image = Image.new("RGB", (512, 512), "white")
@@ -80,7 +83,7 @@ class SafeRegionUsabilityTests(unittest.TestCase):
             draw.line((offset, 0, offset + 255, 255), fill="black", width=2)
             draw.line((offset + 255, 0, offset, 255), fill="black", width=2)
         result = self.assess(image)
-        self.assertEqual(result["decision"], "FAIL")
+        self.assertEqual(result["decision"], "BORDERLINE")
         self.assertEqual(result["regions"]["title"]["largest_calm_window_fraction"], 0)
 
     def test_broad_fragmented_form_is_borderline_not_dense_failure(self):
@@ -102,7 +105,7 @@ class SafeRegionUsabilityTests(unittest.TestCase):
             draw.line((0, coordinate, 255, coordinate), fill="black", width=2)
         density = assess_scene_density(image, "moderate")
         fallback = assess_explicit_safe_regions(density, {"title": "quiet top-left"}, image)
-        self.assertEqual(fallback["decision"], "FAIL")
+        self.assertEqual(fallback["decision"], "BORDERLINE")
         exact = assess_explicit_safe_regions(density, {"title": "quiet top-left"}, image,
                                              {"title_zone": {"x": .5, "y": 0,
                                                              "width": .5, "height": .5}})
@@ -121,7 +124,9 @@ class SafeRegionUsabilityTests(unittest.TestCase):
         for y in range(0, 256, 8):
             for x in range(0, 256, 8):
                 pixels[y:y+8, x:x+8] = 0 if (x + y) % 16 else 255
-        self.assertEqual(self.assess(Image.fromarray(pixels))["decision"], "FAIL")
+        result = self.assess(Image.fromarray(pixels))
+        self.assertEqual(result["decision"], "BORDERLINE")
+        self.assertGreater(result["regions"]["title"]["high_frequency_fraction"], .18)
 
     def test_single_large_focal_form_is_diagnostic(self):
         image = Image.new("RGB", (512, 512), "white")
@@ -147,13 +152,15 @@ class SafeRegionUsabilityTests(unittest.TestCase):
         draw.rectangle((185, 0, 325, 511), fill="#bbb9b2")
         self.assertNotEqual(self.assess(image, "calm top-center")["decision"], "FAIL")
 
-    def test_competing_detail_across_programme_area_fails(self):
+    def test_competing_detail_across_programme_area_is_diagnostic(self):
         image = Image.new("RGB", (512, 512), "white")
         draw = ImageDraw.Draw(image)
         for x in range(128, 384, 10):
             for y in range(256, 512, 10):
                 draw.rectangle((x, y, x + 6, y + 6), fill="black")
-        self.assertEqual(self.assess(image, "quiet bottom-center programme")["decision"], "FAIL")
+        result = self.assess(image, "quiet bottom-center programme")
+        self.assertEqual(result["decision"], "BORDERLINE")
+        self.assertGreater(result["regions"]["title"]["local_edge_density"], .1)
 
     def test_global_and_local_decisions_are_independent(self):
         calm = Image.new("RGB", (512, 512), "white")
@@ -167,7 +174,7 @@ class SafeRegionUsabilityTests(unittest.TestCase):
         for coordinate in range(0, 256, 8):
             draw.line((coordinate, 0, coordinate, 255), fill="black", width=2)
             draw.line((0, coordinate, 255, coordinate), fill="black", width=2)
-        self.assertEqual(self.assess(busy, global_decision="PASS")["decision"], "FAIL")
+        self.assertEqual(self.assess(busy, global_decision="PASS")["decision"], "BORDERLINE")
 
     def test_geometry_outside_requested_area_does_not_interfere(self):
         image = Image.new("RGB", (512, 512), "white")

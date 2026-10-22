@@ -23,28 +23,46 @@ ALLOWED_QUESTION_FIELDS = {
 }
 
 
-BACKGROUND_VISUAL_CUES = {
-    "abstract", "architecture", "balloon", "border", "building",
-    "city", "cityscape", "comic", "flower", "floral", "garden",
-    "geometric", "geometry", "landscape", "marble", "motif", "pattern",
-    "ribbon", "skyline", "stage", "texture", "web", "window",
-}
+def _detailed_visual_prose(value: str, minimum_words: int = 16) -> bool:
+    """Measure supplied detail without interpreting its subject or event type."""
+    return len(re.findall(r"\b[\w'-]+\b", value)) >= minimum_words
 
 
-def _background_context_needs_clarification(answers: dict) -> bool:
-    """Ask plainly when the brief lacks a concrete background idea."""
-    if str(answers.get("background_inspiration") or "").strip():
+def _grounded_visual_structure(context: dict | None) -> bool:
+    if not context:
         return False
+    semantics = context.get("visual_semantics") or {}
+    provenance = context.get("semantic_provenance") or {}
+    fields = ("motif_descriptors", "motif_structure_description",
+              "composition_affinities", "material_descriptors", "texture_descriptors")
+    populated = [semantics.get(field) for field in fields
+                 if semantics.get(field) and provenance.get(field) != "SAFE_FALLBACK"]
+    scene = (semantics.get("scene_family") not in (None, "", "general")
+             and provenance.get("scene_family") != "SAFE_FALLBACK")
+    return scene and bool(populated) or len(populated) >= 2
 
-    description = " ".join(
-        str(answers.get(field) or "")
-        for field in ("theme", "creative_description", "theme_reference_treatment")
-    ).lower()
-    words = set(description.replace("-", " ").split())
 
-    # A detailed visual description can stand on its own. Generic event
-    # language still needs the user's own example of what they want to see.
-    return len(words) < 12 or not bool(words & BACKGROUND_VISUAL_CUES)
+def _background_context_needs_clarification(answers: dict, context: dict | None = None) -> bool:
+    """Ask plainly when the brief lacks a concrete background idea."""
+    inspiration = str(answers.get("background_inspiration") or "").strip()
+    if inspiration:
+        words = re.findall(r"\b[\w'-]+\b", inspiration)
+        if len(words) >= 3 and ("inspired" not in inspiration.casefold() or len(words) >= 5):
+            return False
+    if _grounded_visual_structure(context):
+        return False
+    description = " ".join(str(answers.get(field) or "") for field in
+                           ("creative_description", "theme_reference_treatment"))
+    return not _detailed_visual_prose(description)
+
+
+def _unresolved_reference_like(answers: dict) -> bool:
+    """Flag ambiguity in a multiword named-looking inspiration; infer no identity."""
+    text = " ".join(str(answers.get(field) or "") for field in
+                    ("theme", "creative_description", "background_inspiration"))
+    return bool(re.search(
+        r"\b[A-Z][\w-]*(?:\s+[A-Z][\w-]*)+[- ]inspired\b|"
+        r"\b[A-Z][\w]*-[A-Z][\w]*-inspired\b", text))
 
 
 DEFAULT_CONTEXT = {
@@ -452,6 +470,8 @@ def _safe_background_constraint(phrase: str) -> bool:
 def _safe_context(
     value,
     answers: dict,
+    *,
+    semantic_review_available: bool = True,
 ) -> dict:
     if not isinstance(value, dict):
         value = {}
@@ -508,39 +528,13 @@ def _safe_context(
 
     event = str(answers.get("event_type") or "").strip()
     theme = str(answers.get("theme") or "").strip()
-    if event and re.search(r"\b(birthday|party|wedding|shower|graduation|gala|ceremony|funeral|conference|celebration)\b", event, re.I):
-        context.update(event_type_status="known", event_type_interpretation=event,
-                       well_known_event_type=True)
+    if event and context["event_type_status"] in {"clear", "known"}:
+        context["event_type_status"] = "known"
+        context["event_type_interpretation"] = context["event_type_interpretation"] or event
+    elif event and context["event_type_status"] == "unknown":
+        context.update(event_type_status="provided", event_type_interpretation=event)
     if theme and context.get("theme_status") != "known":
         context.update(theme_status="known", theme_interpretation=theme)
-    reference_text = " ".join(
-        str(answers.get(field) or "")
-        for field in (
-            "theme",
-            "creative_description",
-            "background_inspiration",
-            "theme_reference_treatment",
-        )
-    )
-    reference = re.search(
-        r"\b(?:a|an|the)?\s*([\w-]{4,})[- ]inspired\b",
-        reference_text,
-        re.I,
-    )
-    if (
-        reference
-        and re.search(
-            r"\b(?:\w*hero(?:es)?|characters?|franchises?|fictional)\b",
-            reference_text,
-            re.I,
-        )
-        and not context.get("reference_detected")
-    ):
-        context.update(
-            reference_detected=True,
-            reference_name=reference.group(1).replace("-", " ").title(),
-            reference_type="character",
-        )
     if context.get("reference_detected"):
         reference_name = str(context.get("reference_name") or "").strip()
         treatment = _theme_reference_treatment(answers)
@@ -605,7 +599,7 @@ def _safe_context(
     # Keep the conversation in everyday language and ask what should appear
     # in the background instead.
     if (
-        _background_context_needs_clarification(answers)
+        _background_context_needs_clarification(answers, context)
         and str(answers.get("theme") or "").strip()
     ):
         questions = [
@@ -692,6 +686,21 @@ def _safe_context(
             )
         ]
 
+    unresolved_reference_question = (not semantic_review_available and not reference_detected
+            and _unresolved_reference_like(answers)
+            and not _detailed_visual_prose(treatment, minimum_words=10))
+    if unresolved_reference_question:
+        context["reference_needs_clarification"] = True
+        questions = [item for item in questions
+                     if item["field"] != "theme_reference_treatment"]
+        questions.insert(0, {
+            "field": "theme_reference_treatment",
+            "question": ("Your theme may refer to a particular visual reference. "
+                         "Which colours, patterns, shapes, atmosphere or other visual traits "
+                         "should influence the background?"),
+            "reason": "The visual reference could not be resolved during semantic review.",
+        })
+
     background_fields = {"background_inspiration"}
     has_background_question = any(
         item["field"] in background_fields
@@ -699,7 +708,8 @@ def _safe_context(
     )
 
     if (
-        _background_context_needs_clarification(answers)
+        _background_context_needs_clarification(answers, context)
+        and not unresolved_reference_question
         and not has_background_question
     ):
         questions.append(
@@ -896,5 +906,6 @@ def review_creative_context(
             _safe_context(
                 fallback,
                 answers,
+                semantic_review_available=False,
             )
         )

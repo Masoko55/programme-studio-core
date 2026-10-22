@@ -46,7 +46,7 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
         prohibitions = (
             "No people or characters", "Do not depict characters",
             "Do not show any fictional figures", "No humanoid figures",
-            "No costumed figures", "No superhero figures", "Characters prohibited",
+            "No costumed figures", "No mascot figures", "Characters prohibited",
         )
         non_prohibitions = (
             "No text or logos", "Avoid buildings",

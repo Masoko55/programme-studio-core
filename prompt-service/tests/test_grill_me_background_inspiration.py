@@ -1,5 +1,8 @@
+import json
 import unittest
 from unittest.mock import patch
+
+import httpx
 
 from app.schemas.grill_me import GrillMeAnswers, GrillMeSession, ProgrammeItem
 from app.services.creative_direction import (
@@ -7,12 +10,94 @@ from app.services.creative_direction import (
     background_positive_requirements,
     reference_visual_language,
 )
-from app.services.grill_me_semantic import _safe_context
+from app.services.grill_me_semantic import _safe_context, review_creative_context
 from app.services.grill_me_service import evaluate_session, freeze_for_generation
 from app.services.semantic_contract import build_semantic_contract, resolve_palette_relationship
 
 
 class GrillMeBackgroundInspirationTests(unittest.TestCase):
+    @staticmethod
+    def _review_failure(answers, malformed=False):
+        if malformed:
+            with patch("app.services.grill_me_semantic.httpx.Client") as client:
+                client.return_value.__enter__.return_value.post.return_value.json.return_value = {"response": "{"}
+                return review_creative_context(answers)
+        with patch("app.services.grill_me_semantic.httpx.Client",
+                   side_effect=httpx.ConnectError("offline")):
+            return review_creative_context(answers)
+
+    def test_review_failure_uses_visual_detail_without_subject_vocabulary(self):
+        detailed = ("Overlapping translucent membranes bend across one another, "
+                    "alternating dense intersections with large open areas and strong directional depth.")
+        for answers in ({"creative_description": detailed},
+                        {"background_inspiration": detailed}):
+            with self.subTest(answers=answers):
+                context = self._review_failure(answers)
+                self.assertFalse(context["reference_detected"])
+                self.assertFalse(context["reference_needs_clarification"])
+                self.assertNotIn("background_inspiration",
+                                 {item["field"] for item in context["clarification_questions"]})
+                for required in ("background only", "no people", "no characters", "no logos",
+                                 "no readable text", "leave quiet areas for later overlays"):
+                    self.assertIn(required, context["generation_constraints"])
+
+    def test_review_failure_asks_for_background_only_when_detail_is_vague(self):
+        for answers in ({"creative_description": "Make it nice and exciting."},
+                        {"theme": "Future Connections"},
+                        {"background_inspiration": "Monolith-inspired background"}):
+            with self.subTest(answers=answers):
+                context = self._review_failure(answers)
+                self.assertEqual([item["field"] for item in context["clarification_questions"]],
+                                 ["background_inspiration"])
+                self.assertFalse(context["reference_detected"])
+
+    def test_review_failure_keeps_unresolved_reference_distinct_from_confirmed(self):
+        generic = self._review_failure({"theme": "vintage-inspired"})
+        self.assertFalse(generic["reference_detected"])
+        self.assertFalse(generic["reference_needs_clarification"])
+        for name in ("Crimson Oracle-inspired", "Solar-Sentinel-inspired"):
+            with self.subTest(name=name):
+                unresolved = self._review_failure({"theme": name})
+                self.assertFalse(unresolved["reference_detected"])
+                self.assertIsNone(unresolved["reference_name"])
+                self.assertEqual(unresolved["reference_type"], "none")
+                self.assertTrue(unresolved["reference_needs_clarification"])
+                self.assertEqual([item["field"] for item in unresolved["clarification_questions"]],
+                                 ["theme_reference_treatment"])
+                self.assertNotIn(name.split("-inspired")[0],
+                                 unresolved["clarification_questions"][0]["question"])
+
+    def test_review_failure_respects_explicit_reference_treatment(self):
+        treatment = ("Use only the blue and red colour relationship, restrained radial line patterns "
+                     "and energetic diagonal movement without depicting any person or character.")
+        context = self._review_failure({"theme": "Crimson Oracle-inspired",
+                                        "theme_reference_treatment": treatment}, malformed=True)
+        self.assertFalse(context["reference_detected"])
+        self.assertFalse(context["reference_needs_clarification"])
+        self.assertEqual(context["clarification_questions"], [])
+
+    def test_semantic_visual_structure_resolves_background_without_noun_lookup(self):
+        context = _safe_context({"visual_semantics": {
+            "motif_descriptors": ["interlocking translucent membranes"],
+            "motif_structure_description": "folded layers around open cavities",
+        }}, {"theme": "Future Connections"})
+        self.assertNotIn("background_inspiration",
+                         {item["field"] for item in context["clarification_questions"]})
+
+    def test_successful_review_keeps_dynamic_reference_authoritative(self):
+        answers = {"theme": "Crimson Oracle-inspired"}
+        review = {"reference_detected": True, "reference_name": "Crimson Oracle",
+                  "reference_type": "character"}
+        with patch("app.services.grill_me_semantic.httpx.Client") as client:
+            client.return_value.__enter__.return_value.post.return_value.json.return_value = {
+                "response": json.dumps(review)}
+            context = review_creative_context(answers)
+        self.assertTrue(context["reference_detected"])
+        self.assertEqual(context["reference_name"], "Crimson Oracle")
+        self.assertTrue(context["reference_needs_clarification"])
+        self.assertIn("theme_reference_treatment",
+                      {item["field"] for item in context["clarification_questions"]})
+
     def test_scene_family_needs_environment_evidence(self):
         cases = (
             ("abstract interlocking marks", "architectural-interior", .96, "general"),

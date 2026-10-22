@@ -261,7 +261,7 @@ class SimplifiedPipelineTests(unittest.TestCase):
             self.assertEqual(result["validation"]["decision"], "accepted")
             self.assertIn("DENSITY_DRIFT", result["validation"]["diagnostic_findings"])
 
-    def test_explicit_quiet_region_with_no_quiet_tiles_is_hard(self):
+    def test_explicit_quiet_region_with_no_quiet_tiles_is_diagnostic(self):
         with tempfile.TemporaryDirectory() as root:
             path = Path(root) / "image.png"
             artwork = Image.new("RGB", (896, 1280), "white")
@@ -284,14 +284,14 @@ class SimplifiedPipelineTests(unittest.TestCase):
                  patch("app.services.comfyui_client.boilerplate_metrics", return_value={"boilerplate_score": 0}), \
                  patch("app.services.comfyui_client.validate_visual_quality", return_value={}), \
                  patch("app.services.comfyui_client.assess_scene_density", return_value=density):
-                with self.assertRaisesRegex(ValueError, "DENSE_SAFE_REGION") as raised:
-                    validate_background(path, enforce_palette=False,
-                                        visual_design={"density_preference": "moderate",
-                                                       "title_safe_region_strategy": "integrated quiet area"})
-            validation = raised.exception.diagnostics["validation"]
-            self.assertEqual(validation["failure_category"], "DENSE_SAFE_REGION")
+                result = validate_background(path, enforce_palette=False,
+                                             visual_design={"density_preference": "moderate",
+                                                            "title_safe_region_strategy": "integrated quiet area"})
+            validation = result["validation"]
+            self.assertEqual(validation["decision"], "accepted")
+            self.assertIn("SAFE_REGION_BORDERLINE", validation["diagnostic_findings"])
             self.assertEqual(validation["quality"]["global_density_decision"], "PASS")
-            self.assertEqual(validation["quality"]["explicit_safe_region_decision"], "FAIL")
+            self.assertEqual(validation["quality"]["explicit_safe_region_decision"], "BORDERLINE")
 
     def test_pseudo_text_without_ocr_tokens_rejects(self):
         with tempfile.TemporaryDirectory() as root:

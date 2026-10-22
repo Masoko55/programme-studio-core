@@ -10,7 +10,8 @@ from unittest.mock import AsyncMock, patch
 from app.schemas.creative_direction import CreativeDirectionOutput
 from app.schemas.grill_me import GrillMeAnswers, GrillMeSession, ProgrammeItem
 from app.services.creative_direction import build_creative_direction_prompt, generate_creative_direction
-from app.services.grill_me_semantic import _safe_context
+from app.services.grill_me_semantic import (_safe_context, _selected_reference_trait,
+                                             model_facing_brief, renderable_brief)
 from app.services.grill_me_service import apply_clarifications, freeze_for_generation
 
 
@@ -68,9 +69,13 @@ class ReferencePrecedencePipelineTests(unittest.TestCase):
     def _answers(name: str, treatment: str | None = None) -> GrillMeAnswers:
         primary, secondary = ("blue", "red") if name == "Spider-Man" else ("burgundy", "ivory")
         return GrillMeAnswers(
-            event_type="family celebration", theme=f"inspired by {name}", age_group="family",
+            event_type="Children birthday party" if name == "Spider-Man" else "family celebration",
+            theme=f"inspired by {name}",
+            age_group="Children aged 7 to 10" if name == "Spider-Man" else "family",
             primary_colour=primary, secondary_colour=secondary,
-            creative_description=f"A family celebration inspired by {name}",
+            creative_description=("A kids birthday party for a kid who is into superheroes, "
+                                  f"most especially {name}." if name == "Spider-Man" else
+                                  f"A family celebration inspired by {name}"),
             background_inspiration="Abstract requested-colour fields with calm open space",
             theme_reference_treatment=treatment, title_preference="Welcome",
             event_date="2026-10-15", start_time="10:00",
@@ -80,13 +85,23 @@ class ReferencePrecedencePipelineTests(unittest.TestCase):
     @staticmethod
     def _review(name: str) -> dict:
         motif = "web patterns" if name == "Spider-Man" else "concentric motifs"
-        return {"reference_detected": True, "reference_name": name,
+        review = {"reference_detected": True, "reference_name": name,
                 "reference_type": "character", "visual_semantics": {
                     "motif_descriptors": [motif],
                     "motif_structure_description": f"{motif} with flowing movement",
                     "composition_affinities": ["flowing movement"],
                     "material_descriptors": ["dark architectural forms"],
                 }}
+        if name == "Spider-Man":
+            review["visual_semantics"].update({
+                "atmosphere_descriptors": ["energetic and playful"],
+                "audience_descriptors": ["children aged 7 to 10"],
+            })
+            review["semantic_grounding"] = {
+                "atmosphere_descriptors": {"energetic and playful": "Children birthday party"},
+                "audience_descriptors": {"children aged 7 to 10": "Children aged 7 to 10"},
+            }
+        return review
 
     def _freeze_after_clarification(self, name: str, treatment: str) -> dict:
         answers = self._answers(name)
@@ -108,7 +123,7 @@ class ReferencePrecedencePipelineTests(unittest.TestCase):
         return brief
 
     def _replay(self, name: str, treatment: str, forbidden: tuple[str, ...],
-                approved: tuple[str, ...] = ()) -> tuple[dict, dict]:
+                approved: tuple[str, ...] = (), intrude: bool = False) -> tuple[dict, dict]:
         brief = self._freeze_after_clarification(name, treatment)
         self.assertTrue(brief["grill_me_context"]["reference_detected"])
         self.assertEqual(brief["grill_me_context"]["reference_name"], name)
@@ -122,6 +137,10 @@ class ReferencePrecedencePipelineTests(unittest.TestCase):
             prompt = build_creative_direction_prompt(brief, letter, "visual designer")
             self.assertNotIn(name.casefold(), prompt.casefold())
             response = _direction(letter)
+            if intrude:
+                response.role = "Concentric motifs"
+                response.positive_prompt = "Concentric motifs with layered colour fields"
+                response.short_design_rationale = "Concentric motifs should lead the composition"
             with patch("app.services.creative_direction.generate_text", new_callable=AsyncMock,
                        return_value={"response": response.model_dump_json()}):
                 direction = asyncio.run(generate_creative_direction(letter, brief))
@@ -141,7 +160,8 @@ class ReferencePrecedencePipelineTests(unittest.TestCase):
         brief, engines = self._replay(
             "Crimson Oracle", "Use burgundy and ivory as the visual influence. "
             "Do not use architecture. Do not depict any person or character.",
-            ("concentric", "flowing movement", "architecture"), ("burgundy", "ivory"))
+            ("concentric", "flowing movement", "architecture"), ("burgundy", "ivory"),
+            intrude=True)
         self.assertEqual(brief["visual_semantics"]["motif_descriptors"], [])
         self.assertEqual(brief["visual_semantics"]["motif_structure_description"], "")
         self.assertIn("architecture", brief["semantic_contract"]["incompatible_treatments"])
@@ -176,6 +196,10 @@ class ReferencePrecedencePipelineTests(unittest.TestCase):
             "Do not depict Spider-Man or any person or character.",
             ("web", "flowing movement", "architecture"), ("blue", "red"))
         self.assertIn("buildings", brief["semantic_contract"]["incompatible_treatments"])
+        self.assertIn("energetic and playful", brief["semantic_contract"]["atmosphere_descriptors"])
+        self.assertIn("children aged 7 to 10", brief["semantic_contract"]["audience_descriptors"])
+        self.assertIn("person", brief["semantic_contract"]["incompatible_treatments"])
+        self.assertIn("character", brief["semantic_contract"]["incompatible_treatments"])
         for variants in engines.values():
             for channels in variants.values():
                 self.assertNotIn("web", " ".join(channels[key] for key in
@@ -195,3 +219,64 @@ class ReferencePrecedencePipelineTests(unittest.TestCase):
         self.assertIsNone(context["reference_name"])
         self.assertEqual(context["reference_type"], "none")
         self.assertEqual(context["reference_rendering_mode"], "safe_treatment_only")
+
+    def test_prefix_collision_cannot_authorize_trait(self):
+        self.assertFalse(_selected_reference_trait("orangutan silhouettes", "Use orange circles", []))
+        self.assertFalse(_selected_reference_trait("red web patterns", "Use red and blue", []))
+        self.assertTrue(_selected_reference_trait("curves and patterns", "Use curve pattern", []))
+
+    def test_unrelated_reference_atmosphere_needs_independent_evidence(self):
+        answers = self._answers("Azure-Monarch").model_dump()
+        answers["theme_reference_treatment"] = "Use burgundy and ivory only"
+        review = self._review("Azure-Monarch")
+        review["visual_semantics"]["atmosphere_descriptors"] = ["heroic and intense"]
+        context = _safe_context(review, answers)
+        self.assertEqual(context["visual_semantics"]["atmosphere_descriptors"], [])
+
+    def test_independent_material_light_composition_and_scene_survive(self):
+        answers = self._answers("Azure-Monarch").model_dump()
+        answers.update(theme_reference_treatment="Use burgundy and ivory only",
+                       background_inspiration="Architectural interior with linen texture, soft light and arcing bands")
+        review = self._review("Azure-Monarch")
+        review["visual_semantics"].update({
+            "material_descriptors": ["linen", "metallic"],
+            "texture_descriptors": ["linen texture"],
+            "lighting_descriptors": ["soft light"],
+            "composition_affinities": ["arcing bands", "radial movement"],
+            "scene_family": "architectural-interior",
+        })
+        semantics = _safe_context(review, answers)["visual_semantics"]
+        self.assertEqual(semantics["material_descriptors"], ["linen"])
+        self.assertEqual(semantics["texture_descriptors"], ["linen texture"])
+        self.assertEqual(semantics["lighting_descriptors"], ["soft light"])
+        self.assertEqual(semantics["composition_affinities"], ["arcing bands"])
+        self.assertEqual(semantics["scene_family"], "architectural-interior")
+
+    def test_explicit_prohibition_overrides_other_user_grounding(self):
+        answers = self._answers("Azure-Monarch").model_dump()
+        answers.update(theme_reference_treatment="Use burgundy and ivory, but do not use linen",
+                       background_inspiration="Linen texture and calm colour fields")
+        review = self._review("Azure-Monarch")
+        review["visual_semantics"]["material_descriptors"] = ["linen"]
+        semantics = _safe_context(review, answers)["visual_semantics"]
+        self.assertEqual(semantics["material_descriptors"], [])
+        self.assertIn("linen", semantics["incompatible_treatments"])
+
+    def test_separator_variants_are_removed_without_erasing_safe_content(self):
+        brief = {"grill_me_context": {"reference_detected": True,
+                                      "reference_name": "Azure-Monarch"},
+                 "theme_reference_treatment": "Use layered burgundy ribbons inspired by Azure Monarch",
+                 "creative_description": "Use layered burgundy ribbons inspired by Azure_Monarch",
+                 "background_inspiration": "Burgundy ribbons, Azure-Monarch-inspired",
+                 "visual_semantics": {"motif_descriptors": ["Azure Monarch crest"]}}
+        renderable = renderable_brief(brief)
+        self.assertIn("layered burgundy ribbons", renderable["creative_description"])
+        self.assertNotIn("Azure", json.dumps({key: renderable[key] for key in
+                                              ("theme_reference_treatment", "creative_description",
+                                               "background_inspiration")}))
+        sanitized = model_facing_brief(renderable)
+        serialized = json.dumps({key: value for key, value in sanitized.items()
+                                 if key != "grill_me_context"})
+        for spelling in ("Azure-Monarch", "Azure Monarch", "Azure_Monarch"):
+            self.assertNotIn(spelling, serialized)
+        self.assertIn("layered burgundy ribbons", serialized)

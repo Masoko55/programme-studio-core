@@ -85,6 +85,7 @@ _TRAIT_FILLER = {"a", "an", "and", "as", "background", "design", "for", "in", "i
 def _treatment_parts(treatment: str, reference_name: str) -> tuple[str, list[str]]:
     """Separate selected visual traits from explicit bans without interpreting a theme."""
     approved, excluded = [], []
+    reference_pattern = _reference_pattern(reference_name)
     for clause in re.split(r"[.;]+", treatment):
         clause = clause.strip()
         if not clause:
@@ -98,7 +99,7 @@ def _treatment_parts(treatment: str, reference_name: str) -> tuple[str, list[str
                              clause[match.end():].strip(), flags=re.I)
             for object_name in re.split(r",|\s+or\s+", objects):
                 object_name = re.sub(r"^(?:any|the|a|an)\s+", "", object_name.strip(), flags=re.I)
-                if reference_name and reference_name.casefold() in object_name.casefold():
+                if reference_pattern and reference_pattern.search(object_name):
                     object_name = "depicted named reference"
                 if object_name:
                     excluded.append(object_name)
@@ -108,16 +109,58 @@ def _treatment_parts(treatment: str, reference_name: str) -> tuple[str, list[str
 
 
 def _trait_terms(value: str) -> set[str]:
-    return {token[:5] if len(token) >= 5 else token.removesuffix("s")
+    def singular(token: str) -> str:
+        if token.endswith("ies") and len(token) > 4:
+            return token[:-3] + "y"
+        if token.endswith("s") and not token.endswith(("ss", "us")) and len(token) > 3:
+            return token[:-1]
+        return token
+
+    return {singular(token)
             for token in re.findall(r"[a-z]+", value.casefold())
             if token not in _TRAIT_FILLER and len(token) > 2}
+
+
+def _reference_pattern(reference_name: str) -> re.Pattern | None:
+    """Match a detected name across the same separator variants as CandidateSpec."""
+    parts = [part for part in re.split(r"[\W_]+", reference_name) if part]
+    return (re.compile(r"(?<!\w)" + r"[\W_]*".join(map(re.escape, parts)) + r"(?!\w)", re.I)
+            if parts else None)
+
+
+def _without_reference_identity(value: str, pattern: re.Pattern | None) -> str:
+    if not pattern:
+        return value
+    text = re.sub(r"\b(?:most\s+especially|especially|inspired\s+by)\s+" + pattern.pattern,
+                  "", value, flags=re.I)
+    text = re.sub(pattern.pattern + r"[\W_]*inspired\b", "", text, flags=re.I)
+    text = pattern.sub("", text)
+    return re.sub(r"\s+([,.;])", r"\1", text).strip(" ,.;-_")
 
 
 def _selected_reference_trait(phrase: str, approved: str, excluded: list[str]) -> bool:
     terms = _trait_terms(phrase)
     if any(terms & _trait_terms(item) for item in excluded):
         return False
-    return bool(terms & _trait_terms(approved))
+    return bool(terms) and terms <= _trait_terms(approved)
+
+
+def _independently_grounded(phrase: str, key: str, answers: dict, review: dict,
+                             pattern: re.Pattern | None, excluded: list[str]) -> bool:
+    """Trust user wording or a review citation to non-reference user context."""
+    sources = ("event_type", "age_group", "audience_context", "mood", "creative_description",
+               "background_inspiration", "lighting_language", "material_language",
+               "texture_language", "symbolic_motifs", "environmental_motifs")
+    independent = " ".join(_without_reference_identity(str(answers.get(field) or ""), pattern)
+                           for field in sources)
+    if _selected_reference_trait(phrase, independent, excluded):
+        return True
+    grounding = review.get("semantic_grounding")
+    evidence = grounding.get(key) if isinstance(grounding, dict) else None
+    quote = evidence.get(phrase) if isinstance(evidence, dict) else None
+    return bool(isinstance(quote, str) and len(quote.strip()) >= 4
+                and _without_reference_identity(quote, pattern).casefold() == quote.casefold()
+                and quote.casefold() in independent.casefold())
 
 
 def renderable_brief(brief: dict) -> dict:
@@ -125,16 +168,15 @@ def renderable_brief(brief: dict) -> dict:
     context = brief.get("grill_me_context") or {}
     if context.get("reference_detected") and brief.get("theme_reference_treatment"):
         name = str(context.get("reference_name") or "").strip()
+        pattern = _reference_pattern(name)
         approved, _ = _treatment_parts(str(brief["theme_reference_treatment"]), name)
+        approved = _without_reference_identity(approved, pattern)
         result = dict(brief)
         result["theme_reference_treatment"] = approved
-        if name:
+        if pattern:
             for field in _REFERENCE_SOURCE_FIELDS:
                 value = str(result.get(field) or "")
-                if re.search(re.escape(name), value, re.I):
-                    result[field] = "" if field != "background_inspiration" else re.sub(
-                        rf"\b(?:inspired by\s*)?{re.escape(name)}(?:[- ]inspired)?\b",
-                        "", value, flags=re.I).strip(" ,.;-")
+                result[field] = _without_reference_identity(value, pattern)
         if not result.get("background_inspiration"):
             result["background_inspiration"] = approved
         return result
@@ -167,12 +209,13 @@ def model_facing_brief(brief: dict) -> dict:
     """Keep confirmed reference identity in metadata, outside the direction model input."""
     context = brief.get("grill_me_context") or {}
     name = str(context.get("reference_name") or "").strip() if context.get("reference_detected") else ""
-    if not name:
+    pattern = _reference_pattern(name)
+    if not pattern:
         return dict(brief)
 
     def scrub(value):
         if isinstance(value, str):
-            return "" if re.search(re.escape(name), value, re.I) else value
+            return _without_reference_identity(value, pattern)
         if isinstance(value, list):
             return [scrub(item) for item in value]
         if isinstance(value, dict):
@@ -343,6 +386,11 @@ def _review_prompt(
                 "motif_structure_description and name visually incompatible treatments "
                 "without judging palette or requesting people or text."
             ),
+            (
+                "For each semantic phrase grounded in event, audience or other user wording "
+                "independently of a named reference, cite an exact excerpt from that user "
+                "wording in semantic_grounding[field][phrase]. Omit unsupported citations."
+            ),
         ],
         "output_format": {
             "event_type_status": (
@@ -392,6 +440,7 @@ def _review_prompt(
                 "composition_affinities": ["brief-compatible structural family"],
             },
             "semantic_confidence": {"inferred field name": "optional number from 0 to 1; omit if unknown"},
+            "semantic_grounding": {"field name": {"semantic phrase": "exact excerpt from non-reference user wording"}},
             "scene_family_evidence": "optional exact excerpt from the user's scene wording; never infer an excerpt",
             "generation_constraints": [
                 "constraint"
@@ -510,8 +559,8 @@ _FINAL_COMPOSITION = re.compile(
 
 
 def _vague_reference_treatment(treatment: str, reference_name: str) -> bool:
-    reference_pattern = r"[\s_-]+".join(re.escape(part) for part in re.split(r"[\s_-]+", reference_name) if part)
-    remainder = re.sub(reference_pattern, " ", treatment, flags=re.I) if reference_pattern else treatment
+    pattern = _reference_pattern(reference_name)
+    remainder = pattern.sub(" ", treatment) if pattern else treatment
     words = re.findall(r"[a-z]+", remainder.casefold())
     return bool(words) and set(words) <= {
         "a", "an", "the", "inspired", "by", "visual", "traits", "style",
@@ -522,8 +571,8 @@ def _vague_reference_treatment(treatment: str, reference_name: str) -> bool:
 def _safe_inferred_reference_phrase(phrase: str, reference_name: str) -> bool:
     if _INFERRED_ASSET.search(phrase):
         return False
-    reference_pattern = r"[\s_-]+".join(re.escape(part) for part in re.split(r"[\s_-]+", reference_name) if part)
-    return not (reference_pattern and re.search(reference_pattern, phrase, re.I))
+    pattern = _reference_pattern(reference_name)
+    return not (pattern and pattern.search(phrase))
 
 
 def _explicit_spatial_treatment(treatment: str) -> list[str]:
@@ -665,14 +714,12 @@ def _safe_context(
         vague = _vague_reference_treatment(treatment, reference_name)
         explicit_spatial = _explicit_spatial_treatment(treatment) if not vague else []
         approved, exclusions = _treatment_parts(treatment, reference_name)
-        support = " ".join((approved, str(answers.get("creative_description") or ""),
-                            str(answers.get("background_inspiration") or "")))
+        pattern = _reference_pattern(reference_name)
         semantics = context["visual_semantics"]
         for key, content in semantics.items():
             if key == "scene_family":
-                if (vague or any(_trait_terms(item) & _trait_terms("architecture buildings interior")
-                                 for item in exclusions)) and not (
-                        isinstance(supplied_semantics, dict) and key in supplied_semantics):
+                if any(_trait_terms(item) & _trait_terms("architecture buildings interior")
+                       for item in exclusions):
                     semantics[key] = "general"
                 continue
             explicit = isinstance(supplied_semantics, dict) and key in supplied_semantics
@@ -682,9 +729,14 @@ def _safe_context(
                                   and (key == "incompatible_treatments" or
                                        (not any(_trait_terms(phrase) & _trait_terms(item)
                                                 for item in exclusions) and
-                                        (explicit or _selected_reference_trait(phrase, support, exclusions))))]
+                                        (explicit or _independently_grounded(
+                                            phrase, key, answers, value, pattern, exclusions) or
+                                         _selected_reference_trait(phrase, approved, exclusions))))]
             elif content and (not _safe_inferred_reference_phrase(content, reference_name)
-                              or (not explicit and not _selected_reference_trait(content, support, exclusions))):
+                              or any(_trait_terms(content) & _trait_terms(item) for item in exclusions)
+                              or (not explicit and not _independently_grounded(
+                                  content, key, answers, value, pattern, exclusions)
+                                  and not _selected_reference_trait(content, approved, exclusions))):
                 semantics[key] = ""
         semantics["incompatible_treatments"] = list(dict.fromkeys(
             [*semantics["incompatible_treatments"], *exclusions]))[:8]

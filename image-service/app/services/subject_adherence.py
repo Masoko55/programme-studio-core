@@ -56,13 +56,28 @@ def _confirmed_human_answer(visible: object, description: str) -> bool | None:
 
 
 def _confirmed_human_evidence(visible: object, description: str, evidence: object) -> bool | None:
-    """Use each structured observation independently when the description is sparse."""
+    """Corroborate one reported human across the structured observations."""
     confirmed = _confirmed_human_answer(visible, description)
     if confirmed is not None or visible is not True or not isinstance(evidence, list):
         return confirmed
-    for observation in evidence:
-        if isinstance(observation, str) and _confirmed_human_answer(True, observation) is True:
+    observations = [item for item in evidence if isinstance(item, str)]
+    for observation in observations:
+        if _confirmed_human_answer(True, observation) is True:
             return True
+    combined = " ".join((description, *observations))
+    human_subject = re.search(
+        r"\b(?:child|children|person|people|man|woman|adult)\b\s*(?:\(subject\))?", combined, re.I)
+    if (re.search(r"\b(?:abstract|geometric|decorative|sculptur\w*|mannequin|symbolic)\b", combined, re.I)
+            and not human_subject):
+        return None
+    if _confirmed_human_answer(True, combined) is True:
+        return True
+    # A described child/person wearing clothes is concrete subject evidence even
+    # when the model omits an anatomical label or exact image coordinates.
+    clothing = re.search(r"\b(?:wearing|dressed in|with(?: a| an)?)\s+(?:\w+\s+){0,3}"
+                         r"(?:shirt|dress|jacket|coat|trousers|pants|suit)\b", combined, re.I)
+    if human_subject and clothing:
+        return True
     return None
 
 

@@ -83,6 +83,17 @@ class SafeRegionUsabilityTests(unittest.TestCase):
         self.assertEqual(result["decision"], "FAIL")
         self.assertEqual(result["regions"]["title"]["largest_calm_window_fraction"], 0)
 
+    def test_broad_fragmented_form_is_borderline_not_dense_failure(self):
+        image = Image.new("RGB", (512, 512), "#ece9e4")
+        draw = ImageDraw.Draw(image)
+        draw.ellipse((-100, -100, 370, 370), fill="#253f91")
+        draw.ellipse((70, 35, 380, 340), fill="#d22f35")
+        draw.ellipse((155, 105, 475, 420), fill="#ece9e4")
+        result = self.assess(image)
+        region = result["regions"]["title"]
+        self.assertNotEqual(region["decision"], "FAIL", region)
+        self.assertGreater(region["broad_contrast"], 80)
+
     def test_layout_coordinates_take_precedence_over_strategy_fallback(self):
         image = Image.new("RGB", (512, 512), "white")
         draw = ImageDraw.Draw(image)

@@ -2923,8 +2923,9 @@ def validate_palette(
         )
     }
 
-    palette_limit = 0.01 if exclusive_palette else MAX_OFF_PALETTE_RATIO
-    if off_palette_ratio > palette_limit or largest_unrequested_region > 0.035:
+    palette_limit = 0.01 if exclusive_palette else 0.02
+    region_limit = 0.035 if exclusive_palette else 0.01
+    if off_palette_ratio > palette_limit or largest_unrequested_region > region_limit:
         top_unrequested = [
             (
                 f"{name}="

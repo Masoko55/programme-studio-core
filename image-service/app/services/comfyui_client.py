@@ -1323,7 +1323,23 @@ def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = 
     grey = image.convert("L")
     raw = _ocr_data(grey, "--psm 11", "original", diagnostics)
     items = _ocr_items(raw or {}, image.size)
-    for item in items:
+    original_items = list(items)
+    contrast = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(np.asarray(grey))
+    try:
+        contrast_result = _ocr_data(Image.fromarray(contrast), "--psm 11", "contrast", diagnostics)
+    except StopIteration:  # Unit-test mocks may provide only the first pass.
+        contrast_result = None
+    for candidate in _ocr_items(contrast_result or {}, image.size):
+        if candidate["confidence"] < 55:
+            continue
+        match = next((item for item in items if _ocr_same_region(item, candidate)), None)
+        if match is None:
+            candidate["passes"].add("contrast")
+            items.append(candidate)
+        else:
+            match["passes"].add("contrast")
+            match["confidence"] = max(match["confidence"], candidate["confidence"])
+    for item in original_items:
         x, y, w, h = item["bbox"]
         item["passes"].add("original")
         if w and h:
@@ -1336,13 +1352,11 @@ def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = 
             if item["crop_confirmed"]:
                 item["passes"].add("crop")
 
-    contrast = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(np.asarray(grey))
     array = np.asarray(grey.resize((grey.width * 2, grey.height * 2)), dtype=np.uint8)
     enhanced = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(array)
     binary = cv2.adaptiveThreshold(enhanced, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
                                    cv2.THRESH_BINARY, 31, 9)
-    for pass_name, variant, scale in (("contrast", contrast, 1.0), ("threshold", binary, 2.0),
-                                      ("inverted", 255 - binary, 2.0)):
+    for pass_name, variant, scale in (("threshold", binary, 2.0), ("inverted", 255 - binary, 2.0)):
         try:
             result = _ocr_data(Image.fromarray(variant), "--psm 11", pass_name, diagnostics)
         except StopIteration:  # Unit-test mocks may provide only the first passes.

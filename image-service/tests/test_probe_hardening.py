@@ -239,6 +239,26 @@ class ProbeHardeningTests(unittest.TestCase):
         self.assertFalse(sufficient["text_detected"])
         self.assertEqual(run({"original"})["ocr_diagnostics"]["decision"], "OCR_PARTIAL_INSUFFICIENT")
 
+    def test_required_ocr_views_precede_expensive_crop_confirmation(self):
+        calls = []
+        def fake(_image, _config, variant, diagnostics):
+            calls.append(variant)
+            diagnostics["attempted"].append(variant)
+            if variant.startswith("crop-") or variant in {"threshold", "inverted"}:
+                diagnostics["timed_out_variants"].append(variant)
+                return None
+            diagnostics["completed_variants"].append(variant)
+            if variant == "original":
+                return {"text": ["LATTICE"] * 6, "conf": ["52"] * 6,
+                        "left": [index * 8 for index in range(6)], "top": [8] * 6,
+                        "width": [7] * 6, "height": [12] * 6}
+            return {"text": [], "conf": []}
+        with patch("app.services.comfyui_client._ocr_data", side_effect=fake):
+            result = detect_text_evidence(Image.new("RGB", (128, 128), "white"))
+        self.assertEqual(calls[:2], ["original", "contrast"])
+        self.assertEqual(result["ocr_diagnostics"]["decision"], "OCR_PARTIAL_SUFFICIENT")
+        self.assertFalse(result["text_detected"])
+
     def test_required_contrast_ocr_uses_source_resolution(self):
         dimensions = {}
 

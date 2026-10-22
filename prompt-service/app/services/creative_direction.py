@@ -13,7 +13,7 @@ from app.schemas.creative_direction import (
 from app.services.ollama import (
     generate_text,
 )
-from app.services.grill_me_semantic import grounded_scene_family, renderable_brief
+from app.services.grill_me_semantic import grounded_scene_family, model_facing_brief, renderable_brief
 from app.services.direction_diversity import (
     locked_structural_fields,
     materialize_locked_structural_fields,
@@ -1428,7 +1428,7 @@ def build_creative_direction_prompt(
             ]
         )
 
-    event_brief = dict(brief)
+    event_brief = model_facing_brief(brief)
     grounded_family = grounded_scene_family(brief)
     if isinstance(event_brief.get("visual_semantics"), dict):
         event_brief["visual_semantics"] = {**event_brief["visual_semantics"],
@@ -1681,6 +1681,7 @@ async def generate_creative_direction(
                         "signature, logo, watermark, signage"
                     ),
                     palette_negative(brief),
+                    ", ".join((brief.get("visual_semantics") or {}).get("incompatible_treatments") or []),
                     background_negative_constraints(),
                 )
                 if value

@@ -1,6 +1,7 @@
 """Prompt-only direction retry and diversity regression checks."""
 
 import asyncio
+import inspect
 import json
 import tempfile
 import unittest
@@ -19,7 +20,7 @@ from app.services.creative_direction import build_creative_direction_prompt, gen
 from app.services.direction_diversity import (
     build_diversity_constraints, locked_structural_fields, materialize_locked_structural_fields,
 )
-from app.services.validation import direction_signature, validate_direction_diversity
+from app.services.validation import STRUCTURAL_SIGNATURE_CHOICES, direction_signature, validate_direction_diversity
 from scripts.generate_prompts_for_reference import main as prompt_only_main, parse_args
 from tests.test_direction_structure_contract import direction
 
@@ -89,6 +90,25 @@ class DirectionRetryBoundaryTests(unittest.TestCase):
         legacy = direction("B", "central monument composition")
         self.assertEqual(direction_signature(current)["composition_family"], "central-focal")
         self.assertEqual(direction_signature(legacy)["composition_family"], "central-focal")
+
+    def test_radial_signature_comes_from_geometry_not_motif_nouns(self):
+        policy = inspect.getsource(direction_signature) + repr(STRUCTURAL_SIGNATURE_CHOICES)
+        self.assertNotIn("radial-web", policy)
+        self.assertNotIn('r"radial|web"', policy)
+        for wording in ("radiating lines from the centre", "concentric geometry",
+                        "spoke-like outward flow", "radial composition"):
+            with self.subTest(wording=wording):
+                candidate = direction("A", wording)
+                self.assertEqual(direction_signature(candidate)["major_flow"], "radial")
+        for noun in ("lattice", "web", "bat"):
+            with self.subTest(noun=noun):
+                motif = direction("A", f"repeated {noun} motif")
+                motif.focal_strategy = f"repeated {noun} motif"
+                motif.border_or_perimeter_strategy = f"{noun} pattern at edges"
+                signature = direction_signature(motif)
+                self.assertEqual(signature["major_flow"], "unspecified")
+                self.assertEqual(signature["perimeter_plan"], "unspecified")
+                self.assertEqual(signature["dominant_motif_placement"], "unspecified")
 
     def _spatial_brief(self, *affinities, source="USER_EXPLICIT"):
         return {"visual_semantics": {"scene_family": "architectural-interior",

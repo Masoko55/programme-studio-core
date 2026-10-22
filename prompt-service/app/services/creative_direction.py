@@ -1352,7 +1352,7 @@ def build_creative_direction_prompt(
         ),
         (
             "If the event brief uses a recognizable person, fictional "
-            "character, superhero, mascot, celebrity or franchise, "
+            "character, masked or costumed figure, mascot, celebrity or franchise, "
             "translate the reference only into brief-grounded abstract geometry, "
             "patterns, spatial structure, atmosphere and colour relationships. "
             "Use architecture, environment, materials, textures or lighting "
@@ -1671,8 +1671,8 @@ async def generate_creative_direction(
                         "man, woman, child, face, portrait, "
                         "silhouette, body, head, hands, arms, "
                         "legs, clothing, mannequin, character, "
-                        "fictional character, hero, superhero, "
-                        "masked character, mascot, costume, "
+                        "fictional character, fictional figure, "
+                        "masked character, masked figure, mascot, costume, "
                         "costumed figure, humanoid"
                     ),
                     (

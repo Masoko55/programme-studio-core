@@ -2,6 +2,7 @@
 
 import json
 import hashlib
+import inspect
 import tempfile
 import unittest
 from pathlib import Path
@@ -32,6 +33,20 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_vision_guidance_uses_generic_motif_and_figure_evidence(self):
+        _, prompt = self._assess(
+            {"primary_visual_subject": "repeated symbolic motif",
+             "characters_prohibited": True},
+            {"subject_score": .95, "character_visible": False,
+             "character_description": "abstract linework"})
+        self.assertIn("repeated symbolic motifs", prompt)
+        self.assertIn("concrete body, costume or posture evidence", prompt)
+        self.assertNotIn("web or bat patterns", prompt)
+        policy = inspect.getsource(assess_subject_adherence).lower()
+        for term in ("spider-man", "spiderman", "batman", "hulk", "superhero",
+                     "web or bat patterns"):
+            self.assertNotIn(term, policy)
+
     def test_explicit_character_constraint_reaches_frozen_candidate_and_retry(self):
         document = fixture(1, "celebration", "abstract geometry", "blue", "red", "dominant",
                            "style inspired", "asymmetric")

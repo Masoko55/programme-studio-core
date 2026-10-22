@@ -1,4 +1,5 @@
 import unittest
+import inspect
 
 from app.services.candidate_spec import _characters_explicitly_prohibited, build_candidate_spec
 from app.services.prompt_compiler import (_background_only, _treatment_covered, compile_candidate_prompt,
@@ -472,19 +473,24 @@ class CandidateSpecCompilerTests(unittest.TestCase):
                     self.assertEqual(spec.spec_sha256, initial.spec_sha256)
 
     def test_model_conditioning_has_no_role_or_panel_language(self):
+        policy = inspect.getsource(_background_only)
+        self.assertNotIn("Architectural Master", policy)
+        self.assertNotIn("Comic Book Cityscape Illustrator", policy)
         labels = ("Architectural Master", "Comic Book Cityscape Illustrator",
-                  "Creative Direction for A4 Portrait Event Background", "visual character")
+                  "Creative Direction for A4 Portrait Event Background")
         for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
-            document = document_for(CASES[0])
-            document["directions"][0]["direction"]["role"] = labels[0]
-            document["directions"][0]["direction"]["positive_prompt"] += " " + " ".join(labels)
-            spec = build_candidate_spec(document, engine, "B")
-            compiled = compile_candidate_prompt(spec, 1)
-            conditioning = " ".join(value or "" for value in (compiled.positive, compiled.negative,
-                                     compiled.clip_l, compiled.clip_g, compiled.t5))
             for label in labels:
-                self.assertNotIn(label.lower(), conditioning.lower())
-            self.assertIn("panel", conditioning.lower())
+                with self.subTest(engine=engine, label=label):
+                    document = document_for(CASES[0])
+                    document["directions"][0]["direction"]["role"] = label
+                    document["directions"][0]["direction"]["positive_prompt"] += " " + label + " visual character"
+                    spec = build_candidate_spec(document, engine, "B")
+                    compiled = compile_candidate_prompt(spec, 1)
+                    conditioning = " ".join(value or "" for value in (compiled.positive, compiled.negative,
+                                             compiled.clip_l, compiled.clip_g, compiled.t5))
+                    self.assertNotIn(label.lower(), conditioning.lower())
+                    self.assertNotIn("visual character", conditioning.lower())
+                    self.assertIn("panel", conditioning.lower())
 
     def test_event_label_is_planning_metadata_not_rendered_text(self):
         document = document_for(CASES[2])

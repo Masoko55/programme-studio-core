@@ -186,7 +186,7 @@ class CandidateRetryIntegrationTests(unittest.TestCase):
         self.assertEqual([call.args[2].count("PALETTE_OFF") for call in selector.call_args_list],
                          [5, 6, 7, 8])
         self.assertEqual([call[2]["sampling_profile"].name for call in engine.calls],
-                         ["alternate_sampler", "raster_rescue_trial", "raster_rescue_trial", "raster_rescue_trial"])
+                         ["alternate_sampler"] * 4)
 
     def test_ocr_infrastructure_failure_retries_fresh_image_within_budget(self):
         engine = FailingEngine()

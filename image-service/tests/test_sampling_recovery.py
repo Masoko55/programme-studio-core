@@ -26,8 +26,16 @@ from app.services.prompt_compiler import (
 )
 
 from app.services.sampling_profiles import (
+    FailureHistorySummary,
+    SDXL_BASELINE,
+    SDXL_COMPOSITION_RESCUE,
+    SDXL_PALETTE_GUIDANCE,
+    SDXL_STRICT,
+    SDXL_SUBJECT_RESCUE,
     SD35_PRODUCTION_BASELINE,
     SD35_RESCUE,
+    SD35_SUBJECT_RESCUE,
+    SD35_STRUCTURAL_RESCUE,
     select_sampling_profile,
     summarize_failures,
 )
@@ -93,6 +101,42 @@ def failure_record(
 class SamplingRecoveryTests(
     unittest.TestCase
 ):
+    def test_sdxl_mixed_history_profile_parameters_remain_distinct(self):
+        cases = (
+            (2, {"CHARACTER": 1}, "CHARACTER", 1, SDXL_BASELINE),
+            (2, {"HUMAN": 1}, "HUMAN", 1, SDXL_BASELINE),
+            (2, {"PALETTE_OFF": 1}, "PALETTE_OFF", 1, SDXL_BASELINE),
+            (2, {"SUBJECT_DRIFT": 1}, "SUBJECT_DRIFT", 1, SDXL_SUBJECT_RESCUE),
+            (2, {"DIRECTION_DUPLICATE": 1}, "DIRECTION_DUPLICATE", 1, SDXL_COMPOSITION_RESCUE),
+            (4, {"CHARACTER": 1, "PALETTE_OFF": 2}, "PALETTE_OFF", 1, SDXL_PALETTE_GUIDANCE),
+            (7, {"HUMAN": 1, "PALETTE_ROLE_DRIFT": 5}, "PALETTE_ROLE_DRIFT", 2, SDXL_STRICT),
+            (9, {"CHARACTER": 2, "HUMAN": 2, "PALETTE_OFF": 4}, "PALETTE_OFF", 1, SDXL_STRICT),
+        )
+        for attempt, counts, latest, consecutive, expected in cases:
+            with self.subTest(attempt=attempt, counts=counts):
+                history = FailureHistorySummary(counts, latest, consecutive)
+                actual = select_sampling_profile(settings.engine_2_id, attempt, history)
+                self.assertEqual(actual.record(), expected.record())
+
+    def test_sd35_strict_profiles_follow_failure_dimension(self):
+        cases = (
+            ({"RASTER": 2}, "RASTER", 2, SD35_RESCUE),
+            ({"HUMAN": 2}, "HUMAN", 2, SD35_SUBJECT_RESCUE),
+            ({"CHARACTER": 2}, "CHARACTER", 2, SD35_SUBJECT_RESCUE),
+            ({"HUMAN": 2, "CHARACTER": 1}, "CHARACTER", 1, SD35_SUBJECT_RESCUE),
+            ({"SUBJECT_DRIFT": 1}, "SUBJECT_DRIFT", 1, SD35_SUBJECT_RESCUE),
+            ({"FLAT": 1}, "FLAT", 1, SD35_STRUCTURAL_RESCUE),
+            ({"GRADIENT": 1}, "GRADIENT", 1, SD35_STRUCTURAL_RESCUE),
+            ({"PALETTE_OFF": 3}, "PALETTE_OFF", 3, SD35_PRODUCTION_BASELINE),
+            ({"CHARACTER": 1, "PALETTE_OFF": 3}, "PALETTE_OFF", 1, SD35_SUBJECT_RESCUE),
+        )
+        for attempt in (7, 9):
+            for counts, latest, consecutive, expected in cases:
+                with self.subTest(attempt=attempt, counts=counts, latest=latest):
+                    history = FailureHistorySummary(counts, latest, consecutive)
+                    actual = select_sampling_profile(settings.engine_3_id, attempt, history)
+                    self.assertEqual(actual.record(), expected.record())
+
     def test_sdxl_role_drift_joins_palette_profile_history(self):
         for count, attempt, expected in ((1, 2, "baseline"), (2, 3, "palette_guidance"),
                                          (3, 4, "palette_alternate"), (6, 7, "palette_strict"),
@@ -451,7 +495,7 @@ class SamplingRecoveryTests(
             SD35_RESCUE,
         )
 
-    def test_sd35_attempt_nine_is_rescue_even_without_history(
+    def test_sd35_attempt_nine_without_raster_history_keeps_baseline(
         self,
     ):
         profile = (
@@ -466,7 +510,7 @@ class SamplingRecoveryTests(
 
         self.assertEqual(
             profile,
-            SD35_RESCUE,
+            SD35_PRODUCTION_BASELINE,
         )
 
     # ========================================================
@@ -563,16 +607,10 @@ class SamplingRecoveryTests(
                     engine
                     == settings.engine_3_id
                 ):
-                    self.assertEqual(
-                        workflow[
-                            "55"
-                        ][
-                            "inputs"
-                        ][
-                            "shift"
-                        ],
-                        profile.shift,
-                    )
+                    if profile.shift is None:
+                        self.assertNotIn("55", workflow)
+                    else:
+                        self.assertEqual(workflow["55"]["inputs"]["shift"], profile.shift)
 
                     self.assertEqual(
                         workflow[

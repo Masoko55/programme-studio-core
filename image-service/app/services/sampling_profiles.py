@@ -706,29 +706,14 @@ def _select_sd35_profile(
             SD35_PRODUCTION_BASELINE
         )
 
-    # --------------------------------------------------------
-    # Attempts 7-8: strict recovery
-    # --------------------------------------------------------
-
-    if (
-        stage
-        == "strict_recovery"
-    ):
-        return (
-            SD35_RESCUE
-        )
-
-    # --------------------------------------------------------
-    # Attempt 9: rescue
-    # --------------------------------------------------------
-
-    if (
-        stage
-        == "rescue"
-    ):
-        return (
-            SD35_RESCUE
-        )
+    # Late recovery follows the failed dimension; raster rescue is for raster evidence.
+    if stage in {"strict_recovery", "rescue"}:
+        if history.consecutive_category == "RASTER" or (
+                raster_count >= 2 and not (history.count("HUMAN") or history.count("CHARACTER"))):
+            return SD35_RESCUE
+        if history.count("HUMAN") or history.count("CHARACTER"):
+            return SD35_SUBJECT_RESCUE
+        return SD35_PRODUCTION_BASELINE
 
     raise ValueError(
         "Unsupported SD3.5 retry stage: "

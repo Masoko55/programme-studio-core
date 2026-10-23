@@ -27,6 +27,13 @@ def assess(image, mode="dominant"):
                             quality_result={})
 
 
+def patterned_rendering(tone):
+    pixels = np.asarray(blocks("green", "green", "green", "cream")).copy()
+    for x in range(4, 92, 12):
+        pixels[:, x:x + 3] = tone
+    return Image.fromarray(pixels)
+
+
 class PaletteTonalFamilyTests(unittest.TestCase):
     def test_distributed_requested_blend_is_not_a_declared_colour(self):
         pixels = np.empty((176, 128, 3), dtype=np.uint8)
@@ -207,6 +214,35 @@ class PaletteTonalFamilyTests(unittest.TestCase):
         self.assertGreater(result["requested_palette_blend_ratio"], .12)
         self.assertLess(result["unrequested_chromatic_ratio"], .02)
         self.assertLess(result["primary_ratio"] + result["secondary_ratio"], .90)
+
+    def test_adjacent_pigment_rendering_is_not_third_colour_or_role_credit(self):
+        for primary in ("green", "#2d9650", "rgb(45, 150, 80)"):
+            with self.subTest(primary=primary):
+                result = validate_palette(patterned_rendering((99, 145, 71)), primary, "cream",
+                                          mode="dominant", quality_result={})
+                self.assertLess(result["off_palette_ratio"], .05)
+                self.assertLess(result["primary_ratio"], .65)
+                self.assertGreater(result["secondary_ratio"], .20)
+
+    def test_unrelated_colours_do_not_gain_fragmented_pigment_allowance(self):
+        for third in ("blue", "magenta", "yellow"):
+            with self.subTest(third=third), self.assertRaisesRegex(ValueError, "not requested"):
+                validate_palette(patterned_rendering(NAMED_COLOURS[third]), "green", "cream",
+                                 mode="dominant", quality_result={})
+        with self.assertRaisesRegex(ValueError, "not requested"):
+            validate_palette(blocks("green", (99, 145, 71), "cream"), "green", "cream",
+                             mode="dominant", quality_result={})
+
+    def test_adjacent_rendering_does_not_change_strict_or_presence_rules(self):
+        with self.assertRaisesRegex(ValueError, "not requested"):
+            validate_palette(patterned_rendering((99, 145, 71)), "green", "cream",
+                             mode="strict", quality_result={})
+        pixels = np.full((176, 128, 3), (99, 145, 71), dtype=np.uint8)
+        pixels[::12, :] = NAMED_COLOURS["cream"]
+        pixels[:, ::64] = NAMED_COLOURS["green"]
+        with self.assertRaisesRegex(ValueError, "PALETTE_ROLE_DRIFT"):
+            validate_palette(Image.fromarray(pixels), "green", "cream",
+                             mode="dominant", quality_result={})
 
     def test_explicit_strict_palette_retains_stricter_gate(self):
         with self.assertRaisesRegex(ValueError, "not requested"):

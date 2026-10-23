@@ -41,6 +41,132 @@ def document(subject="A layered botanical garden with paper flowers", primary="g
 
 
 class RendererConditioningTests(unittest.TestCase):
+    def test_concise_palette_roles_survive_explicit_relationship_in_both_engines(self):
+        for primary, secondary in (("red", "gold"), ("green", "purple"),
+                                   ("black", "yellow"), ("blue", "red")):
+            brief = document("Abstract geometric celebration background", primary, secondary)
+            brief["brief"]["palette_relationship"] = (
+                f"Use {primary} as the main colour and {secondary} as the secondary colour")
+            brief["brief"]["palette_relationship_source"] = "user_explicit"
+            for engine in ("sdxl-1-0", "sd-3-5-medium"):
+                with self.subTest(primary=primary, secondary=secondary, engine=engine):
+                    spec = build_candidate_spec(brief, engine, "A")
+                    for attempt, reason in ((1, ""), (2, "PALETTE_ROLE_DRIFT: secondary missing")):
+                        prompt = compile_candidate_prompt(spec, attempt, reason, concise=True)
+                        for channel in ("clip_g", "positive") + (("t5",) if engine == "sd-3-5-medium" else ()):
+                            value = getattr(prompt, channel).casefold()
+                            self.assertIn(f"primary {primary}", value)
+                            self.assertIn(f"secondary {secondary}", value)
+                        full_channel = prompt.clip_l if engine == "sdxl-1-0" else prompt.t5
+                        for value in (prompt.positive, full_channel):
+                            self.assertIn(brief["brief"]["palette_relationship"].casefold(),
+                                          value.casefold())
+
+    def test_sd35_figure_recovery_aligns_all_encoders_through_palette_retry(self):
+        motif = "layered geometric shapes and circular energy patterns"
+        brief = document(f"Comic-style technology superhero background with {motif}", "red", "gold")
+        brief["brief"]["grill_me_context"] = {"generation_constraints": ["No people or characters"]}
+        brief["brief"]["visual_semantics"] = {
+            "motif_descriptors": [motif], "motif_structure_description": motif,
+            "atmosphere_descriptors": ["fast and powerful"],
+        }
+        spec = build_candidate_spec(brief, "sd-3-5-medium", "A")
+        initial = compile_candidate_prompt(spec, 1, concise=True)
+        self.assertIn("superhero", initial.clip_l.casefold())
+        for attempt, reason, history in (
+            (2, "HUMAN: figure visible", None),
+            (4, "PALETTE_OFF: other colours", {"HUMAN": 1, "PALETTE_OFF": 2}),
+            (7, "PALETTE_ROLE_DRIFT: gold missing", {"CHARACTER": 2, "PALETTE_OFF": 3}),
+        ):
+            with self.subTest(attempt=attempt):
+                prompt = compile_candidate_prompt(spec, attempt, reason, concise=True,
+                                                  failure_history=history)
+                for channel in (prompt.clip_l, prompt.clip_g, prompt.t5):
+                    self.assertIn("background", channel.casefold())
+                    self.assertNotIn("superhero", channel.casefold())
+                for channel in (prompt.clip_g, prompt.t5):
+                    self.assertIn(motif, channel.casefold())
+                    self.assertIn("distributed", channel.casefold())
+                    self.assertIn("primary red", channel.casefold())
+                    self.assertIn("secondary gold", channel.casefold())
+                self.assertEqual(prompt.spec_sha256, initial.spec_sha256)
+
+    def test_broad_background_subject_does_not_block_figure_recovery(self):
+        cases = (("layered angular shapes", "blue", "red"),
+                 ("layered geometric shapes and circular energy patterns", "red", "gold"))
+        for motif, primary, secondary in cases:
+            brief = document("A comic-style technology superhero background for a child's birthday",
+                             primary, secondary)
+            brief["brief"]["theme_reference_treatment"] = (
+                f"Comic-book style with {motif}, energetic and superhero-like, as abstract background artwork")
+            brief["brief"]["grill_me_context"] = {"generation_constraints": ["No people or characters"]}
+            brief["brief"]["visual_semantics"] = {
+                "motif_descriptors": [motif], "motif_structure_description": motif}
+            for engine in ("sdxl-1-0", "sd-3-5-medium"):
+                with self.subTest(motif=motif, engine=engine):
+                    spec = build_candidate_spec(brief, engine, "A")
+                    self.assertTrue(spec.visual_design["authorized_literal_subject"])
+                    retry = compile_candidate_prompt(spec, 4, "PALETTE_OFF: drift", concise=True,
+                                                     failure_history={"HUMAN": 1, "PALETTE_OFF": 2})
+                    for channel in (retry.clip_l, retry.clip_g) + ((retry.t5,) if retry.t5 else ()):
+                        self.assertNotIn("superhero", channel.casefold())
+                        self.assertNotIn("web", channel.casefold())
+                        self.assertIn("background", channel.casefold())
+                    self.assertIn(motif, retry.positive.casefold())
+                    self.assertIn(f"primary {primary}", retry.clip_g.casefold())
+                    self.assertIn(f"secondary {secondary}", retry.clip_g.casefold())
+
+    def test_explicit_concrete_subject_survives_figure_recovery(self):
+        brief = document("A wedding cake", "pink", "white")
+        brief["brief"]["grill_me_context"] = {"generation_constraints": ["No people or characters"]}
+        brief["brief"]["visual_semantics"] = {
+            "motif_descriptors": ["floral scrollwork"],
+            "motif_structure_description": "floral scrollwork"}
+        for engine in ("sdxl-1-0", "sd-3-5-medium"):
+            spec = build_candidate_spec(brief, engine, "A")
+            self.assertEqual(spec.visual_design["authorized_literal_subject"], "A wedding cake")
+            retry = compile_candidate_prompt(spec, 2, "HUMAN: figure visible", concise=True)
+            self.assertIn("wedding cake", retry.clip_l.casefold())
+            self.assertIn("wedding cake", retry.clip_g.casefold())
+
+    def test_sd35_literal_subject_drift_uses_approved_motif(self):
+        brief = document("A comic-style superhero background", "black", "yellow")
+        brief["brief"]["grill_me_context"] = {"generation_constraints": ["No people or characters"]}
+        brief["brief"]["visual_semantics"] = {
+            "motif_descriptors": ["bat shapes"], "motif_structure_description": "bat shapes"}
+        spec = build_candidate_spec(brief, "sd-3-5-medium", "A")
+        retry = compile_candidate_prompt(spec, 2, "SUBJECT_DRIFT: humanoid figure displaced motif",
+                                         concise=True)
+        for channel in (retry.clip_l, retry.clip_g, retry.t5):
+            self.assertIn("bat shapes", channel.casefold())
+            self.assertNotIn("superhero", channel.casefold())
+
+    def test_sd35_figure_recovery_clip_g_stays_within_budget(self):
+        motif = "Layered geometric shapes and circular energy patterns distributed throughout the background"
+        brief = document("An comic-style technology superhero background for a kid's birthday with no buildings",
+                         "red", "gold")
+        brief["brief"].update(
+            event_type="Children birthday party", audience_context="Children aged 7 to 10",
+            theme_reference_treatment=("I want a comic-book style background with clean futuristic tech patterns "
+                                       "and glowing energy-like details; Use red as the main colour and gold "
+                                       "as the secondary colour, with layered geometric shapes and circular "
+                                       "energy patterns distributed throughout the background"),
+            palette_relationship=("Use red as the main colour and gold as the secondary colour, "
+                                  "with layered geometric shapes and circular energy patterns "
+                                  "distributed throughout the background"),
+            palette_relationship_source="user_explicit",
+            grill_me_context={"generation_constraints": ["No people or characters"]},
+            visual_semantics={"motif_descriptors": ["geometric shapes", "circular energy patterns"],
+                              "motif_structure_description": motif,
+                              "atmosphere_descriptors": ["modern", "fast", "powerful"]})
+        spec = build_candidate_spec(brief, "sd-3-5-medium", "A")
+        retry = compile_candidate_prompt(spec, 4, "PALETTE_OFF: drift", concise=True,
+                                         failure_history={"HUMAN": 1, "PALETTE_OFF": 2})
+        self.assertFalse(retry.record()["prompt_budget"]["clip_g"]["budget_risk"])
+        self.assertIn("circular energy patterns", retry.clip_g.casefold())
+        self.assertIn("secondary gold", retry.clip_g.casefold())
+        self.assertIn(brief["brief"]["palette_relationship"], retry.t5)
+
     def test_sdxl_figure_and_palette_retries_keep_approved_background_motifs(self):
         cases = (("bat shapes", "black", "yellow"),
                  ("cracked shapes and impact bursts", "green", "purple"),

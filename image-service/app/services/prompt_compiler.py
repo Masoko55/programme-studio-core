@@ -170,6 +170,26 @@ def _palette_relationship(spec: CandidateSpec) -> str:
     return "; ".join(f"{colour} clearly visible in substantial design elements" for colour in colours)
 
 
+def _concise_palette_relationship(spec: CandidateSpec, *, include_explicit: bool = True) -> str:
+    """Keep structured colour roles intact in short encoder conditioning."""
+    palette = spec.visual_design["requested_palette"]
+    roles = "; ".join(f"{item['role'].capitalize()} {item['colour']}" for item in palette)
+    policy = palette_relationship_policy(spec.visual_design["palette_relationship"],
+                                         spec.visual_design.get("palette_relationship_source"),
+                                         spec.secondary_colour)
+    dominance = policy["dominance_relationship"]
+    if dominance == "BALANCED":
+        roles += "; balanced visual mass"
+    elif dominance == "SECONDARY_DOMINANT":
+        roles += "; secondary controls main mass"
+    else:
+        roles += "; primary controls main visual mass; secondary remains substantial"
+    keep_phrase = policy["explicit"] and (include_explicit or len(policy["relationship"].split()) <= 12)
+    return _join_sections(roles + ";",
+                          policy["relationship"] + ";" if keep_phrase else "",
+                          "neutrals support shading only.")
+
+
 def _palette(spec: CandidateSpec) -> str:
     design = spec.visual_design
     colours = [str(item["colour"]) for item in design["requested_palette"]]
@@ -1020,7 +1040,10 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     sd35_audience = _audience_context(spec) if spec.engine_id == "sd-3-5-medium" else ""
     motif = _direction_motif(spec)
     colours = ", ".join(str(item["colour"]) for item in design["requested_palette"])
-    relationship = _first_words(_palette_relationship(spec), 10)
+    relationship = (_concise_palette_relationship(spec, include_explicit=False) if spec.engine_id != "flux-2"
+                    else _first_words(_palette_relationship(spec), 10))
+    full_relationship = (_concise_palette_relationship(spec) if spec.engine_id != "flux-2"
+                         else relationship)
     composition = _spatial_instruction(design)
     strength = retry_strength_level(attempt)
     retry_category = runtime_retry_category(reason)
@@ -1038,25 +1061,40 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                           if spec.engine_id in {"sdxl-1-0", "sd-3-5-medium"} and attempt > 1 else "")
     intrusion_positive, intrusion_negative = _intrusion_contract(
         failure_history, runtime_retry_category(reason) if attempt > 1 else "INITIAL")
+    authorized_subject = str(design.get("authorized_literal_subject") or "")
+    figure_terms = r"\b(?:\w*hero|humanoid|character|person|human|mascot|costumed|figure)\b"
+    figure_subject_pressure = bool(re.search(
+        figure_terms, authorized_subject, re.I)) if design.get("characters_prohibited") else False
+    figure_drift = (retry_category == "SUBJECT_DRIFT" and bool(re.search(figure_terms, reason, re.I)))
+    sd35_motif_recovery = (spec.engine_id == "sd-3-5-medium" and attempt > 1
+                           and design.get("characters_prohibited")
+                           and (not authorized_subject or figure_subject_pressure)
+                           and bool(motif)
+                           and (bool(intrusion_positive)
+                                or figure_drift
+                                or retry_category == "SUBJECT_DRIFT" and _abstract_background_subject_retry(spec)))
     sdxl_motif_recovery = (spec.engine_id == "sdxl-1-0" and attempt > 1
                            and design.get("characters_prohibited")
-                           and not design.get("authorized_literal_subject")
+                           and (not authorized_subject or figure_subject_pressure)
                            and bool(motif)
                            and (bool(intrusion_positive) or retry_category in _PALETTE_FAILURES
                                 or retry_category == "SUBJECT_DRIFT"))
-    if sdxl_motif_recovery:
+    if sdxl_motif_recovery or sd35_motif_recovery:
         subject = f"Abstract background pattern with {_first_words(motif, 12)}"
     sdxl_topology = (
         "Keep approved motifs visible as distributed, layered background forms, not a single figure silhouette."
         if sdxl_motif_recovery else "")
+    sd35_topology = (
+        "Approved motifs: distributed layered background forms, never a body silhouette."
+        if sd35_motif_recovery else "")
     sdxl_figure_negative = (
         "face, head, torso, body, arms, legs, hands, costume, masked figure, heroic pose"
         if sdxl_motif_recovery and intrusion_positive else "")
     figure_contract = ("Environment and abstract motif only; depict no human or costumed figures."
                        if design.get("characters_prohibited") and not intrusion_positive else "")
     subject_line = f"Visual subject: {subject}."
-    short_subject_line = f"Visual subject: {_first_words(subject, 9)}."
-    anchor_line = f"Anchors: {_first_words(anchors, 14)}." if anchors else ""
+    short_subject_line = f"Visual subject: {_first_words(subject, 16 if sd35_motif_recovery else 9)}."
+    anchor_line = f"Anchors: {_first_words(anchors, 14)}." if anchors and not sd35_motif_recovery else ""
     mood_line = (f"Event atmosphere: {_first_words(mood, 7)}."
                  if spec.engine_id == "sd-3-5-medium" and mood else
                  f"Mood: {_first_words(mood, 7)}." if mood else "")
@@ -1069,6 +1107,10 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     motif_policy_line = (_first_words(_motif_policy_instruction(spec), 12)
                          if design.get("motif_literalization_policy") == "motif_only" else "")
     treatment = design["theme_reference_treatment"]
+    if (sdxl_motif_recovery or sd35_motif_recovery) and figure_subject_pressure:
+        treatment = re.sub(r"\b(?:\w*hero(?:-like)?|humanoid(?:-like)?|character(?:-like)?|"
+                           r"person(?:-like)?|human(?:-like)?|mascot(?:-like)?|costumed?)\b",
+                           "", treatment, flags=re.I)
     treatment_line = (f"Treatment: {_first_words(treatment, 22)}."
                       if treatment else "")
     short_treatment = _first_words(treatment, 10)
@@ -1087,35 +1129,49 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     short_treatment_line = f"Treatment: {short_treatment}." if short_treatment else ""
     style_line = (f"Style: {_first_words(design.get('visual_style'), 8)}."
                   if design.get("visual_style") else "")
-    palette_line = f"Palette: {colours}; {relationship}; primary visual mass, secondary accents; neutrals support." if colours else ""
-    relationship_words = _palette_relationship(spec).split()
+    palette_line = (f"Palette: {full_relationship}" if spec.engine_id != "flux-2" else
+                    f"Palette: {colours}; {relationship}; primary visual mass, secondary accents; neutrals support.") if colours else ""
+    relationship_words = _palette_relationship(spec).split() if spec.engine_id == "flux-2" else ()
     short_relationship = (" ".join(relationship_words) if len(relationship_words) <= 10 else
-                          " ".join((*relationship_words[:4], *relationship_words[-2:])))
+                          " ".join((*relationship_words[:4], *relationship_words[-2:]))) if relationship_words else relationship
     short_palette_line = (f"Palette: {colours}; {short_relationship}; "
-                          "primary visual mass, secondary accents; neutrals support." if colours else "")
-    palette_l_line = (f"Primary {design['requested_palette'][0]['colour']}; "
+                          "primary visual mass, secondary accents; neutrals support." if spec.engine_id == "flux-2" else
+                          f"Palette: {short_relationship}" if colours else "")
+    palette_l_line = (f"Palette: {full_relationship}" if spec.engine_id == "sdxl-1-0" else
+                      f"Primary {design['requested_palette'][0]['colour']}; "
                       + (f"secondary {design['requested_palette'][1]['colour']}; "
                          if len(design['requested_palette']) > 1 else "")
                       + f"relationship: {relationship}."
                       if colours else "")
     spatial_line = f"Composition: {composition}." if composition else ""
     light_line = f"Lighting: {_first_words(design.get('lighting_language'), 8)}." if design.get("lighting_language") else ""
+    sd35_recovery_correction = (f"Correction: {_first_words(short_correction, 8)}."
+                                if sd35_motif_recovery and short_correction else "")
     clip_l = (_join_sections(short_subject_line, palette_l_line, motif_line) if spec.engine_id == "sdxl-1-0"
-              else _join_sections(short_subject_line, anchor_line, sd35_event_line, sd35_audience_line)
+              else _join_sections(short_subject_line, anchor_line,
+                                  sd35_event_line, sd35_audience_line)
               if spec.engine_id == "sd-3-5-medium" else _join_sections(subject_line, anchor_line))
     clip_g = (_join_sections(short_subject_line, mood_line, audience_line, short_treatment_line,
                             spatial_line, motif_policy_line, short_palette_line,
                             persistent_palette, figure_contract, intrusion_positive, sdxl_topology, correction)
               if spec.engine_id == "sdxl-1-0" else
+              _join_sections(short_subject_line, short_treatment_line, short_palette_line,
+                             sd35_topology, sd35_recovery_correction) if sd35_motif_recovery else
               _join_sections(short_subject_line, sd35_event_line, sd35_audience_line, mood_line,
-                             short_treatment_line, spatial_line, short_palette_line,
-                             persistent_palette, figure_contract, intrusion_positive, correction) if spec.engine_id == "sd-3-5-medium" else
+                             motif_line if sd35_motif_recovery else "", short_treatment_line,
+                             spatial_line, short_palette_line, persistent_palette,
+                             figure_contract, intrusion_positive, sd35_topology, correction) if spec.engine_id == "sd-3-5-medium" else
               _join_sections(subject_line, mood_line, audience_line, motif_line, motif_policy_line,
                              treatment_line, palette_line, spatial_line, style_line, light_line,
                              figure_contract, intrusion_positive))
     positive_source = clip_g.replace(short_subject_line, subject_line, 1).replace(short_treatment_line, treatment_line, 1) if spec.engine_id != "flux-2" else clip_g
     positive = _join_sections(positive_source.replace(correction, "") if correction else positive_source,
                              motif_line if motif_line not in clip_g else "",
+                             mood_line if sd35_motif_recovery else "",
+                             (f"Palette relationship: {_palette_relationship(spec)}."
+                              if spec.engine_id != "flux-2" and palette_relationship_policy(
+                                  design["palette_relationship"], design.get("palette_relationship_source"),
+                                  spec.secondary_colour)["explicit"] else ""),
                              full_correction if full_correction else "",
                              "Continuous background artwork with integrated calm visual space.")
     if spec.engine_id == "flux-2":
@@ -1125,7 +1181,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                        mood_line, audience_line if spec.engine_id != "sd-3-5-medium" else "",
                        motif_line, motif_policy_line,
                        treatment_line, palette_line, spatial_line, style_line, light_line,
-                       persistent_palette, figure_contract, intrusion_positive, correction)
+                       persistent_palette, figure_contract, intrusion_positive, sd35_topology, correction)
     def clean(value: str) -> str:
         value = _background_only(value, spec)
         return re.sub(r"\b(?:8k|4k|masterpiece|ultra[- ]detailed|trending on artstation|"

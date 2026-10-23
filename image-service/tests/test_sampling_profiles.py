@@ -387,7 +387,7 @@ class SamplingProfileTests(
             SD35_RESCUE,
         )
 
-    def test_sd35_attempt_nine_is_rescue(
+    def test_sd35_attempt_nine_without_raster_history_keeps_baseline(
         self,
     ):
         profile = (
@@ -404,7 +404,7 @@ class SamplingProfileTests(
 
         self.assertEqual(
             profile,
-            SD35_RESCUE,
+            SD35_PRODUCTION_BASELINE,
         )
 
     # ========================================================

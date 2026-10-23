@@ -13,6 +13,7 @@ from app.services.creative_direction import build_creative_direction_prompt, gen
 from app.services.grill_me_semantic import (_safe_context, _selected_reference_trait,
                                              model_facing_brief, renderable_brief)
 from app.services.grill_me_service import apply_clarifications, freeze_for_generation
+from app.services.semantic_contract import build_semantic_contract
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -280,3 +281,50 @@ class ReferencePrecedencePipelineTests(unittest.TestCase):
         for spelling in ("Azure-Monarch", "Azure Monarch", "Azure_Monarch"):
             self.assertNotIn(spelling, serialized)
         self.assertIn("layered burgundy ribbons", serialized)
+
+    def test_reference_redaction_keeps_visual_detail_but_drops_empty_shells(self):
+        brief = {
+            "event_type": "children's celebration", "theme": "heroic adventure",
+            "background_inspiration": "A Solar Sentinel-inspired theme for a child's celebration",
+            "creative_description": "Use Solar Sentinel-inspired angular geometry, layered shadows and limited web-like linework",
+            "theme_reference_treatment": "Use Solar Sentinel-inspired colours and visual traits",
+            "grill_me_context": {"reference_detected": True, "reference_name": "Solar Sentinel",
+                                 "reference_type": "character"},
+        }
+        safe = renderable_brief(brief)
+        self.assertEqual(safe["background_inspiration"], "")
+        self.assertEqual(safe["theme_reference_treatment"], "")
+        self.assertIn("angular geometry", safe["creative_description"])
+        self.assertIn("layered shadows", safe["creative_description"])
+        self.assertIn("limited web-like linework", safe["creative_description"])
+        contract = build_semantic_contract(safe)
+        self.assertEqual(contract["primary_visual_subject"], "heroic adventure")
+        self.assertEqual(contract["visual_anchors"], [])
+        self.assertNotIn("Solar Sentinel", json.dumps(model_facing_brief(safe)))
+
+    def test_clarified_superhero_brief_keeps_grounded_constraints_without_identity(self):
+        brief = {
+            "event_type": "Children birthday party", "theme": "Superheroes",
+            "age_group": "Children aged 7 to 10", "primary_colour": "royal blue",
+            "secondary_colour": "red",
+            "creative_description": "A kids party for a kid who is into superheroes, most especially Spider-Man",
+            "background_inspiration": "A Spider-Man-inspired theme for a kid's birthday",
+            "theme_reference_treatment": "Use Spider-Man-inspired colours and visual traits; limited web motifs",
+            "visual_semantics": {"motif_descriptors": ["limited web motifs"],
+                                 "incompatible_treatments": ["buildings", "people", "humanoids", "characters"]},
+            "grill_me_context": {"reference_detected": True, "reference_name": "Spider-Man",
+                                 "reference_type": "character",
+                                 "generation_constraints": ["background artwork only", "no buildings",
+                                                            "no people", "no humanoids", "no characters"]},
+        }
+        safe = renderable_brief(brief)
+        model = model_facing_brief(safe)
+        contract = build_semantic_contract(safe)
+        self.assertEqual(contract["primary_visual_subject"], "Superheroes")
+        self.assertEqual(contract["palette"], [{"colour": "royal blue", "role": "primary"},
+                                               {"colour": "red", "role": "secondary"}])
+        self.assertIn("limited web motifs", contract["motif_descriptors"])
+        self.assertIn("buildings", contract["incompatible_treatments"])
+        self.assertIn("no buildings", model["grill_me_context"]["generation_constraints"])
+        self.assertEqual(model["age_group"], "Children aged 7 to 10")
+        self.assertNotIn("Spider-Man", json.dumps(model))

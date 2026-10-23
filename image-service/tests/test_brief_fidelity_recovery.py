@@ -364,6 +364,34 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
         self.assertEqual(wrong["decision"], "SUBJECT_DRIFT")
         self.assertTrue(hard_fidelity_failure(wrong))
 
+    def test_background_subject_consensus_preserves_raw_score(self):
+        brief = {"primary_visual_subject": "restrained memorial background",
+                 "visual_semantics": {"atmosphere_descriptors": ["peaceful, dignified"],
+                                      "motif_descriptors": ["abstract forms"],
+                                      "audience_descriptors": ["family"]}}
+        scores = {"subject_score": .2, "atmosphere_score": .8, "motif_score": .9,
+                  "audience_fit_score": .8, "background_usability_score": .9}
+        result, _ = self._assess(brief, scores)
+        self.assertEqual(result["subject_score"], .2)
+        self.assertEqual(result["decision"], "BRIEF_FIDELITY_DRIFT")
+        self.assertFalse(hard_fidelity_failure(result))
+        self.assertTrue(result["background_subject_consensus"]["applied"])
+
+        for altered in ({"motif_score": .1}, {"atmosphere_score": .1},
+                        {"background_usability_score": .1},
+                        {"character_visible": True,
+                         "character_description": "visible costumed humanoid figure"}):
+            guarded = dict(scores, **altered)
+            guarded_brief = dict(brief)
+            if "character_visible" in altered:
+                guarded_brief["characters_prohibited"] = True
+            result, _ = self._assess(guarded_brief, guarded)
+            self.assertTrue(hard_fidelity_failure(result), altered)
+            self.assertFalse(result["background_subject_consensus"]["applied"], altered)
+
+        literal, _ = self._assess(dict(brief, authorized_literal_subject="memorial wreath"), scores)
+        self.assertEqual(literal["decision"], "SUBJECT_DRIFT")
+
     def test_vision_text_requires_concrete_evidence(self):
         brief = {"primary_visual_subject": "abstract layered marks"}
         scores = {"subject_score": .9, "unrequested_text_visible": True,

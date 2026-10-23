@@ -47,8 +47,31 @@ def contract_hash(contract: dict) -> str:
 
 
 def build_semantic_contract(brief: dict) -> dict:
+    import re
+
+    def redaction_shell(value: str) -> bool:
+        text = re.sub(r"\s+", " ", value.casefold()).strip(" ,.;-_")
+        if re.search(r"\b(?:with|featuring|including|using)\b", text):
+            return False
+        if re.fullmatch(r"(?:(?:a|an|the)\s+)?(?:inspired\s+)?(?:theme|style|background|design)\s+for\s+.+", text):
+            return True
+        words = re.findall(r"[a-z]+", text)
+        return bool(words) and set(words) <= {
+            "a", "an", "the", "use", "apply", "inspired", "by", "theme", "style",
+            "background", "design", "visual", "trait", "traits", "colour", "colours",
+            "color", "colors", "and",
+        }
+
     semantics = brief.get("visual_semantics") or {}
     context = brief.get("grill_me_context") or {}
+    reference_detected = bool(context.get("reference_detected"))
+    inspiration = str(brief.get("background_inspiration") or "").strip()
+    if reference_detected and redaction_shell(inspiration):
+        inspiration = ""
+    anchors = brief.get("visual_anchors") or []
+    if reference_detected:
+        anchors = [anchor for anchor in anchors
+                   if not isinstance(anchor, str) or not redaction_shell(anchor)]
     inferred_sources = context.get("semantic_provenance") or {}
     palette = brief.get("palette")
     if not isinstance(palette, list):
@@ -56,8 +79,8 @@ def build_semantic_contract(brief: dict) -> dict:
                    for key, role in (("primary_colour", "primary"), ("secondary_colour", "secondary"))
                    if brief.get(key)]
     fields = {
-        "primary_visual_subject": brief.get("background_inspiration") or brief.get("theme") or "",
-        "visual_anchors": brief.get("visual_anchors") or ([brief["background_inspiration"]] if brief.get("background_inspiration") else []),
+        "primary_visual_subject": inspiration or brief.get("theme") or "",
+        "visual_anchors": anchors or ([inspiration] if inspiration else []),
         "atmosphere_descriptors": semantics.get("atmosphere_descriptors") or [],
         "audience_descriptors": semantics.get("audience_descriptors") or [],
         "motif_descriptors": semantics.get("motif_descriptors") or [],
@@ -86,6 +109,8 @@ def build_semantic_contract(brief: dict) -> dict:
             sources[key] = "SAFE_FALLBACK"
         elif key == "palette_relationship" and str(brief.get("palette_relationship_source") or "").casefold() in {"user", "user_explicit", "grill_me_clarified"}:
             sources[key] = ("GRILL_ME_CLARIFIED" if str(brief["palette_relationship_source"]).casefold() == "grill_me_clarified" else "USER_EXPLICIT")
+        elif key == "primary_visual_subject" and reference_detected and not inspiration and brief.get("theme"):
+            sources[key] = "USER_EXPLICIT"
         elif key in inferred_sources:
             sources[key] = inferred_sources[key]
         elif key in {"primary_visual_subject", "visual_anchors", "palette", "palette_mode", "palette_relationship", "theme_reference_treatment"}:

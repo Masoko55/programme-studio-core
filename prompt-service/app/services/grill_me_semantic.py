@@ -583,14 +583,25 @@ _FINAL_COMPOSITION = re.compile(
 )
 
 
-def _vague_reference_treatment(treatment: str, reference_name: str) -> bool:
+def _vague_reference_treatment(treatment: str, reference_name: str,
+                               colours: tuple[str, ...] = ()) -> bool:
+    approved, _ = _treatment_parts(treatment, reference_name)
     pattern = _reference_pattern(reference_name)
-    remainder = pattern.sub(" ", treatment) if pattern else treatment
-    words = re.findall(r"[a-z]+", remainder.casefold())
-    return bool(words) and set(words) <= {
-        "a", "an", "the", "inspired", "by", "visual", "traits", "style",
-        "vibes", "look", "feel", "theme", "from", "of", "with",
+    positive = _without_reference_identity(approved, pattern)
+    terms = _trait_terms(positive) - _trait_terms(" ".join(colours))
+    concrete = terms - {
+        "abstract", "colour", "color", "palette", "trait", "style", "vibe",
+        "look", "feel", "theme", "inspired", "from", "must", "should",
+        "influence", "only", "solely", "exclusively", "supplied", "reference",
+        "other", "any", "few", "small", "amount", "like",
     }
+    explicit_colour_only = (
+        re.search(r"\b(?:only|solely|exclusively)\b", positive, re.I)
+        and (re.search(r"\b(?:colou?rs?|palette)\b", positive, re.I)
+             or bool(_trait_terms(positive) & _trait_terms(" ".join(colours))))
+        and not re.search(r"\band\s+(?:\w+\s+){0,3}(?:visual\s+)?traits?\b", positive, re.I)
+    )
+    return not concrete and not explicit_colour_only
 
 
 def _safe_inferred_reference_phrase(phrase: str, reference_name: str) -> bool:
@@ -736,7 +747,9 @@ def _safe_context(
     if context.get("reference_detected"):
         reference_name = str(context.get("reference_name") or "").strip()
         treatment = _theme_reference_treatment(answers)
-        vague = _vague_reference_treatment(treatment, reference_name)
+        vague = _vague_reference_treatment(treatment, reference_name,
+                                           tuple(str(answers.get(key) or "") for key in
+                                                 ("primary_colour", "secondary_colour")))
         explicit_spatial = _explicit_spatial_treatment(treatment) if not vague else []
         approved, exclusions = _treatment_parts(treatment, reference_name)
         pattern = _reference_pattern(reference_name)
@@ -824,7 +837,9 @@ def _safe_context(
 
     if (
         reference_detected
-        and (not treatment or _vague_reference_treatment(treatment, str(context.get("reference_name") or "")))
+        and (not treatment or _vague_reference_treatment(
+            treatment, str(context.get("reference_name") or ""),
+            tuple(str(answers.get(key) or "") for key in ("primary_colour", "secondary_colour"))))
     ):
         context[
             "reference_needs_clarification"
@@ -859,10 +874,12 @@ def _safe_context(
                     "theme_reference_treatment"
                 ),
                 "question": (
-                    f"Which visual traits from {reference_name} "
-                    "should influence the background? "
-                    "For example colours, abstract patterns, "
-                    "geometry, textures, architecture or atmosphere."
+                    "You've confirmed the colour influence. Which other visual traits "
+                    "should shape the background, such as patterns, shapes, textures, "
+                    "atmosphere or movement? If you want colour-only influence, say so explicitly."
+                    if treatment else
+                    f"Which visual traits from {reference_name} should influence the background? "
+                    "For example colours, abstract patterns, geometry, textures or atmosphere."
                 ),
                 "reason": (
                     "The theme uses a recognizable reference. "

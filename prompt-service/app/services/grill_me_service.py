@@ -19,6 +19,7 @@ from app.schemas.grill_me import (
 )
 
 from app.services.grill_me_semantic import (
+    _treatment_parts,
     review_creative_context,
     renderable_brief,
 )
@@ -1049,13 +1050,16 @@ def apply_clarifications(
     for key, value in (
         values.items()
     ):
-        current[
-            key
-        ] = (
-            _clean_string(
-                value
-            )
-        )
+        cleaned = _clean_string(value)
+        if (key == "theme_reference_treatment"
+                and session.creative_context.get("reference_needs_clarification")
+                and current.get(key)):
+            _, exclusions = _treatment_parts(
+                str(current[key]), str(session.creative_context.get("reference_name") or ""))
+            missing = [item for item in exclusions if item.casefold() not in cleaned.casefold()]
+            if missing:
+                cleaned = cleaned.rstrip(" .;") + ". Do not include " + ", ".join(missing) + "."
+        current[key] = cleaned
 
     current[
         "timezone"

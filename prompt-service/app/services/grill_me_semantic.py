@@ -609,7 +609,10 @@ def _vague_reference_treatment(treatment: str, reference_name: str,
         "abstract", "colour", "color", "palette", "trait", "style", "vibe",
         "look", "feel", "theme", "inspired", "from", "must", "should",
         "influence", "only", "solely", "exclusively", "supplied", "reference",
-        "other", "any", "few", "small", "amount", "like",
+        "other", "any", "few", "small", "amount", "like", "want", "see",
+        "that", "consist", "based", "using", "some", "interesting", "generic",
+        "superhero", "pattern", "shape", "form", "geometry", "line", "texture",
+        "material", "atmosphere", "movement", "visual",
     }
     unspecified_traits = bool(
         re.search(r"\b(?:visual\s+)?traits?\b", positive, re.I)

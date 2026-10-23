@@ -2001,28 +2001,12 @@ async def _retry_candidate_after_error(state, output, reference_number: str, spe
         )
     )
 
-    if _ocr_infrastructure_failure(reason):
-        record = _candidate_record(reference_number, output.engine_id, output.direction_id)
-        logger.error(
-            "event=candidate_stopped_early reference=%s engine=%s direction=%s "
-            "attempt=%s category=%s reason=%s stop_policy=ocr_infrastructure_fail_closed",
-            reference_number, output.engine_id, output.direction_id,
-            record.get("attempt_count", retry_count + 1), failure_category(reason), reason,
-        )
-        update_output(state, output.engine_id, output.direction_id,
-                      "failed", error=reason)
-        return reason, True
-
-    retryable = (
-        _candidate_was_rejected(
-            reference_number,
-            output.engine_id,
-            output.direction_id,
-        )
-        or _is_runtime_failure(
-            reason
-        )
+    candidate_rejected = _candidate_was_rejected(
+        reference_number, output.engine_id, output.direction_id,
     )
+    if _ocr_infrastructure_failure(reason) and not candidate_rejected:
+        raise error
+    retryable = candidate_rejected or _is_runtime_failure(reason)
 
     if not retryable:
         raise error
@@ -2237,17 +2221,7 @@ async def _attempt_output_wave(
     spec = build_candidate_spec(document, output.engine_id, output.direction_id)
     existing = _candidate_record(reference_number, output.engine_id, output.direction_id)
     start_retry, previous_reason = _resume_retry_context(existing)
-    if _ocr_infrastructure_failure(previous_reason):
-        logger.error(
-            "event=candidate_stopped_early reference=%s engine=%s direction=%s "
-            "attempt=%s category=%s reason=%s stop_policy=ocr_infrastructure_fail_closed",
-            reference_number, output.engine_id, output.direction_id,
-            existing.get("attempt_count", 0), failure_category(previous_reason), previous_reason,
-        )
-        update_output(state, output.engine_id, output.direction_id,
-                      "failed", error=previous_reason)
-        return False, 0
-    if start_retry >= min(settings.max_candidate_retries, 8) + 1:
+    if start_retry >= settings.max_candidate_retries + 1:
         update_output(state, output.engine_id, output.direction_id, "failed",
                       error="Candidate attempt budget exhausted")
         return False, 0

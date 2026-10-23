@@ -1242,7 +1242,25 @@ def assess_subject_adherence(
         and vision_human is not True
         and answer.get("incompatible_treatment_visible") is not True
     )
-    if background_subject_consensus:
+    abstract_background_fit = (
+        "subject_score" in hard_failed
+        and visual_design.get("characters_prohibited") is True
+        and re.search(r"\b(?:background|backdrop)\b", subject, re.I) is not None
+        and not str(visual_design.get("authorized_literal_subject") or "").strip()
+        and any(isinstance(item, str) and re.search(r"\b(?:abstract|geometric|decorative)\b", item, re.I)
+                for item in evidence)
+        and re.search(r"\b(?:aligns?|matches?|suitable|appropriate|supports?)\b", str(answer.get("reason") or ""), re.I)
+        and scores.get("motif_score") is not None
+        and scores["motif_score"] >= required.get("motif_score", fidelity_threshold)
+        and scores.get("audience_fit_score") is not None
+        and scores["audience_fit_score"] >= required.get("audience_fit_score", fidelity_threshold)
+        and usability is not None and usability >= fidelity_threshold - 0.15
+        and not any(field != "subject_score" for field in hard_failed)
+        and not text_signal and not unauthorized_literal and not prohibited_character
+        and vision_human is not True
+        and answer.get("incompatible_treatment_visible") is not True
+    )
+    if background_subject_consensus or abstract_background_fit:
         hard_failed.remove("subject_score")
 
     # Only a real subject failure should become SUBJECT_DRIFT.
@@ -1310,10 +1328,10 @@ def assess_subject_adherence(
         "failure_category": ("CHARACTER" if prohibited_character else
                              "TEXT_OR_LOGO" if text_signal else
                              "UNREQUESTED_LITERAL_OBJECT" if unauthorized_literal else
-                             "BRIEF_FIDELITY_DRIFT" if background_subject_consensus else
+                             "BRIEF_FIDELITY_DRIFT" if background_subject_consensus or abstract_background_fit else
                              SEMANTIC_FAILURE_CATEGORIES[worst] if worst else None),
         "background_subject_consensus": {
-            "applied": bool(background_subject_consensus),
+            "applied": bool(background_subject_consensus or abstract_background_fit),
             "supporting_dimensions": [field for field in required
                                       if field != "subject_score" and
                                       scores[field] >= required[field] + 0.10],

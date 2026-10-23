@@ -199,8 +199,11 @@ class ReferencePrecedencePipelineTests(unittest.TestCase):
         self.assertTrue(pending["reference_needs_clarification"])
         self.assertNotIn("web patterns", pending["visual_semantics"]["motif_descriptors"])
         brief, engines = self._replay(
-            "Spider-Man", treatment + " Use only the blue and red colour influence; "
-            "do not borrow any other visual traits.",
+            "Spider-Man",
+            "Use only the blue and red colour influence. "
+            "Do not add buildings. "
+            "Do not depict Spider-Man or any person or character. "
+            "Do not borrow any other visual traits.",
             ("web", "flowing movement", "architecture"), ("blue", "red"))
         self.assertIn("buildings", brief["semantic_contract"]["incompatible_treatments"])
         self.assertIn("energetic and playful", brief["semantic_contract"]["atmosphere_descriptors"])
@@ -215,6 +218,16 @@ class ReferencePrecedencePipelineTests(unittest.TestCase):
     def test_reference_clarification_requires_positive_trait_or_explicit_colour_only(self):
         review = self._review("Spider-Man")
         examples = (
+            ("I want to see patterns that consist of the colours.", True),
+            ("Use patterns with blue and red.", True),
+            ("Use patterns.", True),
+            ("Use some shapes with the colours.", True),
+            ("Use abstract shapes.", True),
+            ("Use interesting geometry.", True),
+            ("Use thin intersecting line patterns in blue and red.", False),
+            ("Use broad fractured shapes.", False),
+            ("Use grainy paper texture.", False),
+            ("Use only the supplied colours as the reference influence.", False),
             ("Use the colours and visual traits. Do not depict the character.", True),
             ("Use only the visual traits and colours. Do not depict the character.", True),
             ("Use the colours and visual traits only. Do not depict the character.", True),

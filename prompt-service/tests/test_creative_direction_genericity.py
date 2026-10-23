@@ -21,6 +21,53 @@ from app.services.validation import (
 
 
 class CreativeDirectionGenericityTests(unittest.TestCase):
+    def test_reference_direction_drops_unapproved_iconography_but_keeps_composition(self):
+        brief = {"event_type": "birthday", "theme": "Crimson Oracle",
+                 "background_inspiration": "abstract birthday background",
+                 "primary_colour": "burgundy", "secondary_colour": "ivory",
+                 "grill_me_context": {"reference_detected": True,
+                                      "reference_name": "Crimson Oracle"},
+                 "semantic_contract": {"motif_descriptors": [],
+                                       "motif_structure_description": "",
+                                       "incompatible_treatments": ["character", "logo"]}}
+        output = {
+            "direction_id": "A", "role": "visual designer",
+            "positive_prompt": "Asymmetric burgundy and ivory composition with a quiet center. A central oracle emblem and shield.",
+            "negative_prompt": "people, text, logos", "title_suggestions": [],
+            "short_design_rationale": "Open composition",
+            "composition_strategy": "Asymmetric burgundy masses around a quiet center",
+            "focal_strategy": "A central oracle emblem and shield within a quiet open perimeter",
+            "depth_strategy": "Layered shallow depth",
+            "border_or_perimeter_strategy": "Open perimeter",
+            "title_safe_region_strategy": "Quiet upper area",
+            "programme_safe_region_strategy": "Quiet lower area",
+            "layout_guidance": {"title_zone": {"x": .1, "y": .08, "width": .8, "height": .12},
+                                "programme_zone": {"x": .1, "y": .6, "width": .8, "height": .25}},
+        }
+        with patch("app.services.creative_direction.generate_text", new_callable=AsyncMock,
+                   return_value={"response": json.dumps(output)}):
+            direction = asyncio.run(generate_creative_direction("A", brief))
+        active = " ".join((direction.positive_prompt, direction.focal_strategy))
+        self.assertNotIn("oracle", active.casefold())
+        self.assertNotIn("emblem", active.casefold())
+        self.assertNotIn("shield", active.casefold())
+        self.assertIn("asymmetric", direction.positive_prompt.casefold())
+        self.assertIn("quiet", active.casefold())
+
+    def test_reference_direction_keeps_approved_abstract_motif(self):
+        brief = {"event_type": "birthday", "theme": "Crimson Oracle",
+                 "background_inspiration": "abstract birthday background",
+                 "primary_colour": "burgundy", "secondary_colour": "ivory",
+                 "grill_me_context": {"reference_detected": True,
+                                      "reference_name": "Crimson Oracle"},
+                 "semantic_contract": {"motif_descriptors": ["thin intersecting lines"],
+                                       "motif_structure_description": "thin intersecting lines"}}
+        result = sanitize_positive_prompt(
+            "Thin intersecting lines in an asymmetric burgundy and ivory composition with a quiet center.",
+            brief, "visual designer")
+        self.assertIn("thin intersecting lines", result.casefold())
+        self.assertIn("asymmetric", result.casefold())
+
     def test_active_direction_policy_uses_generic_figure_categories(self):
         payload = json.loads(build_creative_direction_prompt(
             {"event_type": "celebration", "background_inspiration": "layered geometry"},

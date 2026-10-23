@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 from app.config.settings import settings
-from app.services.comfyui_client import ComfyUIClient, ComfyUIError
+from app.services.comfyui_client import ComfyUIClient, ComfyUIError, _candidate_attempt_number
 from app.services.image_execution import _attempt_output_wave, _retry_candidate_after_error
 from app.services.execution_plan import build_execution_plan
 from app.services.sampling_profiles import select_sampling_profile
@@ -188,51 +188,64 @@ class CandidateRetryIntegrationTests(unittest.TestCase):
         self.assertEqual([call[2]["sampling_profile"].name for call in engine.calls],
                          ["alternate_sampler", "raster_rescue_trial", "raster_rescue_trial", "raster_rescue_trial"])
 
-    def test_ocr_infrastructure_failure_does_not_submit_another_image(self):
+    def test_ocr_infrastructure_failure_retries_fresh_image_within_budget(self):
         engine = FailingEngine()
         output = SimpleNamespace(engine_id=settings.engine_2_id, direction_id="B")
         reason = "OCR_TIMEOUT: text validation did not complete"
         async def fail_once(*args, **kwargs):
             engine.calls.append((args, kwargs))
-            raise ComfyUIError(reason)
+            if len(engine.calls) == 1:
+                raise ComfyUIError(reason)
+            return {"seed": 2, "prompt_id": "second", "workflow_sha256": "workflow",
+                    "output_path": "candidate.png", "sha256": "validated", "reused": False}
         engine.generate = fail_once
         with patch("app.services.image_execution._candidate_record", return_value={}), \
              patch("app.services.image_execution._rejection_reason", return_value=reason), \
              patch("app.services.image_execution.update_output") as update, \
              patch("app.services.image_execution.get_engine", return_value=engine), \
-             patch("app.services.image_execution.logger.error") as log_error:
+             patch("app.services.image_execution._candidate_was_rejected", return_value=True), \
+             patch("app.services.image_execution.asyncio.sleep", new=AsyncMock()):
             self.assertEqual(asyncio.run(_attempt_output_wave(
                 state=SimpleNamespace(), document=document(), output=output,
                 reference_number="ABCDEF-123456", primary_colour="royal blue",
-                secondary_colour="red")), (False, 0))
-        self.assertEqual(len(engine.calls), 1)
-        self.assertEqual(update.call_args.args[3], "failed")
-        self.assertTrue(any("candidate_stopped_early" in call.args[0]
-                            and "ocr_infrastructure_fail_closed" in call.args[0]
-                            for call in log_error.call_args_list))
-        with patch("app.services.image_execution._candidate_record", return_value={
-                 "status": "rejected", "attempt_count": 1, "rejection_reason": reason}), \
-             patch("app.services.image_execution.get_engine", return_value=engine), \
-             patch("app.services.image_execution.update_output"):
-            self.assertEqual(asyncio.run(_attempt_output_wave(
-                state=SimpleNamespace(), document=document(), output=output,
-                reference_number="ABCDEF-123456", primary_colour="royal blue",
-                secondary_colour="red")), (False, 0))
-        self.assertEqual(len(engine.calls), 1)
+                secondary_colour="red")), (True, 1))
+        self.assertEqual(len(engine.calls), 2)
+        self.assertEqual(update.call_args.args[3], "complete")
+        self.assertEqual(engine.calls[0][1]["spec_sha256"], engine.calls[1][1]["spec_sha256"])
 
-    def test_persisted_ocr_rejection_cannot_resubmit_to_comfyui(self):
+    def test_persisted_ocr_rejection_selects_fresh_seed_and_preserves_history(self):
         previous = {"status": "rejected", "primary_failure_category": "OCR_TIMEOUT",
-                    "rejection_reason": "OCR_TIMEOUT: text validation did not complete"}
+                    "rejection_reason": "OCR_TIMEOUT: text validation did not complete",
+                    "attempt_count": 1, "seed": 17, "spec_sha256": "frozen"}
+        rejected, failed = ComfyUIClient._retry_states(previous)
+        self.assertTrue(rejected)
+        self.assertFalse(failed)
+        with patch("app.services.comfyui_client.secrets.randbits", return_value=23):
+            self.assertEqual(ComfyUIClient._candidate_seed(previous, rejected, None), 23)
+        self.assertEqual(_candidate_attempt_number(previous, rejected), 2)
+        self.assertEqual(previous["spec_sha256"], "frozen")
+        history, _ = ComfyUIClient()._prior_attempts(previous, rejected, failed)
+        self.assertEqual(history[0]["primary_failure_category"], "OCR_TIMEOUT")
+        self.assertEqual(history[0]["attempt_count"], 1)
         async def check():
             with tempfile.TemporaryDirectory() as directory, \
                  patch("app.services.comfyui_client.get_job_directory", return_value=Path(directory)), \
                  patch.object(ComfyUIClient, "_load_existing_candidate", return_value=(previous, None)), \
-                 patch.object(ComfyUIClient, "_submit_candidate", new_callable=AsyncMock) as submit:
+                 patch.object(ComfyUIClient, "_candidate_seed", side_effect=ValueError("fresh seed selected")):
                 async with ComfyUIClient() as client:
-                    with self.assertRaisesRegex(ComfyUIError, "OCR validation remained unavailable"):
+                    with self.assertRaisesRegex(ValueError, "fresh seed selected"):
                         await client.generate_image("ABCDEF-123456", settings.engine_2_id, "B", "scene", "")
-                submit.assert_not_awaited()
         asyncio.run(check())
+
+    def test_repeated_ocr_infrastructure_failures_exhaust_at_nine(self):
+        for reason in ("OCR_TIMEOUT: timed out", "OCR_UNAVAILABLE: worker absent",
+                       "OCR_PARTIAL_INSUFFICIENT: incomplete checks",
+                       "TEXT: HAPPY BIRTHDAY visible"):
+            with self.subTest(reason=reason):
+                calls, result = self.run_wave({}, reason=reason)
+                self.assertEqual(result, (False, 0))
+                self.assertEqual(len(calls), 9)
+                self.assertEqual(len({call[2]["spec_sha256"] for call in calls}), 1)
 
     def test_resume_after_eight_attempts_has_one_remaining(self):
         calls, result = self.run_wave({

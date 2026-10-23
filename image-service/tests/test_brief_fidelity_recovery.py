@@ -442,6 +442,40 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
         literal, _ = self._assess(dict(brief, authorized_literal_subject="memorial wreath"), scores)
         self.assertEqual(literal["decision"], "SUBJECT_DRIFT")
 
+    def test_abstract_character_free_background_does_not_require_literal_figure(self):
+        brief = {"primary_visual_subject": "A themed background for a child's birthday",
+                 "characters_prohibited": True,
+                 "visual_semantics": {"motif_descriptors": ["dynamic geometric forms"]}}
+        scores = {"subject_score": .4, "atmosphere_score": .5, "motif_score": .7,
+                  "audience_fit_score": .7, "background_usability_score": .4,
+                  "character_visible": False, "human_visible": False,
+                  "observed_evidence": ["abstract geometric forms, no depicted figure"],
+                  "reason": "The abstract background aligns with the birthday brief; no literal figure is present."}
+        result, _ = self._assess(brief, scores)
+        self.assertNotEqual(result["decision"], "SUBJECT_DRIFT")
+        self.assertNotEqual(result["failure_category"], "SUBJECT_DRIFT")
+        self.assertFalse(hard_fidelity_failure(result))
+        self.assertEqual(result["subject_score"], .4)
+        character, _ = self._assess(brief, dict(scores, character_visible=True,
+            character_description="visible costumed humanoid figure with cape and body"))
+        self.assertEqual(character["decision"], "CHARACTER")
+
+    def test_subject_retry_keeps_character_free_background_abstract(self):
+        document = fixture(1, "birthday", "abstract geometric background", "blue", "red",
+                           "dominant", "geometric", "asymmetric")
+        document["brief"]["grill_me_context"] = {"generation_constraints": ["No people or characters"]}
+        for engine in ("flux-2", "sdxl-1-0", "sd-3-5-medium"):
+            spec = build_candidate_spec(document, engine, "A")
+            retry = compile_candidate_prompt(spec, 2, "SUBJECT_DRIFT: no literal figure", concise=True)
+            self.assertNotIn("subject forms and visual anchors recognizable", retry.positive.casefold())
+            self.assertNotIn("subject forms and visual anchors recognizable", retry.clip_l.casefold())
+            self.assertIn("abstract", retry.positive.casefold())
+        literal_document = fixture(1, "birthday", "a wedding cake", "blue", "red",
+                                   "dominant", "realistic", "asymmetric")
+        literal = build_candidate_spec(literal_document, "sdxl-1-0", "A")
+        retry = compile_candidate_prompt(literal, 2, "SUBJECT_DRIFT: cake missing", concise=True)
+        self.assertIn("subject forms and visual anchors recognizable", retry.positive.casefold())
+
     def test_vision_text_requires_concrete_evidence(self):
         brief = {"primary_visual_subject": "abstract layered marks"}
         scores = {"subject_score": .9, "unrequested_text_visible": True,

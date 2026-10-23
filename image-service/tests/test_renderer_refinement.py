@@ -41,6 +41,38 @@ def document(subject="A layered botanical garden with paper flowers", primary="g
 
 
 class RendererConditioningTests(unittest.TestCase):
+    def test_sdxl_figure_and_palette_retries_keep_approved_background_motifs(self):
+        cases = (("bat shapes", "black", "yellow"),
+                 ("cracked shapes and impact bursts", "green", "purple"),
+                 ("layered geometric shapes and circular energy patterns", "red", "gold"))
+        for motif, primary, secondary in cases:
+            with self.subTest(motif=motif):
+                brief = document(f"Comic-style superhero background with {motif}", primary, secondary)
+                brief["brief"]["grill_me_context"] = {"generation_constraints": ["No people or characters"]}
+                brief["brief"]["visual_semantics"] = {"motif_descriptors": [motif],
+                                                        "motif_structure_description": motif}
+                spec = build_candidate_spec(brief, "sdxl-1-0", "A")
+                initial = compile_candidate_prompt(spec, 1, concise=True)
+                figure = compile_candidate_prompt(spec, 2, "CHARACTER: costumed figure", concise=True)
+                palette = compile_candidate_prompt(
+                    spec, 3, "PALETTE_OFF: unrelated colour", concise=True,
+                    failure_history={"CHARACTER": 1, "PALETTE_OFF": 1})
+                palette_only = compile_candidate_prompt(
+                    spec, 2, "PALETTE_OFF: unrelated colour", concise=True)
+                self.assertIn("superhero", initial.clip_l.casefold())
+                for retry in (figure, palette, palette_only):
+                    self.assertIn(motif, retry.positive.casefold())
+                    self.assertIn(motif, retry.clip_l.casefold())
+                    self.assertNotIn(motif, retry.negative.casefold())
+                    self.assertNotIn("superhero", retry.clip_l.casefold())
+                    self.assertIn("background", retry.clip_l.casefold())
+                    self.assertIn("distributed", retry.clip_g.casefold())
+                    self.assertIn("figure", retry.negative.casefold())
+                    self.assertLess(retry.clip_l.casefold().index(primary),
+                                    retry.clip_l.casefold().index(secondary))
+                    self.assertEqual(retry.spec_sha256, initial.spec_sha256)
+                self.assertIn("distributed", palette_only.clip_g.casefold())
+
     def test_sd35_encoders_put_concrete_environment_before_style_and_palette(self):
         spec = build_candidate_spec(document(), settings.engine_3_id, "A")
         compiled = compile_candidate_prompt(spec, 1)

@@ -516,6 +516,22 @@ _CORRECTIONS = {
 }
 
 
+def _abstract_background_subject_retry(spec: CandidateSpec) -> bool:
+    design = spec.visual_design
+    subject = str(design.get("primary_visual_subject") or "")
+    return (design.get("characters_prohibited") is True
+            and re.search(r"\b(?:background|backdrop)\b", subject, re.I) is not None
+            and not str(design.get("authorized_literal_subject") or "").strip())
+
+
+def _abstract_subject_correction(spec: CandidateSpec) -> str:
+    semantics = spec.visual_design["visual_semantics"]
+    motif = ("approved motif structure, " if semantics["motif_descriptors"]
+             or semantics["motif_structure_description"] else "")
+    return (f"Strengthen the {motif}composition, palette and atmosphere as "
+            "background artwork; keep people, characters, logos and emblems absent.")
+
+
 def _join_sections(*sections: str) -> str:
     return " ".join(section for section in sections if section)
 
@@ -704,6 +720,8 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     palette = _palette(spec)
     composition = _composition(spec)
     correction = _CORRECTIONS.get(category, "")
+    if category == "SUBJECT_DRIFT" and _abstract_background_subject_retry(spec):
+        correction = _abstract_subject_correction(spec)
     if category == "PALETTE_OFF":
         correction = _join_sections(correction, _palette_retry_focus(stage))
     if category == "DIRECTION_DUPLICATE":
@@ -1005,8 +1023,11 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     relationship = _first_words(_palette_relationship(spec), 10)
     composition = _spatial_instruction(design)
     strength = retry_strength_level(attempt)
-    full_correction = (_runtime_correction(runtime_retry_category(reason), compiled.retry_stage)
+    retry_category = runtime_retry_category(reason)
+    full_correction = (_runtime_correction(retry_category, compiled.retry_stage)
                        if attempt > 1 else "")
+    if full_correction and retry_category == "SUBJECT_DRIFT" and _abstract_background_subject_retry(spec):
+        full_correction = f"Correct the failed dimension conservatively: {_abstract_subject_correction(spec)}"
     short_correction = (_palette_retry_focus(compiled.retry_stage)
                         if runtime_retry_category(reason) == "PALETTE_OFF" and full_correction else
                         full_correction.split(": ", 1)[-1].split(" Preserve all original", 1)[0]
@@ -1017,6 +1038,20 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                           if spec.engine_id in {"sdxl-1-0", "sd-3-5-medium"} and attempt > 1 else "")
     intrusion_positive, intrusion_negative = _intrusion_contract(
         failure_history, runtime_retry_category(reason) if attempt > 1 else "INITIAL")
+    sdxl_motif_recovery = (spec.engine_id == "sdxl-1-0" and attempt > 1
+                           and design.get("characters_prohibited")
+                           and not design.get("authorized_literal_subject")
+                           and bool(motif)
+                           and (bool(intrusion_positive) or retry_category in _PALETTE_FAILURES
+                                or retry_category == "SUBJECT_DRIFT"))
+    if sdxl_motif_recovery:
+        subject = f"Abstract background pattern with {_first_words(motif, 12)}"
+    sdxl_topology = (
+        "Keep approved motifs visible as distributed, layered background forms, not a single figure silhouette."
+        if sdxl_motif_recovery else "")
+    sdxl_figure_negative = (
+        "face, head, torso, body, arms, legs, hands, costume, masked figure, heroic pose"
+        if sdxl_motif_recovery and intrusion_positive else "")
     figure_contract = ("Environment and abstract motif only; depict no human or costumed figures."
                        if design.get("characters_prohibited") and not intrusion_positive else "")
     subject_line = f"Visual subject: {subject}."
@@ -1070,7 +1105,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
               if spec.engine_id == "sd-3-5-medium" else _join_sections(subject_line, anchor_line))
     clip_g = (_join_sections(short_subject_line, mood_line, audience_line, short_treatment_line,
                             spatial_line, motif_policy_line, short_palette_line,
-                            persistent_palette, figure_contract, intrusion_positive, correction)
+                            persistent_palette, figure_contract, intrusion_positive, sdxl_topology, correction)
               if spec.engine_id == "sdxl-1-0" else
               _join_sections(short_subject_line, sd35_event_line, sd35_audience_line, mood_line,
                              short_treatment_line, spatial_line, short_palette_line,
@@ -1118,6 +1153,8 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     negative = compiled.negative
     if compiled.negative_prompt_channel_active and intrusion_negative:
         negative = f"{negative}, {intrusion_negative}"
+    if sdxl_figure_negative:
+        negative = f"{negative}, {sdxl_figure_negative}"
     updated: CompiledPrompt = replace(compiled, positive=cleaned["positive"], negative=negative,
                                       clip_l=cleaned["clip_l"],
                                       clip_g=cleaned["clip_g"], t5=cleaned["t5"] if spec.engine_id == "sd-3-5-medium" else None,

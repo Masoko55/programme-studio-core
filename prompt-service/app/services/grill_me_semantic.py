@@ -583,6 +583,22 @@ _FINAL_COMPOSITION = re.compile(
 )
 
 
+def _reference_colour_influence_confirmed(
+    treatment: str,
+    reference_name: str,
+    colours: tuple[str, ...] = (),
+) -> bool:
+    """Confirm colour influence only from the approved positive treatment."""
+    approved, _ = _treatment_parts(treatment, reference_name)
+    pattern = _reference_pattern(reference_name)
+    positive = _without_reference_identity(approved, pattern)
+    colour_terms = _trait_terms(" ".join(colours))
+    return bool(
+        re.search(r"\b(?:colou?rs?|palette)\b", positive, re.I)
+        or (_trait_terms(positive) & colour_terms)
+    )
+
+
 def _vague_reference_treatment(treatment: str, reference_name: str,
                                colours: tuple[str, ...] = ()) -> bool:
     approved, _ = _treatment_parts(treatment, reference_name)
@@ -593,16 +609,20 @@ def _vague_reference_treatment(treatment: str, reference_name: str,
         "abstract", "colour", "color", "palette", "trait", "style", "vibe",
         "look", "feel", "theme", "inspired", "from", "must", "should",
         "influence", "only", "solely", "exclusively", "supplied", "reference",
-        "other", "any", "few", "small", "amount", "like",
+        "other", "any", "few", "small", "amount", "like", "want", "see",
+        "that", "consist", "based", "using", "some", "interesting", "generic",
+        "superhero", "pattern", "shape", "form", "geometry", "line", "texture",
+        "material", "atmosphere", "movement", "visual",
     }
-    explicit_colour_only = (
+    unspecified_traits = bool(
+        re.search(r"\b(?:visual\s+)?traits?\b", positive, re.I)
+    )
+    explicit_colour_only = bool(
         re.search(r"\b(?:only|solely|exclusively)\b", positive, re.I)
-        and (re.search(r"\b(?:colou?rs?|palette)\b", positive, re.I)
-             or bool(_trait_terms(positive) & _trait_terms(" ".join(colours))))
-        and not re.search(r"\band\s+(?:\w+\s+){0,3}(?:visual\s+)?traits?\b", positive, re.I)
+        and _reference_colour_influence_confirmed(treatment, reference_name, colours)
+        and not unspecified_traits
     )
     return not concrete and not explicit_colour_only
-
 
 def _safe_inferred_reference_phrase(phrase: str, reference_name: str) -> bool:
     if _INFERRED_ASSET.search(phrase):
@@ -866,6 +886,15 @@ def _safe_context(
             )
             or "the reference"
         )
+        colours = tuple(
+            str(answers.get(key) or "")
+            for key in ("primary_colour", "secondary_colour")
+        )
+        colour_influence_confirmed = _reference_colour_influence_confirmed(
+            treatment,
+            str(reference_name),
+            colours,
+        )
 
         questions.insert(
             0,
@@ -877,9 +906,10 @@ def _safe_context(
                     "You've confirmed the colour influence. Which other visual traits "
                     "should shape the background, such as patterns, shapes, textures, "
                     "atmosphere or movement? If you want colour-only influence, say so explicitly."
-                    if treatment else
-                    f"Which visual traits from {reference_name} should influence the background? "
-                    "For example colours, abstract patterns, geometry, textures or atmosphere."
+                    if colour_influence_confirmed else
+                    f"Which concrete visual traits from {reference_name} should shape the background, "
+                    "such as patterns, shapes, textures, atmosphere or movement? "
+                    "If you want the reference to influence only the colours, say that explicitly."
                 ),
                 "reason": (
                     "The theme uses a recognizable reference. "

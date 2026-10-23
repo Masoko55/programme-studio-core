@@ -199,8 +199,11 @@ class ReferencePrecedencePipelineTests(unittest.TestCase):
         self.assertTrue(pending["reference_needs_clarification"])
         self.assertNotIn("web patterns", pending["visual_semantics"]["motif_descriptors"])
         brief, engines = self._replay(
-            "Spider-Man", treatment + " Use only the blue and red colour influence; "
-            "do not borrow any other visual traits.",
+            "Spider-Man",
+            "Use only the blue and red colour influence. "
+            "Do not add buildings. "
+            "Do not depict Spider-Man or any person or character. "
+            "Do not borrow any other visual traits.",
             ("web", "flowing movement", "architecture"), ("blue", "red"))
         self.assertIn("buildings", brief["semantic_contract"]["incompatible_treatments"])
         self.assertIn("energetic and playful", brief["semantic_contract"]["atmosphere_descriptors"])
@@ -215,7 +218,19 @@ class ReferencePrecedencePipelineTests(unittest.TestCase):
     def test_reference_clarification_requires_positive_trait_or_explicit_colour_only(self):
         review = self._review("Spider-Man")
         examples = (
+            ("I want to see patterns that consist of the colours.", True),
+            ("Use patterns with blue and red.", True),
+            ("Use patterns.", True),
+            ("Use some shapes with the colours.", True),
+            ("Use abstract shapes.", True),
+            ("Use interesting geometry.", True),
+            ("Use thin intersecting line patterns in blue and red.", False),
+            ("Use broad fractured shapes.", False),
+            ("Use grainy paper texture.", False),
+            ("Use only the supplied colours as the reference influence.", False),
             ("Use the colours and visual traits. Do not depict the character.", True),
+            ("Use only the visual traits and colours. Do not depict the character.", True),
+            ("Use the colours and visual traits only. Do not depict the character.", True),
             ("The colours must influence the visual traits. Do not add buildings. "
              "Do not depict any person or character.", True),
             ("Do not add buildings. Do not depict people or characters. No logos.", True),
@@ -234,6 +249,46 @@ class ReferencePrecedencePipelineTests(unittest.TestCase):
                                      for question in context["clarification_questions"]), needs_clarification)
                 if "Do not add buildings" in treatment:
                     self.assertIn("buildings", context["visual_semantics"]["incompatible_treatments"])
+
+    def test_reference_follow_up_question_only_claims_colour_when_confirmed(self):
+        review = self._review("Spider-Man")
+        examples = (
+            ("The colours must influence the visual traits. Do not depict the character.", True),
+            ("Use the visual style from Spider-Man. Do not depict the character.", False),
+        )
+        for treatment, claims_colour in examples:
+            with self.subTest(treatment=treatment):
+                answers = self._answers("Spider-Man", treatment)
+                context = _safe_context(review, answers.model_dump())
+                question = next(item for item in context["clarification_questions"]
+                                if item["field"] == "theme_reference_treatment")
+                self.assertEqual(
+                    "confirmed the colour influence" in question["question"].casefold(),
+                    claims_colour,
+                )
+
+    def test_empty_reference_follow_up_preserves_prior_exclusions_and_reasks(self):
+        first = ("The colours must influence the visual traits. Do not add buildings. "
+                 "Do not depict Spider-Man or any person or character.")
+        answers = self._answers("Spider-Man", first)
+        review = self._review("Spider-Man")
+        session = GrillMeSession(session_id="static-replay", status="clarification_required",
+                                answers=answers, creative_context=_safe_context(review, answers.model_dump()))
+        with (patch("app.services.grill_me_service.load_session", return_value=session),
+              patch("app.services.grill_me_service._save", side_effect=lambda value: value),
+              patch("app.services.grill_me_service.review_creative_context",
+                    side_effect=lambda value: _safe_context(review, value))):
+            clarified = apply_clarifications(
+                "static-replay",
+                {"theme_reference_treatment": ""},
+            )
+        self.assertTrue(clarified.creative_context["reference_needs_clarification"])
+        self.assertEqual(clarified.answers.theme_reference_treatment, first)
+        self.assertIn("buildings", clarified.creative_context["visual_semantics"]["incompatible_treatments"])
+        self.assertTrue(any(
+            item.field == "theme_reference_treatment"
+            for item in clarified.clarification_questions
+        ))
 
     def test_reference_follow_up_keeps_prior_exclusions(self):
         first = ("The colours must influence the visual traits. Do not add buildings. "

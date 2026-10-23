@@ -13,7 +13,7 @@ from app.schemas.creative_direction import (
 from app.services.ollama import (
     generate_text,
 )
-from app.services.grill_me_semantic import grounded_scene_family, model_facing_brief, renderable_brief
+from app.services.grill_me_semantic import _treatment_parts, grounded_scene_family, model_facing_brief, renderable_brief
 from app.services.direction_diversity import (
     locked_structural_fields,
     materialize_locked_structural_fields,
@@ -1103,6 +1103,27 @@ def _unsupported_treatment(clause: str, brief: dict) -> bool:
     return False
 
 
+_REFERENCE_ICONOGRAPHY = re.compile(
+    r"\b(?:emblem\w*|insignia\w*|shields?|logos?|sigils?|symbols?|"
+    r"power sources?|energy fields?|capes?|masks?|costumes?|uniforms?|weapons?|vehicles?)\b", re.I,
+)
+
+
+def _unsupported_reference_iconography(clause: str, brief: dict) -> bool:
+    if not _reference_name(brief):
+        return False
+    contract = brief.get("semantic_contract") or {}
+    selected_treatment, _ = _treatment_parts(
+        str(contract.get("theme_reference_treatment") or ""), _reference_name(brief))
+    approved = " ".join(str(item) for item in (
+        *contract.get("motif_descriptors", []),
+        contract.get("motif_structure_description") or "",
+        selected_treatment,
+    )).casefold()
+    return any(match.group().casefold() not in approved
+               for match in _REFERENCE_ICONOGRAPHY.finditer(clause))
+
+
 def sanitize_positive_prompt(
     value: str,
     brief: dict,
@@ -1149,12 +1170,14 @@ def sanitize_positive_prompt(
         )
 
         unsupported_treatment = _unsupported_treatment(clause, brief)
+        unsupported_iconography = _unsupported_reference_iconography(clause, brief)
 
         if (
             not blocked
             and not negative_instruction
             and not named_reference
             and not unsupported_treatment
+            and not unsupported_iconography
         ):
             clean.append(
                 clause
@@ -1355,6 +1378,10 @@ def build_creative_direction_prompt(
             "character, masked or costumed figure, mascot, celebrity or franchise, "
             "translate the reference only into brief-grounded abstract geometry, "
             "patterns, spatial structure, atmosphere and colour relationships. "
+            "Use only reference motifs explicitly approved in the semantic contract; "
+            "if none are approved, vary composition without inventing associated "
+            "symbols, emblems, insignia, uniforms, costumes, weapons, vehicles, "
+            "power sources or character silhouettes. "
             "Use architecture, environment, materials, textures or lighting "
             "only when supported by the grounded semantic contract."
         ),
@@ -1651,6 +1678,13 @@ async def generate_creative_direction(
             direction.role,
         )
     )
+
+    if _reference_name(brief):
+        for field in ("composition_strategy", "focal_strategy", "depth_strategy",
+                      "border_or_perimeter_strategy"):
+            value = getattr(direction, field)
+            if _contains_reference_name(value, brief) or _unsupported_reference_iconography(value, brief):
+                setattr(direction, field, "Keep the visual arrangement abstract and composition-led.")
 
     generated_negative = (
         direction.negative_prompt

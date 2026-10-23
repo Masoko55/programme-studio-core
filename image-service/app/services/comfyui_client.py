@@ -3435,11 +3435,6 @@ class ComfyUIClient:
         )
         if reused is not None:
             return reused
-        if previous and previous.get("status") == "rejected" and str(
-            previous.get("primary_failure_category") or ""
-        ) in {"OCR_TIMEOUT", "OCR_UNAVAILABLE", "OCR_PARTIAL_INSUFFICIENT"}:
-            raise ComfyUIError("OCR validation remained unavailable for the existing candidate")
-
         retrying_rejected_candidate, retrying_failed_execution = self._retry_states(previous)
 
         retrying_candidate = (

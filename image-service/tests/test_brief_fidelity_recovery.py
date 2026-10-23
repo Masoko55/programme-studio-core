@@ -311,6 +311,56 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
              "observed_evidence": ["Stylized figure in suit and tie"]})
         self.assertIs(result["vision_human_signal"], True)
 
+    def test_concrete_child_evidence_overrides_inconsistent_vision_booleans(self):
+        brief = {"primary_visual_subject": "abstract celebration background",
+                 "characters_prohibited": True}
+        result, _ = self._assess(brief, {
+            "subject_score": .5, "human_visible": False, "character_visible": False,
+            "observed_evidence": [
+                "Child in superhero costume (mask, cape, emblem on chest, belt with buckle)",
+                "Yellow and black abstract paint splatters and dynamic shapes",
+            ],
+        })
+        self.assertIs(result["vision_human_signal"], True)
+        self.assertEqual(result["decision"], "CHARACTER")
+        self.assertTrue(hard_fidelity_failure(result))
+
+        abstract, _ = self._assess(brief, {
+            "subject_score": .9, "human_visible": False, "character_visible": False,
+            "observed_evidence": ["Abstract child-like geometry and decorative shield shapes"],
+        })
+        self.assertIs(abstract["vision_human_signal"], False)
+        self.assertEqual(abstract["decision"], "pass")
+        absent, _ = self._assess(brief, {
+            "subject_score": .9, "human_visible": False, "character_visible": False,
+            "observed_evidence": ["No child in costume is visible"],
+        })
+        self.assertEqual(absent["decision"], "pass")
+
+    def test_located_unrequested_logo_is_not_accepted_as_abstract_motif(self):
+        brief = {"primary_visual_subject": "abstract celebration background",
+                 "visual_semantics": {"motif_descriptors": ["angular linework"]}}
+        response = {"subject_score": .9, "motif_score": .9,
+                    "unrequested_text_visible": False,
+                    "observed_evidence": [
+                        "Large central abstract logo combining letter shapes within a shield",
+                    ]}
+        result, _ = self._assess(brief, response)
+        self.assertEqual(result["decision"], "TEXT_OR_LOGO")
+        self.assertTrue(hard_fidelity_failure(result))
+
+        for evidence in ("central abstract shield geometry", "decorative angular linework",
+                         "central logo-like geometric pattern", "no logo in the center"):
+            with self.subTest(evidence=evidence):
+                clean, _ = self._assess(brief, dict(response, observed_evidence=[evidence]))
+                self.assertEqual(clean["decision"], "pass")
+        requested, _ = self._assess(
+            dict(brief, primary_visual_subject="requested emblem artwork"), response)
+        self.assertEqual(requested["decision"], "pass")
+        prohibited, _ = self._assess(
+            dict(brief, theme_reference_treatment="Use angular forms; no logos"), response)
+        self.assertEqual(prohibited["decision"], "TEXT_OR_LOGO")
+
     def test_good_subject_with_weak_treatment_keeps_its_category(self):
         brief = {"primary_visual_subject": "layered city forms",
                  "theme_reference_treatment": "first-person movement through the city",

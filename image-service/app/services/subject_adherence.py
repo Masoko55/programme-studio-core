@@ -57,6 +57,15 @@ def _confirmed_human_answer(visible: object, description: str) -> bool | None:
 
 def _confirmed_human_evidence(visible: object, description: str, evidence: object) -> bool | None:
     """Corroborate one reported human across the structured observations."""
+    if visible is False and isinstance(evidence, list):
+        for observation in evidence:
+            if not isinstance(observation, str):
+                continue
+            person = re.search(r"\b(?:child|children|person|human|adult|man|woman)\b(?![- ]like\b)", observation, re.I)
+            attire = re.search(r"\b(?:costume|cape|mask|shirt|jacket|dress|suit)\b", observation, re.I)
+            absent = re.search(r"\b(?:no|without|absent)\s+(?:visible\s+)?(?:child|children|person|human|adult|man|woman)\b", observation, re.I)
+            if person and attire and not absent:
+                return True
     confirmed = _confirmed_human_answer(visible, description)
     if confirmed is not None or visible is not True or not isinstance(evidence, list):
         return confirmed
@@ -87,17 +96,20 @@ def _confirmed_character_evidence(visible: object, description: str, evidence: o
     if isinstance(evidence, list):
         observations.extend(item for item in evidence if isinstance(item, str))
     for observation in observations:
-        if re.search(r"\b(?:no|without|absent)\s+(?:depicted\s+)?(?:character|figure|humanoid|mascot|silhouette)\b",
-                     observation, re.I):
+        absent_subject = re.search(r"\b(?:no|without|absent)\s+(?:depicted\s+)?(?:character|figure|humanoid|mascot|silhouette|child|children|person|human|adult|man|woman)\b",
+                                   observation, re.I)
+        if absent_subject:
             continue
         if (re.search(r"\b(?:abstract|geometric|decorative|pattern|sculptur\w*)\b", observation, re.I)
                 and not re.search(r"\b(?:body|torso|arms?|legs?|pose|posture|standing|running|flying)\b",
                                   observation, re.I)):
             continue
         figure = re.search(r"\b(?:character|figure|humanoid|mascot|silhouette|costumed)\b", observation, re.I)
+        costumed_person = (re.search(r"\b(?:child|children|person|human|adult|man|woman)\b(?![- ]like\b)", observation, re.I)
+                           and re.search(r"\b(?:costume|cape|mask)\b", observation, re.I))
         detail = re.search(r"\b(?:mask(?:ed)?|costume(?:d)?|cape|body|torso|head|face|arms?|legs?|"
                            r"posture|pose|standing|running|flying)\b", observation, re.I)
-        if figure and detail and not re.search(r"\b(?:figure|human|face)[- ]like\s+(?:geometry|pattern|decoration)\b",
+        if (figure or costumed_person) and detail and not re.search(r"\b(?:figure|human|face)[- ]like\s+(?:geometry|pattern|decoration)\b",
                                                observation, re.I):
             return True
     return False if visible is False else None
@@ -1188,6 +1200,20 @@ def assess_subject_adherence(
                                       r"typography|writing|watermark)\b", text_evidence, re.I))
                    and bool(re.search(r"\b(?:upper|lower|left|right|middle|center|centre|"
                                       r"rows?|clusters?|lines?)\b", text_evidence, re.I)))
+    requested_logo = re.search(
+        r"\b(?:logo|emblem|insignia)s?\b",
+        " ".join((subject, motif_structure, *motifs)), re.I,
+    ) or re.search(r"\b(?:use|show|include|feature|add|depict)\s+(?:\w+\s+){0,3}(?:logo|emblem|insignia)s?\b",
+                   treatment, re.I)
+    if not requested_logo:
+        for observation in evidence:
+            if (isinstance(observation, str)
+                    and re.search(r"\b(?:logo|emblem|insignia)s?\b(?![- ]like\b)", observation, re.I)
+                    and re.search(r"\b(?:upper|lower|left|right|middle|center|centre|central|foreground|background)\b", observation, re.I)
+                    and not re.search(r"\b(?:no|without|absent)\s+(?:visible\s+)?(?:logo|emblem|insignia)s?\b", observation, re.I)):
+                text_signal = True
+                text_evidence = observation[:240]
+                break
     if text_signal:
         hard_failed.append("unrequested_text_visible")
     if unauthorized_literal:

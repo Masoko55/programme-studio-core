@@ -135,7 +135,22 @@ def _without_reference_identity(value: str, pattern: re.Pattern | None) -> str:
                   "", value, flags=re.I)
     text = re.sub(pattern.pattern + r"[\W_]*inspired\b", "", text, flags=re.I)
     text = pattern.sub("", text)
-    return re.sub(r"\s+([,.;])", r"\1", text).strip(" ,.;-_")
+    return re.sub(r"\s+", " ", re.sub(r"\s+([,.;])", r"\1", text)).strip(" ,.;-_")
+
+
+def _reference_redaction_shell(value: str) -> bool:
+    """Recognize reference removal that left no independent visual direction."""
+    text = re.sub(r"\s+", " ", value.casefold()).strip(" ,.;-_")
+    if re.search(r"\b(?:with|featuring|including|using)\b", text):
+        return False
+    if re.fullmatch(r"(?:(?:a|an|the)\s+)?(?:inspired\s+)?(?:theme|style|background|design)\s+for\s+.+", text):
+        return True
+    words = re.findall(r"[a-z]+", text)
+    return bool(words) and set(words) <= {
+        "a", "an", "the", "use", "apply", "inspired", "by", "theme", "style",
+        "background", "design", "visual", "trait", "traits", "colour", "colours",
+        "color", "colors", "and",
+    }
 
 
 def _selected_reference_trait(phrase: str, approved: str, excluded: list[str]) -> bool:
@@ -171,13 +186,16 @@ def renderable_brief(brief: dict) -> dict:
         pattern = _reference_pattern(name)
         approved, _ = _treatment_parts(str(brief["theme_reference_treatment"]), name)
         approved = _without_reference_identity(approved, pattern)
+        if _reference_redaction_shell(approved):
+            approved = ""
         result = dict(brief)
         result["theme_reference_treatment"] = approved
         if pattern:
             for field in _REFERENCE_SOURCE_FIELDS:
                 value = str(result.get(field) or "")
-                result[field] = _without_reference_identity(value, pattern)
-        if not result.get("background_inspiration"):
+                cleaned = _without_reference_identity(value, pattern)
+                result[field] = "" if _reference_redaction_shell(cleaned) else cleaned
+        if not result.get("background_inspiration") and approved and not brief.get("background_inspiration"):
             result["background_inspiration"] = approved
         return result
     if context.get("reference_rendering_mode") != "safe_treatment_only":
@@ -222,7 +240,14 @@ def model_facing_brief(brief: dict) -> dict:
             return {key: scrub(item) for key, item in value.items()}
         return value
 
-    return scrub(brief)
+    result = scrub(brief)
+    for field in ("background_inspiration", "theme_reference_treatment"):
+        if _reference_redaction_shell(str(result.get(field) or "")):
+            result[field] = ""
+    if isinstance(result.get("visual_anchors"), list):
+        result["visual_anchors"] = [item for item in result["visual_anchors"]
+                                    if not isinstance(item, str) or not _reference_redaction_shell(item)]
+    return result
 
 
 DEFAULT_CONTEXT = {

@@ -1195,6 +1195,30 @@ def assess_subject_adherence(
     if prohibited_character:
         hard_failed.append("character_visible")
 
+    # A decorative background can satisfy its independently assessed brief even
+    # when the model expects a literal event object in the subject dimension.
+    # Keep the raw subject score and failed dimension visible for diagnostics.
+    background_subject_consensus = (
+        "subject_score" in hard_failed
+        and re.search(r"\b(?:background|backdrop|abstract|decorative)\b", subject, re.I) is not None
+        and not str(visual_design.get("authorized_literal_subject") or "").strip()
+        and "atmosphere_score" in required
+        and "motif_score" in required
+        and all(scores[field] >= required[field] + 0.10
+                for field in required if field != "subject_score")
+        and usability is not None
+        and usability >= fidelity_threshold + 0.10
+        and any(isinstance(item, str) and item.strip() for item in evidence)
+        and not any(field != "subject_score" for field in hard_failed)
+        and not text_signal
+        and not unauthorized_literal
+        and not prohibited_character
+        and vision_human is not True
+        and answer.get("incompatible_treatment_visible") is not True
+    )
+    if background_subject_consensus:
+        hard_failed.remove("subject_score")
+
     # Only a real subject failure should become SUBJECT_DRIFT.
     #
     # A defining explicit motif can still be a hard semantic failure, but it
@@ -1260,7 +1284,14 @@ def assess_subject_adherence(
         "failure_category": ("CHARACTER" if prohibited_character else
                              "TEXT_OR_LOGO" if text_signal else
                              "UNREQUESTED_LITERAL_OBJECT" if unauthorized_literal else
+                             "BRIEF_FIDELITY_DRIFT" if background_subject_consensus else
                              SEMANTIC_FAILURE_CATEGORIES[worst] if worst else None),
+        "background_subject_consensus": {
+            "applied": bool(background_subject_consensus),
+            "supporting_dimensions": [field for field in required
+                                      if field != "subject_score" and
+                                      scores[field] >= required[field] + 0.10],
+        },
         "unrequested_literal_object_visible": None if literal_evidence_unavailable else unauthorized_literal,
         "character_visible": prohibited_character if visual_design.get("characters_prohibited") else None,
         "character_description": character_evidence,

@@ -1051,14 +1051,15 @@ def apply_clarifications(
         values.items()
     ):
         cleaned = _clean_string(value)
-        if (key == "theme_reference_treatment"
-                and session.creative_context.get("reference_needs_clarification")
-                and current.get(key)):
-            _, exclusions = _treatment_parts(
-                str(current[key]), str(session.creative_context.get("reference_name") or ""))
-            missing = [item for item in exclusions if item.casefold() not in cleaned.casefold()]
-            if missing:
-                cleaned = cleaned.rstrip(" .;") + ". Do not include " + ", ".join(missing) + "."
+        if key == "theme_reference_treatment" and current.get(key):
+            if cleaned is None:
+                cleaned = current[key]
+            elif session.creative_context.get("reference_needs_clarification"):
+                _, exclusions = _treatment_parts(
+                    str(current[key]), str(session.creative_context.get("reference_name") or ""))
+                missing = [item for item in exclusions if item.casefold() not in cleaned.casefold()]
+                if missing:
+                    cleaned = cleaned.rstrip(" .;") + ". Do not include " + ", ".join(missing) + "."
         current[key] = cleaned
 
     current[

@@ -2165,7 +2165,8 @@ def _requested_palette_blend(pixel_lab, targets: list[dict]) -> bool:
 
 
 def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int,
-                               allow_saturated_tones: bool = False) -> str | None:
+                               allow_saturated_tones: bool = False,
+                               allow_adjacent_rendering: bool = False) -> str | None:
     """Match a pigment across shading while keeping unrelated hue separate."""
     light, a, b = (float(value) for value in pixel_lab)
     chroma = float(np.hypot(a, b))
@@ -2198,6 +2199,14 @@ def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int,
                   abs(light - float(target_lab[0])) <= 20)) and
                 angle <= 18 and
                 _hue_distance(pixel_hue, target["hue"]) <= 18):
+            matches.append((angle + distance * 0.2, target["name"]))
+            continue
+        # A close chromatic direction may be a rendered edge of the pigment.
+        # The caller must verify spatial adjacency before tolerating it.
+        if (allow_adjacent_rendering and target_chroma >= 25 and
+                target_chroma * .75 <= chroma <= target_chroma * 1.1 and
+                abs(light - float(target_lab[0])) <= 20 and angle <= 25 and
+                _hue_distance(pixel_hue, target["hue"]) <= 30):
             matches.append((angle + distance * 0.2, target["name"]))
             continue
         # A low-chroma petal shadow has less reliable hue than a saturated
@@ -2754,6 +2763,10 @@ def validate_palette(
     ambiguous_tonal_pixels = []
     palette_blend_mask = np.zeros(total, dtype=np.uint8)
     palette_blend_pixels = []
+    confirmed_requested_mask = np.zeros(total, dtype=np.uint8)
+    adjacent_rendering_mask = np.zeros(total, dtype=np.uint8)
+    adjacent_rendering_pixels = []
+    requested_target_names = {target["name"] for target in requested_targets}
 
     off_palette_named_counts: dict[
         str,
@@ -2791,6 +2804,11 @@ def validate_palette(
                 target["family_members"] for target in requested_targets if target["name"] == tonal_family
             ):
                 family = tonal_family
+        if family is None and not exclusive_palette and _perceptual_palette_family(
+                lab, requested_targets, int(hue), allow_adjacent_rendering=True):
+            adjacent_rendering_mask[index] = 1
+            adjacent_rendering_pixels.append(index)
+            continue
         tonal_name = family or nearest_name
         if family in requested_neutrals and tonal_name == "white" and lab[0] < 90:
             tonal_derivative_count += 1
@@ -2815,6 +2833,8 @@ def validate_palette(
             off_palette_named_counts[tonal_name] = off_palette_named_counts.get(tonal_name, 0) + 1
             continue
         requested_counts[family] = requested_counts.get(family, 0) + 1
+        if family in requested_target_names:
+            confirmed_requested_mask[index] = 1
         chromatic_mass[family] = chromatic_mass.get(family, 0.0) + chroma
         accepted_tonal_counts[tonal_name] = accepted_tonal_counts.get(tonal_name, 0) + 1
 
@@ -2835,6 +2855,23 @@ def validate_palette(
             unrelated_hue_count += 1
             off_palette_count += 1
             unrelated_chromatic_mask[index] = 1
+
+    _, rendering_labels, rendering_regions, _ = cv2.connectedComponentsWithStats(
+        adjacent_rendering_mask.reshape(176, 128), 8,
+    )
+    adjacent_requested = cv2.dilate(confirmed_requested_mask.reshape(176, 128),
+                                    np.ones((3, 3), dtype=np.uint8))
+    touching_regions = set(np.unique(rendering_labels[adjacent_requested != 0]))
+    for index in adjacent_rendering_pixels:
+        region = rendering_labels.flat[index]
+        if (region in touching_regions and
+                rendering_regions[region, cv2.CC_STAT_AREA] / total <= .035):
+            continue
+        unrelated_hue_count += 1
+        off_palette_count += 1
+        unrelated_chromatic_mask[index] = 1
+        name = _nearest_named_colour(rgb_pixels[index])
+        off_palette_named_counts[name] = off_palette_named_counts.get(name, 0) + 1
 
     # Ambiguous adjacent hues may be incidental when dispersed. A coherent
     # region remains a separate design colour; established family members do

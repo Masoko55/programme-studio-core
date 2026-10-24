@@ -41,6 +41,87 @@ def document(subject="A layered botanical garden with paper flowers", primary="g
 
 
 class RendererConditioningTests(unittest.TestCase):
+    def test_sdxl_abstract_subject_uses_approved_motifs_from_initial_attempt(self):
+        brief = document("Comic-style technology hero celebration abstract background", "crimson", "amber")
+        brief["brief"].update(
+            grill_me_context={"generation_constraints": ["No people or characters"]},
+            visual_semantics={
+                "motif_descriptors": ["layered geometric circuitry", "distributed circular energy forms"],
+                "motif_structure_description": "layered geometric circuitry and distributed circular energy forms",
+                "atmosphere_descriptors": ["modern", "fast", "powerful"],
+                "material_descriptors": ["futuristic technology pattern"],
+                "lighting_descriptors": ["glowing energy accents"],
+            },
+            theme_reference_treatment="futuristic technology pattern with glowing energy accents",
+        )
+        spec = build_candidate_spec(brief, "sdxl-1-0", "A")
+        self.assertEqual(spec.visual_design["authorized_literal_subject"], "")
+        initial = compile_candidate_prompt(spec, 1, concise=True)
+        self.assertIn("layered geometric circuitry", initial.clip_l.casefold())
+        self.assertIn("distributed circular energy forms", initial.clip_l.casefold())
+        self.assertNotIn("hero celebration", initial.clip_l.casefold())
+        self.assertNotIn("hero celebration", initial.clip_g.casefold())
+        self.assertNotIn("hero celebration", initial.positive.casefold())
+        self.assertIn("primary crimson", initial.clip_l.casefold())
+        self.assertIn("secondary amber", initial.clip_l.casefold())
+        self.assertIn("no human or costumed figures", initial.clip_g.casefold())
+        self.assertEqual(initial.spec_sha256, spec.spec_sha256)
+
+        for attempt, reason in ((2, "CHARACTER: figure visible"),
+                                (3, "PALETTE_ROLE_DRIFT: amber absent"),
+                                (4, "PALETTE_OFF: other colour"),
+                                (7, "PALETTE_OFF: other colour"),
+                                (9, "PALETTE_OFF: other colour")):
+            with self.subTest(attempt=attempt):
+                retry = compile_candidate_prompt(spec, attempt, reason, concise=True)
+                self.assertIn("layered geometric circuitry", retry.positive.casefold())
+                self.assertNotIn("hero celebration", retry.clip_l.casefold())
+                self.assertNotIn("hero celebration", retry.clip_g.casefold())
+                self.assertEqual(retry.spec_sha256, initial.spec_sha256)
+
+    def test_sdxl_abstract_subject_controls_preserve_literal_and_motif_identity(self):
+        for subject, motifs, expected in (
+            ("A wedding cake", ["floral scrollwork"], "wedding cake"),
+            ("Abstract celebration background", ["wing shapes"], "wing shapes"),
+            ("Abstract celebration background", ["cracked forms", "impact bursts"], "cracked forms"),
+            ("Abstract celebration background", ["layered geometric forms", "circular energy structures"],
+             "layered geometric forms"),
+            ("Abstract celebration background", ["angular forms", "dynamic comic movement"], "angular forms"),
+        ):
+            with self.subTest(subject=subject, motifs=motifs):
+                brief = document(subject, "blue", "red")
+                brief["brief"].update(
+                    grill_me_context={"generation_constraints": ["No people or characters"]},
+                    visual_semantics={"motif_descriptors": motifs,
+                                      "motif_structure_description": ", ".join(motifs)},
+                )
+                spec = build_candidate_spec(brief, "sdxl-1-0", "A")
+                for attempt, reason in ((1, ""), (2, "CHARACTER: figure visible")):
+                    prompt = compile_candidate_prompt(spec, attempt, reason, concise=True)
+                    self.assertIn(expected, prompt.clip_l.casefold())
+                    for motif in motifs:
+                        self.assertIn(motif, prompt.positive.casefold())
+                        self.assertNotIn(motif, prompt.negative.casefold())
+                    if subject.startswith("Abstract"):
+                        for invented in ("web", "spider", "bat", "crack", "circle"):
+                            if not any(invented in motif for motif in motifs):
+                                self.assertNotIn(invented, prompt.positive.casefold())
+
+    def test_other_engines_keep_semantic_subject_for_abstract_background(self):
+        brief = document("Technology hero celebration abstract background", "crimson", "amber")
+        brief["brief"].update(
+            grill_me_context={"generation_constraints": ["No people or characters"]},
+            visual_semantics={"motif_descriptors": ["layered geometric circuitry"],
+                              "motif_structure_description": "layered geometric circuitry"},
+        )
+        for engine in ("sd-3-5-medium", "flux-2"):
+            with self.subTest(engine=engine):
+                spec = build_candidate_spec(brief, engine, "A")
+                prompt = compile_candidate_prompt(spec, 1, concise=True)
+                self.assertIn("technology hero celebration", prompt.positive.casefold())
+                self.assertIn("technology hero celebration", prompt.clip_l.casefold())
+                self.assertEqual(prompt.spec_sha256, spec.spec_sha256)
+
     def test_concise_palette_roles_survive_explicit_relationship_in_both_engines(self):
         for primary, secondary in (("red", "gold"), ("green", "purple"),
                                    ("black", "yellow"), ("blue", "red")):
@@ -185,7 +266,8 @@ class RendererConditioningTests(unittest.TestCase):
                     failure_history={"CHARACTER": 1, "PALETTE_OFF": 1})
                 palette_only = compile_candidate_prompt(
                     spec, 2, "PALETTE_OFF: unrelated colour", concise=True)
-                self.assertIn("superhero", initial.clip_l.casefold())
+                self.assertNotIn("superhero", initial.clip_l.casefold())
+                self.assertIn(motif, initial.positive.casefold())
                 for retry in (figure, palette, palette_only):
                     self.assertIn(motif, retry.positive.casefold())
                     self.assertIn(motif, retry.clip_l.casefold())

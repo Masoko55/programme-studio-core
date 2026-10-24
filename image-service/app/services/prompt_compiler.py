@@ -544,6 +544,16 @@ def _abstract_background_subject_retry(spec: CandidateSpec) -> bool:
             and not str(design.get("authorized_literal_subject") or "").strip())
 
 
+def _sdxl_renderer_subject(spec: CandidateSpec, subject: str, motif: str) -> str:
+    """Use approved abstract motifs as SDXL's visual subject when figures are excluded."""
+    semantics = spec.visual_design["visual_semantics"]
+    if (spec.engine_id == "sdxl-1-0" and motif
+            and (semantics["motif_descriptors"] or semantics["motif_structure_description"])
+            and _abstract_background_subject_retry(spec)):
+        return f"Abstract background pattern with {_first_words(motif, 12)}"
+    return subject
+
+
 def _abstract_subject_correction(spec: CandidateSpec) -> str:
     semantics = spec.visual_design["visual_semantics"]
     motif = ("approved motif structure, " if semantics["motif_descriptors"]
@@ -732,6 +742,7 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
 
     subject = _subject(spec)
     motif = _direction_motif(spec)
+    subject = _sdxl_renderer_subject(spec, subject, motif)
     # The brief already supplies the subject. Keep only the direction's first
     # design clause in the short encoders so a repeated subject does not
     # overwhelm composition and medium instructions.
@@ -1039,6 +1050,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     sd35_event = _event_context(spec) if spec.engine_id == "sd-3-5-medium" else ""
     sd35_audience = _audience_context(spec) if spec.engine_id == "sd-3-5-medium" else ""
     motif = _direction_motif(spec)
+    subject = _sdxl_renderer_subject(spec, subject, motif)
     colours = ", ".join(str(item["colour"]) for item in design["requested_palette"])
     relationship = (_concise_palette_relationship(spec, include_explicit=False) if spec.engine_id != "flux-2"
                     else _first_words(_palette_relationship(spec), 10))

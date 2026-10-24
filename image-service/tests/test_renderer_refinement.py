@@ -41,6 +41,72 @@ def document(subject="A layered botanical garden with paper flowers", primary="g
 
 
 class RendererConditioningTests(unittest.TestCase):
+    def _palette_role_retry_spec(self, relationship="Primary violet owns main visual mass; secondary amber remains substantial"):
+        brief = document("Abstract layered celebration background", "violet", "amber")
+        brief["brief"].update(
+            palette_relationship=relationship,
+            palette_relationship_source="user_explicit",
+            grill_me_context={"generation_constraints": ["No people or characters"]},
+            visual_semantics={"motif_descriptors": ["layered angular forms"],
+                              "motif_structure_description": "layered angular forms"},
+        )
+        return brief
+
+    def test_sdxl_palette_role_drift_targets_structured_mass_at_recovery_stage(self):
+        spec = build_candidate_spec(self._palette_role_retry_spec(), "sdxl-1-0", "A")
+        prompt = compile_candidate_prompt(spec, 4, "PALETTE_ROLE_DRIFT: secondary too small", concise=True)
+        self.assertIn("primary violet", prompt.clip_g.casefold())
+        self.assertIn("secondary amber", prompt.clip_g.casefold())
+        self.assertIn("largest chromatic mass", prompt.clip_g.casefold())
+        self.assertIn("neutrals", prompt.positive.casefold())
+
+    def test_sdxl_primary_missing_restores_principal_surfaces(self):
+        spec = build_candidate_spec(self._palette_role_retry_spec(), "sdxl-1-0", "A")
+        prompt = compile_candidate_prompt(spec, 7, "PRIMARY_MISSING: primary absent", concise=True)
+        self.assertIn("primary violet", prompt.clip_g.casefold())
+        self.assertIn("principal surfaces", prompt.clip_g.casefold())
+        self.assertIn("largest chromatic mass", prompt.clip_g.casefold())
+
+    def test_sdxl_secondary_missing_restores_substantial_regions(self):
+        spec = build_candidate_spec(self._palette_role_retry_spec(), "sdxl-1-0", "A")
+        prompt = compile_candidate_prompt(spec, 9, "SECONDARY_MISSING: secondary absent", concise=True)
+        self.assertIn("secondary amber", prompt.clip_g.casefold())
+        self.assertIn("secondary amber across several substantial", prompt.clip_g.casefold())
+        self.assertIn("primary violet", prompt.clip_g.casefold())
+
+    def test_sdxl_palette_role_retry_respects_balanced_and_secondary_dominant_relationships(self):
+        cases = (
+            ("Balance violet and amber equally across substantial surfaces", "balance primary violet and secondary amber"),
+            ("amber should be dominant; violet remains substantial", "secondary amber as largest chromatic mass"),
+        )
+        for relationship, expected in cases:
+            with self.subTest(relationship=relationship):
+                spec = build_candidate_spec(self._palette_role_retry_spec(relationship), "sdxl-1-0", "A")
+                prompt = compile_candidate_prompt(spec, 4, "PALETTE_ROLE_DRIFT: wrong dominance", concise=True)
+                self.assertIn(expected, prompt.clip_g.casefold())
+                self.assertNotIn("primary violet as largest chromatic mass", prompt.clip_g.casefold())
+                self.assertEqual(prompt.spec_sha256, spec.spec_sha256)
+
+    def test_sdxl_requested_neutral_remains_a_design_colour_on_role_retry(self):
+        brief = document("Abstract layered celebration background", "white", "navy")
+        brief["brief"].update(palette_relationship="white is the main field with navy accents",
+                              palette_relationship_source="user_explicit")
+        spec = build_candidate_spec(brief, "sdxl-1-0", "A")
+        retry = compile_candidate_prompt(spec, 4, "PALETTE_ROLE_DRIFT: roles reversed", concise=True)
+        self.assertIn("primary white as largest visual mass", retry.clip_g.casefold())
+        self.assertIn("secondary navy substantial", retry.clip_g.casefold())
+        self.assertNotIn("largest chromatic mass", retry.clip_g.casefold())
+        self.assertNotIn("neutrals support shading only", retry.clip_g.casefold())
+
+    def test_sdxl_palette_off_and_subject_recovery_remain_distinct(self):
+        spec = build_candidate_spec(self._palette_role_retry_spec(), "sdxl-1-0", "A")
+        initial = compile_candidate_prompt(spec, 1, concise=True)
+        palette = compile_candidate_prompt(spec, 4, "PALETTE_OFF: unrelated colour", concise=True)
+        self.assertIn("layered angular forms", initial.clip_l.casefold())
+        self.assertIn("layered angular forms", palette.clip_l.casefold())
+        self.assertIn("confine chromatic design to requested families", palette.clip_g.casefold())
+        self.assertEqual(initial.spec_sha256, palette.spec_sha256)
+
     def test_sdxl_abstract_subject_uses_approved_motifs_from_initial_attempt(self):
         brief = document("Comic-style technology hero celebration abstract background", "crimson", "amber")
         brief["brief"].update(

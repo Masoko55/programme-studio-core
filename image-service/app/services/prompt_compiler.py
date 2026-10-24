@@ -990,6 +990,53 @@ def _runtime_correction(category: str, stage: str) -> str:
 _PALETTE_FAILURES = ("PALETTE_OFF", "PALETTE_ROLE_DRIFT", "PRIMARY_MISSING", "SECONDARY_MISSING")
 
 
+def _sdxl_palette_role_retry(spec: CandidateSpec, category: str, stage: str) -> str:
+    """Target the failed colour role without changing the requested relationship."""
+    if spec.engine_id != "sdxl-1-0" or category not in _PALETTE_FAILURES[1:]:
+        return ""
+    palette = spec.visual_design["requested_palette"]
+    if not palette:
+        return ""
+    primary = str(palette[0]["colour"])
+    secondary = str(palette[1]["colour"]) if len(palette) > 1 else ""
+    neutral_requested = any(COLOUR_ALIASES.get(name.casefold(), name.casefold()) in NEUTRAL_NAMES
+                            for name in (primary, secondary) if name)
+    mass = "visual mass" if neutral_requested else "chromatic mass"
+    masses = "visual masses" if neutral_requested else "chromatic masses"
+    lead = {"normal": "Restore", "targeted_recovery": "Reallocate:",
+            "strict_recovery": "Simplify:", "rescue": "Prioritize:"}[stage]
+    if not secondary:
+        return (f"{lead} primary {primary} across major principal design surfaces."
+                if category == "PRIMARY_MISSING" else "")
+    policy = palette_relationship_policy(spec.visual_design["palette_relationship"],
+                                         spec.visual_design.get("palette_relationship_source"),
+                                         spec.secondary_colour)
+    dominance = policy["dominance_relationship"]
+    if category == "PALETTE_ROLE_DRIFT":
+        if dominance == "BALANCED":
+            roles = f"balance primary {primary} and secondary {secondary} as substantial {masses}"
+        elif dominance == "SECONDARY_DOMINANT":
+            roles = f"secondary {secondary} as largest {mass}; primary {primary} substantial"
+        elif dominance == "PRIMARY_DOMINANT":
+            roles = f"primary {primary} as largest {mass}; secondary {secondary} substantial"
+        else:
+            roles = f"primary {primary} and secondary {secondary} as substantial {masses}"
+        return f"{lead} {roles}."
+    if category == "PRIMARY_MISSING":
+        role = (f"as largest {mass}; preserve secondary {secondary}"
+                if dominance == "PRIMARY_DOMINANT" else
+                f"balanced with substantial secondary {secondary}" if dominance == "BALANCED" else
+                f"while secondary {secondary} keeps largest {mass}" if dominance == "SECONDARY_DOMINANT" else
+                f"with substantial secondary {secondary}")
+        return f"{lead} primary {primary} across principal surfaces {role}."
+    role = (f"keep primary {primary} largest {mass}"
+            if dominance == "PRIMARY_DOMINANT" else
+            f"balance with substantial primary {primary}" if dominance == "BALANCED" else
+            f"as largest {mass}; keep primary {primary} substantial" if dominance == "SECONDARY_DOMINANT" else
+            f"keep primary {primary} substantial")
+    return f"{lead} secondary {secondary} across several substantial regions; {role}."
+
+
 def _persistent_palette_correction(history, latest: str) -> str:
     """Keep unresolved palette drift alongside a newer, different failure."""
     if history is None or latest in _PALETTE_FAILURES:
@@ -1061,10 +1108,15 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     retry_category = runtime_retry_category(reason)
     full_correction = (_runtime_correction(retry_category, compiled.retry_stage)
                        if attempt > 1 else "")
+    role_correction = (_sdxl_palette_role_retry(spec, retry_category, compiled.retry_stage)
+                       if full_correction else "")
+    if role_correction:
+        full_correction = full_correction.replace(_RETRY_CORRECTIONS[retry_category], role_correction)
     if full_correction and retry_category == "SUBJECT_DRIFT" and _abstract_background_subject_retry(spec):
         full_correction = f"Correct the failed dimension conservatively: {_abstract_subject_correction(spec)}"
     short_correction = (_palette_retry_focus(compiled.retry_stage)
                         if runtime_retry_category(reason) == "PALETTE_OFF" and full_correction else
+                        role_correction if role_correction else
                         full_correction.split(": ", 1)[-1].split(" Preserve all original", 1)[0]
                         if full_correction else "")
     correction = (f"{compiled.retry_stage}: " + _first_words(short_correction, 18)
@@ -1125,7 +1177,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                            "", treatment, flags=re.I)
     treatment_line = (f"Treatment: {_first_words(treatment, 22)}."
                       if treatment else "")
-    short_treatment = _first_words(treatment, 10)
+    short_treatment = _first_words(treatment, 7 if role_correction else 10)
     for feature, label in (("viewpoint:first_person", "first-person viewpoint"),
                            ("viewpoint:aerial", "aerial viewpoint"),
                            ("depth:receding", "receding depth"),
@@ -1146,7 +1198,19 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     relationship_words = _palette_relationship(spec).split() if spec.engine_id == "flux-2" else ()
     short_relationship = (" ".join(relationship_words) if len(relationship_words) <= 10 else
                           " ".join((*relationship_words[:4], *relationship_words[-2:]))) if relationship_words else relationship
-    short_palette_line = (f"Palette: {colours}; {short_relationship}; "
+    role_policy = (palette_relationship_policy(design["palette_relationship"],
+                                                design.get("palette_relationship_source"),
+                                                spec.secondary_colour) if role_correction else None)
+    role_neutral_requested = (role_correction and any(
+        COLOUR_ALIASES.get(str(item["colour"]).casefold(), str(item["colour"]).casefold()) in NEUTRAL_NAMES
+        for item in design["requested_palette"]))
+    short_palette_line = (f"Palette: {colours}; "
+                          + (f"{role_policy['relationship']}; " if role_policy["explicit"] else "visual mass roles; ")
+                          + ("" if role_neutral_requested or
+                             role_policy["explicit"] and "neutral" in role_policy["relationship"].casefold()
+                             else "neutrals support shading only.")
+                          if role_correction else
+                          f"Palette: {colours}; {short_relationship}; "
                           "primary visual mass, secondary accents; neutrals support." if spec.engine_id == "flux-2" else
                           f"Palette: {short_relationship}" if colours else "")
     palette_l_line = (f"Palette: {full_relationship}" if spec.engine_id == "sdxl-1-0" else

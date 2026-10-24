@@ -204,7 +204,15 @@ class SimplifiedPipelineTests(unittest.TestCase):
                     self.assertEqual(len({item.positive for item in prompts}), 4)
                     for compiled in prompts:
                         positive = compiled.positive
-                        self.assertIn(phrase, positive)
+                        if engine == "sdxl-1-0" and failure in {
+                                "PALETTE_ROLE_DRIFT", "PRIMARY_MISSING", "SECONDARY_MISSING"}:
+                            self.assertIn({
+                                "PALETTE_ROLE_DRIFT": "substantial chromatic masses",
+                                "PRIMARY_MISSING": "across principal surfaces",
+                                "SECONDARY_MISSING": "across several substantial regions",
+                            }[failure], positive)
+                        else:
+                            self.assertIn(phrase, positive)
                         self.assertIn("Preserve all original requested semantics", positive)
                         for semantic in (spec.visual_design["primary_visual_subject"],
                                          spec.primary_colour,
@@ -241,7 +249,15 @@ class SimplifiedPipelineTests(unittest.TestCase):
                             self.assertIn(expected, effective)
                         self.assertIn("Composition:", effective)
                         if index:
-                            self.assertIn(phrases, effective)
+                            if engine == "sdxl-1-0" and category in {
+                                    "PALETTE_ROLE_DRIFT", "PRIMARY_MISSING", "SECONDARY_MISSING"}:
+                                self.assertIn({
+                                    "PALETTE_ROLE_DRIFT": "substantial chromatic masses",
+                                    "PRIMARY_MISSING": "across principal surfaces",
+                                    "SECONDARY_MISSING": "across several substantial regions",
+                                }[category], effective)
+                            else:
+                                self.assertIn(phrases, effective)
                             self.assertIn("Preserve all original requested semantics", effective)
                     if engine == "sdxl-1-0":
                         self.assertIn("targeted_recovery:", attempts[3].clip_g)

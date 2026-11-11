@@ -1,8 +1,10 @@
 import unittest
 import json
+import asyncio
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
+from unittest.mock import AsyncMock
 
 from app.config.settings import settings
 from app.services.comfyui_client import (
@@ -16,10 +18,223 @@ from app.services.comfyui_client import (
 )
 from app.services.candidate_spec import build_candidate_spec
 from app.services.prompt_compiler import compile_candidate_prompt
-from app.services.image_execution import _resume_retry_context
+from app.services.image_execution import _resume_retry_context, _prepare_engine
+from app.services.image_execution import execute_image_job
+from app.services.image_execution import _pre_attempt_slot_is_clean
+from app.schemas.image_job_state import ImageJobState, ImageOutputRecord
+from app.services.job_persistence import load_image_job_state, persist_image_job_state
 
 
 class NativeWorkflowProfileTests(unittest.TestCase):
+    def test_release_accepts_low_torch_memory_with_high_physical_reservation(self):
+        class Response:
+            def __init__(self, data):
+                self.data = data
+
+            def json(self):
+                return self.data
+
+        async def request(_self, method, path, **_kwargs):
+            if path == "/queue":
+                return Response({"queue_running": [], "queue_pending": []})
+            if path == "/free":
+                return Response({})
+            if path == "/system_stats":
+                return Response({"devices": [{"torch_vram_total": 32 * 1024 * 1024,
+                                               "vram_total": 24 * 1024**3,
+                                               "vram_free": 18 * 1024**3}]})
+            raise AssertionError(path)
+
+        clock = iter(range(1000000))
+        with patch.object(ComfyUIClient, "request", new=request), \
+             patch("app.services.comfyui_client.time.monotonic", side_effect=lambda: next(clock)), \
+             patch("app.services.comfyui_client.asyncio.sleep", new_callable=AsyncMock) as sleep:
+            asyncio.run(ComfyUIClient().release_models())
+        sleep.assert_not_awaited()
+
+    def test_release_times_out_when_torch_allocation_remains_high(self):
+        class Response:
+            def __init__(self, data):
+                self.data = data
+
+            def json(self):
+                return self.data
+
+        async def request(_self, _method, path, **_kwargs):
+            if path == "/queue":
+                return Response({"queue_running": [], "queue_pending": []})
+            if path == "/free":
+                return Response({})
+            if path == "/system_stats":
+                return Response({"devices": [{"torch_vram_total": 128 * 1024**2,
+                                               "vram_total": 24 * 1024**3,
+                                               "vram_free": 24 * 1024**3}]})
+            raise AssertionError(path)
+
+        clock = iter(range(1000000))
+        with patch.object(ComfyUIClient, "request", new=request), \
+             patch("app.services.comfyui_client.time.monotonic", side_effect=lambda: next(clock)), \
+             patch("app.services.comfyui_client.asyncio.sleep", new_callable=AsyncMock):
+            with self.assertRaisesRegex(ComfyUIError, "not confirmed"):
+                asyncio.run(ComfyUIClient().release_models())
+
+    def test_release_keeps_queue_and_api_failures_hard(self):
+        class Response:
+            def __init__(self, data):
+                self.data = data
+
+            def json(self):
+                return self.data
+
+        async def request(_self, _method, path, **_kwargs):
+            if path == "/queue":
+                return Response({"queue_running": [[1]], "queue_pending": []})
+            raise AssertionError(path)
+
+        with patch.object(ComfyUIClient, "request", new=request):
+            with self.assertRaisesRegex(ComfyUIError, "active jobs"):
+                asyncio.run(ComfyUIClient().release_models())
+        for failed_path in ("/free", "/system_stats"):
+            async def failing(_self, _method, path, **_kwargs):
+                if path == "/queue":
+                    return Response({"queue_running": [], "queue_pending": []})
+                if path == failed_path:
+                    raise ComfyUIError(f"{failed_path} unavailable")
+                return Response({})
+
+            with patch.object(ComfyUIClient, "request", new=failing):
+                with self.assertRaisesRegex(ComfyUIError, "unavailable"):
+                    asyncio.run(ComfyUIClient().release_models())
+
+    def test_pre_attempt_evidence_rejects_histories_and_corrupt_record(self):
+        output = ImageOutputRecord(engine_id="sdxl-1-0", engine_label="SDXL",
+                                   direction_id="B", status="pending")
+        with TemporaryDirectory() as directory, \
+             patch.object(settings, "programme_data_path", Path(directory)):
+            self.assertTrue(_pre_attempt_slot_is_clean("ABCDEF-123456", output, {}))
+            for record in ({"attempt_count": 1},
+                           {"status": "submitted", "attempt_count": 0},
+                           {"failed_attempts": [{"attempt_count": 1}]},
+                           {"rejected_attempts": [{"attempt_count": 1}]}):
+                self.assertFalse(_pre_attempt_slot_is_clean("ABCDEF-123456", output, record))
+            output.status = "failed"
+            self.assertFalse(_pre_attempt_slot_is_clean("ABCDEF-123456", output, {}))
+            output.status = "pending"
+            path = Path(directory) / "ABCDEF-123456" / "backgrounds" / "sdxl-1-0" / "image-b.json"
+            path.parent.mkdir(parents=True)
+            path.write_text("{broken", encoding="utf-8")
+            self.assertFalse(_pre_attempt_slot_is_clean("ABCDEF-123456", output, {}))
+
+    def test_same_engine_reuse_does_not_bypass_foreign_queue_guard(self):
+        class Response:
+            def json(self):
+                return {"queue_running": [[1, "foreign", {}, {"programme_request_id": "other"}]],
+                        "queue_pending": []}
+
+        class Client:
+            async def request(self, *_args):
+                return Response()
+
+            async def release_models(self):
+                raise AssertionError("foreign work must not be released")
+
+        output = ImageOutputRecord(engine_id="sdxl-1-0", engine_label="SDXL",
+                                   direction_id="B", status="pending")
+        with TemporaryDirectory() as directory, \
+             patch.object(settings, "programme_data_path", Path(directory)):
+            with self.assertRaisesRegex(RuntimeError, "another active job"):
+                asyncio.run(_prepare_engine(Client(), "ABCDEF-123456", output, "sdxl-1-0"))
+
+    def test_preparation_failure_is_resumable_without_consuming_attempt(self):
+        from app.services import image_execution as execution
+
+        reference = "ABCDEF-123456"
+        source = {"brief": {}, "directions": []}
+        plan = {"execution_order": [{"engine_id": "flux-2", "direction": "A"},
+                                    {"engine_id": "sdxl-1-0", "direction": "B"}]}
+        outputs = [ImageOutputRecord(engine_id="flux-2", engine_label="FLUX", direction_id="A",
+                                     status="complete", output_path="accepted.png"),
+                   ImageOutputRecord(engine_id="sdxl-1-0", engine_label="SDXL", direction_id="B",
+                                     status="pending")]
+        state = ImageJobState(reference_number=reference, status="ready", current_stage="planned",
+                              total_outputs=2, completed_outputs=1, outputs=outputs)
+
+        class Lease:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return None
+
+        class Response:
+            def json(self):
+                return {"models": [], "queue_running": [], "queue_pending": []}
+
+            def raise_for_status(self):
+                return None
+
+        class Http:
+            def __init__(self, **_kwargs):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return None
+
+            async def get(self, _url):
+                return Response()
+
+        class Client:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *_args):
+                return None
+
+            async def request(self, *_args):
+                return Response()
+
+            async def release_models(self):
+                return None
+
+        async def healthy(_client, _reference, output, _current):
+            return output.engine_id
+
+        async def wave(**kwargs):
+            self.assertEqual(kwargs["output"].status, "pending")
+            self.assertEqual(kwargs["output"].seed, None)
+            self.assertEqual(execution._resume_retry_context(
+                execution._candidate_record(reference, "sdxl-1-0", "B"))[0], 0)
+            from app.services.job_persistence import update_output
+            update_output(kwargs["state"], "sdxl-1-0", "B", "complete", "new.png", "sha")
+            return True, 1
+
+        with TemporaryDirectory() as directory, \
+             patch.object(settings, "programme_data_path", Path(directory)), \
+             patch.object(execution, "GPULease", Lease), \
+             patch.object(execution.httpx, "AsyncClient", Http), \
+             patch.object(execution, "ComfyUIClient", Client), \
+             patch.object(execution, "load_prompts_document", return_value=source), \
+             patch.object(execution, "build_execution_plan", return_value=plan), \
+             patch.object(execution, "_attempt_output_wave", side_effect=wave) as attempted:
+            persist_image_job_state(state)
+            with patch.object(execution, "_prepare_engine", side_effect=ComfyUIError("temporary release timeout")):
+                first = asyncio.run(execute_image_job(reference))
+            self.assertEqual(first.outputs[0].status, "complete")
+            self.assertEqual(first.outputs[1].status, "pending")
+            self.assertEqual(first.status, "processing")
+            self.assertEqual(first.outputs[1].seed, None)
+            self.assertFalse((Path(directory) / reference / "backgrounds" / "sdxl-1-0" / "image-b.json").exists())
+            attempted.assert_not_called()
+            with patch.object(execution, "_prepare_engine", side_effect=healthy):
+                second = asyncio.run(execute_image_job(reference))
+            self.assertEqual(second.outputs[0].output_path, "accepted.png")
+            self.assertEqual(second.outputs[1].output_path, "new.png")
+            self.assertEqual(load_image_job_state(reference).completed_outputs, 2)
+            attempted.assert_called_once()
+
     def test_candidate_record_stores_compiled_spec_before_remote_generation(self):
         document = {
             "reference_number": "ABCDEF-123456",

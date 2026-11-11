@@ -2358,28 +2358,17 @@ class ComfyUIClient:
                             * 1024
                             * 1024
                         )
-                        and (
-                            device.get(
-                                "vram_total",
-                                0,
-                            )
-                            - device.get(
-                                "vram_free",
-                                0,
-                            )
-                        )
-                        < (
-                            1024
-                            * 1024
-                            * 1024
-                        )
                     )
                     for device
                     in devices
                 )
             ):
                 logger.info(
-                    "event=comfyui_models_released"
+                    "event=comfyui_models_released torch_vram_total=%s "
+                    "physical_vram_used=%s",
+                    [device.get("torch_vram_total") for device in devices],
+                    [device.get("vram_total", 0) - device.get("vram_free", 0)
+                     for device in devices],
                 )
 
                 return

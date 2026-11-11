@@ -88,6 +88,25 @@ def _candidate_record(
         return {}
 
 
+def _pre_attempt_slot_is_clean(reference_number: str, output, record: dict) -> bool:
+    """Confirm persisted state contains no candidate or accepted output."""
+    path = (settings.programme_data_path / reference_number / "backgrounds"
+            / output.engine_id / f"image-{output.direction_id.lower()}.json")
+    if path.exists() and not record:
+        return False
+    return (
+        output.status == "pending"
+        and not any((output.output_path, output.sha256, output.seed,
+                     output.prompt_id, output.workflow_sha256))
+        and record.get("status") in (None, "pending")
+        and record.get("attempt_count", 0) == 0
+        and not any(record.get(key) for key in (
+            "rejected_attempts", "failed_attempts", "generated_attempts",
+            "candidate_history", "output_path", "sha256", "seed", "prompt_id",
+        ))
+    )
+
+
 def _candidate_was_rejected(
     reference_number: str,
     engine_id: str,
@@ -1886,14 +1905,6 @@ async def _prepare_engine(
     output,
     current_engine: str | None,
 ) -> str:
-    if (
-        current_engine
-        == output.engine_id
-    ):
-        return (
-            current_engine
-        )
-
     queue = (
         await client.request(
             "GET",
@@ -1941,32 +1952,20 @@ async def _prepare_engine(
             not own
             or any(
                 (
-                    entry[
-                        3
-                    ]
-                    .get(
-                        "programme_request_id"
-                    )
-                    != own.get(
-                        "request_id"
-                    )
+                    len(entry) <= 3
+                    or entry[3].get("programme_request_id")
+                    != own.get("request_id")
                 )
                 for entry
                 in entries
-                if (
-                    len(
-                        entry
-                    )
-                    > 3
-                )
             )
         ):
-            raise RuntimeError(
+            raise ComfyUIError(
                 "ComfyUI has another active job; "
                 "retry later."
             )
 
-    else:
+    elif current_engine != output.engine_id:
         await (
             client.release_models()
         )
@@ -2442,6 +2441,14 @@ def _finalize_generation_status(state, generated: int, stopped_for_max_outputs: 
             "candidates complete."
         )
 
+    elif pending > 0:
+        state.status = "processing"
+        state.current_stage = "generation_pending"
+        state.error = (
+            f"{completed}/{state.total_outputs} background candidates completed; "
+            f"{failed} failed; {pending} remain pending."
+        )
+
     elif (
         completed
         > 0
@@ -2646,8 +2653,10 @@ async def execute_image_job(
                             continue
 
                         try:
+                            preparing_engine = True
                             current_engine = await _prepare_engine(
                                 client, reference_number, output, current_engine)
+                            preparing_engine = False
                             state.current_stage = f"{output.engine_id}:{output.direction_id}"
                             persist_image_job_state(state)
                             _, newly_generated = await _attempt_output_wave(
@@ -2659,6 +2668,11 @@ async def execute_image_job(
                         except Exception as error:
                             logger.exception("Candidate slot failed: %s/%s", output.direction_id, output.engine_id)
                             record = _candidate_record(reference_number, output.engine_id, output.direction_id)
+                            resumable_preparation = (
+                                preparing_engine
+                                and isinstance(error, ComfyUIError)
+                                and _pre_attempt_slot_is_clean(reference_number, output, record)
+                            )
                             if int(record.get("attempt_count") or 0) < 9:
                                 logger.error(
                                     "event=candidate_stopped_early reference=%s engine=%s direction=%s "
@@ -2667,7 +2681,8 @@ async def execute_image_job(
                                     record.get("attempt_count", 0), failure_category(str(error)), str(error)[:300],
                                 )
                             update_output(state, output.engine_id, output.direction_id,
-                                          "failed", error=str(error)[:300])
+                                          "pending" if resumable_preparation else "failed",
+                                          error=str(error)[:300])
                             current_engine = None
                             newly_generated = 0
 

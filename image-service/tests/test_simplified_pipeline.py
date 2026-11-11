@@ -279,6 +279,19 @@ class SimplifiedPipelineTests(unittest.TestCase):
         self.assertEqual(state.status, "awaiting_selection")
         self.assertIn("2/3", state.error)
 
+    def test_pending_slot_keeps_generation_resumable(self):
+        outputs = [ImageOutputRecord(engine_id="flux-2", engine_label="FLUX",
+                                     direction_id="A", status="complete", output_path="accepted.png"),
+                   ImageOutputRecord(engine_id="sdxl-1-0", engine_label="SDXL",
+                                     direction_id="B", status="pending")]
+        state = ImageJobState(reference_number="ABCDEF-123456", status="processing",
+                              current_stage="generating", total_outputs=2,
+                              completed_outputs=1, outputs=outputs)
+        with patch("app.services.image_execution.persist_image_job_state"):
+            _finalize_generation_status(state, 0, False)
+        self.assertEqual(state.status, "processing")
+        self.assertEqual(state.current_stage, "generation_pending")
+
     def test_density_and_visual_quality_are_diagnostic_only(self):
         with tempfile.TemporaryDirectory() as root:
             path = Path(root) / "image.png"

@@ -858,10 +858,10 @@ def _extract_comfyui_execution_error(
 def _normalise_ocr_token(
     value: str,
 ) -> str:
-    """Return alphabetic OCR content suitable for text validation."""
+    """Return letter and digit OCR content suitable for text validation."""
 
     return re.sub(
-        r"[^A-Za-z]",
+        r"[^A-Za-z0-9]",
         "",
         str(
             value
@@ -1177,7 +1177,7 @@ def _ocr_items(data: dict, image_size: tuple[int, int], scale: float = 1.0) -> l
     for index, (raw, confidence) in enumerate(zip(data.get("text", []), data.get("conf", []))):
         token = _normalise_ocr_token(raw)
         score = _ocr_confidence(confidence)
-        if len(token) < 4 or score < 45:
+        if (len(token) < 4 and not (len(token) >= 3 and score >= 85)) or score < 45:
             continue
         box = tuple(int(data.get(key, [0] * len(data.get("text", [])))[index] / scale)
                     for key in ("left", "top", "width", "height"))
@@ -1196,6 +1196,28 @@ def _ocr_same_region(first: dict, second: dict) -> bool:
     if not all((w1, h1, w2, h2)):
         return True  # OCR mocks without box coordinates.
     return abs((x1 + w1 / 2) - (x2 + w2 / 2)) <= max(w1, w2) and abs(y1 - y2) <= max(h1, h2)
+
+
+def _strong_ocr_glyph_row(data: dict) -> bool:
+    """Recognize several aligned OCR glyph groups without treating scattered texture as text."""
+    marks = []
+    for index, raw in enumerate(data.get("text", [])):
+        token = _normalise_ocr_token(raw)
+        if not 2 <= len(token) <= 3 or _ocr_confidence(data["conf"][index]) < 35:
+            continue
+        x, y, w, h = (int(data[key][index]) for key in ("left", "top", "width", "height"))
+        if w >= 5 and h >= 6:
+            marks.append((x, y + h, w, h))
+    for mark in marks:
+        row = sorted((item for item in marks
+                      if abs(item[1] - mark[1]) <= max(4, mark[3] // 3)), key=lambda item: item[0])
+        if len(row) < 4:
+            continue
+        gaps = [right[0] - (left[0] + left[2]) for left, right in zip(row, row[1:])]
+        width = max(item[2] for item in row)
+        if all(0 <= gap <= 2 * width for gap in gaps) and max(gaps) - min(gaps) <= width:
+            return True
+    return False
 
 
 def _ocr_data(image: Image.Image, config: str, variant: str, diagnostics: dict | None) -> dict | None:
@@ -1322,6 +1344,7 @@ def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = 
                    "_deadline": time.monotonic() + max(30.0, pass_timeout * 5)}
     grey = image.convert("L")
     raw = _ocr_data(grey, "--psm 11", "original", diagnostics)
+    ocr_glyph_row = _strong_ocr_glyph_row(raw) if raw is not None else False
     items = _ocr_items(raw or {}, image.size)
     original_items = list(items)
     contrast = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(np.asarray(grey))
@@ -1374,7 +1397,9 @@ def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = 
                 match["passes"].add(pass_name)
                 match["confidence"] = max(match["confidence"], candidate["confidence"])
 
-    confirmed = [item for item in items if item["crop_confirmed"] or len(item["passes"]) >= 2]
+    confirmed = [item for item in items if item["crop_confirmed"] or len(item["passes"]) >= 2
+                 or ("original" in item["passes"] and item["confidence"] >= 85
+                     and len(item["token"]) >= 3)]
     lines = []
     for index, first in enumerate(confirmed):
         x1, y1, w1, h1 = first["bbox"]
@@ -1387,7 +1412,12 @@ def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = 
     strong_single.extend(item for item in confirmed if len(item["token"]) >= 5
                          and item["area_ratio"] >= 0.01
                          and (item["crop_confirmed"] or len(item["passes"]) >= 2))
+    strong_single.extend(item for item in confirmed if len(item["token"]) >= 3
+                         and item["confidence"] >= 85 and "original" in item["passes"])
     pseudo_text = _pseudo_text_evidence(image)
+    if ocr_glyph_row:
+        pseudo_text["detected"] = True
+        pseudo_text["ocr_glyph_row"] = True
     if not pseudo_text["detected"] and _single_row_ocr_confirmation(items, pseudo_text, image.size):
         pseudo_text["detected"] = True
         pseudo_text["single_row_ocr_confirmed"] = True
@@ -1412,7 +1442,8 @@ def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = 
         "text_detected": detected,
         "pseudo_text": pseudo_text,
         "tokens": [item["token"] for item in items],
-        "confirmed_tokens": list(dict.fromkeys(item["token"] for item in selected)),
+        "confirmed_tokens": list(dict.fromkeys([*(item["token"] for item in selected),
+                                                  *(["pseudo-text"] if ocr_glyph_row else [])])),
         "text_lines": lines,
         "max_confidence": max((item["confidence"] for item in items), default=0),
         "confirmation_passes": sorted({name for item in selected for name in item["passes"]}),

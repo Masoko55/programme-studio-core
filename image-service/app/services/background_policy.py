@@ -279,6 +279,7 @@ COLOUR_FAMILIES = {
 
 
 MAX_OFF_PALETTE_RATIO = 0.05
+NEAR_DERIVATIVE_MAX_DELTA_E = 24.0
 
 MIN_PRIMARY_COLOUR_RATIO = 0.05
 
@@ -2766,6 +2767,7 @@ def validate_palette(
     confirmed_requested_mask = np.zeros(total, dtype=np.uint8)
     adjacent_rendering_mask = np.zeros(total, dtype=np.uint8)
     adjacent_rendering_pixels = []
+    near_neutral_derivative_pixels = []
     requested_target_names = {target["name"] for target in requested_targets}
 
     off_palette_named_counts: dict[
@@ -2790,6 +2792,11 @@ def validate_palette(
                 family = "black"
             elif "grey" in requested_neutrals or "gray" in requested_neutrals:
                 family = "grey" if "grey" in requested_neutrals else "gray"
+        if family == "white" and not exclusive_palette and chroma > 12:
+            white_distance = float(np.linalg.norm(lab - np.array((100.0, 0.0, 0.0))))
+            if 14 < white_distance <= NEAR_DERIVATIVE_MAX_DELTA_E:
+                near_neutral_derivative_pixels.append(index)
+                continue
         if family is None:
             family = _perceptual_palette_family(lab, requested_targets, int(hue),
                                                 allow_saturated_tones=not exclusive_palette)
@@ -2873,6 +2880,15 @@ def validate_palette(
         name = _nearest_named_colour(rgb_pixels[index])
         off_palette_named_counts[name] = off_palette_named_counts.get(name, 0) + 1
 
+    bounded_neutral_derivative = len(near_neutral_derivative_pixels) / total <= 0.08
+    if not bounded_neutral_derivative:
+        for index in near_neutral_derivative_pixels:
+            unrelated_hue_count += 1
+            off_palette_count += 1
+            unrelated_chromatic_mask[index] = 1
+            name = _nearest_named_colour(rgb_pixels[index])
+            off_palette_named_counts[name] = off_palette_named_counts.get(name, 0) + 1
+
     # Ambiguous adjacent hues may be incidental when dispersed. A coherent
     # region remains a separate design colour; established family members do
     # not depend on region size.
@@ -2921,6 +2937,8 @@ def validate_palette(
         (off_palette_count if exclusive_palette else unrelated_hue_count) / total
     )
     perceptual_metrics = {
+        "near_palette_derivative_ratio": (len(near_neutral_derivative_pixels) / total
+                                          if bounded_neutral_derivative else 0.0),
         "requested_palette_blend_ratio": len(palette_blend_pixels) / total if bounded_blend else 0.0,
         "primary_chromatic_mass": chromatic_mass.get(primary_name, 0.0) / total,
         "secondary_chromatic_mass": chromatic_mass.get(secondary_name, 0.0) / total,

@@ -85,6 +85,24 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_display_copy_stays_out_of_active_conditioning(self):
+        document = document_for(CASES[2])
+        document["brief"].update(title_preference="WELCOME 2026", event_date="24 December 2026",
+                                 venue="Rose Garden Hall")
+        document["directions"][0]["direction"]["positive_prompt"] = (
+            "Layered paper flower garden, Title: WELCOME 2026, Venue: Rose Garden Hall"
+        )
+        for engine in ("flux-2", "sdxl-1-0", "sd-3-5-medium"):
+            with self.subTest(engine=engine):
+                spec = build_candidate_spec(document, engine, "B")
+                for attempt, reason in ((1, ""), (4, "Generated background contains readable text")):
+                    compiled = compile_candidate_prompt(spec, attempt, reason)
+                    for channel in (compiled.positive, compiled.clip_l, compiled.clip_g, compiled.t5 or ""):
+                        for copy in ("WELCOME 2026", "Rose Garden Hall", "24 December 2026"):
+                            self.assertNotIn(copy, channel)
+                    self.assertIn("paper flowers", compiled.positive.casefold())
+                    self.assertEqual(compiled.spec_sha256, spec.spec_sha256)
+
     def test_final_workflow_keeps_text_exclusions_for_each_engine(self):
         for engine in ("sdxl-1-0", "sd-3-5-medium", "flux-2"):
             spec = build_candidate_spec(document_for(CASES[0]), engine, "B")

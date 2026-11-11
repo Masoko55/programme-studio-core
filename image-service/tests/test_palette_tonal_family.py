@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 from PIL import Image
 
-from app.services.background_policy import NAMED_COLOURS, validate_palette
+from app.services.background_policy import NAMED_COLOURS, _palette_role_metrics, validate_palette
 
 
 BLUE_SHADE = (32, 24, 48)
@@ -35,6 +35,46 @@ def patterned_rendering(tone):
 
 
 class PaletteTonalFamilyTests(unittest.TestCase):
+    def test_required_two_chromatic_roles_are_not_trace_accents(self):
+        for counts in ({"green": 488, "purple": 38},
+                       {"red": 96, "gold": 483}):
+            with self.subTest(counts=counts), self.assertRaisesRegex(ValueError, "PALETTE_ROLE_DRIFT"):
+                primary, secondary = tuple(counts)
+                _palette_role_metrics(primary, secondary, counts, 1000, "",
+                                      "dominant", None, "default")
+
+    def test_two_chromatic_dominant_palette_has_requested_visual_mass(self):
+        pixels = np.empty((176, 128, 3), dtype=np.uint8)
+        pixels[:, :38] = NAMED_COLOURS["green"]
+        pixels[:, 38:76] = NAMED_COLOURS["purple"]
+        pixels[:, 76:] = (150, 150, 150)
+        with self.assertRaisesRegex(ValueError, "PALETTE_ROLE_DRIFT"):
+            validate_palette(Image.fromarray(pixels), "green", "purple", quality_result={})
+
+    def test_meaningful_two_chromatic_roles_and_neutral_support_pass(self):
+        for primary, secondary, counts in (
+            ("green", "purple", {"green": 380, "purple": 320}),
+            ("red", "gold", {"red": 420, "gold": 280}),
+        ):
+            with self.subTest(primary=primary):
+                metrics = _palette_role_metrics(primary, secondary, counts, 1000, "",
+                                                "dominant", None, "default")
+                self.assertTrue(metrics["secondary_presence"])
+                self.assertTrue(metrics["dominance_relationship_passed"])
+        for primary, secondary, counts, relationship, mode, palette in (
+            ("pink", "white", {"pink": 250, "white": 500}, "", "dominant", None),
+            ("black", "white", {"black": 450, "white": 500}, "", "achromatic", None),
+            ("green", "purple", {"green": 700, "purple": 0}, "", "dominant",
+             [{"role": "primary"}, {"role": "optional"}]),
+            ("green", None, {"green": 700}, "", "monochrome", None),
+            ("green", "purple", {"green": 340, "purple": 360}, "balanced green and purple",
+             "dominant", None),
+            ("red", "gold", {"red": 250, "gold": 450}, "gold dominant", "dominant", None),
+        ):
+            with self.subTest(primary=primary, secondary=secondary, relationship=relationship):
+                _palette_role_metrics(primary, secondary, counts, 1000, relationship,
+                                      mode, palette, "user_explicit")
+
     def test_distributed_requested_blend_is_not_a_declared_colour(self):
         pixels = np.empty((176, 128, 3), dtype=np.uint8)
         pixels[:, :64] = NAMED_COLOURS["green"]

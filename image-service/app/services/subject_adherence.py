@@ -137,7 +137,52 @@ def _supported_literal_object_claim(answer: dict, visual_design: dict) -> bool:
 
     object_words = words(evidence["object"])
     authorized_words = words(str(visual_design.get("authorized_literal_subject") or ""))
+    semantics = visual_design.get("visual_semantics") or {}
+    motif_words = words(" ".join((*(str(item) for item in semantics.get("motif_descriptors", [])),
+                                 str(semantics.get("motif_structure_description") or ""))))
+    distinctive_motif_words = motif_words - {
+        "abstract", "decorative", "motif", "pattern", "geometry", "shape", "form", "small", "repeated",
+    }
+    distributed = bool(re.search(r"\b(?:distributed|throughout|repeated|multiple|several)\b",
+                                 evidence["object"] + " " + evidence["location"], re.I))
+    focal = bool(re.search(r"\b(?:central|center|centre|focal|isolated|dominant|badge|logo|emblem|"
+                           r"insignia|shield|crest)\b",
+                           evidence["object"] + " " + evidence["location"], re.I))
+    if distributed and not focal and object_words & distinctive_motif_words:
+        return False
     return bool(object_words and not object_words.issubset(authorized_words))
+
+
+def _vision_response_problem(error: Exception) -> tuple[str, list[str]]:
+    """Classify structural response failures without retaining model text."""
+    message = str(error)
+    if "boolean character_visible" in message:
+        return "MISSING_CHARACTER_EVIDENCE", ["character_visible"]
+    if "boolean unrequested_literal_object_visible" in message:
+        return "MISSING_LITERAL_OBJECT_EVIDENCE", ["unrequested_literal_object_visible"]
+    if "observed evidence" in message:
+        return "INVALID_OBSERVED_EVIDENCE", ["observed_evidence"]
+    if isinstance(error, json.JSONDecodeError):
+        return "MALFORMED_RESPONSE", []
+    if message.startswith("Vision response lacks "):
+        names = re.findall(r"\b(?:subject_score|atmosphere_score|motif_score|treatment_score|"
+                           r"audience_fit_score|background_usability_score)\b", message)
+        return "MISSING_REQUIRED_FIELD", names
+    if "score" in message.casefold():
+        return "INVALID_SCORE", []
+    if message == "Unsupported literal-object claim":
+        return "UNSUPPORTED_LITERAL_OBJECT_EVIDENCE", ["unrequested_literal_object_evidence"]
+    return "INVALID_STRUCTURED_RESPONSE", []
+
+
+def _requires_prohibited_character_correction(reason: object, visual_design: dict) -> bool:
+    """Reassess a claim that absent prohibited figures are required by the brief."""
+    if visual_design.get("characters_prohibited") is not True or not isinstance(reason, str):
+        return False
+    absent = re.search(r"\b(?:lacks?|missing|absen[ct]|no)\b.{0,55}\b(?:human|person|people|"
+                       r"character|figure|humanoid|costumed)\b", reason, re.I)
+    required = re.search(r"\b(?:required|expected|needed|should be present)\b", reason, re.I)
+    return bool(absent and required)
 
 
 def select_vision_endpoint(model_name: str) -> str:
@@ -614,6 +659,12 @@ def assess_subject_adherence(
         "Judge whether visible forms work as visual background artwork for the requested event, theme and subject. "
         "Do not require visible attendees, a venue or literal event objects unless explicitly requested; "
         "an absent explicitly required subject or defining motif still scores low in its own dimension. "
+        "When people or characters are prohibited, absence of prohibited people and characters is required; "
+        "never lower subject, motif, treatment or audience scores because they are absent. "
+        "A named theme reference does not require a named character, person, costume, face or body. "
+        "Requested abstract geometry, pattern topology, motion, composition, texture, materials, atmosphere "
+        "and spatial relationships can fully satisfy background subject fidelity. "
+        "Evaluate only visible evidence against the supplied subject and semantic contract. "
         "Also give background_usability_score for hierarchy, controlled density, and usable calm space, "
         "and human_visible as a boolean based on visible human evidence, including small or distant people. "
         "When characters are prohibited, independently report character_visible as a JSON boolean. "
@@ -802,10 +853,34 @@ def assess_subject_adherence(
                             request["prompt"] += clarification
                         raise ValueError("Unsupported literal-object claim")
                     literal_evidence_unavailable = True
+                if (not assessment_attempt and
+                        _requires_prohibited_character_correction(answer.get("reason"), visual_design)):
+                    correction = (" The prior explanation incorrectly treated absence of prohibited figures "
+                                  "as a defect. Reassess these same pixels against the same brief. "
+                                  "Do not require a prohibited character; return all required fields and scores.")
+                    if endpoint == "/api/chat":
+                        request["messages"][0]["content"] += correction
+                    else:
+                        request["prompt"] += correction
+                    debug["semantic_contradiction_reassessment"] = True
+                    continue
                 break
-            except (ValueError, TypeError):
+            except (ValueError, TypeError) as error:
                 if assessment_attempt:
                     raise
+                code, fields = _vision_response_problem(error)
+                debug["first_response_error_code"] = code
+                debug["first_response_error_fields"] = fields
+                field_description = ("boolean " + fields[0] if code.startswith("MISSING_") and
+                                     code.endswith("_EVIDENCE") and fields else ", ".join(fields))
+                correction = (" The previous response was incomplete or invalid: "
+                              + ("missing " + field_description if fields else code.lower().replace("_", " "))
+                              + ". Reassess the same image and return one complete JSON object with valid "
+                                "numeric scores, observed_evidence, and all required JSON booleans.")
+                if endpoint == "/api/chat":
+                    request["messages"][0]["content"] += correction
+                else:
+                    request["prompt"] += correction
 
         debug[
             "http_status"
@@ -1048,6 +1123,11 @@ def assess_subject_adherence(
         TypeError,
         ValueError,
     ) as error:
+        code, fields = _vision_response_problem(error)
+        if isinstance(error, httpx.HTTPError):
+            code, fields = "TRANSPORT_ERROR", []
+        debug["validation_error_code"] = code
+        debug["validation_error_fields"] = fields
         debug[
             "parse_error"
         ] = (
@@ -1061,6 +1141,8 @@ def assess_subject_adherence(
                 "Vision check unavailable: "
                 f"{type(error).__name__}"
             ),
+            "vision_error_code": code,
+            "vision_error_fields": fields,
             "vision_human_signal": vision_human,
             "human_description": human_description,
             "vision_debug": debug,

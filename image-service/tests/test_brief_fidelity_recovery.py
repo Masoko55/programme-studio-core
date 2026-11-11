@@ -33,6 +33,91 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_prohibited_character_absence_is_success_in_vision_contract(self):
+        design = {"primary_visual_subject": "abstract mechanical background",
+                  "characters_prohibited": True,
+                  "visual_semantics": {"motif_descriptors": ["circular energy patterns"]}}
+        result, prompt = self._assess(design, {
+            "subject_score": .95, "motif_score": .95, "character_visible": False,
+            "human_visible": False, "observed_evidence": ["abstract geometric energy forms"],
+            "reason": "The image lacks human figures, as required by the brief.",
+        })
+        self.assertEqual(result["decision"], "pass")
+        self.assertIs(result["vision_human_signal"], False)
+        self.assertIn("absence of prohibited people", prompt)
+
+    def test_distributed_requested_motif_is_not_a_literal_object(self):
+        design = {"primary_visual_subject": "abstract decorative background",
+                  "motif_literalization_policy": "motif_only",
+                  "visual_semantics": {"motif_descriptors": ["small bat-like abstract motifs"]}}
+        response = {"subject_score": .95, "motif_score": .95,
+                    "unrequested_literal_object_visible": True,
+                    "unrequested_literal_object_evidence": {
+                        "object": "several small bat-like abstract motifs",
+                        "location": "distributed throughout the background",
+                        "why_unrequested": "motif pattern rather than requested subject",
+                    },
+                    "observed_evidence": ["several small bat-like abstract motifs distributed throughout the background"]}
+        result, _ = self._assess(design, response)
+        self.assertNotEqual(result["decision"], "UNREQUESTED_LITERAL_OBJECT")
+        focal = dict(response, unrequested_literal_object_evidence={
+            "object": "large isolated bat-shaped badge", "location": "central foreground",
+            "why_unrequested": "focal emblem is not the requested motif pattern or subject",
+        })
+        rejected, _ = self._assess(design, focal)
+        self.assertEqual(rejected["decision"], "UNREQUESTED_LITERAL_OBJECT")
+
+    def test_missing_character_field_repairs_second_assessment_and_reports_safe_reason(self):
+        design = {"primary_visual_subject": "abstract decorative background",
+                  "characters_prohibited": True}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "candidate.png"
+            Image.new("RGB", (32, 32), "white").save(path)
+            def response(body):
+                result = Mock(status_code=200, headers={"content-type": "application/json"})
+                result.json.return_value = {"message": {"content": json.dumps(body)}}
+                return result
+            base = {"subject_score": .95, "observed_evidence": ["abstract forms"],
+                    "reason": "background matches", "human_visible": False}
+            with patch("app.services.subject_adherence.httpx.post", side_effect=[
+                response(base), response({**base, "character_visible": False})]) as send:
+                repaired = assess_subject_adherence(path, design, model="minicpm-v4.5:latest")
+                self.assertEqual(send.call_count, 2)
+                self.assertTrue(repaired["checked"])
+                second_prompt = send.call_args_list[1].kwargs["json"]["messages"][0]["content"]
+                self.assertIn("missing boolean character_visible", second_prompt)
+            with patch("app.services.subject_adherence.httpx.post", side_effect=[
+                response(base), response(base)]) as send:
+                unavailable = assess_subject_adherence(path, design, model="minicpm-v4.5:latest")
+                self.assertEqual(send.call_count, 2)
+                self.assertFalse(unavailable["checked"])
+                self.assertEqual(unavailable["decision"], "unavailable")
+                self.assertEqual(unavailable["vision_error_code"], "MISSING_CHARACTER_EVIDENCE")
+
+    def test_prohibited_character_expectation_is_reassessed_on_same_image(self):
+        design = {"primary_visual_subject": "abstract mechanical background",
+                  "characters_prohibited": True,
+                  "visual_semantics": {"motif_descriptors": ["circular energy patterns"]}}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "candidate.png"
+            Image.new("RGB", (32, 32), "white").save(path)
+            def response(subject_score, reason):
+                result = Mock(status_code=200, headers={"content-type": "application/json"})
+                result.json.return_value = {"message": {"content": json.dumps({
+                    "subject_score": subject_score, "motif_score": .95,
+                    "character_visible": False, "human_visible": False,
+                    "observed_evidence": ["abstract mechanical geometry and circular patterns"],
+                    "reason": reason,
+                })}}
+                return result
+            with patch("app.services.subject_adherence.httpx.post", side_effect=[
+                response(.2, "The image lacks literal human figures or characters required for the subject."),
+                response(.95, "The abstract background matches; absent characters are required.")]) as send:
+                result = assess_subject_adherence(path, design, model="minicpm-v4.5:latest")
+                self.assertEqual(send.call_count, 2)
+                self.assertNotEqual(result["decision"], "SUBJECT_DRIFT")
+                self.assertEqual(result["subject_score"], .95)
+
     def test_vision_rubric_scores_background_fit_without_requiring_literal_event_scene(self):
         for subject in ("formal abstract geometry", "decorative flowers", "quiet floral forms"):
             with self.subTest(subject=subject):

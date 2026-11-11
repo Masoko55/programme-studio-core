@@ -2428,6 +2428,8 @@ def _palette_role_metrics(primary_name: str | None, secondary_name: str | None,
     secondary_role = roles[1] if len(roles) > 1 else "secondary"
     monochromatic = mode in {"monochrome", "achromatic"} or bool(re.search(r"\bmonochrom", phrase)) or not secondary_name
     optional = "optional" in secondary_role or bool(re.search(r"\b(optional|if present|may appear)\b", phrase))
+    two_chromatic = bool(primary_name and secondary_name and
+                         primary_name not in NEUTRAL_NAMES and secondary_name not in NEUTRAL_NAMES)
     balanced = bool(re.search(r"\b(balanced|equal|equally|even split)\b", phrase))
     policy = palette_relationship_policy(relationship, relationship_source, secondary_name)
     explicit = policy["explicit"]
@@ -2435,8 +2437,10 @@ def _palette_role_metrics(primary_name: str | None, secondary_name: str | None,
     primary_ratio = counts.get(primary_name, 0) / total if primary_name else None
     secondary_ratio = counts.get(secondary_name, 0) / total if secondary_name else None
     strong_secondary = "strong" in secondary_role or bool(re.search(r"\b(strong|substantial|prominent)\s+(?:\w+\s+)?(?:secondary|accent)", phrase))
-    secondary_minimum = (0 if optional or monochromatic else .05 if strong_secondary else
-                         .02 if balanced or "support" in secondary_role else MIN_SECONDARY_COLOUR_RATIO)
+    secondary_minimum = (0 if optional or monochromatic else .06 if two_chromatic and mode in {None, "dominant"} else
+                         .05 if strong_secondary else .02 if balanced or "support" in secondary_role else
+                         MIN_SECONDARY_COLOUR_RATIO)
+    primary_minimum = (.12 if two_chromatic and mode in {None, "dominant"} else MIN_PRIMARY_COLOUR_RATIO)
     presence = secondary_ratio is None or secondary_ratio >= secondary_minimum
     dominance = (True if relation in {"FLEXIBLE", "MONOCHROMATIC"} or primary_ratio is None or secondary_ratio is None else
                  abs(primary_ratio - secondary_ratio) <= .20 if relation == "BALANCED" else
@@ -2464,10 +2468,11 @@ def _palette_role_metrics(primary_name: str | None, secondary_name: str | None,
                "secondary_presence": presence, "dominance_relationship": relation,
                "dominance_relationship_passed": dominance, "secondary_role": secondary_role,
                "secondary_minimum": secondary_minimum,
+               "primary_minimum": primary_minimum,
                "palette_relationship_source": policy["source"],
                "palette_role_warning": ("PALETTE_ROLE_WARNING" if not explicit and primary_ratio is not None
                                         and secondary_ratio is not None and primary_ratio < secondary_ratio else None)}
-    if primary_name and primary_name not in NEUTRAL_NAMES and primary_ratio is not None and primary_ratio < MIN_PRIMARY_COLOUR_RATIO:
+    if primary_name and primary_name not in NEUTRAL_NAMES and primary_ratio is not None and primary_ratio < primary_minimum:
         error = ValueError("PALETTE_ROLE_DRIFT: requested primary colour is not meaningfully present")
     elif not presence:
         error = ValueError("PALETTE_ROLE_DRIFT: required secondary colour is absent or too small")
@@ -3041,10 +3046,9 @@ def validate_palette(
         }
         raise error
 
-    policy = palette_relationship_policy(relationship, relationship_source, secondary_name)
     if (mode not in {"strict", "monochrome", "achromatic"} and not exclusive_palette
-            and requested_targets and not requested_neutrals and not policy["explicit"]
-            and requested_chromatic_ratio <= structural_neutral_ratio):
+            and len(requested_targets) == 2 and not requested_neutrals
+            and requested_chromatic_ratio < .60):
         error = ValueError("PALETTE_ROLE_DRIFT: requested colour families do not dominate the visual mass")
         error.palette_metrics = {"off_palette_ratio": off_palette_ratio, **perceptual_metrics,
                                  "requested_colour_family_counts": requested_counts,

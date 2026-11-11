@@ -147,8 +147,9 @@ def _supported_literal_object_claim(answer: dict, visual_design: dict) -> bool:
     object_words = words(evidence["object"])
     authorized_words = words(str(visual_design.get("authorized_literal_subject") or ""))
     semantics = visual_design.get("visual_semantics") or {}
-    motif_words = words(" ".join((*(str(item) for item in semantics.get("motif_descriptors", [])),
-                                 str(semantics.get("motif_structure_description") or ""))))
+    motif_description = " ".join((*(str(item) for item in semantics.get("motif_descriptors", [])),
+                                  str(semantics.get("motif_structure_description") or "")))
+    motif_words = words(motif_description)
     distinctive_motif_words = motif_words - {
         "abstract", "decorative", "motif", "pattern", "geometry", "shape", "form", "small", "repeated",
         "like", "distributed", "style", "styled", "inspired", "visual", "graphic", "geometric",
@@ -158,7 +159,13 @@ def _supported_literal_object_claim(answer: dict, visual_design: dict) -> bool:
     focal = bool(re.search(r"\b(?:central|center|centre|focal|isolated|dominant|badge|logo|emblem|"
                            r"insignia|shield|crest)\b",
                            evidence["object"] + " " + evidence["location"], re.I))
-    if distributed and not focal and object_words & distinctive_motif_words:
+    abstract_reference = bool(re.search(r"\babstract\b|\b\w+-(?:like|inspired)\b", motif_description, re.I))
+    literal_source_claim = bool(re.search(r"\b(?:literal|realistic|depicted|whole)\b",
+                                          evidence["object"] + " " + evidence["why_unrequested"], re.I))
+    abstract_form = bool(re.search(r"\b(?:abstract|geometric|geometry|patterns?|motifs?|shapes?|"
+                                   r"lines?|silhouettes?)\b", evidence["object"], re.I))
+    if (distributed and not focal and object_words & distinctive_motif_words
+            and not (abstract_reference and (literal_source_claim or not abstract_form))):
         return False
     return bool(object_words and not object_words.issubset(authorized_words))
 
@@ -192,6 +199,11 @@ def _requires_prohibited_character_correction(reason: object, visual_design: dic
     if re.search(r"\b(?:as required|correctly absent|appropriately absent|matches the brief|"
                  r"consistent with the request|prohibited|not requested|which is correct)\b", reason, re.I):
         return False
+    if (not str(visual_design.get("authorized_literal_subject") or "").strip()
+            and re.search(r"\b(?:missing|lacks?)\s+(?:an?\s+|the\s+)?(?:central|focal)\s+"
+                          r"(?:(?:subject|figure)\s+or\s+)?(?:character|person|human|humanoid)\b",
+                          reason, re.I)):
+        return True
     figure = r"(?:human|person|people|character|figure|humanoid|costumed)\w*"
     absence = r"(?:lacks?|missing|absent|none|no)"
     requirement = r"(?:required|expected|requested|needed|should be present|needs?)"

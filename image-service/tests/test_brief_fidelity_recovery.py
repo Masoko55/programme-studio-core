@@ -35,6 +35,98 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_abstract_source_motif_does_not_authorize_literal_objects(self):
+        for motif, object_name in (("small bat-like abstract motifs", "several literal bats"),
+                                   ("small bat-like abstract motifs", "several bats"),
+                                   ("bird-inspired abstract line geometry", "multiple literal birds"),
+                                   ("bird-inspired abstract line geometry", "multiple birds"),
+                                   ("face-like decorative geometry", "several literal faces")):
+            with self.subTest(motif=motif):
+                design = {"primary_visual_subject": "abstract decorative background",
+                          "motif_literalization_policy": "motif_only",
+                          "visual_semantics": {"motif_descriptors": [motif]}}
+                result, _ = self._assess(design, {
+                    "subject_score": .9, "motif_score": .9,
+                    "unrequested_literal_object_visible": True,
+                    "unrequested_literal_object_evidence": {
+                        "object": object_name,
+                        "location": "distributed throughout the background",
+                        "why_unrequested": ("literal source of the requested abstract motif, not the subject"
+                                            if "literal" in object_name else
+                                            "source object introduced by the requested motif, not the subject"),
+                    },
+                })
+                self.assertEqual(result["decision"], "UNREQUESTED_LITERAL_OBJECT")
+
+    def test_missing_prohibited_central_character_triggers_bounded_reassessment(self):
+        design = {"primary_visual_subject": "abstract geometric background",
+                  "characters_prohibited": True,
+                  "visual_semantics": {"motif_descriptors": ["distributed angular geometry"]}}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "candidate.png"
+            Image.new("RGB", (32, 32), "white").save(path)
+            def response(score, reason):
+                reply = Mock(status_code=200, headers={"content-type": "application/json"})
+                reply.json.return_value = {"message": {"content": json.dumps({
+                    "subject_score": score, "motif_score": .9, "atmosphere_score": .9,
+                    "audience_fit_score": .9, "background_usability_score": .9,
+                    "human_visible": False, "character_visible": False,
+                    "observed_evidence": ["requested abstract geometric forms"],
+                    "reason": reason,
+                })}}
+                return reply
+            with patch("app.services.subject_adherence.httpx.post", side_effect=[
+                response(.2, "Missing a central subject or character."),
+                response(.9, "The requested abstract geometry matches the brief; no character is required."),
+            ]) as send:
+                result = assess_subject_adherence(path, design, model="minicpm-v4.5:latest")
+        self.assertEqual(send.call_count, 2)
+        self.assertNotEqual(result["decision"], "SUBJECT_DRIFT")
+        self.assertTrue(result["vision_debug"].get("semantic_contradiction_reassessment"))
+
+    def test_character_prohibition_does_not_excuse_missing_requested_forms(self):
+        design = {"primary_visual_subject": "abstract cracked geometry background",
+                  "characters_prohibited": True,
+                  "visual_semantics": {"motif_descriptors": ["cracked forms"]}}
+        result, _ = self._assess(design, {
+            "subject_score": .2, "motif_score": .2, "atmosphere_score": .8,
+            "audience_fit_score": .8, "background_usability_score": .8,
+            "character_visible": False, "human_visible": False,
+            "observed_evidence": ["smooth plain colour field"],
+            "reason": "The requested cracked geometry and motif are absent.",
+        })
+        self.assertEqual(result["decision"], "SUBJECT_DRIFT")
+        explicit, _ = self._assess({
+            "primary_visual_subject": "a flower garden",
+            "authorized_literal_subject": "flower garden",
+            "characters_prohibited": True,
+        }, {
+            "subject_score": .2, "motif_score": .8, "atmosphere_score": .8,
+            "audience_fit_score": .8, "background_usability_score": .8,
+            "character_visible": False, "human_visible": False,
+            "observed_evidence": ["plain abstract gradient"],
+            "reason": "The requested garden is absent.",
+        })
+        self.assertEqual(explicit["decision"], "SUBJECT_DRIFT")
+
+    def test_requested_literal_motifs_remain_valid(self):
+        for motif, object_name in (("repeated stars", "several stars"),
+                                   ("literal flowers", "distributed flowers")):
+            with self.subTest(motif=motif):
+                result, _ = self._assess({
+                    "primary_visual_subject": "decorative background",
+                    "motif_literalization_policy": "literal_allowed",
+                    "visual_semantics": {"motif_descriptors": [motif]},
+                }, {
+                    "subject_score": .9, "motif_score": .9,
+                    "unrequested_literal_object_visible": True,
+                    "unrequested_literal_object_evidence": {
+                        "object": object_name, "location": "distributed throughout the background",
+                        "why_unrequested": "motif pattern rather than requested subject",
+                    },
+                })
+                self.assertNotEqual(result["decision"], "UNREQUESTED_LITERAL_OBJECT")
+
     def test_character_absence_and_mixed_evidence_are_reconciled(self):
         for description in (
             "No depicted named characters, costumed figures, or humanoids.",

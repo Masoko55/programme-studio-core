@@ -142,6 +142,7 @@ def _supported_literal_object_claim(answer: dict, visual_design: dict) -> bool:
                                  str(semantics.get("motif_structure_description") or ""))))
     distinctive_motif_words = motif_words - {
         "abstract", "decorative", "motif", "pattern", "geometry", "shape", "form", "small", "repeated",
+        "like", "distributed", "style", "styled", "inspired", "visual", "graphic", "geometric",
     }
     distributed = bool(re.search(r"\b(?:distributed|throughout|repeated|multiple|several)\b",
                                  evidence["object"] + " " + evidence["location"], re.I))
@@ -179,10 +180,19 @@ def _requires_prohibited_character_correction(reason: object, visual_design: dic
     """Reassess a claim that absent prohibited figures are required by the brief."""
     if visual_design.get("characters_prohibited") is not True or not isinstance(reason, str):
         return False
-    absent = re.search(r"\b(?:lacks?|missing|absen[ct]|no)\b.{0,55}\b(?:human|person|people|"
-                       r"character|figure|humanoid|costumed)\b", reason, re.I)
-    required = re.search(r"\b(?:required|expected|needed|should be present)\b", reason, re.I)
-    return bool(absent and required)
+    if re.search(r"\b(?:as required|correctly absent|appropriately absent|matches the brief|"
+                 r"consistent with the request|prohibited|not requested|which is correct)\b", reason, re.I):
+        return False
+    figure = r"(?:human|person|people|character|figure|humanoid|costumed)\w*"
+    absence = r"(?:lacks?|missing|absent|none|no)"
+    requirement = r"(?:required|expected|requested|needed|should be present|needs?)"
+    return any(re.search(pattern, reason, re.I) for pattern in (
+        rf"\b{absence}\b.{{0,80}}\b{figure}\b.{{0,80}}\b{requirement}\b",
+        rf"\b{requirement}\b.{{0,80}}\b{figure}\b.{{0,80}}\b(?:missing|absent)\b",
+        rf"\b{figure}\b.{{0,60}}\b(?:required|expected|needed|should be present)\b",
+        rf"\b{figure}\b.{{0,60}}\b(?:missing|absent)\b.{{0,60}}\b{requirement}\b",
+        rf"\bneeds?\b.{{0,60}}\b{figure}\b.{{0,60}}\b(?:none|no|missing|absent)\b",
+    ))
 
 
 def select_vision_endpoint(model_name: str) -> str:

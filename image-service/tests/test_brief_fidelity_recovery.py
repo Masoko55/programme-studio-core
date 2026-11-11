@@ -25,6 +25,7 @@ from app.services.prompt_compiler import compile_candidate_prompt
 from app.services.prompt_compiler import failure_category, runtime_retry_category
 from app.services.sampling_profiles import profile_by_name
 from app.services.subject_adherence import (
+    _requires_prohibited_character_correction,
     assess_subject_adherence,
     hard_fidelity_failure,
 )
@@ -33,6 +34,48 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_correct_prohibited_character_absence_uses_one_assessment(self):
+        design = {"primary_visual_subject": "abstract mechanical background",
+                  "characters_prohibited": True}
+        answer = {"subject_score": .95, "motif_score": .95, "human_visible": False,
+                  "character_visible": False,
+                  "observed_evidence": ["abstract mechanical geometry"],
+                  "reason": "The image lacks human figures, as required by the brief."}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "candidate.png"
+            Image.new("RGB", (32, 32), "white").save(path)
+            response = Mock(status_code=200, headers={"content-type": "application/json"})
+            response.json.return_value = {"message": {"content": json.dumps(answer)}}
+            with patch("app.services.subject_adherence.httpx.post", return_value=response) as send:
+                result = assess_subject_adherence(path, design, model="minicpm-v4.5:latest")
+        self.assertEqual(send.call_count, 1)
+        self.assertTrue(result["checked"])
+        self.assertNotEqual(result["decision"], "SUBJECT_DRIFT")
+        self.assertFalse(result["vision_debug"].get("semantic_contradiction_reassessment"))
+
+    def test_correct_absence_wordings_do_not_request_reassessment(self):
+        design = {"characters_prohibited": True}
+        for reason in (
+            "No characters are present, as required.",
+            "Characters are correctly absent.",
+            "The absence of people matches the brief.",
+            "No humanoid is shown, consistent with the request.",
+            "People are prohibited and none are visible.",
+            "No person is present, which is correct for this background.",
+        ):
+            with self.subTest(reason=reason):
+                self.assertFalse(_requires_prohibited_character_correction(reason, design))
+        for reason in (
+            "The image lacks the human figure required for the subject.",
+            "A required character is missing.",
+            "The expected humanoid subject is absent.",
+            "The subject needs a visible person but none is present.",
+            "A costumed character should be present.",
+            "The requested human figure is missing.",
+        ):
+            with self.subTest(reason=reason):
+                self.assertTrue(_requires_prohibited_character_correction(reason, design))
+
     def test_prohibited_character_absence_is_success_in_vision_contract(self):
         design = {"primary_visual_subject": "abstract mechanical background",
                   "characters_prohibited": True,
@@ -60,6 +103,13 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                     "observed_evidence": ["several small bat-like abstract motifs distributed throughout the background"]}
         result, _ = self._assess(design, response)
         self.assertNotEqual(result["decision"], "UNREQUESTED_LITERAL_OBJECT")
+        unrelated = dict(response, unrequested_literal_object_evidence={
+            "object": "several bird-like decorative objects",
+            "location": "distributed throughout the background",
+            "why_unrequested": "motif pattern rather than requested subject",
+        })
+        rejected_unrelated, _ = self._assess(design, unrelated)
+        self.assertEqual(rejected_unrelated["decision"], "UNREQUESTED_LITERAL_OBJECT")
         focal = dict(response, unrequested_literal_object_evidence={
             "object": "large isolated bat-shaped badge", "location": "central foreground",
             "why_unrequested": "focal emblem is not the requested motif pattern or subject",
@@ -117,6 +167,7 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                 self.assertEqual(send.call_count, 2)
                 self.assertNotEqual(result["decision"], "SUBJECT_DRIFT")
                 self.assertEqual(result["subject_score"], .95)
+                self.assertTrue(result["vision_debug"].get("semantic_contradiction_reassessment"))
 
     def test_vision_rubric_scores_background_fit_without_requiring_literal_event_scene(self):
         for subject in ("formal abstract geometry", "decorative flowers", "quiet floral forms"):

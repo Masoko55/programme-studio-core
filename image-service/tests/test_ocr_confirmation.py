@@ -13,6 +13,32 @@ from app.services.comfyui_client import (
 class OcrConfirmationTests(
     unittest.TestCase
 ):
+    def test_high_confidence_short_word_and_year_are_text(self):
+        image = Image.new("RGB", (256, 256), "white")
+        for value in ("abc", "2026"):
+            with self.subTest(value=value), patch(
+                "app.services.comfyui_client.pytesseract.image_to_data",
+                return_value={"text": [value], "conf": ["95"], "left": [40],
+                              "top": [50], "width": [70], "height": [25]},
+            ):
+                self.assertIn(value, detected_text_tokens(image))
+
+    def test_aligned_ocr_glyph_groups_are_pseudotext(self):
+        image = Image.new("RGB", (256, 256), "white")
+        evidence = {"text": ["ab", "cd", "ef", "gh"], "conf": ["46"] * 4,
+                    "left": [20, 45, 70, 95], "top": [50] * 4,
+                    "width": [15] * 4, "height": [20] * 4}
+        with patch("app.services.comfyui_client.pytesseract.image_to_data", return_value=evidence):
+            self.assertIn("pseudo-text", detected_text_tokens(image))
+
+    def test_scattered_short_ocr_fragments_are_not_pseudotext(self):
+        image = Image.new("RGB", (256, 256), "white")
+        evidence = {"text": ["ab", "cd", "ef", "gh"], "conf": ["46"] * 4,
+                    "left": [20, 45, 70, 95], "top": [15, 80, 30, 140],
+                    "width": [15] * 4, "height": [20] * 4}
+        with patch("app.services.comfyui_client.pytesseract.image_to_data", return_value=evidence):
+            self.assertEqual(detected_text_tokens(image), [])
+
     def test_gibberish_confirmed_in_two_preprocessing_views(self):
         empty = {"text": [], "conf": []}
         gibberish = {"text": ["DRSANTIOCALE"], "conf": ["76"]}

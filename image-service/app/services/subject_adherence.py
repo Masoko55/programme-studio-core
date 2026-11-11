@@ -96,22 +96,31 @@ def _confirmed_character_evidence(visible: object, description: str, evidence: o
     if isinstance(evidence, list):
         observations.extend(item for item in evidence if isinstance(item, str))
     for observation in observations:
-        absent_subject = re.search(r"\b(?:no|without|absent)\s+(?:depicted\s+)?(?:character|figure|humanoid|mascot|silhouette|child|children|person|human|adult|man|woman)\b",
-                                   observation, re.I)
-        if absent_subject:
-            continue
-        if (re.search(r"\b(?:abstract|geometric|decorative|pattern|sculptur\w*)\b", observation, re.I)
-                and not re.search(r"\b(?:body|torso|arms?|legs?|pose|posture|standing|running|flying)\b",
-                                  observation, re.I)):
-            continue
-        figure = re.search(r"\b(?:character|figure|humanoid|mascot|silhouette|costumed)\b", observation, re.I)
-        costumed_person = (re.search(r"\b(?:child|children|person|human|adult|man|woman)\b(?![- ]like\b)", observation, re.I)
-                           and re.search(r"\b(?:costume|cape|mask)\b", observation, re.I))
-        detail = re.search(r"\b(?:mask(?:ed)?|costume(?:d)?|cape|body|torso|head|face|arms?|legs?|"
-                           r"posture|pose|standing|running|flying)\b", observation, re.I)
-        if (figure or costumed_person) and detail and not re.search(r"\b(?:figure|human|face)[- ]like\s+(?:geometry|pattern|decoration)\b",
-                                               observation, re.I):
-            return True
+        for clause in re.split(r"\s*[.;]\s*|\b(?:but|however|except for)\b", observation, flags=re.I):
+            if not clause.strip():
+                continue
+            absent_subject = re.search(
+                r"\b(?:no|without|absent)\s+(?:(?:any|visible|depicted|named|fictional|"
+                r"recognisable|recognizable|costumed|masked|human|ordinary|background)\s+){0,5}"
+                r"(?:characters?|figures?|humanoids?|mascots?|silhouettes?|children|child|"
+                r"persons?|people|humans?|adults?|men|women|man|woman)\b|"
+                r"\b(?:characters?|figures?|humanoids?|mascots?)\s+(?:are|is)\s+absent\b",
+                clause, re.I,
+            )
+            if absent_subject:
+                continue
+            if (re.search(r"\b(?:abstract|geometric|decorative|pattern|sculptur\w*)\b", clause, re.I)
+                    and not re.search(r"\b(?:body|torso|arms?|legs?|pose|posture|standing|running|flying)\b",
+                                      clause, re.I)):
+                continue
+            figure = re.search(r"\b(?:character|figure|humanoid|mascot|silhouette|costumed)\b", clause, re.I)
+            costumed_person = (re.search(r"\b(?:child|children|person|human|adult|man|woman)\b(?![- ]like\b)", clause, re.I)
+                               and re.search(r"\b(?:costume|cape|mask)\b", clause, re.I))
+            detail = re.search(r"\b(?:mask(?:ed)?|costume(?:d)?|cape|body|torso|head|face|arms?|legs?|"
+                               r"posture|pose|standing|running|flying)\b", clause, re.I)
+            if (figure or costumed_person) and detail and not re.search(r"\b(?:figure|human|face)[- ]like\s+(?:geometry|pattern|decoration)\b",
+                                                   clause, re.I):
+                return True
     return False if visible is False else None
 
 

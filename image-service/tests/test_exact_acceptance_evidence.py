@@ -2,7 +2,7 @@
 import unittest
 from unittest.mock import patch
 
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 from app.services.background_policy import detect_human_signals
 from app.services.subject_adherence import _confirmed_human_answer
@@ -16,6 +16,17 @@ def ocr_data(*items):
 
 
 class ExactOcrCases(unittest.TestCase):
+    def test_prominent_mixed_alphanumeric_row_without_ocr_hint(self):
+        artwork = Image.new("RGB", (896, 1280), "#91c9ee")
+        draw = ImageDraw.Draw(artwork)
+        font = ImageFont.truetype("DejaVuSansMono-Bold.ttf", 100)
+        draw.text((225, 585), "60dhP", font=font, fill="black")
+        empty = ocr_data()
+        with patch("app.services.comfyui_client.pytesseract.image_to_data", return_value=empty):
+            result = detect_text_evidence(artwork)
+        self.assertTrue(result["text_detected"])
+        self.assertIn("prominent_glyph_row", result["pseudo_text"])
+
     def test_single_pseudo_word_row_with_ocr_hint_is_detected(self):
         artwork = Image.new("RGB", (512, 512), "white")
         draw = ImageDraw.Draw(artwork)

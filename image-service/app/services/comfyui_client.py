@@ -1220,6 +1220,41 @@ def _strong_ocr_glyph_row(data: dict) -> bool:
     return False
 
 
+def _prominent_glyph_row(image: Image.Image) -> bool:
+    """Find a large aligned dark glyph row when texture defeats whole-image OCR."""
+    pixels = np.asarray(image.convert("RGB"))
+    height, width = pixels.shape[:2]
+    dark = np.uint8(np.max(pixels, axis=2) < 60) * 255
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(dark, 8)
+    glyphs = []
+    for index in range(1, count):
+        x, y, glyph_width, glyph_height, area = (int(value) for value in stats[index])
+        if not (.04 * height <= glyph_height <= .13 * height and
+                .025 * width <= glyph_width <= .12 * width and
+                .3 <= glyph_width / glyph_height <= 1.1 and
+                .45 <= area / (glyph_width * glyph_height) <= .9):
+            continue
+        component = np.uint8(labels[y:y + glyph_height, x:x + glyph_width] == index) * 255
+        contours, hierarchy = cv2.findContours(component, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
+        holes = sum(1 for contour_index, contour in enumerate(contours)
+                    if hierarchy is not None and hierarchy[0][contour_index][3] != -1 and
+                    cv2.contourArea(contour) > 20)
+        glyphs.append((x, y, glyph_width, glyph_height, holes))
+    for anchor in glyphs:
+        row = sorted((item for item in glyphs
+                      if abs(item[1] + item[3] - anchor[1] - anchor[3]) <= .15 * anchor[3] and
+                      abs(item[1] - anchor[1]) <= .2 * anchor[3]), key=lambda item: item[0])
+        for start in range(len(row) - 3):
+            group = row[start:start + 4]
+            widths = [item[2] for item in group]
+            gaps = [right[0] - left[0] - left[2] for left, right in zip(group, group[1:])]
+            if (all(0 <= gap <= .7 * np.median(widths) for gap in gaps) and
+                    max(widths) / min(widths) <= 1.4 and
+                    sum(item[4] > 0 for item in group) >= 2):
+                return True
+    return False
+
+
 def _ocr_data(image: Image.Image, config: str, variant: str, diagnostics: dict | None) -> dict | None:
     """Bound every subprocess-backed Tesseract pass and retain failure evidence."""
     if diagnostics is not None:
@@ -1418,6 +1453,9 @@ def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = 
     if ocr_glyph_row:
         pseudo_text["detected"] = True
         pseudo_text["ocr_glyph_row"] = True
+    if not (lines or strong_single or pseudo_text["detected"]) and _prominent_glyph_row(image):
+        pseudo_text["detected"] = True
+        pseudo_text["prominent_glyph_row"] = True
     if not pseudo_text["detected"] and _single_row_ocr_confirmation(items, pseudo_text, image.size):
         pseudo_text["detected"] = True
         pseudo_text["single_row_ocr_confirmed"] = True
@@ -1443,7 +1481,8 @@ def detect_text_evidence(image: Image.Image, *, timeout_seconds: float | None = 
         "pseudo_text": pseudo_text,
         "tokens": [item["token"] for item in items],
         "confirmed_tokens": list(dict.fromkeys([*(item["token"] for item in selected),
-                                                  *(["pseudo-text"] if ocr_glyph_row else [])])),
+                                                  *(["pseudo-text"] if ocr_glyph_row or
+                                                     pseudo_text.get("prominent_glyph_row") else [])])),
         "text_lines": lines,
         "max_confidence": max((item["confidence"] for item in items), default=0),
         "confirmation_passes": sorted({name for item in selected for name in item["passes"]}),

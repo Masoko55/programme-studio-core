@@ -25,6 +25,7 @@ from app.services.prompt_compiler import compile_candidate_prompt
 from app.services.prompt_compiler import failure_category, runtime_retry_category
 from app.services.sampling_profiles import profile_by_name
 from app.services.subject_adherence import (
+    _confirmed_character_evidence,
     _requires_prohibited_character_correction,
     assess_subject_adherence,
     hard_fidelity_failure,
@@ -34,6 +35,35 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_character_absence_and_mixed_evidence_are_reconciled(self):
+        for description in (
+            "No depicted named characters, costumed figures, or humanoids.",
+            "No visible fictional characters.",
+            "No named characters, costumed figures, or humanoids are visible.",
+        ):
+            with self.subTest(description=description):
+                self.assertIsNot(_confirmed_character_evidence(True, description, [description]), True)
+        for description in (
+            "A masked costumed figure is standing in the upper-left area.",
+            "No background people are present, but a masked costumed figure is visible in the centre.",
+            "No ordinary humans are present; however a humanoid character is standing on the right.",
+            "There are no people in the background, except for one costumed child in the foreground.",
+        ):
+            with self.subTest(description=description):
+                self.assertIs(_confirmed_character_evidence(True, description, [description]), True)
+
+    def test_negated_character_description_does_not_reject_background(self):
+        design = {"primary_visual_subject": "abstract geometric background",
+                  "characters_prohibited": True}
+        result, _ = self._assess(design, {
+            "subject_score": .8, "motif_score": .9, "human_visible": False,
+            "character_visible": True,
+            "character_description": "No depicted named characters, costumed figures, or humanoids",
+            "observed_evidence": ["Small distributed abstract motifs",
+                                  "No depicted named characters, costumed figures, or humanoids"],
+        })
+        self.assertNotEqual(result["decision"], "CHARACTER")
+
     def test_correct_prohibited_character_absence_uses_one_assessment(self):
         design = {"primary_visual_subject": "abstract mechanical background",
                   "characters_prohibited": True}

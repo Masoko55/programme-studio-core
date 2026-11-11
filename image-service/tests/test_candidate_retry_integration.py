@@ -7,7 +7,8 @@ from unittest.mock import AsyncMock, patch
 
 from app.config.settings import settings
 from app.services.comfyui_client import ComfyUIClient, ComfyUIError, _candidate_attempt_number
-from app.services.image_execution import _attempt_output_wave, _retry_candidate_after_error
+from app.services.image_execution import (_attempt_output_wave, _retry_candidate_after_error,
+                                          _is_human_failure, _is_palette_failure, _is_text_failure)
 from app.services.execution_plan import build_execution_plan
 from app.services.sampling_profiles import select_sampling_profile
 
@@ -49,6 +50,15 @@ class FailingEngine:
 
 
 class CandidateRetryIntegrationTests(unittest.TestCase):
+    def test_structured_failure_category_overrides_explanatory_words(self):
+        reason = "SUBJECT_DRIFT: The image contains no human figures, as required by the brief."
+        self.assertFalse(_is_human_failure(reason))
+        self.assertFalse(_is_palette_failure(reason))
+        self.assertFalse(_is_text_failure(reason))
+        self.assertTrue(_is_human_failure("CHARACTER: A costumed child is visible in the lower-left."))
+        self.assertFalse(_is_text_failure("VISION_UNAVAILABLE: missing text evidence field"))
+        self.assertFalse(_is_human_failure("DENSE_SAFE_REGION: no human figures are visible"))
+
     def test_nonretryable_error_is_preserved(self):
         error = ComfyUIError("Remote workflow is invalid")
         output = SimpleNamespace(engine_id=settings.engine_2_id, direction_id="B")

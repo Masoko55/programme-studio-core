@@ -155,6 +155,14 @@ def _normalise_colour(
 # ============================================================
 
 
+def _structured_failure_category(reason: str) -> str | None:
+    """Use the validator's category when its reason includes one."""
+    category, separator, _ = reason.partition(":")
+    if separator and re.fullmatch(r"[A-Z][A-Z0-9_]+", category):
+        return category
+    return None
+
+
 def _is_palette_failure(
     reason: str,
 ) -> bool:
@@ -171,6 +179,9 @@ def _is_palette_failure(
     is a quality failure, not a palette failure.
     """
 
+    category = _structured_failure_category(reason)
+    if category is not None:
+        return category in {"PALETTE_OFF", "PALETTE_ROLE_DRIFT", "PRIMARY_MISSING", "SECONDARY_MISSING"}
     reason_lower = (
         reason.lower()
     )
@@ -212,6 +223,9 @@ def _is_palette_failure(
 def _is_human_failure(
     reason: str,
 ) -> bool:
+    category = _structured_failure_category(reason)
+    if category is not None:
+        return category in {"CHARACTER", "HUMAN"}
     reason_lower = (
         reason.lower()
     )
@@ -238,6 +252,9 @@ def _is_human_failure(
 def _is_text_failure(
     reason: str,
 ) -> bool:
+    category = _structured_failure_category(reason)
+    if category is not None:
+        return category in {"TEXT", "TEXT_OR_LOGO"}
     reason_lower = (
         reason.lower()
     )

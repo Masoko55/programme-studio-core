@@ -170,19 +170,19 @@ def _composition(spec: CandidateSpec) -> str:
 
     if safe_regions:
         parts.append(
-            "Preserve intentional negative space for later typography "
+            "Preserve intentional negative space as integrated visual breathing room "
             "according to "
             + "; ".join(safe_regions)
         )
     else:
         parts.append(
-            "Preserve intentional negative space for later typography "
+            "Preserve intentional negative space as integrated visual breathing room "
             "where the composition naturally supports it"
         )
 
     parts.append(
         "Use natural visual hierarchy, breathing room and spatial balance "
-        "so later information can remain readable"
+        "with coherent subject concentration"
     )
 
     return ". ".join(parts).rstrip(". ") + "."
@@ -235,10 +235,18 @@ def _subject(spec: CandidateSpec) -> str:
     return _direction_motif(spec)
 
 
+def _visual_direction_text(text: str) -> str:
+    """Keep visual clauses while omitting labeled copy intended for composition."""
+    return re.sub(
+        r"(?:^|[,;]\s*)(?:title|headline|caption|venue|date|time|programme|program|copy)\s*:\s*[^,;.\n]*",
+        "", text, flags=re.I,
+    ).strip(" ,;")
+
+
 def _direction_motif(spec: CandidateSpec) -> str:
     """Surface the direction's own visual design before long layout prose."""
     opening = ", ".join(
-        part.strip() for part in spec.original_positive_prompt.split(",")[:3]
+        part.strip() for part in _visual_direction_text(spec.original_positive_prompt).split(",")[:3]
         if part.strip()
     )
     opening = re.sub(
@@ -292,6 +300,8 @@ def _positive_prompt(
         f"Palette: {palette}.",
     )
     safety = "Background artwork with a clear visual subject and intentional breathing room."
+    if spec.engine_id == "flux-2":
+        safety += " Pure visual surfaces without lettering, numbers, signage or writing-like marks."
     if spec.engine_id == "sdxl-1-0":
         return _join_sections(
             f"Background inspiration: {subject}." if subject != motif else "",
@@ -304,7 +314,7 @@ def _positive_prompt(
         f"Theme reference treatment: {treatment}." if treatment else "",
         *shared[2:],
         f"Correction for attempt {attempt}: {correction}" if correction else "",
-        f"Direction design: {spec.original_positive_prompt}.",
+        f"Direction design: {_visual_direction_text(spec.original_positive_prompt)}.",
         safety,
     )
 
@@ -347,7 +357,7 @@ def _encoder_fields(
             _join_sections("Background artwork.", *common),
         )
     common = (f"Visual subject: {subject}.", anchor_text, motif_text, direction,
-              f"Direction {spec.direction_id}: {spec.direction_role}.", structure, material)
+              identity, structure, material)
     return (
         _join_sections("Background artwork.", *common, colour),
         _join_sections(
@@ -373,7 +383,7 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     treatment = spec.theme_reference_treatment
     palette = _palette(spec)
     composition = _composition(spec)
-    identity = f"Direction {spec.direction_id}: {spec.direction_role} visual character."
+    identity = f"Visual style: {spec.direction_role}."
     correction = _CORRECTIONS.get(category, "")
     if category in {"DIRECTION_DUPLICATE", "FLAT", "WEAK_OUTER_STRUCTURE"}:
         design = spec.visual_design
@@ -392,9 +402,9 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         composition, correction, attempt,
     )
     negative = (
-        "people, faces, characters, costumes, masked figures, readable text, "
-        "letters, typography, logos, watermarks, photographed print, "
-        "poster mockup, unrelated subject"
+        "people, faces, characters, masked figures, text, letters, words, "
+        "numbers, typography, captions, signage, pseudo-text, logos, "
+        "watermarks, signatures, poster mockup, unrelated subject"
     )
     extra_negative = {
         "RASTER": ", scanlines, raster grid",

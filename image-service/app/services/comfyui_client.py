@@ -414,10 +414,10 @@ def _extract_comfyui_execution_error(
 def _normalise_ocr_token(
     value: str,
 ) -> str:
-    """Return alphabetic OCR content suitable for text validation."""
+    """Return letter and digit OCR content suitable for text validation."""
 
     return re.sub(
-        r"[^A-Za-z]",
+        r"[^A-Za-z0-9]",
         "",
         str(
             value
@@ -735,6 +735,31 @@ def _confirm_ocr_candidate(
     return False
 
 
+def _strong_pseudotext(data: dict) -> bool:
+    """Require a regular row of several OCR glyph groups, not isolated texture."""
+    marks = []
+    for index, raw in enumerate(data["text"]):
+        token = _normalise_ocr_token(raw)
+        if not 2 <= len(token) <= 3 or _ocr_confidence(data["conf"][index]) < 35:
+            continue
+        left = int(data["left"][index])
+        top = int(data["top"][index])
+        width = int(data["width"][index])
+        height = int(data["height"][index])
+        if width >= 5 and height >= 6:
+            marks.append((left, top + height, width, height))
+    for mark in marks:
+        row = sorted((item for item in marks
+                      if abs(item[1] - mark[1]) <= max(4, mark[3] // 3)), key=lambda item: item[0])
+        if len(row) < 4:
+            continue
+        gaps = [right[0] - (left[0] + left[2]) for left, right in zip(row, row[1:])]
+        width = max(item[2] for item in row)
+        if gaps and all(0 <= gap <= 2 * width for gap in gaps) and max(gaps) - min(gaps) <= width:
+            return True
+    return False
+
+
 def detected_text_tokens(
     image: Image.Image,
 ) -> list[str]:
@@ -802,12 +827,7 @@ def detected_text_tokens(
         # These are extremely common around window frames, web geometry and
         # comic-book architectural details.
         #
-        if (
-            len(
-                normalized
-            )
-            < 4
-        ):
+        if len(normalized) < 3:
             continue
 
         #
@@ -832,12 +852,17 @@ def detected_text_tokens(
             and len(
                 normalized
             )
-            >= 5
+            >= 3
         ):
             confirmed_tokens.append(
                 normalized
             )
 
+            continue
+
+        # Three-character fragments remain too ambiguous for the crop-based
+        # confirmation path; only strong first-pass evidence can accept them.
+        if len(normalized) < 4:
             continue
 
         left = int(
@@ -890,6 +915,8 @@ def detected_text_tokens(
                 normalized
             )
 
+    if _strong_pseudotext(data):
+        confirmed_tokens.append("pseudo-text")
     return confirmed_tokens
 
 

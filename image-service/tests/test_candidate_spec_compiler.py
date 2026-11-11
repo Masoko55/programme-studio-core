@@ -81,6 +81,25 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_display_copy_in_direction_is_not_rendered_as_background_content(self):
+        document = document_for(CASES[2])
+        document["directions"][0]["direction"]["positive_prompt"] = (
+            "Layered floral garden background, Title: WELCOME 2026, paper petals around the border"
+        )
+        for engine in ("flux-2", "sdxl-1-0", "sd-3-5-medium"):
+            with self.subTest(engine=engine):
+                spec = build_candidate_spec(document, engine, "B")
+                for attempt, reason in ((1, ""), (4, "Generated background contains readable text")):
+                    compiled = compile_candidate_prompt(spec, attempt, reason)
+                    active = [compiled.positive, compiled.clip_l, compiled.clip_g]
+                    if compiled.t5:
+                        active.append(compiled.t5)
+                    for channel in active:
+                        self.assertNotIn("WELCOME", channel)
+                        self.assertNotIn("2026", channel)
+                    self.assertIn("paper petals", compiled.positive)
+                    self.assertEqual(compiled.spec_sha256, spec.spec_sha256)
+
     def test_incomplete_direction_strategy_is_rejected(self):
         for name in (
             "composition_strategy", "focal_strategy", "depth_strategy",

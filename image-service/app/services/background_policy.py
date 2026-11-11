@@ -278,6 +278,7 @@ COLOUR_FAMILIES = {
 
 
 MAX_OFF_PALETTE_RATIO = 0.05
+NEAR_DERIVATIVE_MAX_DELTA_E = 24.0
 
 MIN_PRIMARY_COLOUR_RATIO = 0.05
 
@@ -2337,6 +2338,10 @@ def validate_palette(
         )
     )
 
+    lab_pixels = cv2.cvtColor(rgb_array, cv2.COLOR_RGB2LAB).reshape(-1, 3).astype(np.float32)
+    target_rgb = np.asarray([rgb for _, rgb, _ in requested], dtype=np.uint8).reshape(1, -1, 3)
+    target_lab = cv2.cvtColor(target_rgb, cv2.COLOR_RGB2LAB).reshape(-1, 3).astype(np.float32)
+
     total = len(
         hsv_pixels
     )
@@ -2474,6 +2479,7 @@ def validate_palette(
     ] = {}
 
     off_palette_count = 0
+    near_derivative_count = 0
     incidental_neutral_count = 0
     incidental_neutral_mask = np.zeros(total, dtype=np.uint8)
 
@@ -2488,7 +2494,12 @@ def validate_palette(
             requested_neutrals, requested_targets,
         )
         if family is None:
-            if int(saturation) <= 40:
+            delta = target_lab - lab_pixels[index]
+            delta[:, 0] *= 100.0 / 255.0
+            near_derivative = bool(np.min(np.linalg.norm(delta, axis=1)) <= NEAR_DERIVATIVE_MAX_DELTA_E)
+            if near_derivative:
+                near_derivative_count += 1
+            elif int(saturation) <= 40:
                 incidental_neutral_count += 1
                 incidental_neutral_mask[index] = 1
             off_palette_count += 1
@@ -2515,7 +2526,11 @@ def validate_palette(
         0 if exclusive_palette or largest_neutral_region > 0.025
         else min(incidental_neutral_count, int(total * 0.08))
     )
-    off_palette_ratio = (off_palette_count - tolerated_neutral_count) / total
+    tolerated_derivative_count = (
+        0 if exclusive_palette else
+        min(near_derivative_count, max(0, int(total * 0.08) - tolerated_neutral_count))
+    )
+    off_palette_ratio = (off_palette_count - tolerated_neutral_count - tolerated_derivative_count) / total
 
     breakdown = {
         name: (
@@ -2595,6 +2610,7 @@ def validate_palette(
         )
         error.palette_metrics = {
             "off_palette_ratio": off_palette_ratio,
+            "near_palette_derivative_ratio": tolerated_derivative_count / total,
             "requested_colour_family_counts": requested_counts,
             "accepted_tonal_breakdown": tonal_breakdown,
             "unrequested_colour_breakdown": breakdown,
@@ -2622,6 +2638,8 @@ def validate_palette(
             "strict-requested-colour-families" if exclusive_palette else "dominant-requested-colour-families"
         ),
         "incidental_neutral_ratio": incidental_neutral_count / total,
+        "near_palette_derivative_ratio": tolerated_derivative_count / total,
+        "strict_palette_match_ratio": sum(requested_counts.values()) / total,
         "largest_incidental_neutral_region_ratio": largest_neutral_region,
 
         "palette_match_ratio": (

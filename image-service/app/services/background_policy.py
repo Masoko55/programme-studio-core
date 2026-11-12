@@ -3540,7 +3540,10 @@ def detect_human_signals(
     )
     # The upper-body cascade often matches flowers, curtains and ornament.
     # A lone central hit is diagnostic evidence, not confirmation of a human.
-    strong_upper_body_signal = centered_lower_body and bool(people or confirmed_faces or confirmed_profiles)
+    strong_upper_body_signal = centered_lower_body and bool(
+        people or any(_coherent_upper_signal(body, face)
+                      for body in upper_bodies for face in confirmed_faces + confirmed_profiles)
+    )
 
     detected = bool(
         people

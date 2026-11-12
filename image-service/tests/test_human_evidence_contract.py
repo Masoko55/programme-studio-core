@@ -46,6 +46,38 @@ class HumanEvidenceContractTests(unittest.TestCase):
         result = self._assess(image, cascade=cascade)
         self.assertTrue(result["detected"])
 
+    def test_spatially_unrelated_cascade_hits_do_not_confirm_human(self):
+        image = Image.new("RGB", (896, 1280), "white")
+        boxes = [(586, 291, 71, 71), (300, 270, 50, 50), (275, 822, 218, 178)]
+        def cascade(detector, gray, size, neighbors):
+            return [boxes[0]] if "frontal" in detector else [boxes[1]] if "profile" in detector else [boxes[2]]
+        with patch("app.services.background_policy.cv2.HOGDescriptor", return_value=_Hog()), \
+             patch("app.services.background_policy.cv2.HOGDescriptor_getDefaultPeopleDetector", return_value=None), \
+             patch("app.services.background_policy._load_cascade", side_effect=lambda name: name), \
+             patch("app.services.background_policy._cascade_detect", side_effect=cascade), \
+             patch("app.services.background_policy._confirm_cascade_boxes", side_effect=lambda detector, gray, boxes, size: boxes), \
+             patch("app.services.background_policy._small_face_body_evidence", return_value=[]):
+            result = detect_human_signals(image)
+        self.assertFalse(result["detected"])
+        self.assertFalse(result["strong_upper_body_signal"])
+        self.assertEqual(result["strong_signals"], [])
+
+    def test_spatially_coherent_face_and_upper_body_still_confirm_human(self):
+        image = Image.new("RGB", (896, 1280), "white")
+        face = (365, 800, 50, 50)
+        body = (275, 780, 218, 220)
+        def cascade(detector, gray, size, neighbors):
+            return [face] if "frontal" in detector else [] if "profile" in detector else [body]
+        with patch("app.services.background_policy.cv2.HOGDescriptor", return_value=_Hog()), \
+             patch("app.services.background_policy.cv2.HOGDescriptor_getDefaultPeopleDetector", return_value=None), \
+             patch("app.services.background_policy._load_cascade", side_effect=lambda name: name), \
+             patch("app.services.background_policy._cascade_detect", side_effect=cascade), \
+             patch("app.services.background_policy._confirm_cascade_boxes", side_effect=lambda detector, gray, boxes, size: boxes), \
+             patch("app.services.background_policy._small_face_body_evidence", return_value=[]):
+            result = detect_human_signals(image)
+        self.assertTrue(result["detected"])
+        self.assertTrue(result["strong_upper_body_signal"])
+
     def test_abstract_forms_do_not_become_human_from_unsupported_evidence(self):
         for kind in ("flowers", "botanical branches", "repeated wing-like motifs", "radial impact marks",
                      "cracks", "draped fabric", "architecture", "empty hall", "geometric burst"):

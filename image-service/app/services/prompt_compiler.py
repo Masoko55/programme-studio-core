@@ -1249,6 +1249,37 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                              treatment_line, palette_line, spatial_line, style_line, light_line,
                              figure_contract, intrusion_positive))
     positive_source = clip_g.replace(short_subject_line, subject_line, 1).replace(short_treatment_line, treatment_line, 1) if spec.engine_id != "flux-2" else clip_g
+    if (sdxl_motif_recovery and (retry_category in _PALETTE_FAILURES or persistent_palette)
+            and len(clip_g.split()) > 75):
+        if retry_category == "PALETTE_OFF":
+            compact_focus = "Confine chromatic design to requested families; no third colours."
+        elif retry_category == "PRIMARY_MISSING":
+            compact_focus = f"Primary {design['requested_palette'][0]['colour']} on principal surfaces."
+        elif retry_category == "SECONDARY_MISSING" and len(design["requested_palette"]) > 1:
+            compact_focus = f"Secondary {design['requested_palette'][1]['colour']} across substantial regions."
+        elif retry_category == "PALETTE_ROLE_DRIFT":
+            compact_focus = "Restore requested visual mass roles."
+        elif retry_category == "SUBJECT_DRIFT":
+            compact_focus = "Restore the requested abstract subject and motif."
+        elif retry_category == "HUMAN":
+            compact_focus = "No human figures in the requested scene."
+        else:
+            compact_focus = _first_words(short_correction, 8)
+        compact_correction = f"{compiled.retry_stage}: {compact_focus}" if correction else ""
+        compact_persistent = ("Persistent palette recovery: requested colour roles remain mandatory."
+                              if persistent_palette else "")
+        compact_intrusion = ("No human or costumed figures; no mascots."
+                             if intrusion_positive else "")
+        clip_g = _join_sections(
+            short_subject_line, sdxl_event_line, mood_line, audience_line,
+            f"Composition: {_first_words(composition, 3)}." if compact_persistent and composition
+            else spatial_line,
+            "Abstract motif structure; no literal source objects." if motif_policy_line else "",
+            f"Palette: {_first_words(full_relationship, 12)}." if colours else "",
+            compact_persistent, figure_contract, compact_intrusion,
+            "Distributed motifs." if compact_persistent else
+            "Distributed motifs; no central figure.", compact_correction,
+        )
     positive = _join_sections(positive_source.replace(correction, "") if correction else positive_source,
                              motif_line if motif_line not in clip_g else "",
                              mood_line if sd35_motif_recovery else "",

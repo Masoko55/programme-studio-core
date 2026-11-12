@@ -280,6 +280,33 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
         rejected, _ = self._assess(design, focal)
         self.assertEqual(rejected["decision"], "UNREQUESTED_LITERAL_OBJECT")
 
+    def test_whole_source_silhouettes_are_not_abstract_motifs(self):
+        design = {"primary_visual_subject": "abstract decorative background",
+                  "motif_literalization_policy": "motif_only",
+                  "visual_semantics": {"motif_descriptors": ["small distributed bat-like abstract motifs"]}}
+        cases = (
+            ("multiple recognizable whole bat silhouettes", "distributed throughout the background", True),
+            ("multiple bat silhouettes", "distributed throughout the background", True),
+            ("one recognizable whole bat silhouette", "central foreground", True),
+            ("distributed angular black shapes resembling wing geometry", "throughout the background", False),
+            ("abstract bat-like negative-space motifs made from geometric wedges", "throughout the background", False),
+            ("bat-like silhouettes formed from angular geometry", "throughout the background", False),
+        )
+        for obj, location, literal in cases:
+            with self.subTest(obj=obj):
+                result, _ = self._assess(design, {
+                    "subject_score": .95, "motif_score": .95,
+                    "unrequested_literal_object_visible": True,
+                    "unrequested_literal_object_evidence": {
+                        "object": obj, "location": location,
+                        "why_unrequested": ("the brief requests an abstract motif pattern, not the source subject"
+                                            if obj == "multiple bat silhouettes" else
+                                            "the brief requests an abstract motif pattern, not a whole source object"
+                                            if literal else "the brief requests an abstract motif pattern"),
+                    },
+                })
+                self.assertEqual(result["decision"] == "UNREQUESTED_LITERAL_OBJECT", literal)
+
     def test_missing_character_field_repairs_second_assessment_and_reports_safe_reason(self):
         design = {"primary_visual_subject": "abstract decorative background",
                   "characters_prohibited": True}

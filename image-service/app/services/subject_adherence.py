@@ -160,10 +160,15 @@ def _supported_literal_object_claim(answer: dict, visual_design: dict) -> bool:
                            r"insignia|shield|crest)\b",
                            evidence["object"] + " " + evidence["location"], re.I))
     abstract_reference = bool(re.search(r"\babstract\b|\b\w+-(?:like|inspired)\b", motif_description, re.I))
-    literal_source_claim = bool(re.search(r"\b(?:literal|realistic|depicted|whole)\b",
+    literal_source_claim = bool(re.search(r"\b(?:literal|realistic|depicted|whole|recognizable|recognisable|"
+                                          r"bodies|body|heads?|figures?|objects?)\b",
                                           evidence["object"] + " " + evidence["why_unrequested"], re.I))
     abstract_form = bool(re.search(r"\b(?:abstract|geometric|geometry|patterns?|motifs?|shapes?|"
-                                   r"lines?|silhouettes?)\b", evidence["object"], re.I))
+                                   r"lines?|wedges?)\b", evidence["object"], re.I))
+    abstract_geometry = bool(re.search(r"\b(?:geometric|geometry|shapes?|wedges?|lines?|negative.space)\b",
+                                       evidence["object"], re.I))
+    if abstract_geometry and not literal_source_claim and not focal:
+        return False
     if (distributed and not focal and object_words & distinctive_motif_words
             and not (abstract_reference and (literal_source_claim or not abstract_form))):
         return False

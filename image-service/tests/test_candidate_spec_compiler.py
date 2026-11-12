@@ -85,6 +85,43 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_sdxl_abstract_palette_retries_keep_correction_in_budget(self):
+        source = document_for(CASES[0], "C")
+        source["brief"].update(
+            event_type="Family celebration", age_group="Guests of all ages",
+            background_inspiration=("Abstract green and purple background with cracked geometric "
+                                    "forms, impact-burst patterns and angular motion"),
+            theme_reference_treatment=("Use only as a visual theme reference; Let it influence "
+                                       "the colours and abstract treatment; Use green and purple "
+                                       "with cracked shapes and impact bursts"),
+            primary_colour="green", secondary_colour="purple",
+            visual_semantics={"motif_descriptors": ["cracked geometric forms", "impact-burst patterns"],
+                              "motif_structure_description": "cracked geometric forms, impact-burst patterns and angular motion"},
+            negative_constraints=["No characters or costumed figures"],
+        )
+        spec = build_candidate_spec(source, "sdxl-1-0", "C")
+        history = FailureHistorySummary(counts={"PALETTE_OFF": 4},
+                                        consecutive_category="PALETTE_OFF", consecutive_count=4)
+        for attempt, category in ((4, "PALETTE_OFF"), (7, "PALETTE_OFF"),
+                                  (9, "PALETTE_ROLE_DRIFT"), (9, "SUBJECT_DRIFT"),
+                                  (9, "HUMAN")):
+            with self.subTest(attempt=attempt):
+                compiled = compile_candidate_prompt(spec, attempt, category, concise=True,
+                                                    failure_history=history)
+                active = f"{compiled.clip_l} {compiled.clip_g}"
+                self.assertFalse(compiled.record()["prompt_budget"]["clip_g"]["budget_risk"])
+                for term in ("green", "purple", "Family celebration", "Guests of all ages",
+                             "cracked geometric", "impact-burst", "no human or costumed figures"):
+                    self.assertIn(term.casefold(), active.casefold())
+                self.assertIn(compiled.retry_stage + ":", compiled.clip_g)
+                if category in {"PALETTE_OFF", "PALETTE_ROLE_DRIFT"}:
+                    self.assertIn(("no third colours" if category == "PALETTE_OFF"
+                                   else "visual mass roles"), compiled.clip_g)
+                else:
+                    self.assertIn("Persistent palette", compiled.clip_g)
+                self.assertEqual(compiled.spec_sha256,
+                                 compile_candidate_prompt(spec, 1, concise=True).spec_sha256)
+
     def test_sdxl_effective_channels_keep_event_and_audience_separate(self):
         for event, audience in (("Children birthday party", "Children aged 7 to 10"),
                                 ("Black-tie gala", "Adults"),

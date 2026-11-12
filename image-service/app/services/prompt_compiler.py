@@ -170,6 +170,14 @@ def _palette_relationship(spec: CandidateSpec) -> str:
     return "; ".join(f"{colour} clearly visible in substantial design elements" for colour in colours)
 
 
+def _sdxl_chromatic_dominant(spec: CandidateSpec) -> bool:
+    palette = spec.visual_design["requested_palette"]
+    return (spec.engine_id == "sdxl-1-0" and spec.visual_design["palette_mode"] == "dominant"
+            and len(palette) == 2 and all(
+                COLOUR_ALIASES.get(str(item["colour"]).casefold(), str(item["colour"]).casefold())
+                not in NEUTRAL_NAMES for item in palette))
+
+
 def _concise_palette_relationship(spec: CandidateSpec, *, include_explicit: bool = True) -> str:
     """Keep structured colour roles intact in short encoder conditioning."""
     palette = spec.visual_design["requested_palette"]
@@ -178,6 +186,19 @@ def _concise_palette_relationship(spec: CandidateSpec, *, include_explicit: bool
                                          spec.visual_design.get("palette_relationship_source"),
                                          spec.secondary_colour)
     dominance = policy["dominance_relationship"]
+    if _sdxl_chromatic_dominant(spec):
+        if policy["explicit"]:
+            roles += "; requested colours own principal surfaces"
+        elif dominance == "BALANCED":
+            roles += "; balanced substantial families on principal surfaces"
+        elif dominance == "SECONDARY_DOMINANT":
+            roles += "; secondary owns principal surfaces; primary substantial"
+        else:
+            roles += "; primary owns principal surfaces and visual mass; secondary substantial"
+        keep_phrase = policy["explicit"] and (include_explicit or len(policy["relationship"].split()) <= 12)
+        return _join_sections(roles + ";",
+                              policy["relationship"] + ";" if keep_phrase else "",
+                              "neutrals only fine detail.")
     if dominance == "BALANCED":
         roles += "; balanced visual mass"
     elif dominance == "SECONDARY_DOMINANT":
@@ -278,6 +299,8 @@ def _palette_negative(spec: CandidateSpec, stage: str, category: str, history) -
               tuple(dict.fromkeys(neighbour for _, neighbours in boundaries for neighbour in neighbours)))
     if nearby:
         base += ", " + ", ".join(nearby)
+    if _sdxl_chromatic_dominant(spec):
+        base += ", large unrequested neutral fields"
     if category in _PALETTE_FAILURES or _persistent_palette_correction(history, category):
         pressure = {
             "normal": "unrelated chromatic accents",
@@ -1221,6 +1244,9 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                           f"Palette: {colours}; {short_relationship}; "
                           "primary visual mass, secondary accents; neutrals support." if spec.engine_id == "flux-2" else
                           f"Palette: {short_relationship}" if colours else "")
+    chromatic_ownership = _sdxl_chromatic_dominant(spec)
+    if chromatic_ownership:
+        short_palette_line = f"Palette: {full_relationship}"
     palette_l_line = (f"Palette: {full_relationship}" if spec.engine_id == "sdxl-1-0" else
                       f"Primary {design['requested_palette'][0]['colour']}; "
                       + (f"secondary {design['requested_palette'][1]['colour']}; "
@@ -1235,8 +1261,10 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
               else _join_sections(short_subject_line, anchor_line,
                                   sd35_event_line, sd35_audience_line)
               if spec.engine_id == "sd-3-5-medium" else _join_sections(subject_line, anchor_line))
-    clip_g = (_join_sections(short_subject_line, sdxl_event_line, mood_line, audience_line, short_treatment_line,
-                            spatial_line, motif_policy_line, short_palette_line,
+    clip_g = (_join_sections(short_subject_line, short_palette_line if chromatic_ownership else "",
+                            sdxl_event_line, mood_line, audience_line, short_treatment_line,
+                            spatial_line, motif_policy_line,
+                            "" if chromatic_ownership else short_palette_line,
                             persistent_palette, figure_contract, intrusion_positive, sdxl_topology, correction)
               if spec.engine_id == "sdxl-1-0" else
               _join_sections(short_subject_line, short_treatment_line, short_palette_line,
@@ -1248,35 +1276,49 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
               _join_sections(subject_line, mood_line, audience_line, motif_line, motif_policy_line,
                              treatment_line, palette_line, spatial_line, style_line, light_line,
                              figure_contract, intrusion_positive))
+    if chromatic_ownership and len(clip_g.split()) > 75:
+        clip_g = clip_g.replace(short_palette_line,
+                                f"Palette: {_concise_palette_relationship(spec, include_explicit=False)}", 1)
+        if motif_policy_line and len(clip_g.split()) > 75:
+            clip_g = clip_g.replace(motif_policy_line, "Abstract motifs; no literal objects.", 1)
+        if spatial_line and len(clip_g.split()) > 75:
+            compact_spatial = f"Composition: {', '.join(composition.split(', ')[:2])}."
+            clip_g = clip_g.replace(spatial_line, compact_spatial, 1)
     positive_source = clip_g.replace(short_subject_line, subject_line, 1).replace(short_treatment_line, treatment_line, 1) if spec.engine_id != "flux-2" else clip_g
     if (sdxl_motif_recovery and (retry_category in _PALETTE_FAILURES or persistent_palette)
             and len(clip_g.split()) > 75):
         if retry_category == "PALETTE_OFF":
             compact_focus = "Confine chromatic design to requested families; no third colours."
         elif retry_category == "PRIMARY_MISSING":
-            compact_focus = f"Primary {design['requested_palette'][0]['colour']} on principal surfaces."
+            compact_focus = (f"Primary {design['requested_palette'][0]['colour']} across principal surfaces "
+                             "as largest chromatic mass.")
         elif retry_category == "SECONDARY_MISSING" and len(design["requested_palette"]) > 1:
-            compact_focus = f"Secondary {design['requested_palette'][1]['colour']} across substantial regions."
+            compact_focus = f"Secondary {design['requested_palette'][1]['colour']} across several substantial regions."
         elif retry_category == "PALETTE_ROLE_DRIFT":
             compact_focus = "Restore requested visual mass roles."
         elif retry_category == "SUBJECT_DRIFT":
-            compact_focus = "Restore the requested abstract subject and motif."
+            compact_focus = "Restore requested subject and motif."
         elif retry_category == "HUMAN":
-            compact_focus = "No human figures in the requested scene."
+            compact_focus = "No human figures."
         else:
             compact_focus = _first_words(short_correction, 8)
         compact_correction = f"{compiled.retry_stage}: {compact_focus}" if correction else ""
-        compact_persistent = ("Persistent palette recovery: requested colour roles remain mandatory."
+        compact_persistent = ("Persistent palette recovery: requested roles remain mandatory."
                               if persistent_palette else "")
         compact_intrusion = ("No human or costumed figures; no mascots."
                              if intrusion_positive else "")
         clip_g = _join_sections(
-            short_subject_line, sdxl_event_line, mood_line, audience_line,
+            short_subject_line,
+            f"Palette: {full_relationship}" if chromatic_ownership else "",
+            sdxl_event_line, mood_line, audience_line,
             f"Composition: {_first_words(composition, 3)}." if compact_persistent and composition
+            else f"Composition: {', '.join(composition.split(', ')[:2])}." if chromatic_ownership and composition
             else spatial_line,
             "Abstract motif structure; no literal source objects." if motif_policy_line else "",
+            "" if chromatic_ownership else
             f"Palette: {_first_words(full_relationship, 12)}." if colours else "",
             compact_persistent, figure_contract, compact_intrusion,
+            "Motifs distributed." if chromatic_ownership else
             "Distributed motifs." if compact_persistent else
             "Distributed motifs; no central figure.", compact_correction,
         )

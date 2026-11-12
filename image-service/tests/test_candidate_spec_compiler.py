@@ -85,6 +85,84 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_sdxl_chromatic_dominant_neutral_surfaces_are_bounded(self):
+        for primary, secondary, motif in (
+            ("green", "purple", "cracked geometric forms and impact-burst patterns"),
+            ("red", "gold", "geometric mechanical forms and circular energy patterns"),
+            ("blue", "red", "layered angular abstract geometry"),
+        ):
+            with self.subTest(primary=primary, secondary=secondary):
+                source = document_for(CASES[0], "C")
+                source["brief"].update(
+                    event_type="Family celebration", age_group="Guests of all ages",
+                    background_inspiration=f"Abstract {primary} and {secondary} background with {motif}",
+                    theme_reference_treatment=f"Use {motif} in a dynamic abstract background",
+                    primary_colour=primary, secondary_colour=secondary, palette_mode="dominant",
+                    visual_semantics={"motif_descriptors": [motif],
+                                      "motif_structure_description": motif},
+                    negative_constraints=["No characters or costumed figures"],
+                )
+                spec = build_candidate_spec(source, "sdxl-1-0", "C")
+                history = FailureHistorySummary(counts={"PALETTE_OFF": 2},
+                                                consecutive_category="PALETTE_OFF", consecutive_count=2)
+                for attempt, reason in ((1, ""), (2, "PALETTE_OFF"),
+                                        (4, "PALETTE_OFF"), (9, "PALETTE_ROLE_DRIFT"),
+                                        (9, "HUMAN")):
+                    with self.subTest(attempt=attempt, reason=reason):
+                        prompt = compile_candidate_prompt(spec, attempt, reason, concise=True,
+                                                          failure_history=history)
+                        active = f"{prompt.clip_l} {prompt.clip_g}".casefold()
+                        self.assertIn(f"primary {primary}", active)
+                        self.assertIn(f"secondary {secondary}", active)
+                        self.assertIn("principal surfaces", prompt.clip_g.casefold())
+                        self.assertIn("neutrals only fine detail", prompt.clip_g.casefold())
+                        self.assertIn("large unrequested neutral fields", prompt.negative.casefold())
+                        self.assertIn("Family celebration", prompt.clip_g)
+                        self.assertIn("Guests of all ages", prompt.clip_g)
+                        self.assertFalse(prompt.record()["prompt_budget"]["clip_g"]["budget_risk"])
+                        self.assertEqual(prompt.spec_sha256, spec.spec_sha256)
+
+    def test_requested_neutrals_and_other_engines_do_not_get_sdxl_neutral_exclusion(self):
+        for primary, secondary, mode in (("black", "yellow", "dominant"),
+                                         ("black", "white", "achromatic")):
+            source = document_for(CASES[0])
+            source["brief"].update(primary_colour=primary, secondary_colour=secondary,
+                                   palette_mode=mode)
+            for engine in ("sdxl-1-0", "flux-2", "sd-3-5-medium"):
+                with self.subTest(primary=primary, secondary=secondary, engine=engine):
+                    spec = build_candidate_spec(source, engine, "B")
+                    prompt = compile_candidate_prompt(spec, 2, "PALETTE_OFF", concise=True)
+                    self.assertNotIn("large unrequested neutral fields", prompt.negative.casefold())
+                    self.assertNotIn("neutrals only fine detail", prompt.clip_g.casefold())
+        source = document_for(CASES[0])
+        source["brief"].update(primary_colour="green", secondary_colour="purple",
+                               palette_mode="dominant")
+        for engine in ("flux-2", "sd-3-5-medium"):
+            with self.subTest(engine=engine):
+                spec = build_candidate_spec(source, engine, "B")
+                prompt = compile_candidate_prompt(spec, 2, "PALETTE_OFF", concise=True)
+                self.assertNotIn("large unrequested neutral fields", prompt.negative.casefold())
+                self.assertNotIn("neutrals only fine detail", prompt.clip_g.casefold())
+
+    def test_sdxl_palette_history_survives_unrelated_failure(self):
+        source = document_for(CASES[0], "C")
+        source["brief"].update(primary_colour="red", secondary_colour="gold",
+                               palette_mode="dominant",
+                               negative_constraints=["No characters or costumed figures"])
+        spec = build_candidate_spec(source, "sdxl-1-0", "C")
+        history = FailureHistorySummary(counts={"PALETTE_ROLE_DRIFT": 2, "PALETTE_OFF": 1,
+                                                "HUMAN": 1},
+                                        consecutive_category="HUMAN", consecutive_count=1)
+        prompt = compile_candidate_prompt(spec, 9, "HUMAN", concise=True,
+                                          failure_history=history)
+        self.assertIn("Persistent palette recovery", prompt.clip_g)
+        self.assertIn("primary red", prompt.clip_g.casefold())
+        self.assertIn("secondary gold", prompt.clip_g.casefold())
+        self.assertIn("no human", prompt.clip_g.casefold())
+        self.assertIn("neutrals only fine detail", prompt.clip_g.casefold())
+        self.assertFalse(prompt.record()["prompt_budget"]["clip_g"]["budget_risk"])
+        self.assertEqual(prompt.spec_sha256, spec.spec_sha256)
+
     def test_sdxl_abstract_palette_retries_keep_correction_in_budget(self):
         source = document_for(CASES[0], "C")
         source["brief"].update(
@@ -393,7 +471,7 @@ class CandidateSpecCompilerTests(unittest.TestCase):
             self.assertIn("royal blue", effective)
             self.assertIn("red", effective)
             self.assertIn("visual mass", effective)
-            self.assertIn("neutrals support", effective)
+            self.assertIn("neutrals only fine detail", effective)
 
 
     def test_abstract_web_motif_does_not_expand_to_a_creature(self):

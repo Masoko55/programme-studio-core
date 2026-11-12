@@ -128,7 +128,7 @@ async def hand_off_to_image_service(
     )
 
     try:
-        await run_image_workflow(
+        result = await run_image_workflow(
             reference_number
         )
 
@@ -146,13 +146,30 @@ async def hand_off_to_image_service(
 
         raise
 
+    status = result.get("status") if isinstance(result, dict) else None
+    if not isinstance(status, str) or status not in {"processing", "awaiting_selection", "failed"}:
+        error = f"Unexpected image workflow status: {str(status)[:120]}"
+        update_job_status(
+            reference_number,
+            status="failed",
+            current_stage="image_workflow_invalid_state",
+            error=error,
+        )
+        raise RuntimeError(error)
+
+    fallback_stage = {
+        "processing": "image_workflow_running",
+        "awaiting_selection": "awaiting_selection",
+        "failed": "image_workflow_failed",
+    }[status]
+    error = result.get("error")
+    if status == "failed" and not error:
+        error = "Image workflow reported failure without an error."
     update_job_status(
         reference_number,
-        status="awaiting_selection",
-        current_stage=(
-            "awaiting_selection"
-        ),
-        error=None,
+        status=status,
+        current_stage=result.get("current_stage") or fallback_stage,
+        error=error,
     )
 
 

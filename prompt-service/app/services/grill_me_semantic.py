@@ -709,6 +709,7 @@ def _safe_context(
     raw_semantics = context.get("visual_semantics")
     if not isinstance(raw_semantics, dict):
         raw_semantics = {}
+    reviewed_audience = raw_semantics.get("audience_descriptors")
     supplied_semantics = answers.get("visual_semantics")
     if isinstance(supplied_semantics, dict):
         raw_semantics = {**raw_semantics, **supplied_semantics}
@@ -721,6 +722,17 @@ def _safe_context(
             raw = []
         result = [str(item).strip()[:180] for item in raw if str(item).strip()]
         return result[:8] or ([fallback[:180]] if fallback else [])
+
+    def audience_values(value: object) -> list[str]:
+        items = [value] if isinstance(value, str) else value if isinstance(value, list) else []
+        return [" ".join(item.split())[:180] for item in items
+                if isinstance(item, str) and item.strip()][:8]
+
+    explicit_audience = (audience_values(supplied_semantics.get("audience_descriptors"))
+                         if isinstance(supplied_semantics, dict) else [])
+    explicit_audience = (explicit_audience or audience_values(answers.get("audience_context"))
+                         or audience_values(answers.get("age_group")))
+    audience = explicit_audience or audience_values(reviewed_audience)
 
     family = str(raw_semantics.get("scene_family") or "general").strip().casefold()
     if family not in {"organic", "architectural-interior", "abstract", "general"}:
@@ -741,8 +753,7 @@ def _safe_context(
     context["visual_semantics"] = {
         "atmosphere_descriptors": descriptors(
             "atmosphere_descriptors", str(answers.get("creative_description") or "")),
-        "audience_descriptors": descriptors(
-            "audience_descriptors", str(answers.get("age_group") or answers.get("audience_context") or "")),
+        "audience_descriptors": audience,
         "motif_descriptors": descriptors("motif_descriptors"),
         "motif_structure_description": str(raw_semantics.get("motif_structure_description") or "").strip()[:360],
         "lighting_descriptors": descriptors("lighting_descriptors"),
@@ -806,9 +817,9 @@ def _safe_context(
         key: ("SAFE_FALLBACK" if not content or (key == "scene_family" and content == "general"
                                     and not (isinstance(supplied_semantics, dict) and key in supplied_semantics)) else
               "GRILL_ME_CLARIFIED" if key == "incompatible_treatments" and exclusions else
-              "USER_EXPLICIT" if isinstance(supplied_semantics, dict) and key in supplied_semantics else
-              "USER_EXPLICIT" if key == "audience_descriptors" and (
-                  answers.get("age_group") or answers.get("audience_context")) else
+              "USER_EXPLICIT" if key == "audience_descriptors" and explicit_audience else
+              "USER_EXPLICIT" if isinstance(supplied_semantics, dict) and key in supplied_semantics
+              and key != "audience_descriptors" else
               "SEMANTIC_INFERENCE" if key in raw_semantics else
               "USER_EXPLICIT" if (key == "atmosphere_descriptors" and answers.get("creative_description"))
               else "SAFE_FALLBACK")

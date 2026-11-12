@@ -207,7 +207,9 @@ class ReferencePrecedencePipelineTests(unittest.TestCase):
             ("web", "flowing movement", "architecture"), ("blue", "red"))
         self.assertIn("buildings", brief["semantic_contract"]["incompatible_treatments"])
         self.assertIn("energetic and playful", brief["semantic_contract"]["atmosphere_descriptors"])
-        self.assertIn("children aged 7 to 10", brief["semantic_contract"]["audience_descriptors"])
+        self.assertIn("Children aged 7 to 10", brief["semantic_contract"]["audience_descriptors"])
+        self.assertEqual(brief["semantic_contract"]["semantic_provenance"]["audience_descriptors"],
+                         "USER_EXPLICIT")
         self.assertIn("person", brief["semantic_contract"]["incompatible_treatments"])
         self.assertIn("character", brief["semantic_contract"]["incompatible_treatments"])
         for variants in engines.values():

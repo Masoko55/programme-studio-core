@@ -17,6 +17,44 @@ from app.services.semantic_contract import build_semantic_contract, resolve_pale
 
 
 class GrillMeBackgroundInspirationTests(unittest.TestCase):
+    def test_explicit_age_group_overrides_contradictory_review(self):
+        answers = {"event_type": "Black-tie gala", "age_group": "Adults"}
+        reviewed = {"visual_semantics": {"audience_descriptors": ["young children"]}}
+        context = _safe_context(reviewed, answers)
+        self.assertEqual(context["visual_semantics"]["audience_descriptors"], ["Adults"])
+        self.assertEqual(context["semantic_provenance"]["audience_descriptors"], "USER_EXPLICIT")
+        contract = build_semantic_contract({**answers, "visual_semantics": context["visual_semantics"],
+                                            "grill_me_context": context})
+        self.assertEqual(contract["audience_descriptors"], ["Adults"])
+        self.assertEqual(contract["semantic_provenance"]["audience_descriptors"], "USER_EXPLICIT")
+
+    def test_audience_source_precedence_and_empty_values(self):
+        cases = (
+            ({"age_group": " Children aged 7 to 10 "}, ["children ages 7–10"],
+             ["Children aged 7 to 10"], "USER_EXPLICIT"),
+            ({"event_type": "Birthday party"}, ["families and young guests"],
+             ["families and young guests"], "SEMANTIC_INFERENCE"),
+            ({"age_group": "   ", "audience_context": ""}, ["families"],
+             ["families"], "SEMANTIC_INFERENCE"),
+            ({"audience_context": "Adults and children"}, ["young adults"],
+             ["Adults and children"], "USER_EXPLICIT"),
+            ({"visual_semantics": {"audience_descriptors": ["parents and children"]},
+              "age_group": "Adults"}, ["young adults"],
+             ["parents and children"], "USER_EXPLICIT"),
+            ({"age_group": "Adults", "audience_context": "Adults and children"},
+             ["young adults"], ["Adults and children"], "USER_EXPLICIT"),
+            ({"visual_semantics": {"audience_descriptors": []}, "age_group": "Adults"},
+             ["young adults"], ["Adults"], "USER_EXPLICIT"),
+            ({"visual_semantics": {"audience_descriptors": ["  "]}},
+             ["families"], ["families"], "SEMANTIC_INFERENCE"),
+        )
+        for answers, reviewed_audience, expected, source in cases:
+            with self.subTest(answers=answers):
+                context = _safe_context(
+                    {"visual_semantics": {"audience_descriptors": reviewed_audience}}, answers)
+                self.assertEqual(context["visual_semantics"]["audience_descriptors"], expected)
+                self.assertEqual(context["semantic_provenance"]["audience_descriptors"], source)
+
     def test_explicit_age_group_outranks_reviewed_audience_provenance(self):
         answers = {"event_type": "Children birthday party", "age_group": "Children aged 7 to 10"}
         reviewed = {"visual_semantics": {

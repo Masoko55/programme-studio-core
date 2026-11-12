@@ -35,6 +35,47 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_explicit_audience_uses_existing_hard_margin_and_retry_category(self):
+        design = {"primary_visual_subject": "abstract comic background",
+                  "visual_semantics": {"audience_descriptors": ["young guests"]},
+                  "semantic_provenance": {"audience_descriptors": "USER_EXPLICIT"}}
+        low, _ = self._assess(design, {"subject_score": .9, "audience_fit_score": .3})
+        self.assertIn("audience_fit_score", low["hard_dimensions"])
+        self.assertIn("audience_fit_score", low["hard_failed_dimensions"])
+        self.assertEqual(low["failure_category"], "AUDIENCE_DRIFT")
+        self.assertTrue(hard_fidelity_failure(low))
+        self.assertEqual(runtime_retry_category("AUDIENCE_DRIFT"), "AUDIENCE_DRIFT")
+
+        mild, _ = self._assess(design, {"subject_score": .9, "audience_fit_score": .5})
+        self.assertIn("audience_fit_score", mild["failed_dimensions"])
+        self.assertNotIn("audience_fit_score", mild["hard_failed_dimensions"])
+        self.assertFalse(hard_fidelity_failure(mild))
+
+        design["semantic_provenance"]["audience_descriptors"] = "SEMANTIC_INFERENCE"
+        inferred, _ = self._assess(design, {"subject_score": .9, "audience_fit_score": .3})
+        self.assertNotIn("audience_fit_score", inferred["hard_dimensions"])
+        self.assertFalse(hard_fidelity_failure(inferred))
+
+    def test_abstract_subject_consensus_keeps_explicit_audience_failure(self):
+        design = {"primary_visual_subject": "abstract comic background",
+                  "characters_prohibited": True,
+                  "visual_semantics": {"motif_descriptors": ["layered angular geometry"],
+                                       "atmosphere_descriptors": ["energetic"],
+                                       "audience_descriptors": ["young guests"]},
+                  "semantic_provenance": {"audience_descriptors": "USER_EXPLICIT"}}
+        common = {"subject_score": .2, "motif_score": .9, "treatment_score": .9,
+                  "atmosphere_score": .9, "background_usability_score": .9,
+                  "character_visible": False, "human_visible": False,
+                  "observed_evidence": ["layered abstract comic geometry"],
+                  "reason": "The abstract forms align with the brief; no central figure is needed."}
+        poor, _ = self._assess(design, {**common, "audience_fit_score": .2})
+        self.assertIn("audience_fit_score", poor["hard_failed_dimensions"])
+        self.assertFalse(poor["background_subject_consensus"]["applied"])
+        self.assertTrue(hard_fidelity_failure(poor))
+        strong, _ = self._assess(design, {**common, "audience_fit_score": .9})
+        self.assertNotIn("audience_fit_score", strong["hard_failed_dimensions"])
+        self.assertTrue(strong["background_subject_consensus"]["applied"])
+
     def test_abstract_source_motif_does_not_authorize_literal_objects(self):
         for motif, object_name in (("small bat-like abstract motifs", "several literal bats"),
                                    ("small bat-like abstract motifs", "several bats"),

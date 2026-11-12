@@ -17,6 +17,42 @@ from app.services.semantic_contract import build_semantic_contract, resolve_pale
 
 
 class GrillMeBackgroundInspirationTests(unittest.TestCase):
+    def test_explicit_age_group_outranks_reviewed_audience_provenance(self):
+        answers = {"event_type": "Children birthday party", "age_group": "Children aged 7 to 10"}
+        reviewed = {"visual_semantics": {
+            "audience_descriptors": ["children ages 7–10"],
+            "atmosphere_descriptors": ["warm"],
+            "motif_descriptors": ["angular forms"],
+            "material_descriptors": ["paper"],
+            "texture_descriptors": ["soft grain"],
+            "scene_family": "abstract",
+        }}
+        context = _safe_context(reviewed, answers)
+        provenance = context["semantic_provenance"]
+        self.assertEqual(provenance["audience_descriptors"], "USER_EXPLICIT")
+        for key in ("atmosphere_descriptors", "motif_descriptors",
+                    "material_descriptors", "texture_descriptors"):
+            self.assertEqual(provenance[key], "SEMANTIC_INFERENCE")
+        brief = {**answers, "visual_semantics": context["visual_semantics"],
+                 "grill_me_context": context}
+        contract = build_semantic_contract(brief)
+        self.assertEqual(contract["semantic_provenance"]["audience_descriptors"],
+                         "USER_EXPLICIT")
+
+    def test_review_only_audience_keeps_inferred_provenance(self):
+        context = _safe_context({"visual_semantics": {
+            "audience_descriptors": ["families and young guests"]}},
+            {"event_type": "Birthday party"})
+        self.assertEqual(context["semantic_provenance"]["audience_descriptors"],
+                         "SEMANTIC_INFERENCE")
+
+    def test_explicit_audience_context_keeps_explicit_provenance(self):
+        context = _safe_context({"visual_semantics": {
+            "audience_descriptors": ["adults and children"]}},
+            {"event_type": "Family gathering", "audience_context": "Adults and children"})
+        self.assertEqual(context["semantic_provenance"]["audience_descriptors"],
+                         "USER_EXPLICIT")
+
     @staticmethod
     def _review_failure(answers, malformed=False):
         if malformed:

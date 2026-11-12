@@ -742,7 +742,7 @@ def _safe_context(
         "atmosphere_descriptors": descriptors(
             "atmosphere_descriptors", str(answers.get("creative_description") or "")),
         "audience_descriptors": descriptors(
-            "audience_descriptors", str(answers.get("age_group") or "")),
+            "audience_descriptors", str(answers.get("age_group") or answers.get("audience_context") or "")),
         "motif_descriptors": descriptors("motif_descriptors"),
         "motif_structure_description": str(raw_semantics.get("motif_structure_description") or "").strip()[:360],
         "lighting_descriptors": descriptors("lighting_descriptors"),
@@ -807,9 +807,11 @@ def _safe_context(
                                     and not (isinstance(supplied_semantics, dict) and key in supplied_semantics)) else
               "GRILL_ME_CLARIFIED" if key == "incompatible_treatments" and exclusions else
               "USER_EXPLICIT" if isinstance(supplied_semantics, dict) and key in supplied_semantics else
+              "USER_EXPLICIT" if key == "audience_descriptors" and (
+                  answers.get("age_group") or answers.get("audience_context")) else
               "SEMANTIC_INFERENCE" if key in raw_semantics else
               "USER_EXPLICIT" if (key == "atmosphere_descriptors" and answers.get("creative_description"))
-              or (key == "audience_descriptors" and answers.get("age_group")) else "SAFE_FALLBACK")
+              else "SAFE_FALLBACK")
         for key, content in context["visual_semantics"].items()
     }
     if context.get("reference_detected") and _explicit_spatial_treatment(_theme_reference_treatment(answers)):

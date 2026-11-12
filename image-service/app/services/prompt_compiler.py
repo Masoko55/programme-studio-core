@@ -302,7 +302,7 @@ def _atmosphere(spec: CandidateSpec) -> str:
 
 
 def _event_context(spec: CandidateSpec) -> str:
-    """Carry only the supplied event purpose into SD3.5 conditioning."""
+    """Carry only the supplied event purpose into bounded conditioning."""
     return _first_words(str(spec.visual_design.get("event_context") or "").strip(), 10)
 
 
@@ -668,6 +668,8 @@ def _encoder_fields(
     short_correction = " ".join(correction.split()[:6]) if correction else ""
     if spec.engine_id == "sdxl-1-0":
         subject_line = f"Visual subject: {subject}."
+        event = _event_context(spec)
+        event_line = f"Event context: {event}." if event else ""
         atmosphere_line = _atmosphere(spec)
         tone_line = _scene_tone(spec)[0]
         structure_line = f"Composition: {_first_words(design['composition_strategy'], 10)}."
@@ -686,7 +688,7 @@ def _encoder_fields(
                            if design['visual_semantics']['audience_descriptors'] else "",
                            compact_motif, _exclude_incompatible(spatial_line, spec), colour,
                            f"Correction: {short_correction}" if short_correction else ""),
-            _join_sections("Background artwork.", subject_line, atmosphere_line,
+            _join_sections("Background artwork.", subject_line, event_line, atmosphere_line,
                            compact_motif, f"Treatment: {_first_words(treatment, 22)}." if treatment else "",
                            _exclude_incompatible(spatial_line, spec),
                            f"Quiet areas: {_first_words(design['title_safe_region_strategy'], 9)}; "
@@ -850,8 +852,9 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         "palette": ", ".join(str(item["colour"]) for item in contract["palette"]),
         "scene_family": contract["scene_family"],
     }
-    if spec.engine_id == "sd-3-5-medium":
+    if spec.engine_id in {"sdxl-1-0", "sd-3-5-medium"}:
         probes["event_context"] = _event_context(spec)
+    if spec.engine_id == "sd-3-5-medium":
         probes["audience"] = _audience_context(spec)
     coverage = {name: [channel for channel, value in channels.items()
                        if probe and probe.casefold() in value.casefold()]
@@ -1095,6 +1098,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     mood = ", ".join(semantics["atmosphere_descriptors"])
     audience = ", ".join(semantics["audience_descriptors"])
     sd35_event = _event_context(spec) if spec.engine_id == "sd-3-5-medium" else ""
+    sdxl_event = _event_context(spec) if spec.engine_id == "sdxl-1-0" else ""
     sd35_audience = _audience_context(spec) if spec.engine_id == "sd-3-5-medium" else ""
     motif = _direction_motif(spec)
     subject = _sdxl_renderer_subject(spec, subject, motif)
@@ -1154,18 +1158,21 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     sdxl_figure_negative = (
         "face, head, torso, body, arms, legs, hands, costume, masked figure, heroic pose"
         if sdxl_motif_recovery and intrusion_positive else "")
-    figure_contract = ("Environment and abstract motif only; depict no human or costumed figures."
+    figure_contract = (("Depict no human or costumed figures."
+                        if sdxl_event else
+                        "Environment and abstract motif only; depict no human or costumed figures.")
                        if design.get("characters_prohibited") and not intrusion_positive else "")
     subject_line = f"Visual subject: {subject}."
     short_subject_line = f"Visual subject: {_first_words(subject, 16 if sd35_motif_recovery else 9)}."
     anchor_line = f"Anchors: {_first_words(anchors, 14)}." if anchors and not sd35_motif_recovery else ""
     mood_line = (f"Event atmosphere: {_first_words(mood, 7)}."
                  if spec.engine_id == "sd-3-5-medium" and mood else
-                 f"Mood: {_first_words(mood, 7)}." if mood else "")
+                 f"Mood: {_first_words(mood, 4 if sdxl_event else 7)}." if mood else "")
     if spec.engine_id == "sd-3-5-medium" and not mood_line:
         mood_line = "Event atmosphere: event-appropriate."
     audience_line = f"Audience: {_first_words(audience, 5)}." if audience else ""
     sd35_event_line = f"Event context: {sd35_event}." if sd35_event else ""
+    sdxl_event_line = f"Event context: {sdxl_event}." if sdxl_event else ""
     sd35_audience_line = f"Audience: {sd35_audience}." if sd35_audience else ""
     motif_line = f"Motif: {_first_words(motif, 10)}." if motif else ""
     motif_policy_line = (_first_words(_motif_policy_instruction(spec), 12)
@@ -1177,7 +1184,8 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                            "", treatment, flags=re.I)
     treatment_line = (f"Treatment: {_first_words(treatment, 22)}."
                       if treatment else "")
-    short_treatment = _first_words(treatment, 7 if role_correction else 10)
+    short_treatment = _first_words(treatment, 3 if sdxl_event and role_correction else
+                                  7 if role_correction else 9 if sdxl_event else 10)
     for feature, label in (("viewpoint:first_person", "first-person viewpoint"),
                            ("viewpoint:aerial", "aerial viewpoint"),
                            ("depth:receding", "receding depth"),
@@ -1227,7 +1235,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
               else _join_sections(short_subject_line, anchor_line,
                                   sd35_event_line, sd35_audience_line)
               if spec.engine_id == "sd-3-5-medium" else _join_sections(subject_line, anchor_line))
-    clip_g = (_join_sections(short_subject_line, mood_line, audience_line, short_treatment_line,
+    clip_g = (_join_sections(short_subject_line, sdxl_event_line, mood_line, audience_line, short_treatment_line,
                             spatial_line, motif_policy_line, short_palette_line,
                             persistent_palette, figure_contract, intrusion_positive, sdxl_topology, correction)
               if spec.engine_id == "sdxl-1-0" else
@@ -1282,6 +1290,9 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
         coverage["event_context"] = [channel for channel, value in
                                      (("clip_l", clip_l), ("clip_g", clip_g), ("t5", t5))
                                      if sd35_event and sd35_event.casefold() in cleaned[channel].casefold()]
+    elif spec.engine_id == "sdxl-1-0":
+        coverage["event_context"] = [channel for channel in ("clip_l", "clip_g")
+                                     if sdxl_event and sdxl_event.casefold() in cleaned[channel].casefold()]
     negative = compiled.negative
     if compiled.negative_prompt_channel_active and intrusion_negative:
         negative = f"{negative}, {intrusion_negative}"

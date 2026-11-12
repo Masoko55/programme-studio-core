@@ -85,6 +85,64 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_sdxl_effective_channels_keep_event_and_audience_separate(self):
+        for event, audience in (("Children birthday party", "Children aged 7 to 10"),
+                                ("Black-tie gala", "Adults"),
+                                ("Family wedding", "Adults and children")):
+            with self.subTest(event=event):
+                source = document_for(CASES[0])
+                source["brief"].update(
+                    event_type=event, age_group=audience,
+                    background_inspiration=("Abstract red and gold futuristic comic background "
+                                            "with geometric mechanical forms and circular energy patterns"),
+                    creative_description=f"Abstract comic treatment for {event}",
+                    theme_reference_treatment=("geometric mechanical forms with circular energy patterns "
+                                               "and angular motion"),
+                    primary_colour="red", secondary_colour="gold",
+                )
+                spec = build_candidate_spec(source, "sdxl-1-0", "B")
+                compiled = compile_candidate_prompt(spec, 1, concise=True)
+                active = " ".join((compiled.clip_l, compiled.clip_g))
+                workflow = build_workflow("sdxl-1-0", compiled.positive, compiled.negative,
+                                          123, "test/audience-event", compiled)
+                self.assertEqual(workflow["16"]["inputs"]["text_g"], compiled.clip_g)
+                self.assertIn(f"Event context: {event}", active)
+                self.assertIn(audience, active)
+                for phrase in ("geometric mechanical forms", "circular energy patterns", "red", "gold"):
+                    self.assertIn(phrase, active)
+                for unrequested in ("balloon", "cake", "confetti", "streamer", "party hat",
+                                    "gift", "toy", "child figure"):
+                    self.assertNotIn(unrequested, active.casefold())
+                self.assertIn("event_context", compiled.conditioning_coverage)
+                self.assertTrue(set(compiled.conditioning_coverage["event_context"])
+                                & {"clip_l", "clip_g"})
+
+    def test_sdxl_audience_retry_keeps_spec_and_prior_palette_correction(self):
+        source = document_for(CASES[0])
+        source["brief"].update(event_type="Children birthday party",
+                               age_group="Children aged 7 to 10",
+                               background_inspiration="abstract angular comic forms",
+                               theme_reference_treatment="distributed radial motifs and angular motion",
+                               primary_colour="blue", secondary_colour="red")
+        spec = build_candidate_spec(source, "sdxl-1-0", "B")
+        self.assertEqual(spec.visual_design["semantic_provenance"]["audience_descriptors"],
+                         "USER_EXPLICIT")
+        initial = compile_candidate_prompt(spec, 1, concise=True)
+        history = FailureHistorySummary(counts={"PALETTE_ROLE_DRIFT": 1},
+                                        consecutive_category="AUDIENCE_DRIFT",
+                                        consecutive_count=1)
+        retry = compile_candidate_prompt(spec, 2, "AUDIENCE_DRIFT", concise=True,
+                                         failure_history=history)
+        self.assertEqual(retry.spec_sha256, initial.spec_sha256)
+        self.assertEqual(retry.failure_category, "AUDIENCE_DRIFT")
+        for expected in ("abstract angular comic forms", "radial motifs", "blue", "red",
+                         "Event context: Children birthday party", "Children aged 7 to 10",
+                         "audience-appropriate", "Persistent palette recovery"):
+            self.assertIn(expected, retry.positive)
+        self.assertNotIn("audience-appropriate", initial.positive)
+        for unrequested in ("balloon", "cake", "confetti", "party hat"):
+            self.assertNotIn(unrequested, retry.positive.casefold())
+
     def test_display_copy_stays_out_of_active_conditioning(self):
         document = document_for(CASES[2])
         document["brief"].update(title_preference="WELCOME 2026", event_date="24 December 2026",
@@ -517,10 +575,10 @@ class CandidateSpecCompilerTests(unittest.TestCase):
             spec = build_candidate_spec(document, engine, "B")
             compiled = compile_candidate_prompt(spec, 2, "Generated background contains OCR text")
             for prompt in (compiled.positive, compiled.clip_l, compiled.clip_g, compiled.t5 or ""):
-                if engine != "sd-3-5-medium":
+                if engine == "flux-2":
                     self.assertNotIn("bridal shower", prompt.casefold())
                 self.assertNotIn("THE BRIDAL SHOWER", prompt)
-            if engine == "sd-3-5-medium":
+            if engine in {"sdxl-1-0", "sd-3-5-medium"}:
                 self.assertIn("Event context: bridal shower.", compiled.clip_g)
             self.assertIn("uninterrupted visual surfaces", compiled.positive)
 

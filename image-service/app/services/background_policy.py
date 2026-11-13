@@ -2437,9 +2437,24 @@ def _palette_role_metrics(primary_name: str | None, secondary_name: str | None,
     primary_ratio = counts.get(primary_name, 0) / total if primary_name else None
     secondary_ratio = counts.get(secondary_name, 0) / total if secondary_name else None
     strong_secondary = "strong" in secondary_role or bool(re.search(r"\b(strong|substantial|prominent)\s+(?:\w+\s+)?(?:secondary|accent)", phrase))
-    secondary_minimum = (0 if optional or monochromatic else .06 if two_chromatic and mode in {None, "dominant"} else
-                         .05 if strong_secondary else .02 if balanced or "support" in secondary_role else
-                         MIN_SECONDARY_COLOUR_RATIO)
+    # A default two-colour dominant palette is intentionally FLEXIBLE: the requested
+    # secondary must be visibly present, but the system must not silently reinterpret
+    # the default relationship as an explicit "substantial secondary" requirement.
+    # Keep the stricter 6% floor when the user explicitly constrains the relationship.
+    flexible_default_two_chromatic = (
+        two_chromatic
+        and mode in {None, "dominant"}
+        and relation == "FLEXIBLE"
+        and not explicit
+    )
+    secondary_minimum = (
+        0 if optional or monochromatic
+        else .04 if flexible_default_two_chromatic
+        else .06 if two_chromatic and mode in {None, "dominant"}
+        else .05 if strong_secondary
+        else .02 if balanced or "support" in secondary_role
+        else MIN_SECONDARY_COLOUR_RATIO
+    )
     primary_minimum = (.12 if two_chromatic and mode in {None, "dominant"} else MIN_PRIMARY_COLOUR_RATIO)
     presence = secondary_ratio is None or secondary_ratio >= secondary_minimum
     dominance = (True if relation in {"FLEXIBLE", "MONOCHROMATIC"} or primary_ratio is None or secondary_ratio is None else

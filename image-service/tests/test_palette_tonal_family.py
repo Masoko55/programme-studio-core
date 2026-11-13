@@ -43,6 +43,24 @@ class PaletteTonalFamilyTests(unittest.TestCase):
                 _palette_role_metrics(primary, secondary, counts, 1000, "",
                                       "dominant", None, "default")
 
+    def test_default_flexible_secondary_accepts_visible_non_trace_presence(self):
+        metrics = _palette_role_metrics(
+            "red", "gold", {"red": 900, "gold": 45}, 1000,
+            "requested colours dominate with natural tonal variation",
+            "dominant", None, "default",
+        )
+        self.assertTrue(metrics["secondary_presence"])
+        self.assertEqual(metrics["secondary_minimum"], .04)
+        self.assertEqual(metrics["dominance_relationship"], "FLEXIBLE")
+
+    def test_explicit_two_chromatic_relationship_keeps_strict_secondary_floor(self):
+        with self.assertRaisesRegex(ValueError, "PALETTE_ROLE_DRIFT"):
+            _palette_role_metrics(
+                "red", "gold", {"red": 900, "gold": 45}, 1000,
+                "red dominant with gold supporting accent",
+                "dominant", None, "user_explicit",
+            )
+
     def test_two_chromatic_dominant_palette_has_requested_visual_mass(self):
         pixels = np.empty((176, 128, 3), dtype=np.uint8)
         pixels[:, :38] = NAMED_COLOURS["green"]

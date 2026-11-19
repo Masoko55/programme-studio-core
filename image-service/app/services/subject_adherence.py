@@ -73,6 +73,9 @@ def _confirmed_human_evidence(visible: object, description: str, evidence: objec
         for observation in evidence:
             if not isinstance(observation, str):
                 continue
+            if (_confirmed_human_answer(True, observation) is True and
+                    not re.search(r"^\s*(?:no|without|absent)\b", observation, re.I)):
+                return True
             person = re.search(r"\b(?:child|children|person|human|adult|man|woman)\b(?![- ]like\b)", observation, re.I)
             attire = re.search(r"\b(?:costume|cape|mask|shirt|jacket|dress|suit)\b", observation, re.I)
             absent = re.search(r"\b(?:no|without|absent)\s+(?:visible\s+)?(?:child|children|person|human|adult|man|woman)\b", observation, re.I)
@@ -100,6 +103,19 @@ def _confirmed_human_evidence(visible: object, description: str, evidence: objec
     if human_subject and clothing:
         return True
     return None
+
+
+def _humans_prohibited(visual_design: dict) -> bool:
+    """Read a human ban from the persisted rendering constraints."""
+    if visual_design.get("humans_prohibited") is True:
+        return True
+    return any(
+        re.search(r"\b(?:no|without|exclude|avoid)\s+(?:any\s+|visible\s+|depicted\s+)*"
+                  r"(?:people|persons?|humans?|men|women|man|woman|children|child)\b|"
+                  r"\bdo not\s+(?:depict|show|include|render|feature)\s+"
+                  r"(?:any\s+|visible\s+|depicted\s+)*(?:people|persons?|humans?)\b", item, re.I)
+        for item in visual_design.get("negative_constraints", []) if isinstance(item, str)
+    )
 
 
 def _confirmed_character_evidence(visible: object, description: str, evidence: object) -> bool | None:
@@ -187,9 +203,63 @@ def _supported_literal_object_claim(answer: dict, visual_design: dict) -> bool:
     return bool(object_words and not object_words.issubset(authorized_words))
 
 
+def _supported_literal_observation_claim(answer: dict, visual_design: dict) -> bool:
+    """Corroborate a clear literalization statement with a located observation."""
+    reason = str(answer.get("reason") or "")
+    if re.search(r"\b(?:not|no|without)\s+(?:a\s+)?literal(?:ized)?\b", reason, re.I):
+        return False
+    if not (re.search(r"\b(?:is|are|became|becomes|appears?)\s+(?:a\s+)?literal\b|"
+                      r"\bliteralized\b|\bstandalone\s+(?:object|emblem)\b", reason, re.I)
+            and re.search(r"\b(?:motif|pattern|requested|unrequested)\b", reason, re.I)):
+        return False
+    for observation in answer.get("observed_evidence", []):
+        if not isinstance(observation, str) or not re.search(
+                r"\b(?:central|center|centre|focal|isolated|foreground|background|"
+                r"upper|lower|left|right|throughout)\b", observation, re.I):
+            continue
+        evidence = {"object": observation, "location": observation,
+                    "why_unrequested": "The requested motif pattern does not authorize a literal source subject."}
+        if _supported_literal_object_claim({"unrequested_literal_object_evidence": evidence}, visual_design):
+            return True
+    return False
+
+
+def _supported_unsupported_scene_claim(answer: dict) -> bool:
+    """A scene rejection needs a recognizable scene, location and contract conflict."""
+    evidence = answer.get("unsupported_scene_evidence")
+    if not isinstance(evidence, dict) or any(
+        not isinstance(evidence.get(key), str) or not evidence[key].strip()
+        for key in ("object_or_scene", "location", "why_unsupported")
+    ):
+        return False
+    if re.search(r"\b(?:abstract|geometric|decorative|pattern|linework|non[- ]figurative)\b",
+                 evidence["object_or_scene"], re.I) and not re.search(
+                     r"\b(?:recognizable|recognisable|literal|depicted)\b", evidence["object_or_scene"], re.I):
+        return False
+    return bool(
+        re.search(r"\b(?:room|interior|building|hall|stage|monument|tomb|venue|facade|façade|"
+                  r"landscape|city|street|architecture|architectural)\b|"
+                  r"\b(?:recognizable|recognisable|literal|depicted)\s+(?:\w+\s+){0,3}object\b",
+                  evidence["object_or_scene"], re.I)
+        and re.search(r"\b(?:left|right|top|bottom|upper|lower|center|centre|central|"
+                      r"foreground|background|middle|edge|throughout|behind)\b",
+                      evidence["location"], re.I)
+        and re.search(r"\b(?:no|not|without|unsupported|unrequested|unauthorized|invent)\b",
+                      evidence["why_unsupported"], re.I)
+        and re.search(r"\b(?:environment|scene|subject|brief|requested|authorized)\b",
+                      evidence["why_unsupported"], re.I)
+    )
+
+
 def _vision_response_problem(error: Exception) -> tuple[str, list[str]]:
     """Classify structural response failures without retaining model text."""
     message = str(error)
+    if "boolean human_visible" in message:
+        return "MISSING_HUMAN_EVIDENCE", ["human_visible"]
+    if "boolean unsupported_scene_visible" in message:
+        return "MISSING_SCENE_EVIDENCE", ["unsupported_scene_visible"]
+    if "boolean incompatible_treatment_visible" in message:
+        return "MISSING_TREATMENT_EVIDENCE", ["incompatible_treatment_visible"]
     if "boolean character_visible" in message:
         return "MISSING_CHARACTER_EVIDENCE", ["character_visible"]
     if "boolean unrequested_literal_object_visible" in message:
@@ -313,6 +383,9 @@ def brief_fidelity_record(result: dict) -> dict:
             "vision_text_signal",
             "vision_text_evidence",
             "unrequested_literal_object_visible",
+            "unsupported_scene_visible",
+            "unsupported_scene_evidence",
+            "incompatible_treatment_visible",
             "character_visible",
             "character_description",
         )
@@ -658,6 +731,9 @@ def assess_subject_adherence(
         "unrequested_literal_object_visible": None,
         "character_visible": None,
         "character_description": "",
+        "unsupported_scene_visible": None,
+        "unsupported_scene_evidence": None,
+        "incompatible_treatment_visible": None,
         "literal_object_dimension_availability": "UNAVAILABLE",
     }
 
@@ -672,7 +748,10 @@ def assess_subject_adherence(
                 field: "UNAVAILABLE"
                 for field
                 in required
-            } | ({"character_visible": "UNAVAILABLE"} if visual_design.get("characters_prohibited") else {}),
+            } | ({"character_visible": "UNAVAILABLE"} if visual_design.get("characters_prohibited") else {}) | (
+                {"human_visible": "UNAVAILABLE"} if _humans_prohibited(visual_design) else {}) | (
+                {"unsupported_scene_visible": "UNAVAILABLE"} if visual_design.get("environment_prohibited") else {}) | (
+                {"incompatible_treatment_visible": "UNAVAILABLE"} if incompatible else {}),
         }
 
     with Image.open(
@@ -715,6 +794,7 @@ def assess_subject_adherence(
         "Evaluate only visible evidence against the supplied subject and semantic contract. "
         "Also give background_usability_score for hierarchy, controlled density, and usable calm space, "
         "and human_visible as a boolean based on visible human evidence, including small or distant people. "
+        "When people are prohibited, independently report human_visible as a JSON boolean. "
         "When characters are prohibited, independently report character_visible as a JSON boolean. "
         "A character is a visibly depicted fictional or stylized humanoid, masked or costumed figure, "
         "or mascot with concrete body, costume or posture evidence. Ordinary animals, "
@@ -727,6 +807,8 @@ def assess_subject_adherence(
         "Do not judge colours. Do not infer a subject or motif from decorative lines alone. "
         "A motif pattern does not authorize an unrequested literal source object; count such an object against subject fit. "
         "Repeated or distributed whole literal objects remain literal objects; abstract geometry alone is not one. "
+        "Set unrequested_literal_object_visible true for recognizable whole source-object silhouettes "
+        "even when they are small or repeated; do not require the word 'literal' in your description. "
         "Intentional abstract or sculptural subjects are valid when requested. "
         "A figurative statue or sculpture depicting human anatomy counts as human_visible when people are prohibited; "
         "non-figurative sculpture does not. "
@@ -746,6 +828,11 @@ def assess_subject_adherence(
         "numbers, logos, signage or grouped pseudo-glyphs and their location; "
         "observed_evidence as a list of visible forms; and a short reason. "
         "Always include unrequested_literal_object_visible as a JSON boolean, even when false. "
+        "When the contract forbids inventing an environment, report unsupported_scene_visible as a JSON boolean. "
+        "A recognizable invented room, building, monument, stage or other scene-defining subject counts; "
+        "abstract geometry, decorative linework and supporting texture do not. "
+        "If true, include unsupported_scene_evidence with object_or_scene, location, and why_unsupported. "
+        "When incompatible treatments are listed, report incompatible_treatment_visible as a JSON boolean. "
         "Requested subject: "
         + subject
         + ". Anchors: "
@@ -782,6 +869,8 @@ def assess_subject_adherence(
         + str(visual_design.get("authorized_literal_subject") or "none")[:200]
         + ". Characters prohibited by explicit brief: "
         + str(bool(visual_design.get("characters_prohibited"))).lower()
+        + ". Invented environment prohibited by persisted contract: "
+        + str(bool(visual_design.get("environment_prohibited"))).lower()
         + ". Set unrequested_literal_object_visible true only for a clearly visible literal object "
         "introduced solely from a motif and absent from the explicitly authorized subject; otherwise set false"
         + ". Motif prominence: "
@@ -876,6 +965,17 @@ def assess_subject_adherence(
                 if (visual_design.get("motif_literalization_policy") == "motif_only" and
                         not isinstance(answer.get("unrequested_literal_object_visible"), bool)):
                     missing.append("boolean unrequested_literal_object_visible")
+                if _humans_prohibited(visual_design) and not isinstance(answer.get("human_visible"), bool):
+                    missing.append("boolean human_visible")
+                if (visual_design.get("environment_prohibited") and
+                        not isinstance(answer.get("unsupported_scene_visible"), bool)):
+                    missing.append("boolean unsupported_scene_visible")
+                if (visual_design.get("environment_prohibited") and
+                        answer.get("unsupported_scene_visible") is True and
+                        not _supported_unsupported_scene_claim(answer)):
+                    missing.append("supported unsupported_scene_evidence")
+                if incompatible and not isinstance(answer.get("incompatible_treatment_visible"), bool):
+                    missing.append("boolean incompatible_treatment_visible")
                 if (visual_design.get("characters_prohibited") and
                         not isinstance(answer.get("character_visible"), bool) and
                         _confirmed_character_evidence(None, "", answer.get("observed_evidence")) is not True):
@@ -1078,6 +1178,17 @@ def assess_subject_adherence(
                 "Vision response lacks boolean unrequested_literal_object_visible"
             )
 
+        if _humans_prohibited(visual_design) and not isinstance(answer.get("human_visible"), bool):
+            raise ValueError("Vision response lacks boolean human_visible")
+        if visual_design.get("environment_prohibited"):
+            if not isinstance(answer.get("unsupported_scene_visible"), bool):
+                raise ValueError("Vision response lacks boolean unsupported_scene_visible")
+            if (answer["unsupported_scene_visible"] is True and
+                    not _supported_unsupported_scene_claim(answer)):
+                raise ValueError("Vision response lacks supported unsupported_scene_evidence")
+        if incompatible and not isinstance(answer.get("incompatible_treatment_visible"), bool):
+            raise ValueError("Vision response lacks boolean incompatible_treatment_visible")
+
         if (visual_design.get("characters_prohibited") and
                 not isinstance(answer.get("character_visible"), bool) and
                 _confirmed_character_evidence(None, "", answer.get("observed_evidence")) is not True):
@@ -1201,12 +1312,17 @@ def assess_subject_adherence(
                 field: "UNAVAILABLE"
                 for field
                 in required
-            } | ({"character_visible": "UNAVAILABLE"} if visual_design.get("characters_prohibited") else {}),
+            } | ({"character_visible": "UNAVAILABLE"} if visual_design.get("characters_prohibited") else {}) | (
+                {"human_visible": "UNAVAILABLE"} if _humans_prohibited(visual_design) else {}) | (
+                {"unsupported_scene_visible": "UNAVAILABLE"} if visual_design.get("environment_prohibited") else {}) | (
+                {"incompatible_treatment_visible": "UNAVAILABLE"} if incompatible else {}),
         }
 
     unauthorized_literal = (not literal_evidence_unavailable and
                             visual_design.get("motif_literalization_policy") == "motif_only"
-                            and answer.get("unrequested_literal_object_visible") is True)
+                            and (answer.get("unrequested_literal_object_visible") is True or
+                                 _supported_literal_object_claim(answer, visual_design) or
+                                 _supported_literal_observation_claim(answer, visual_design)))
     character_description = str(answer.get("character_description") or "")[:240]
     prohibited_character = bool(visual_design.get("characters_prohibited") and
                                 _confirmed_character_evidence(answer.get("character_visible"),
@@ -1353,6 +1469,16 @@ def assess_subject_adherence(
         hard_failed.append("unrequested_literal_object_visible")
     if prohibited_character:
         hard_failed.append("character_visible")
+    prohibited_human = _humans_prohibited(visual_design) and vision_human is True
+    if prohibited_human:
+        hard_failed.append("human_visible")
+    unsupported_scene = bool(visual_design.get("environment_prohibited") and
+                             _supported_unsupported_scene_claim(answer))
+    if unsupported_scene:
+        hard_failed.append("unsupported_scene_visible")
+    incompatible_treatment = bool(incompatible and answer.get("incompatible_treatment_visible") is True)
+    if incompatible_treatment:
+        hard_failed.append("incompatible_treatment_visible")
 
     # A decorative background can satisfy its independently assessed brief even
     # when the model expects a literal event object in the subject dimension.
@@ -1372,6 +1498,8 @@ def assess_subject_adherence(
         and not text_signal
         and not unauthorized_literal
         and not prohibited_character
+        and not unsupported_scene
+        and not incompatible_treatment
         and vision_human is not True
         and answer.get("incompatible_treatment_visible") is not True
     )
@@ -1390,6 +1518,8 @@ def assess_subject_adherence(
         and usability is not None and usability >= fidelity_threshold - 0.15
         and not any(field != "subject_score" for field in hard_failed)
         and not text_signal and not unauthorized_literal and not prohibited_character
+        and not unsupported_scene
+        and not incompatible_treatment
         and vision_human is not True
         and answer.get("incompatible_treatment_visible") is not True
     )
@@ -1401,12 +1531,18 @@ def assess_subject_adherence(
     # A defining explicit motif can still be a hard semantic failure, but it
     # must remain MOTIF_DRIFT so retry compilation strengthens the motif
     # instead of unnecessarily rebuilding the whole requested subject.
-    if prohibited_character:
+    if prohibited_human:
+        decision = "HUMAN"
+    elif prohibited_character:
         decision = "CHARACTER"
     elif text_signal:
         decision = "TEXT_OR_LOGO"
     elif unauthorized_literal:
         decision = "UNREQUESTED_LITERAL_OBJECT"
+    elif unsupported_scene:
+        decision = "SUBJECT_DRIFT"
+    elif incompatible_treatment:
+        decision = "TREATMENT_DRIFT"
     elif (
         "subject_score"
         in hard_failed
@@ -1458,9 +1594,12 @@ def assess_subject_adherence(
         ],
         **scores,
         "decision": decision,
-        "failure_category": ("CHARACTER" if prohibited_character else
+        "failure_category": ("HUMAN" if prohibited_human else
+                             "CHARACTER" if prohibited_character else
                              "TEXT_OR_LOGO" if text_signal else
                              "UNREQUESTED_LITERAL_OBJECT" if unauthorized_literal else
+                             "SUBJECT_DRIFT" if unsupported_scene else
+                             "TREATMENT_DRIFT" if incompatible_treatment else
                              "BRIEF_FIDELITY_DRIFT" if background_subject_consensus or abstract_background_fit else
                              SEMANTIC_FAILURE_CATEGORIES[worst] if worst else None),
         "background_subject_consensus": {
@@ -1472,6 +1611,9 @@ def assess_subject_adherence(
         "unrequested_literal_object_visible": None if literal_evidence_unavailable else unauthorized_literal,
         "character_visible": prohibited_character if visual_design.get("characters_prohibited") else None,
         "character_description": character_evidence,
+        "unsupported_scene_visible": unsupported_scene if visual_design.get("environment_prohibited") else None,
+        "unsupported_scene_evidence": answer.get("unsupported_scene_evidence") if unsupported_scene else None,
+        "incompatible_treatment_visible": incompatible_treatment if incompatible else None,
         "literal_object_dimension_availability": ("NOT_REQUIRED" if visual_design.get("motif_literalization_policy") != "motif_only" else
                                                   "UNAVAILABLE" if literal_evidence_unavailable else
                                                   "FAIL" if unauthorized_literal else "PASS"),
@@ -1518,8 +1660,20 @@ def assess_subject_adherence(
               "FAIL" if unauthorized_literal else "PASS"}
              if visual_design.get("motif_literalization_policy") == "motif_only" else {}) | (
                  {"character_visible": "FAIL" if prohibited_character else "PASS"}
-                 if visual_design.get("characters_prohibited") else {}),
-        "reason": ("Prohibited depicted character: " + character_evidence if prohibited_character else str(
+                 if visual_design.get("characters_prohibited") else {}) | (
+                     {"human_visible": "FAIL" if prohibited_human else "PASS"}
+                     if _humans_prohibited(visual_design) else {}) | (
+                     {"unsupported_scene_visible": "FAIL" if unsupported_scene else "PASS"}
+                     if visual_design.get("environment_prohibited") else {}) | (
+                     {"incompatible_treatment_visible": "FAIL" if incompatible_treatment else "PASS"}
+                     if incompatible else {}),
+        "reason": ("Prohibited human: " + (human_description or next(
+            (str(item) for item in evidence if isinstance(item, str) and item.strip()), "visible human evidence"))
+                   if prohibited_human else
+                   "Unsupported scene: " + str(answer["unsupported_scene_evidence"]["object_or_scene"])
+                   if unsupported_scene else
+                   "Incompatible treatment visible: " + incompatible if incompatible_treatment else
+                   "Prohibited depicted character: " + character_evidence if prohibited_character else str(
             answer.get(
                 "reason"
             )

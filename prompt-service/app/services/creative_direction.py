@@ -1383,7 +1383,8 @@ def build_creative_direction_prompt(
             "symbols, emblems, insignia, uniforms, costumes, weapons, vehicles, "
             "power sources or character silhouettes. "
             "Use architecture, environment, materials, textures or lighting "
-            "only when supported by the grounded semantic contract."
+            "only when supported by the grounded semantic contract. "
+            "SEMANTIC_INFERENCE is a supporting cue, not user authorization for a scene-defining object or environment."
         ),
         (
             "Never place the referenced person or character itself "
@@ -1421,8 +1422,8 @@ def build_creative_direction_prompt(
          "use the user's requested subject in every direction; vary only unlocked camera and layout choices."),
         ("Vary only unlocked viewpoint, mass placement, depth and spatial flow. "
          "Do not invent material, texture or specific lighting treatments when the semantic contract leaves them empty. "
-         "Do not introduce unsupported scene-defining objects. Keep each supplied motif at its stated "
-         "importance: a subtle accent must not expand to cover the scene. Prefer a few coherent large "
+         "Do not introduce unsupported scene-defining objects. Keep each user-supplied motif at its stated "
+         "importance; inferred motifs are optional supporting cues. A subtle accent must not expand to cover the scene. Prefer a few coherent large "
          "forms over uniformly distributed micro-detail unless the brief explicitly requests density."),
         ("Describe the chosen composition, focal point, depth, perimeter treatment and separate calm title/programme areas in their strategy fields."),
         ("Use the prior direction concepts to choose a materially different arrangement, not just a new palette."),

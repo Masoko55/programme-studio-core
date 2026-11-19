@@ -35,6 +35,30 @@ def patterned_rendering(tone):
 
 
 class PaletteTonalFamilyTests(unittest.TestCase):
+    def test_fragmented_bright_green_derivative_keeps_green_family(self):
+        pixels = np.asarray(blocks("green", "green", "purple", "purple")).copy()
+        for x in range(3, 62, 8):
+            pixels[:, x:x + 3] = (11, 248, 0)
+        result = validate_palette(Image.fromarray(pixels), "green", "purple",
+                                  mode="dominant", quality_result={})
+        self.assertLess(result["off_palette_ratio"], .05)
+        self.assertGreater(result["primary_ratio"], .45)
+        self.assertGreater(result["secondary_ratio"], .40)
+
+        independent = np.asarray(blocks("green", "green", "purple", "purple")).copy()
+        independent[:, 16:48] = NAMED_COLOURS["lime"]
+        with self.assertRaisesRegex(ValueError, "not requested"):
+            validate_palette(Image.fromarray(independent), "green", "purple",
+                             mode="dominant", quality_result={})
+        for named in ("lime", "mint green"):
+            with self.subTest(named=named):
+                requested = validate_palette(blocks(named, named, "purple"), named, "purple",
+                                             mode="dominant", quality_result={})
+                self.assertGreater(requested["primary_ratio"], .60)
+                with self.assertRaisesRegex(ValueError, "not requested"):
+                    validate_palette(blocks("green", named, "purple"), "green", "purple",
+                                     mode="dominant", quality_result={})
+
     def test_bounded_adjacent_rendering_contributes_to_requested_chromatic_mass(self):
         pixels = np.empty((176, 128, 3), dtype=np.uint8)
         pixels[:, :72] = NAMED_COLOURS["green"]

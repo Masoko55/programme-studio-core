@@ -181,6 +181,29 @@ class CandidateSpecCompilerTests(unittest.TestCase):
                 self.assertNotIn("literal flower depiction", floral_prompt.negative)
                 self.assertNotIn("literal leaf depiction", floral_prompt.negative)
 
+    def test_inferred_abstract_source_with_explicit_anchor_still_excludes_literal_object(self):
+        source = document_for(CASES[0], "A")
+        source["brief"].update(
+            background_inspiration=("Abstract black and yellow background with restrained "
+                                    "wing-inspired angular patterns and dynamic geometric motion"),
+            visual_anchors=["restrained wing-inspired angular patterns"],
+            visual_semantics={"motif_descriptors": ["wing-inspired shapes"],
+                              "motif_structure_description": (
+                                  "Wing-inspired shapes should be abstract and distributed across the background")},
+            negative_constraints=["No people or characters"],
+        )
+        for engine in ("sdxl-1-0", "sd-3-5-medium"):
+            spec = build_candidate_spec(source, engine, "A")
+            for attempt, reason in ((1, ""), (9, "PALETTE_OFF")):
+                with self.subTest(engine=engine, attempt=attempt):
+                    prompt = compile_candidate_prompt(spec, attempt, reason, concise=True)
+                    active = f"{prompt.clip_l} {prompt.clip_g}".casefold()
+                    self.assertIn("angular patterns", active)
+                    self.assertIn("literal wing depiction", prompt.negative.casefold())
+                    if engine == "sdxl-1-0":
+                        self.assertIn("geometric motion", active)
+                        self.assertLessEqual(len(prompt.clip_g.split()), 75)
+
     def test_unsupported_focal_object_becomes_spatial_instruction(self):
         source = document_for(CASES[1])
         source["brief"].update(background_inspiration="Restrained abstract black and white forms",

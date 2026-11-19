@@ -307,6 +307,47 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                 })
                 self.assertEqual(result["decision"] == "UNREQUESTED_LITERAL_OBJECT", literal)
 
+    def test_grounded_literal_evidence_overrides_conflicting_false_boolean(self):
+        design = {"primary_visual_subject": "abstract decorative background",
+                  "motif_literalization_policy": "motif_only",
+                  "visual_semantics": {"motif_descriptors": ["small bird-like abstract motifs"]}}
+        result, _ = self._assess(design, {
+            "subject_score": .95, "motif_score": .95,
+            "unrequested_literal_object_visible": False,
+            "unrequested_literal_object_evidence": {
+                "object": "several recognizable whole bird silhouettes",
+                "location": "upper left and right background",
+                "why_unrequested": "the requested motif was abstract; whole birds are not the subject",
+            },
+        })
+        self.assertEqual(result["decision"], "UNREQUESTED_LITERAL_OBJECT")
+
+    def test_located_observation_and_clear_literalization_reason_are_consistent_evidence(self):
+        design = {"primary_visual_subject": "abstract decorative background",
+                  "motif_literalization_policy": "motif_only",
+                  "visual_semantics": {"motif_descriptors": ["distributed wing-like abstract motifs"]}}
+        literal, _ = self._assess(design, {
+            "subject_score": .95, "motif_score": .95,
+            "unrequested_literal_object_visible": False,
+            "observed_evidence": ["Central abstract wing shape in the foreground"],
+            "reason": "The central wing shape is a literal standalone object rather than an abstract motif pattern.",
+        })
+        self.assertEqual(literal["decision"], "UNREQUESTED_LITERAL_OBJECT")
+        abstract, _ = self._assess(design, {
+            "subject_score": .95, "motif_score": .95,
+            "unrequested_literal_object_visible": False,
+            "observed_evidence": ["Distributed angular wing-like geometry in the background"],
+            "reason": "The shapes are abstract motif patterns, not literal objects.",
+        })
+        self.assertEqual(abstract["decision"], "pass")
+        negated, _ = self._assess(design, {
+            "subject_score": .95, "motif_score": .95,
+            "unrequested_literal_object_visible": False,
+            "observed_evidence": ["Central abstract wing-like geometry in the background"],
+            "reason": "The requested motif is not literalized; it remains geometric pattern structure.",
+        })
+        self.assertEqual(negated["decision"], "pass")
+
     def test_literal_source_claim_does_not_turn_abstract_geometry_into_an_object(self):
         design = {"primary_visual_subject": "abstract decorative background",
                   "motif_literalization_policy": "motif_only",
@@ -348,6 +389,131 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                     "observed_evidence": [observation],
                 })
                 self.assertIs(result["vision_human_signal"], False)
+
+    def test_explicit_human_ban_makes_confirmed_people_a_hard_failure(self):
+        design = {"primary_visual_subject": "restrained abstract background",
+                  "negative_constraints": ["no people"],
+                  "visual_semantics": {"motif_descriptors": ["soft layered forms"]}}
+        for observation in ("three small people in the background",
+                            "marble statue of a man with visible torso and arms"):
+            with self.subTest(observation=observation):
+                result, _ = self._assess(design, {
+                    "subject_score": .95, "motif_score": .95,
+                    "human_visible": True, "observed_evidence": [observation],
+                })
+                self.assertEqual(result["decision"], "HUMAN")
+                self.assertEqual(result["failure_category"], "HUMAN")
+                self.assertTrue(hard_fidelity_failure(result))
+
+        accepted, _ = self._assess(design, {
+            "subject_score": .95, "motif_score": .95, "human_visible": False,
+            "observed_evidence": ["abstract layered forms with no people"],
+        })
+        self.assertEqual(accepted["decision"], "pass")
+        contradictory, _ = self._assess(design, {
+            "subject_score": .95, "motif_score": .95, "human_visible": False,
+            "observed_evidence": ["three small people in the background"],
+        })
+        self.assertEqual(contradictory["decision"], "HUMAN")
+        persisted_flag, _ = self._assess({"primary_visual_subject": "abstract background",
+                                           "humans_prohibited": True}, {
+            "subject_score": .95, "human_visible": True,
+            "human_description": "three small people in the background",
+        })
+        self.assertEqual(persisted_flag["decision"], "HUMAN")
+
+    def test_explicit_human_ban_requires_boolean_after_bounded_reassessment(self):
+        design = {"primary_visual_subject": "abstract background",
+                  "negative_constraints": ["no people"]}
+        for response in ({"subject_score": .95},
+                         {"subject_score": .95, "human_visible": "false"}):
+            with self.subTest(response=response):
+                result, _ = self._assess(design, response)
+                self.assertEqual(result["decision"], "unavailable")
+                self.assertFalse(result["checked"])
+                self.assertEqual(result["vision_debug"]["assessment_attempts"], 2)
+
+    def test_no_environment_contract_requires_grounded_scene_evidence(self):
+        design = {"primary_visual_subject": "abstract layered marks",
+                  "environment_prohibited": True}
+        scene = {"object_or_scene": "large columned building interior",
+                 "location": "background and both side edges",
+                 "why_unsupported": "no environment or architectural scene was requested by the brief"}
+        rejected, _ = self._assess(design, {
+            "subject_score": .95, "unsupported_scene_visible": True,
+            "unsupported_scene_evidence": scene,
+        })
+        self.assertEqual(rejected["decision"], "SUBJECT_DRIFT")
+        self.assertIn("unsupported_scene_visible", rejected["hard_failed_dimensions"])
+        self.assertTrue(hard_fidelity_failure(rejected))
+        contradictory, _ = self._assess(design, {
+            "subject_score": .95, "unsupported_scene_visible": False,
+            "unsupported_scene_evidence": scene,
+        })
+        self.assertEqual(contradictory["decision"], "SUBJECT_DRIFT")
+
+        for object_name in ("abstract geometric decoration", "soft layered texture"):
+            with self.subTest(object_name=object_name):
+                accepted, _ = self._assess(design, {
+                    "subject_score": .95, "unsupported_scene_visible": False,
+                    "observed_evidence": [object_name],
+                })
+                self.assertEqual(accepted["decision"], "pass")
+
+        vague, _ = self._assess(design, {
+            "subject_score": .95, "unsupported_scene_visible": True,
+            "unsupported_scene_evidence": {"object_or_scene": "somewhat architectural",
+                                           "location": "somewhere",
+                                           "why_unsupported": "feels wrong"},
+        })
+        self.assertEqual(vague["decision"], "unavailable")
+
+    def test_unsupported_scene_field_only_required_by_no_environment_contract(self):
+        design = {"primary_visual_subject": "abstract layered marks",
+                  "environment_prohibited": True}
+        missing, _ = self._assess(design, {"subject_score": .95})
+        self.assertEqual(missing["decision"], "unavailable")
+        self.assertEqual(missing["vision_error_code"], "MISSING_SCENE_EVIDENCE")
+        allowed, _ = self._assess({"primary_visual_subject": "columned hall",
+                                   "environment_prohibited": False}, {"subject_score": .95})
+        self.assertEqual(allowed["decision"], "pass")
+
+    def test_candidate_spec_carries_only_explicit_no_environment_signal(self):
+        document = fixture(9301, "formal gathering", "abstract layered marks",
+                           "black", "white", "dominant", "none", "asymmetric")
+        document["brief"]["grill_me_context"] = {
+            "background_generation_summary": "Use user-provided visual cues; do not invent an environment.",
+            "generation_constraints": ["no people"]}
+        blocked = build_candidate_spec(document, "sdxl-1-0", "A")
+        self.assertTrue(blocked.visual_design["environment_prohibited"])
+        self.assertTrue(blocked.visual_design["humans_prohibited"])
+        document["brief"]["background_inspiration"] = "Illustrated columned hall with layered depth"
+        allowed_with_stale_summary = build_candidate_spec(document, "sdxl-1-0", "A")
+        self.assertFalse(allowed_with_stale_summary.visual_design["environment_prohibited"])
+        document["brief"]["grill_me_context"]["background_generation_summary"] = "Background artwork"
+        allowed = build_candidate_spec(document, "sdxl-1-0", "A")
+        self.assertFalse(allowed.visual_design["environment_prohibited"])
+        document["brief"]["background_inspiration"] = "Abstract floral background with soft linework"
+        abstract = build_candidate_spec(document, "sdxl-1-0", "A")
+        self.assertTrue(abstract.visual_design["environment_prohibited"])
+        document["brief"]["event_type"] = "Architecture celebration"
+        self.assertTrue(build_candidate_spec(document, "sdxl-1-0", "A").visual_design["environment_prohibited"])
+
+    def test_incompatible_treatment_signal_is_required_and_hard_when_present(self):
+        design = {"primary_visual_subject": "quiet abstract background",
+                  "visual_semantics": {"incompatible_treatments": ["high-energy action scene"]}}
+        missing, _ = self._assess(design, {"subject_score": .95})
+        self.assertEqual(missing["decision"], "unavailable")
+        self.assertEqual(missing["vision_error_code"], "MISSING_TREATMENT_EVIDENCE")
+        rejected, _ = self._assess(design, {
+            "subject_score": .95, "incompatible_treatment_visible": True,
+        })
+        self.assertEqual(rejected["decision"], "TREATMENT_DRIFT")
+        self.assertTrue(hard_fidelity_failure(rejected))
+        accepted, _ = self._assess(design, {
+            "subject_score": .95, "incompatible_treatment_visible": False,
+        })
+        self.assertEqual(accepted["decision"], "pass")
 
     def test_missing_character_field_repairs_second_assessment_and_reports_safe_reason(self):
         design = {"primary_visual_subject": "abstract decorative background",

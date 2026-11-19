@@ -316,6 +316,8 @@ class DirectionRetryBoundaryTests(unittest.TestCase):
         self.assertEqual(plan["scene_kind"], "general")
         self.assertEqual(payload["event_brief"]["visual_semantics"]["scene_family"], "general")
         self.assertEqual(brief["visual_semantics"]["scene_family"], "architectural-interior")
+        self.assertIn("SEMANTIC_INFERENCE is a supporting cue",
+                      " ".join(payload["requirements"]))
 
     def test_diversity_rejection_has_bounded_signature_diagnostic(self):
         first = direction("A")

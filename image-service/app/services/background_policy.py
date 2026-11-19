@@ -2205,10 +2205,19 @@ def _perceptual_palette_family(pixel_lab, targets: list[dict], pixel_hue: int,
         # A close chromatic direction may be a rendered edge of the pigment.
         # The caller must verify spatial adjacency before tolerating it.
         if (allow_adjacent_rendering and target_chroma >= 25 and
-                target_chroma * .75 <= chroma <= target_chroma * 1.1 and
-                abs(light - float(target_lab[0])) <= 20 and angle <= 25 and
-                _hue_distance(pixel_hue, target["hue"]) <= 30):
+                ((target_chroma * .75 <= chroma <= target_chroma * 1.1 and
+                  abs(light - float(target_lab[0])) <= 20 and angle <= 25 and
+                  _hue_distance(pixel_hue, target["hue"]) <= 30) or
+                 (target_chroma * 2.2 < chroma <= target_chroma * 2.5 and
+                  abs(light - float(target_lab[0])) <= 35 and angle <= 15 and
+                  _hue_distance(pixel_hue, target["hue"]) <= 15))):
             matches.append((angle + distance * 0.2, target["name"]))
+            continue
+        # A separately chosen pale chromatic pigment can share hue with a
+        # darker request. Do not turn a large lightness jump at similar chroma
+        # into ordinary shading merely because the hue happens to match.
+        if (light > float(target_lab[0]) + 30 and distance > 30 and
+                target_chroma * .8 <= chroma <= target_chroma * 1.3):
             continue
         # A low-chroma petal shadow has less reliable hue than a saturated
         # third colour. It still needs a perceptual connection to the pigment.
@@ -2837,7 +2846,10 @@ def validate_palette(
             if family is None and not exclusive_palette else None)
         if adjacent_family is not None:
             adjacent_rendering_mask[index] = 1
-            adjacent_rendering_pixels.append((index, adjacent_family))
+            adjacent_target = next(target for target in requested_targets
+                                   if target["name"] == adjacent_family)
+            high_chroma_derivative = chroma > float(np.linalg.norm(adjacent_target["lab"][1:])) * 2.2
+            adjacent_rendering_pixels.append((index, adjacent_family, high_chroma_derivative))
             continue
         tonal_name = family or nearest_name
         if family in requested_neutrals and tonal_name == "white" and lab[0] < 90:
@@ -2892,10 +2904,13 @@ def validate_palette(
     adjacent_requested = cv2.dilate(confirmed_requested_mask.reshape(176, 128),
                                     np.ones((3, 3), dtype=np.uint8))
     touching_regions = set(np.unique(rendering_labels[adjacent_requested != 0]))
-    bounded_adjacent_total = len(adjacent_rendering_pixels) / total <= .20
-    for index, family in adjacent_rendering_pixels:
+    ordinary_adjacent_total = sum(not high for _, _, high in adjacent_rendering_pixels) / total
+    vivid_derivative_total = sum(high for _, _, high in adjacent_rendering_pixels) / total
+    bounded_adjacent_total = (ordinary_adjacent_total <= .20 and vivid_derivative_total <= .25
+                              and ordinary_adjacent_total + vivid_derivative_total <= .30)
+    for index, family, high_chroma_derivative in adjacent_rendering_pixels:
         region = rendering_labels.flat[index]
-        if (bounded_adjacent_total and region in touching_regions and
+        if (bounded_adjacent_total and (region in touching_regions or high_chroma_derivative) and
                 rendering_regions[region, cv2.CC_STAT_AREA] / total <= .035):
             requested_counts[family] += 1
             chromatic_mass[family] += float(np.linalg.norm(lab_pixels[index, 1:]))

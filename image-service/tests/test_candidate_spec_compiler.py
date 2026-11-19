@@ -85,6 +85,101 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_sdxl_semantic_core_reaches_workflow_across_retries(self):
+        source = document_for(CASES[0], "C")
+        source["brief"].update(
+            background_inspiration=("An abstract red and gold futuristic comic-book background with "
+                                    "geometric mechanical-inspired forms, circular energy patterns "
+                                    "and dynamic angular motion"),
+            theme_reference_treatment=("Use only as a visual theme reference; "
+                                       "Use red and gold with clean futuristic geometric forms "
+                                       "and circular energy motifs"),
+            primary_colour="red", secondary_colour="gold", palette_mode="dominant",
+            visual_semantics={"motif_descriptors": ["geometric mechanical-inspired forms",
+                                                    "circular energy patterns"],
+                              "motif_structure_description": "dynamic angular motion"},
+            negative_constraints=["No people or characters"],
+        )
+        spec = build_candidate_spec(source, "sdxl-1-0", "C")
+        for attempt, reason in ((1, ""), (2, "PALETTE_OFF"), (4, "PALETTE_ROLE_DRIFT"),
+                                (7, "SUBJECT_DRIFT"), (9, "MOTIF_DRIFT"),
+                                (9, "TREATMENT_DRIFT"), (9, "HUMAN"), (9, "CHARACTER")):
+            with self.subTest(attempt=attempt, reason=reason):
+                prompt = compile_candidate_prompt(spec, attempt, reason, concise=True)
+                workflow = build_workflow("sdxl-1-0", prompt.positive, prompt.negative,
+                                          12345, "offline-test", compiled_prompt=prompt)
+                active = (workflow["16"]["inputs"]["text_l"] + " " +
+                          workflow["16"]["inputs"]["text_g"]).casefold()
+                for trait in ("red", "gold", "futuristic", "comic-book", "mechanical",
+                              "circular energy", "angular motion", "composition"):
+                    self.assertIn(trait, active)
+                self.assertIn("visual_anchors", prompt.conditioning_coverage)
+                self.assertIn("clip_l", prompt.conditioning_coverage["visual_anchors"])
+                self.assertIn("clip_g", prompt.conditioning_coverage["treatment"])
+                self.assertIn("clip_g", prompt.conditioning_coverage["composition"])
+                self.assertEqual(prompt.spec_sha256, spec.spec_sha256)
+                self.assertFalse(prompt.record()["prompt_budget"]["clip_l"]["budget_risk"])
+                self.assertFalse(prompt.record()["prompt_budget"]["clip_g"]["budget_risk"])
+
+    def test_abstract_source_negative_is_grounded_and_literal_flora_remain_allowed(self):
+        source = document_for(CASES[0])
+        source["brief"].update(
+            background_inspiration=("Abstract black and yellow geometry with small distributed "
+                                    "bat-like abstract motifs rather than a central emblem"),
+            theme_reference_treatment="Use black and yellow angular comic forms",
+            primary_colour="black", secondary_colour="yellow",
+            visual_semantics={"motif_descriptors": ["distributed bat-like abstract motifs"],
+                              "motif_structure_description": "distributed angular geometry"},
+            negative_constraints=["No people or characters"],
+        )
+        spec = build_candidate_spec(source, "sdxl-1-0", "B")
+        prompt = compile_candidate_prompt(spec, 1, concise=True)
+        self.assertIn("bat-like", prompt.clip_l.casefold())
+        self.assertIn("non-literal geometric motif", prompt.clip_g.casefold())
+        self.assertIn("literal bat depiction", prompt.negative.casefold())
+        for subject, motif in (("paper flowers and flower-like decorative forms", "flower-like motifs"),
+                               ("layered foliage and leaf-like organic forms", "leaf-like motifs")):
+            with self.subTest(subject=subject):
+                floral = document_for(CASES[2])
+                floral["brief"].update(background_inspiration=subject,
+                                       visual_semantics={"motif_descriptors": [motif]})
+                floral_spec = build_candidate_spec(floral, "sdxl-1-0", "B")
+                floral_prompt = compile_candidate_prompt(floral_spec, 1, concise=True)
+                self.assertNotIn("literal flower depiction", floral_prompt.negative)
+                self.assertNotIn("literal leaf depiction", floral_prompt.negative)
+
+    def test_unsupported_focal_object_becomes_spatial_instruction(self):
+        source = document_for(CASES[1])
+        source["brief"].update(background_inspiration="Restrained abstract black and white forms",
+                               primary_colour="black", secondary_colour="white")
+        direction = source["directions"][0]["direction"]
+        direction["composition_strategy"] = "Symmetrical composition with a central focal point"
+        direction["focal_strategy"] = "A marble pillar in the center creates the focal point"
+        spec = build_candidate_spec(source, "sdxl-1-0", "B")
+        prompt = compile_candidate_prompt(spec, 1, concise=True)
+        workflow = build_workflow("sdxl-1-0", prompt.positive, prompt.negative,
+                                  12345, "offline-test", compiled_prompt=prompt)
+        active = " ".join(workflow["16"]["inputs"][key]
+                          for key in ("text_l", "text_g")).casefold()
+        self.assertNotIn("pillar", active)
+        self.assertIn("central focal placement", active)
+        grounded = document_for(CASES[2])
+        grounded["brief"]["background_inspiration"] = "Layered paper flowers around the border"
+        grounded["directions"][0]["direction"]["focal_strategy"] = "Floral cluster concentrated along the edge"
+        floral_spec = build_candidate_spec(grounded, "sdxl-1-0", "B")
+        floral_prompt = compile_candidate_prompt(floral_spec, 1, concise=True)
+        self.assertIn("paper flowers", floral_prompt.clip_l.casefold())
+
+    def test_excluded_event_label_uses_approved_motif_as_sdxl_subject(self):
+        source = document_for(CASES[2])
+        source["brief"].update(background_inspiration="Family celebration",
+                               title_preference="Family celebration",
+                               visual_semantics={"motif_descriptors": ["soft floral patterns"]})
+        spec = build_candidate_spec(source, "sdxl-1-0", "B")
+        prompt = compile_candidate_prompt(spec, 1, concise=True)
+        self.assertIn("visual subject: soft floral patterns", prompt.clip_l.casefold())
+        self.assertNotIn("visual subject: .", prompt.clip_l.casefold())
+
     def test_sdxl_chromatic_dominant_neutral_surfaces_are_bounded(self):
         for primary, secondary, motif in (
             ("green", "purple", "cracked geometric forms and impact-burst patterns"),

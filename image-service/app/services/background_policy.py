@@ -2815,8 +2815,9 @@ def validate_palette(
         if family == "white" and not exclusive_palette and chroma > 12:
             white_distance = float(np.linalg.norm(lab - np.array((100.0, 0.0, 0.0))))
             if 14 < white_distance <= NEAR_DERIVATIVE_MAX_DELTA_E:
-                near_neutral_derivative_pixels.append(index)
-                continue
+                if lab[0] < 88 or chroma > 18 or white_distance > 22:
+                    near_neutral_derivative_pixels.append(index)
+                    continue
         if family is None:
             family = _perceptual_palette_family(lab, requested_targets, int(hue),
                                                 allow_saturated_tones=not exclusive_palette)

@@ -521,8 +521,38 @@ def _direction_motif(spec: CandidateSpec) -> str:
 
 
 def _motif_policy_instruction(spec: CandidateSpec) -> str:
-    return ("Motif as abstract pattern structure; no unrequested literal objects."
-            if spec.visual_design.get("motif_literalization_policy") == "motif_only" else "")
+    if spec.visual_design.get("motif_literalization_policy") != "motif_only":
+        return ""
+    return ("Non-literal geometric motif only; no unrequested literal objects."
+            if _literal_motif_source(spec) else
+            "Motif as abstract pattern structure; no unrequested literal objects.")
+
+
+def _literal_motif_source(spec: CandidateSpec) -> str:
+    """Name a literal source only when an explicit like/inspired motif supplies it."""
+    design = spec.visual_design
+    if design.get("motif_literalization_policy") != "motif_only":
+        return ""
+    semantics = design["visual_semantics"]
+    motif = " ".join((*semantics["motif_descriptors"], semantics["motif_structure_description"]))
+    match = re.search(r"\b([a-z]+)-(?:like|inspired)\b", motif, re.I)
+    if not match:
+        return ""
+    nearby = motif[max(0, match.start() - 25):match.end() + 25]
+    if not re.search(r"\b(?:abstract|geometric)\b", nearby, re.I):
+        return ""
+    provenance = design.get("semantic_provenance", {})
+    explicit_motif = provenance.get("motif_descriptors") in {"USER_EXPLICIT", "GRILL_ME_CLARIFIED"}
+    explicit_anchor = (provenance.get("visual_anchors") in {"USER_EXPLICIT", "GRILL_ME_CLARIFIED"}
+                       and match.group(0).casefold() in " ".join(design["visual_anchors"]).casefold())
+    if not (explicit_motif or explicit_anchor):
+        return ""
+    source = match.group(1).casefold()
+    authorized = str(design.get("authorized_literal_subject") or "")
+    grounded = " ".join((str(design.get("primary_visual_subject") or ""),
+                         *design["visual_anchors"], authorized))
+    grounded = re.sub(rf"\b{re.escape(source)}-(?:like|inspired)\b", "", grounded, flags=re.I)
+    return "" if re.search(rf"\b{re.escape(source)}s?\b", grounded, re.I) else source
 
 
 _CORRECTIONS = {
@@ -570,11 +600,23 @@ def _abstract_background_subject_retry(spec: CandidateSpec) -> bool:
 def _sdxl_renderer_subject(spec: CandidateSpec, subject: str, motif: str) -> str:
     """Use approved abstract motifs as SDXL's visual subject when figures are excluded."""
     semantics = spec.visual_design["visual_semantics"]
+    if (spec.engine_id == "sdxl-1-0" and motif and any(
+            subject.casefold() == str(excluded).casefold()
+            for excluded in spec.visual_design.get("render_exclusion_text", []))):
+        return motif
     if (spec.engine_id == "sdxl-1-0" and motif
             and (semantics["motif_descriptors"] or semantics["motif_structure_description"])
             and _abstract_background_subject_retry(spec)):
         return f"Abstract background pattern with {_first_words(motif, 12)}"
     return subject
+
+
+def _sdxl_treatment_core(treatment: str) -> str:
+    """Use the visual instruction rather than a theme-reference preamble."""
+    clauses = [part.strip() for part in treatment.split(";") if part.strip()]
+    visual = next((part[4:] for part in clauses if part.casefold().startswith("use ")
+                   and not part.casefold().startswith("use only as ")), "")
+    return visual or treatment
 
 
 def _abstract_subject_correction(spec: CandidateSpec) -> str:
@@ -595,7 +637,10 @@ def _first_words(value: str, limit: int) -> str:
 
 def _background_only(text: str, spec: CandidateSpec) -> str:
     """Keep planning labels out of image-model conditioning."""
-    exclusions = [spec.direction_role, *spec.visual_design.get("render_exclusion_text", [])]
+    grounded = " ".join((str(spec.visual_design.get("primary_visual_subject") or ""),
+                         *spec.visual_design.get("visual_anchors", [])))
+    exclusions = ([spec.direction_role] if spec.direction_role.casefold() not in grounded.casefold() else [])
+    exclusions.extend(spec.visual_design.get("render_exclusion_text", []))
     for phrase in sorted(exclusions, key=len, reverse=True):
         phrase = str(phrase).strip()
         if len(phrase) >= 4:
@@ -811,6 +856,8 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         negative = "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels"
     if spec.visual_design.get("characters_prohibited"):
         negative += ", depicted human figures, humanoid silhouettes, masked or costumed figures, character portraits"
+    if spec.engine_id == "sdxl-1-0" and (literal_source := _literal_motif_source(spec)):
+        negative += f", literal {literal_source} depiction"
     if engine_capabilities(spec.engine_id)["negative_prompt_channel"]:
         negative += ", " + _palette_negative(spec, stage, category, failure_history)
     extra_negative = {
@@ -934,7 +981,8 @@ def _spatial_instruction(design: dict) -> str:
         (r"\b(?:low[- ]angle|looking up)\b", "low viewpoint"),
         (r"\b(?:aerial|bird.?s[- ]eye)\b", "aerial viewpoint"),
         (r"\b(?:oblique|frontal)\b", "oblique viewpoint"),
-        (r"\b(?:left|right|cent(?:er|re)|off[- ]cent(?:er|re))\b", "off-centre focal placement"),
+        (r"(?<!off-)(?<!off )\b(?:center|centre|central)\b", "central focal placement"),
+        (r"\b(?:left|right|off[- ]cent(?:er|re))\b", "off-centre focal placement"),
         (r"\bdiagonal\b", "diagonal flow"),
         (r"\b(?:horizontal|panoramic)\b", "horizontal flow"),
         (r"\b(?:vertical|radial|curved)\b", "curved flow"),
@@ -1209,6 +1257,8 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                       if treatment else "")
     short_treatment = _first_words(treatment, 3 if sdxl_event and role_correction else
                                   7 if role_correction else 9 if sdxl_event else 10)
+    if spec.engine_id == "sdxl-1-0" and treatment:
+        short_treatment = _first_words(_sdxl_treatment_core(treatment), 10)
     for feature, label in (("viewpoint:first_person", "first-person viewpoint"),
                            ("viewpoint:aerial", "aerial viewpoint"),
                            ("depth:receding", "receding depth"),
@@ -1257,7 +1307,14 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     light_line = f"Lighting: {_first_words(design.get('lighting_language'), 8)}." if design.get("lighting_language") else ""
     sd35_recovery_correction = (f"Correction: {_first_words(short_correction, 8)}."
                                 if sd35_motif_recovery and short_correction else "")
-    clip_l = (_join_sections(short_subject_line, palette_l_line, motif_line) if spec.engine_id == "sdxl-1-0"
+    safe_anchors = re.sub(figure_terms, "", anchors, flags=re.I) if design.get("characters_prohibited") else anchors
+    clip_l_base = _join_sections(short_subject_line, palette_l_line, motif_line)
+    anchor_budget = 74 if len(safe_anchors.split()) > 8 else 33
+    anchor_core = _first_words(safe_anchors, min(26, max(0, anchor_budget - len(clip_l_base.split()) - 1)))
+    clip_l = (_join_sections(clip_l_base,
+                            f"Anchors: {anchor_core}." if anchor_core and
+                            anchor_core.casefold() not in short_subject_line.casefold() else "")
+              if spec.engine_id == "sdxl-1-0"
               else _join_sections(short_subject_line, anchor_line,
                                   sd35_event_line, sd35_audience_line)
               if spec.engine_id == "sd-3-5-medium" else _join_sections(subject_line, anchor_line))
@@ -1311,6 +1368,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
             short_subject_line,
             f"Palette: {full_relationship}" if chromatic_ownership else "",
             sdxl_event_line, mood_line, audience_line,
+            f"Treatment: {_first_words(_sdxl_treatment_core(treatment), 8)}." if chromatic_ownership and treatment else "",
             f"Composition: {_first_words(composition, 3)}." if compact_persistent and composition
             else f"Composition: {', '.join(composition.split(', ')[:2])}." if chromatic_ownership and composition
             else spatial_line,
@@ -1321,6 +1379,48 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
             "Motifs distributed." if chromatic_ownership else
             "Distributed motifs." if compact_persistent else
             "Distributed motifs; no central figure.", compact_correction,
+        )
+    if spec.engine_id == "sdxl-1-0" and len(clip_g.split()) > 75:
+        compact_palette = full_relationship
+        if chromatic_ownership:
+            policy = palette_relationship_policy(design["palette_relationship"],
+                                                 design.get("palette_relationship_source"),
+                                                 spec.secondary_colour)
+            roles = "; ".join(f"{item['role'].capitalize()} {item['colour']}"
+                              for item in design["requested_palette"])
+            role_cue = ({"BALANCED": "balanced colours on principal surfaces",
+                         "SECONDARY_DOMINANT": "secondary owns principal surfaces, primary substantial"}
+                        .get(policy["dominance_relationship"],
+                             "primary visual mass on principal surfaces, secondary substantial"))
+            compact_palette = (f"{roles}; {_first_words(policy['relationship'], 8)}"
+                               if policy["explicit"] else f"{roles}; {role_cue}; neutrals only fine detail")
+        compact_policy = ("Distributed non-literal geometric motifs only."
+                          if _literal_motif_source(spec) else
+                          "Distributed motifs; no literal objects." if motif_policy_line else "")
+        compact_correction = {
+            "PALETTE_OFF": "Allow no third colours.",
+            "PALETTE_ROLE_DRIFT": "Restore visual mass roles.",
+            "PRIMARY_MISSING": f"Restore primary {design['requested_palette'][0]['colour']} mass.",
+            "SECONDARY_MISSING": (f"Restore secondary {design['requested_palette'][1]['colour']} regions."
+                                  if len(design["requested_palette"]) > 1 else "Restore secondary mass."),
+            "SUBJECT_DRIFT": "Restore visual anchors.",
+            "HUMAN": "Render without figures.",
+            "CHARACTER": "No depicted characters or mascots.",
+            "AUDIENCE_DRIFT": "Restore audience-appropriate treatment.",
+            "MOTIF_DRIFT": "Restore motif topology.",
+            "TREATMENT_DRIFT": "Restore viewpoint and movement.",
+        }.get(retry_category, _first_words(short_correction, 8))
+        clip_g = _join_sections(
+            f"Visual subject: {_first_words(subject, 6)}.",
+            f"Palette: {compact_palette}." if colours else "",
+            sdxl_event_line, audience_line, mood_line,
+            f"Treatment: {_first_words(_sdxl_treatment_core(treatment), 6)}." if treatment else "",
+            f"Composition: {', '.join(composition.split(', ')[:2])}." if composition else "",
+            compact_policy,
+            "No human or costumed figures; no human, mascot or costumed figures." if intrusion_positive else
+            "No human or costumed figures." if design.get("characters_prohibited") else "",
+            "Persistent palette recovery." if persistent_palette else "",
+            f"{compiled.retry_stage}: {compact_correction}" if correction else "",
         )
     positive = _join_sections(positive_source.replace(correction, "") if correction else positive_source,
                              motif_line if motif_line not in clip_g else "",
@@ -1356,6 +1456,17 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                                                         ("positive", "clip_g", "t5") if spec.engine_id == "sd-3-5-medium"
                                                         else ("positive", "clip_g"))
                               if _treatment_covered(treatment, cleaned[channel])]}
+    if spec.engine_id == "sdxl-1-0":
+        treatment_core = _sdxl_treatment_core(treatment) if treatment else ""
+        coverage["treatment"] = [channel for channel in ("clip_l", "clip_g")
+                                 if _treatment_covered(treatment_core, cleaned[channel])]
+        coverage["visual_anchors"] = [channel for channel in ("clip_l", "clip_g")
+                                      if anchor_core and clean(anchor_core).casefold() in cleaned[channel].casefold()]
+        spatial_cue = _spatial_instruction(design).split(", ", 1)[0]
+        coverage["composition"] = [channel for channel in ("clip_l", "clip_g")
+                                   if spatial_cue.casefold() in cleaned[channel].casefold()]
+        coverage["retry_correction"] = [channel for channel in ("clip_l", "clip_g")
+                                        if correction and f"{compiled.retry_stage}:" in cleaned[channel]]
     if spec.engine_id == "sd-3-5-medium":
         coverage["audience"] = [channel for channel, value in
                                 (("clip_l", clip_l), ("clip_g", clip_g), ("t5", t5))

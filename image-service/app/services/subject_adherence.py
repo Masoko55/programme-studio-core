@@ -57,6 +57,18 @@ def _confirmed_human_answer(visible: object, description: str) -> bool | None:
 
 def _confirmed_human_evidence(visible: object, description: str, evidence: object) -> bool | None:
     """Corroborate one reported human across the structured observations."""
+    observations = [description, *(item for item in evidence if isinstance(item, str))] if isinstance(evidence, list) else [description]
+    anatomy = r"\b(?:human|people|person|man|woman|child|figures?|face|head|torso|body|arms?|legs?)\b"
+    specific_anatomy = r"\b(?:human[- ]shaped|people|person|man|woman|child|face|head|torso|body|arms?|legs?)\b"
+    for observation in observations:
+        if re.search(r"\b(?:no|without|absent)\s+(?:visible\s+)?(?:human[- ]shaped\s+)?"
+                     r"(?:statue|sculptur\w*|mannequin|human\s+figure|person)\b", observation, re.I):
+            continue
+        if (re.search(r"\b(?:statue|sculptur\w*|mannequin)\b", observation, re.I)
+                and re.search(anatomy, observation, re.I)
+                and not (re.search(r"\b(?:abstract|non[- ]figurative|geometric)\b", observation, re.I)
+                         and not re.search(specific_anatomy, observation, re.I))):
+            return True
     if visible is False and isinstance(evidence, list):
         for observation in evidence:
             if not isinstance(observation, str):
@@ -162,7 +174,7 @@ def _supported_literal_object_claim(answer: dict, visual_design: dict) -> bool:
     abstract_reference = bool(re.search(r"\babstract\b|\b\w+-(?:like|inspired)\b", motif_description, re.I))
     literal_source_claim = bool(re.search(r"\b(?:literal|realistic|depicted|whole|recognizable|recognisable|"
                                           r"bodies|body|heads?|figures?|objects?)\b",
-                                          evidence["object"] + " " + evidence["why_unrequested"], re.I))
+                                          evidence["object"], re.I))
     abstract_form = bool(re.search(r"\b(?:abstract|geometric|geometry|patterns?|motifs?|shapes?|"
                                    r"lines?|wedges?)\b", evidence["object"], re.I))
     abstract_geometry = bool(re.search(r"\b(?:geometric|geometry|shapes?|wedges?|lines?|negative.space)\b",
@@ -714,7 +726,10 @@ def assess_subject_adherence(
         "Give human_description with concrete visible body, face, posture and location evidence when a person is present. "
         "Do not judge colours. Do not infer a subject or motif from decorative lines alone. "
         "A motif pattern does not authorize an unrequested literal source object; count such an object against subject fit. "
+        "Repeated or distributed whole literal objects remain literal objects; abstract geometry alone is not one. "
         "Intentional abstract or sculptural subjects are valid when requested. "
+        "A figurative statue or sculpture depicting human anatomy counts as human_visible when people are prohibited; "
+        "non-figurative sculpture does not. "
         "Compare visible connected/repeated motif geometry with the supplied motif topology; "
         "Score treatment_score independently for visible viewpoint, motion and spatial relationship; "
         "do not score likeness to a named reference or require its character. "

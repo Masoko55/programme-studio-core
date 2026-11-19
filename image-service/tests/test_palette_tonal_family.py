@@ -35,6 +35,29 @@ def patterned_rendering(tone):
 
 
 class PaletteTonalFamilyTests(unittest.TestCase):
+    def test_bounded_adjacent_rendering_contributes_to_requested_chromatic_mass(self):
+        pixels = np.empty((176, 128, 3), dtype=np.uint8)
+        pixels[:, :72] = NAMED_COLOURS["green"]
+        pixels[:, 72:86] = NAMED_COLOURS["purple"]
+        pixels[:, 86:] = (150, 150, 150)
+        for x in (5, 17, 29, 41, 53):
+            pixels[:, x:x + 3] = (99, 145, 71)
+        result = validate_palette(Image.fromarray(pixels), "green", "purple",
+                                  mode="dominant", quality_result={})
+        self.assertLessEqual(result["off_palette_ratio"], .05)
+        self.assertGreaterEqual(result["requested_chromatic_ratio"], .60)
+        self.assertGreaterEqual(result["requested_colour_family_counts"]["green"] / pixels.shape[0] / pixels.shape[1], .50)
+
+    def test_disconnected_adjacent_tone_remains_unrequested(self):
+        pixels = np.empty((176, 128, 3), dtype=np.uint8)
+        pixels[:, :64] = NAMED_COLOURS["green"]
+        pixels[:, 64:80] = NAMED_COLOURS["purple"]
+        pixels[:, 80:] = (150, 150, 150)
+        pixels[20:100, 100:125] = (99, 145, 71)
+        with self.assertRaisesRegex(ValueError, "not requested"):
+            validate_palette(Image.fromarray(pixels), "green", "purple",
+                             mode="dominant", quality_result={})
+
     def test_required_two_chromatic_roles_are_not_trace_accents(self):
         for counts in ({"green": 488, "purple": 38},
                        {"red": 96, "gold": 483}):
@@ -52,6 +75,10 @@ class PaletteTonalFamilyTests(unittest.TestCase):
         self.assertTrue(metrics["secondary_presence"])
         self.assertEqual(metrics["secondary_minimum"], .04)
         self.assertEqual(metrics["dominance_relationship"], "FLEXIBLE")
+        with self.assertRaisesRegex(ValueError, "PALETTE_ROLE_DRIFT"):
+            _palette_role_metrics("red", "gold", {"red": 900, "gold": 38}, 1000,
+                                  "requested colours dominate with natural tonal variation",
+                                  "dominant", None, "default")
 
     def test_explicit_two_chromatic_relationship_keeps_strict_secondary_floor(self):
         with self.assertRaisesRegex(ValueError, "PALETTE_ROLE_DRIFT"):
@@ -273,13 +300,13 @@ class PaletteTonalFamilyTests(unittest.TestCase):
         self.assertLess(result["unrequested_chromatic_ratio"], .02)
         self.assertLess(result["primary_ratio"] + result["secondary_ratio"], .90)
 
-    def test_adjacent_pigment_rendering_is_not_third_colour_or_role_credit(self):
+    def test_bounded_adjacent_pigment_rendering_is_credited_to_requested_family(self):
         for primary in ("green", "#2d9650", "rgb(45, 150, 80)"):
             with self.subTest(primary=primary):
                 result = validate_palette(patterned_rendering((99, 145, 71)), primary, "cream",
                                           mode="dominant", quality_result={})
                 self.assertLess(result["off_palette_ratio"], .05)
-                self.assertLess(result["primary_ratio"], .65)
+                self.assertGreaterEqual(result["primary_ratio"], .70)
                 self.assertGreater(result["secondary_ratio"], .20)
 
     def test_unrelated_colours_do_not_gain_fragmented_pigment_allowance(self):
@@ -298,7 +325,7 @@ class PaletteTonalFamilyTests(unittest.TestCase):
         pixels = np.full((176, 128, 3), (99, 145, 71), dtype=np.uint8)
         pixels[::12, :] = NAMED_COLOURS["cream"]
         pixels[:, ::64] = NAMED_COLOURS["green"]
-        with self.assertRaisesRegex(ValueError, "PALETTE_ROLE_DRIFT"):
+        with self.assertRaisesRegex(ValueError, "not requested"):
             validate_palette(Image.fromarray(pixels), "green", "cream",
                              mode="dominant", quality_result={})
 

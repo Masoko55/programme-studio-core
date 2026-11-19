@@ -85,6 +85,39 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_default_flexible_palette_wording_matches_supporting_secondary(self):
+        for primary, secondary in (("red", "gold"), ("green", "purple"), ("blue", "red")):
+            with self.subTest(primary=primary, secondary=secondary):
+                source = document_for(CASES[0])
+                source["brief"].update(primary_colour=primary, secondary_colour=secondary,
+                                       palette_mode="dominant",
+                                       palette_relationship="requested colours dominate with natural tonal variation",
+                                       palette_relationship_source="default")
+                spec = build_candidate_spec(source, "sdxl-1-0", "B")
+                for attempt in (1, 9):
+                    prompt = compile_candidate_prompt(spec, attempt,
+                                                      "PALETTE_ROLE_DRIFT" if attempt > 1 else "", concise=True)
+                    workflow = build_workflow("sdxl-1-0", prompt.positive, prompt.negative,
+                                              12345, "offline-test", compiled_prompt=prompt)
+                    active = " ".join(workflow["16"]["inputs"][key]
+                                      for key in ("text_l", "text_g")).casefold()
+                    for term in (primary, secondary, "principal surfaces", "visual mass",
+                                 "clearly visible", "neutrals only fine detail"):
+                        self.assertIn(term, active)
+                    for term in ("secondary substantial", "both requested families remain substantial",
+                                 "balanced", "equal"):
+                        self.assertNotIn(term, active)
+                    self.assertFalse(prompt.record()["prompt_budget"]["clip_g"]["budget_risk"])
+
+        explicit = document_for(CASES[0])
+        explicit["brief"].update(primary_colour="red", secondary_colour="gold",
+                                 palette_mode="dominant",
+                                 palette_relationship="red dominant with gold supporting accent",
+                                 palette_relationship_source="user_explicit")
+        spec = build_candidate_spec(explicit, "sdxl-1-0", "B")
+        prompt = compile_candidate_prompt(spec, 1, concise=True)
+        self.assertIn("red dominant with gold supporting accent", prompt.clip_g.casefold())
+
     def test_sdxl_semantic_core_reaches_workflow_across_retries(self):
         source = document_for(CASES[0], "C")
         source["brief"].update(

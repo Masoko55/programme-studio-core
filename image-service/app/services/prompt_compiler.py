@@ -164,6 +164,10 @@ def _palette_relationship(spec: CandidateSpec) -> str:
     if (design["palette_mode"] == "dominant" and colours
             and all(COLOUR_ALIASES.get(colour.casefold(), colour.casefold()) not in NEUTRAL_NAMES
                     for colour in colours)):
+        if len(colours) == 2:
+            return (f"primary {colours[0]} owns the main visual mass; secondary {colours[1]} "
+                    "clearly visible in intentional supporting regions; requested colour families "
+                    "own principal surfaces; neutrals support only fine linework, shading and highlights")
         return ("; ".join(f"{colour} clearly visible in substantial design elements" for colour in colours)
                 + "; requested colour families own principal surfaces and visual mass; "
                 "both requested families remain substantial; neutrals support only fine linework, shading and highlights")
@@ -193,6 +197,8 @@ def _concise_palette_relationship(spec: CandidateSpec, *, include_explicit: bool
             roles += "; balanced substantial families on principal surfaces"
         elif dominance == "SECONDARY_DOMINANT":
             roles += "; secondary owns principal surfaces; primary substantial"
+        elif dominance == "FLEXIBLE" and not policy["explicit"]:
+            roles += "; primary owns principal surfaces and visual mass; secondary clearly visible in supporting regions"
         else:
             roles += "; primary owns principal surfaces and visual mass; secondary substantial"
         keep_phrase = policy["explicit"] and (include_explicit or len(policy["relationship"].split()) <= 12)
@@ -203,6 +209,8 @@ def _concise_palette_relationship(spec: CandidateSpec, *, include_explicit: bool
         roles += "; balanced visual mass"
     elif dominance == "SECONDARY_DOMINANT":
         roles += "; secondary controls main mass"
+    elif dominance == "FLEXIBLE" and not policy["explicit"]:
+        roles += "; primary controls main visual mass; secondary clearly visible in supporting regions"
     else:
         roles += "; primary controls main visual mass; secondary remains substantial"
     keep_phrase = policy["explicit"] and (include_explicit or len(policy["relationship"].split()) <= 12)
@@ -1391,7 +1399,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
             role_cue = ({"BALANCED": "balanced colours on principal surfaces",
                          "SECONDARY_DOMINANT": "secondary owns principal surfaces, primary substantial"}
                         .get(policy["dominance_relationship"],
-                             "primary visual mass on principal surfaces, secondary substantial"))
+                             "primary visual mass on principal surfaces, secondary clearly visible"))
             compact_palette = (f"{roles}; {_first_words(policy['relationship'], 8)}"
                                if policy["explicit"] else f"{roles}; {role_cue}; neutrals only fine detail")
         compact_policy = ("Distributed non-literal geometric motifs only."
@@ -1413,7 +1421,8 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
         clip_g = _join_sections(
             f"Visual subject: {_first_words(subject, 6)}.",
             f"Palette: {compact_palette}." if colours else "",
-            sdxl_event_line, audience_line, mood_line,
+            sdxl_event_line, audience_line,
+            f"Mood: {_first_words(mood, 2)}." if mood else "",
             f"Treatment: {_first_words(_sdxl_treatment_core(treatment), 6)}." if treatment else "",
             f"Composition: {', '.join(composition.split(', ')[:2])}." if composition else "",
             compact_policy,

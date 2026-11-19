@@ -2832,10 +2832,12 @@ def validate_palette(
                 target["family_members"] for target in requested_targets if target["name"] == tonal_family
             ):
                 family = tonal_family
-        if family is None and not exclusive_palette and _perceptual_palette_family(
-                lab, requested_targets, int(hue), allow_adjacent_rendering=True):
+        adjacent_family = (_perceptual_palette_family(
+            lab, requested_targets, int(hue), allow_adjacent_rendering=True)
+            if family is None and not exclusive_palette else None)
+        if adjacent_family is not None:
             adjacent_rendering_mask[index] = 1
-            adjacent_rendering_pixels.append(index)
+            adjacent_rendering_pixels.append((index, adjacent_family))
             continue
         tonal_name = family or nearest_name
         if family in requested_neutrals and tonal_name == "white" and lab[0] < 90:
@@ -2890,10 +2892,16 @@ def validate_palette(
     adjacent_requested = cv2.dilate(confirmed_requested_mask.reshape(176, 128),
                                     np.ones((3, 3), dtype=np.uint8))
     touching_regions = set(np.unique(rendering_labels[adjacent_requested != 0]))
-    for index in adjacent_rendering_pixels:
+    bounded_adjacent_total = len(adjacent_rendering_pixels) / total <= .20
+    for index, family in adjacent_rendering_pixels:
         region = rendering_labels.flat[index]
-        if (region in touching_regions and
+        if (bounded_adjacent_total and region in touching_regions and
                 rendering_regions[region, cv2.CC_STAT_AREA] / total <= .035):
+            requested_counts[family] += 1
+            chromatic_mass[family] += float(np.linalg.norm(lab_pixels[index, 1:]))
+            tonal_name = _nearest_named_colour(rgb_pixels[index])
+            accepted_tonal_counts[tonal_name] = accepted_tonal_counts.get(tonal_name, 0) + 1
+            tonal_derivative_count += 1
             continue
         unrelated_hue_count += 1
         off_palette_count += 1

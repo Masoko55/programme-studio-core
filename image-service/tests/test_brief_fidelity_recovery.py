@@ -307,6 +307,48 @@ class BriefFidelityRecoveryTests(unittest.TestCase):
                 })
                 self.assertEqual(result["decision"] == "UNREQUESTED_LITERAL_OBJECT", literal)
 
+    def test_literal_source_claim_does_not_turn_abstract_geometry_into_an_object(self):
+        design = {"primary_visual_subject": "abstract decorative background",
+                  "motif_literalization_policy": "motif_only",
+                  "visual_semantics": {"motif_descriptors": ["distributed bat-like abstract motifs"]}}
+        for obj, rejected in (("distributed geometric bat-like shapes", False),
+                              ("multiple recognisable literal bats", True),
+                              ("realistic bats", True),
+                              ("central bat emblem", True)):
+            with self.subTest(obj=obj):
+                result, _ = self._assess(design, {
+                    "subject_score": .95, "motif_score": .95,
+                    "unrequested_literal_object_visible": True,
+                    "unrequested_literal_object_evidence": {
+                        "object": obj, "location": "near the left and right edges",
+                        "why_unrequested": "brief requested an abstract motif, not a literal subject object",
+                    },
+                })
+                self.assertEqual(result["decision"] == "UNREQUESTED_LITERAL_OBJECT", rejected)
+
+    def test_figurative_sculpture_is_human_evidence_but_abstract_sculpture_is_not(self):
+        design = {"primary_visual_subject": "restrained abstract background",
+                  "characters_prohibited": True}
+        for observation in ("Marble statue of a man with visible torso and arms",
+                            "Statue depicting two human figures",
+                            "Human-shaped sculptural figure with head and legs",
+                            "Human-shaped mannequin beside the background"):
+            with self.subTest(observation=observation):
+                result, _ = self._assess(design, {
+                    "subject_score": .9, "human_visible": False, "character_visible": False,
+                    "observed_evidence": [observation],
+                })
+                self.assertIs(result["vision_human_signal"], True)
+        for observation in ("Abstract marble sculpture", "Non-figurative stone form",
+                            "Geometric sculpture", "Abstract curved sculptural ribbons",
+                            "No visible statue of a man"):
+            with self.subTest(observation=observation):
+                result, _ = self._assess(design, {
+                    "subject_score": .9, "human_visible": False, "character_visible": False,
+                    "observed_evidence": [observation],
+                })
+                self.assertIs(result["vision_human_signal"], False)
+
     def test_missing_character_field_repairs_second_assessment_and_reports_safe_reason(self):
         design = {"primary_visual_subject": "abstract decorative background",
                   "characters_prohibited": True}

@@ -19,6 +19,21 @@ class PaletteHueClassificationTests(unittest.TestCase):
         self.assertGreater(result["near_palette_derivative_ratio"], 0.06)
         self.assertLess(result["secondary_colour_ratio"], 0.50)
 
+    def test_requested_white_accepts_broad_near_white_but_not_beige_or_gold(self):
+        for tone in ((255, 255, 255), (248, 220, 224), (248, 216, 232)):
+            with self.subTest(tone=tone):
+                image = Image.new("RGB", (128, 176), NAMED_COLOURS["pink"])
+                ImageDraw.Draw(image).rectangle((64, 0, 127, 175), fill=tone)
+                result = validate_palette(image, "pink", "white", quality_result={})
+                self.assertLessEqual(result["off_palette_ratio"], 0.05)
+        for tone in ((230, 200, 180), (240, 225, 190), (220, 195, 150),
+                     (245, 225, 130), NAMED_COLOURS["gold"]):
+            with self.subTest(tone=tone):
+                image = Image.new("RGB", (128, 176), NAMED_COLOURS["pink"])
+                ImageDraw.Draw(image).rectangle((64, 0, 127, 175), fill=tone)
+                with self.assertRaises(ValueError):
+                    validate_palette(image, "pink", "white", quality_result={})
+
     def test_large_warm_field_and_unrelated_blue_still_fail(self):
         for colour, width in (((230, 200, 180), 40), ((40, 100, 220), 27)):
             with self.subTest(colour=colour):

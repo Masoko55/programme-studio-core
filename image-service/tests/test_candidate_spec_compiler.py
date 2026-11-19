@@ -85,6 +85,39 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_default_flexible_palette_wording_matches_supporting_secondary(self):
+        for primary, secondary in (("red", "gold"), ("green", "purple"), ("blue", "red")):
+            with self.subTest(primary=primary, secondary=secondary):
+                source = document_for(CASES[0])
+                source["brief"].update(primary_colour=primary, secondary_colour=secondary,
+                                       palette_mode="dominant",
+                                       palette_relationship="requested colours dominate with natural tonal variation",
+                                       palette_relationship_source="default")
+                spec = build_candidate_spec(source, "sdxl-1-0", "B")
+                for attempt in (1, 9):
+                    prompt = compile_candidate_prompt(spec, attempt,
+                                                      "PALETTE_ROLE_DRIFT" if attempt > 1 else "", concise=True)
+                    workflow = build_workflow("sdxl-1-0", prompt.positive, prompt.negative,
+                                              12345, "offline-test", compiled_prompt=prompt)
+                    active = " ".join(workflow["16"]["inputs"][key]
+                                      for key in ("text_l", "text_g")).casefold()
+                    for term in (primary, secondary, "principal surfaces", "visual mass",
+                                 "clearly visible", "neutrals only fine detail"):
+                        self.assertIn(term, active)
+                    for term in ("secondary substantial", "both requested families remain substantial",
+                                 "balanced", "equal"):
+                        self.assertNotIn(term, active)
+                    self.assertFalse(prompt.record()["prompt_budget"]["clip_g"]["budget_risk"])
+
+        explicit = document_for(CASES[0])
+        explicit["brief"].update(primary_colour="red", secondary_colour="gold",
+                                 palette_mode="dominant",
+                                 palette_relationship="red dominant with gold supporting accent",
+                                 palette_relationship_source="user_explicit")
+        spec = build_candidate_spec(explicit, "sdxl-1-0", "B")
+        prompt = compile_candidate_prompt(spec, 1, concise=True)
+        self.assertIn("red dominant with gold supporting accent", prompt.clip_g.casefold())
+
     def test_sdxl_semantic_core_reaches_workflow_across_retries(self):
         source = document_for(CASES[0], "C")
         source["brief"].update(
@@ -147,6 +180,29 @@ class CandidateSpecCompilerTests(unittest.TestCase):
                 floral_prompt = compile_candidate_prompt(floral_spec, 1, concise=True)
                 self.assertNotIn("literal flower depiction", floral_prompt.negative)
                 self.assertNotIn("literal leaf depiction", floral_prompt.negative)
+
+    def test_inferred_abstract_source_with_explicit_anchor_still_excludes_literal_object(self):
+        source = document_for(CASES[0], "A")
+        source["brief"].update(
+            background_inspiration=("Abstract black and yellow background with restrained "
+                                    "wing-inspired angular patterns and dynamic geometric motion"),
+            visual_anchors=["restrained wing-inspired angular patterns"],
+            visual_semantics={"motif_descriptors": ["wing-inspired shapes"],
+                              "motif_structure_description": (
+                                  "Wing-inspired shapes should be abstract and distributed across the background")},
+            negative_constraints=["No people or characters"],
+        )
+        for engine in ("sdxl-1-0", "sd-3-5-medium"):
+            spec = build_candidate_spec(source, engine, "A")
+            for attempt, reason in ((1, ""), (9, "PALETTE_OFF")):
+                with self.subTest(engine=engine, attempt=attempt):
+                    prompt = compile_candidate_prompt(spec, attempt, reason, concise=True)
+                    active = f"{prompt.clip_l} {prompt.clip_g}".casefold()
+                    self.assertIn("angular patterns", active)
+                    self.assertIn("literal wing depiction", prompt.negative.casefold())
+                    if engine == "sdxl-1-0":
+                        self.assertIn("geometric motion", active)
+                        self.assertLessEqual(len(prompt.clip_g.split()), 75)
 
     def test_unsupported_focal_object_becomes_spatial_instruction(self):
         source = document_for(CASES[1])

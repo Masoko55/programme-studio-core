@@ -285,6 +285,20 @@ class GrillMeBackgroundInspirationTests(unittest.TestCase):
              "theme_reference_treatment": "interior-inspired line pattern only"})
         self.assertEqual(motif_reference["visual_semantics"]["scene_family"], "general")
 
+    def test_downgraded_scene_keeps_inferred_cues_at_lower_authority(self):
+        context = _safe_context(
+            {"visual_semantics": {"scene_family": "architectural-interior",
+                                  "motif_descriptors": ["soft layered marks"]},
+             "semantic_confidence": {"scene_family": .98}},
+            {"creative_description": "a calm abstract background"},
+        )
+        self.assertEqual(context["visual_semantics"]["scene_family"], "general")
+        self.assertEqual(context["semantic_provenance"]["motif_descriptors"], "SEMANTIC_INFERENCE")
+        summary = context["background_generation_summary"]
+        self.assertIn("bounded inferred supporting cues", summary)
+        self.assertNotIn("supplied visual motifs", summary)
+        self.assertIn("do not invent an environment", summary)
+
     def test_named_reference_keeps_explicit_viewpoint_and_movement_without_assets(self):
         answers = {"theme_reference_treatment": "Solar Sentinel is moving through the city in first person view"}
         review = {"reference_detected": True, "reference_name": "Solar Sentinel",

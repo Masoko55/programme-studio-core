@@ -123,6 +123,35 @@ def _characters_explicitly_prohibited(constraints: list[str]) -> bool:
                for item in constraints)
 
 
+def _humans_explicitly_prohibited(constraints: list[str]) -> bool:
+    return any(re.search(
+        r"\b(?:no|without|exclude|avoid)\s+(?:any\s+|visible\s+|depicted\s+)*"
+        r"(?:people|persons?|humans?|men|women|man|woman|children|child)\b|"
+        r"\bdo not\s+(?:depict|show|include|render|feature)\s+"
+        r"(?:any\s+|visible\s+|depicted\s+)*(?:people|persons?|humans?)\b",
+        item, re.I) for item in constraints)
+
+
+def _environment_prohibited(brief: dict, context: dict, scene_family: str) -> bool:
+    """Keep abstract background intent from authorizing an invented location."""
+    summary = str(context.get("background_generation_summary") or "")
+    inspiration = str(brief.get("background_inspiration") or "")
+    explicit_location = bool(re.search(
+        r"\b(?:room|interior|hall|building|stage|landscape|city|street|skyline|"
+        r"garden|forest|ballroom|venue|monument|tomb|architecture|architectural|"
+        r"mountain|river|beach|coast|countryside|observatory|platform)\b"
+        r"(?![- ](?:inspired|like|patterns?|motifs?|geometry)\b)",
+        inspiration, re.I))
+    if explicit_location:
+        return False
+    if re.search(r"\bdo not invent an environment\b", summary, re.I):
+        return True
+    if scene_family not in {"general", "abstract"} or not re.search(
+            r"\b(?:abstract|decorative|background|backdrop)\b", inspiration, re.I):
+        return False
+    return True
+
+
 def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> CandidateSpec:
     brief = document.get("brief")
     if not isinstance(brief, dict):
@@ -358,6 +387,9 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         "border_or_perimeter_strategy": field(direction, "border_or_perimeter_strategy"),
         "negative_constraints": values(brief, "negative_constraints"),
         "characters_prohibited": characters_prohibited,
+        "humans_prohibited": _humans_explicitly_prohibited(generation_constraints),
+        "environment_prohibited": _environment_prohibited(
+            brief, context if isinstance(context, dict) else {}, contract["scene_family"]),
         "title_safe_region_strategy": field(direction, "title_safe_region_strategy"),
         "programme_safe_region_strategy": field(direction, "programme_safe_region_strategy"),
         "abstraction_level": contract["abstraction_level"],

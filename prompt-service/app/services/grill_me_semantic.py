@@ -749,7 +749,7 @@ def _safe_context(
                                   str(context.get("scene_family_evidence") or ""))
     if proposed_family != "general" and family == "general":
         context["background_generation_summary"] = (None if answers.get("background_inspiration") else
-            "Use only the supplied visual motifs and treatment; do not invent an environment.")
+            "Use user-provided visual cues and bounded inferred supporting cues; do not invent an environment.")
     context["visual_semantics"] = {
         "atmosphere_descriptors": descriptors(
             "atmosphere_descriptors", str(answers.get("creative_description") or "")),

@@ -164,6 +164,10 @@ def _palette_relationship(spec: CandidateSpec) -> str:
     if (design["palette_mode"] == "dominant" and colours
             and all(COLOUR_ALIASES.get(colour.casefold(), colour.casefold()) not in NEUTRAL_NAMES
                     for colour in colours)):
+        if len(colours) == 2:
+            return (f"primary {colours[0]} owns the main visual mass; secondary {colours[1]} "
+                    "clearly visible in intentional supporting regions; requested colour families "
+                    "own principal surfaces; neutrals support only fine linework, shading and highlights")
         return ("; ".join(f"{colour} clearly visible in substantial design elements" for colour in colours)
                 + "; requested colour families own principal surfaces and visual mass; "
                 "both requested families remain substantial; neutrals support only fine linework, shading and highlights")
@@ -193,6 +197,8 @@ def _concise_palette_relationship(spec: CandidateSpec, *, include_explicit: bool
             roles += "; balanced substantial families on principal surfaces"
         elif dominance == "SECONDARY_DOMINANT":
             roles += "; secondary owns principal surfaces; primary substantial"
+        elif dominance == "FLEXIBLE" and not policy["explicit"]:
+            roles += "; primary owns principal surfaces and visual mass; secondary clearly visible in supporting regions"
         else:
             roles += "; primary owns principal surfaces and visual mass; secondary substantial"
         keep_phrase = policy["explicit"] and (include_explicit or len(policy["relationship"].split()) <= 12)
@@ -203,6 +209,8 @@ def _concise_palette_relationship(spec: CandidateSpec, *, include_explicit: bool
         roles += "; balanced visual mass"
     elif dominance == "SECONDARY_DOMINANT":
         roles += "; secondary controls main mass"
+    elif dominance == "FLEXIBLE" and not policy["explicit"]:
+        roles += "; primary controls main visual mass; secondary clearly visible in supporting regions"
     else:
         roles += "; primary controls main visual mass; secondary remains substantial"
     keep_phrase = policy["explicit"] and (include_explicit or len(policy["relationship"].split()) <= 12)
@@ -535,11 +543,11 @@ def _literal_motif_source(spec: CandidateSpec) -> str:
         return ""
     semantics = design["visual_semantics"]
     motif = " ".join((*semantics["motif_descriptors"], semantics["motif_structure_description"]))
-    match = re.search(r"\b([a-z]+)-(?:like|inspired)\b", motif, re.I)
-    if not match:
-        return ""
-    nearby = motif[max(0, match.start() - 25):match.end() + 25]
-    if not re.search(r"\b(?:abstract|geometric)\b", nearby, re.I):
+    matches = list(re.finditer(r"\b([a-z]+)-(?:like|inspired)\b", motif, re.I))
+    match = next((item for item in matches if re.search(
+        r"\b(?:abstract|geometric)\b",
+        motif[max(0, item.start() - 70):item.end() + 70], re.I)), None)
+    if match is None:
         return ""
     provenance = design.get("semantic_provenance", {})
     explicit_motif = provenance.get("motif_descriptors") in {"USER_EXPLICIT", "GRILL_ME_CLARIFIED"}
@@ -607,6 +615,11 @@ def _sdxl_renderer_subject(spec: CandidateSpec, subject: str, motif: str) -> str
     if (spec.engine_id == "sdxl-1-0" and motif
             and (semantics["motif_descriptors"] or semantics["motif_structure_description"])
             and _abstract_background_subject_retry(spec)):
+        if (spec.visual_design.get("semantic_provenance", {}).get("primary_visual_subject") in {
+                "USER_EXPLICIT", "GRILL_ME_CLARIFIED"}
+                and not re.search(r"\b(?:\w*hero|humanoid|character|mascot|costumed|figure)\b",
+                                  subject, re.I)):
+            return subject
         return f"Abstract background pattern with {_first_words(motif, 12)}"
     return subject
 
@@ -856,7 +869,8 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
         negative = "people, faces, characters, text, words, letters, numbers, glyphs, logos, signage, watermark, title panels"
     if spec.visual_design.get("characters_prohibited"):
         negative += ", depicted human figures, humanoid silhouettes, masked or costumed figures, character portraits"
-    if spec.engine_id == "sdxl-1-0" and (literal_source := _literal_motif_source(spec)):
+    if engine_capabilities(spec.engine_id)["negative_prompt_channel"] and (
+            literal_source := _literal_motif_source(spec)):
         negative += f", literal {literal_source} depiction"
     if engine_capabilities(spec.engine_id)["negative_prompt_channel"]:
         negative += ", " + _palette_negative(spec, stage, category, failure_history)
@@ -1218,7 +1232,11 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                            and bool(motif)
                            and (bool(intrusion_positive) or retry_category in _PALETTE_FAILURES
                                 or retry_category == "SUBJECT_DRIFT"))
-    if sdxl_motif_recovery or sd35_motif_recovery:
+    explicit_sdxl_subject = (spec.engine_id == "sdxl-1-0" and
+                             design.get("semantic_provenance", {}).get("primary_visual_subject") in
+                             {"USER_EXPLICIT", "GRILL_ME_CLARIFIED"} and
+                             not re.search(figure_terms, subject, re.I))
+    if (sdxl_motif_recovery or sd35_motif_recovery) and not explicit_sdxl_subject:
         subject = f"Abstract background pattern with {_first_words(motif, 12)}"
     sdxl_topology = (
         "Keep approved motifs visible as distributed, layered background forms, not a single figure silhouette."
@@ -1234,7 +1252,8 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                         "Environment and abstract motif only; depict no human or costumed figures.")
                        if design.get("characters_prohibited") and not intrusion_positive else "")
     subject_line = f"Visual subject: {subject}."
-    short_subject_line = f"Visual subject: {_first_words(subject, 16 if sd35_motif_recovery else 9)}."
+    subject_word_limit = 16 if sd35_motif_recovery else 15 if spec.engine_id == "sdxl-1-0" else 9
+    short_subject_line = f"Visual subject: {_first_words(subject, subject_word_limit)}."
     anchor_line = f"Anchors: {_first_words(anchors, 14)}." if anchors and not sd35_motif_recovery else ""
     mood_line = (f"Event atmosphere: {_first_words(mood, 7)}."
                  if spec.engine_id == "sd-3-5-medium" and mood else
@@ -1391,7 +1410,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
             role_cue = ({"BALANCED": "balanced colours on principal surfaces",
                          "SECONDARY_DOMINANT": "secondary owns principal surfaces, primary substantial"}
                         .get(policy["dominance_relationship"],
-                             "primary visual mass on principal surfaces, secondary substantial"))
+                             "primary visual mass on principal surfaces, secondary clearly visible"))
             compact_palette = (f"{roles}; {_first_words(policy['relationship'], 8)}"
                                if policy["explicit"] else f"{roles}; {role_cue}; neutrals only fine detail")
         compact_policy = ("Distributed non-literal geometric motifs only."
@@ -1413,7 +1432,8 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
         clip_g = _join_sections(
             f"Visual subject: {_first_words(subject, 6)}.",
             f"Palette: {compact_palette}." if colours else "",
-            sdxl_event_line, audience_line, mood_line,
+            sdxl_event_line, audience_line,
+            f"Mood: {_first_words(mood, 2)}." if mood else "",
             f"Treatment: {_first_words(_sdxl_treatment_core(treatment), 6)}." if treatment else "",
             f"Composition: {', '.join(composition.split(', ')[:2])}." if composition else "",
             compact_policy,

@@ -2,7 +2,7 @@ import unittest
 import inspect
 
 from app.services.candidate_spec import _characters_explicitly_prohibited, build_candidate_spec
-from app.services.prompt_compiler import (_background_only, _treatment_covered, compile_candidate_prompt,
+from app.services.prompt_compiler import (_background_only, _sdxl_visual_treatment, _treatment_covered, compile_candidate_prompt,
                                           failure_category, runtime_retry_category)
 from app.services.comfyui_client import build_workflow
 from app.services.sampling_profiles import FailureHistorySummary
@@ -85,6 +85,100 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_sdxl_visual_treatment_selects_late_units_without_negation(self):
+        core = "Angular geometric comic forms with layered diagonal movement and distributed abstract motifs"
+        before = core + ". Use the named reference only as inspiration."
+        after = "Use the named reference only as inspiration. Keep artwork background-only. " + core
+        for value in (before, after):
+            with self.subTest(value=value):
+                selected = _sdxl_visual_treatment(value, "", 14).casefold()
+                for term in ("angular geometric comic forms", "layered diagonal movement",
+                             "distributed abstract motifs"):
+                    self.assertIn(term, selected)
+
+        excluded = ("Do not depict Batman. No buildings or landmarks. No central emblem. "
+                    "Do not add webs. Use angular geometric forms.")
+        selected = _sdxl_visual_treatment(excluded, "", 10).casefold()
+        for term in ("batman", "buildings", "landmarks", "emblem", "webs"):
+            self.assertNotIn(term, selected)
+        self.assertIn("angular geometric forms", selected)
+        self.assertIn("web motifs", _sdxl_visual_treatment("Use web motifs", "", 10).casefold())
+
+    def test_sdxl_deep_compaction_keeps_late_visual_identity(self):
+        fixtures = (
+            ("black", "yellow", "distributed bat-like abstract motifs",
+             "angular comic-book forms with distributed bat-like abstract motifs", "do not depict Batman"),
+            ("green", "purple", "cracked geometric forms, impact-burst patterns",
+             "cracked forms with impact-burst patterns and rough energetic geometry", ""),
+            ("red", "gold", "mechanical geometry, circular energy forms",
+             "mechanical geometry with circular energy forms and dynamic angular movement", ""),
+            ("blue", "red", "energetic angular forms",
+             "energetic angular forms with geometric comic treatment", "do not add webs"),
+            ("green", "cream", "layered foliage, organic depth, plant forms",
+             "layered foliage with organic depth and plant forms", ""),
+            ("pink", "white", "soft floral structure",
+             "soft floral structure with elegant decorative treatment", ""),
+            ("blue", "silver", "abstract digital geometry, structured lines",
+             "abstract digital geometry with structured lines and restrained circuit-like treatment", ""),
+            ("black", "white", "restrained abstract formal geometry",
+             "restrained abstract formal geometry with layered depth", ""),
+        )
+        for primary, secondary, motif, visual, exclusion in fixtures:
+            with self.subTest(primary=primary, secondary=secondary, motif=motif):
+                source = document_for(CASES[0], "C")
+                source["brief"].update(
+                    event_type="Formal family celebration", age_group="Guests of all ages",
+                    background_inspiration=f"Abstract {primary} and {secondary} background with {motif}",
+                    theme_reference_treatment=(
+                        "Use the named reference only as a visual theme reference; "
+                        "Keep the artwork background-only with quiet regions; "
+                        f"{visual}; {exclusion}"),
+                    primary_colour=primary, secondary_colour=secondary,
+                    visual_semantics={"motif_descriptors": [motif],
+                                      "motif_structure_description": motif},
+                    negative_constraints=["No people or characters"],
+                )
+                spec = build_candidate_spec(source, "sdxl-1-0", "C")
+                for attempt, reason in ((1, ""), (2, "PALETTE_OFF"),
+                                        (4, "PALETTE_ROLE_DRIFT"), (7, "HUMAN"), (9, "MOTIF_DRIFT")):
+                    prompt = compile_candidate_prompt(spec, attempt, reason, concise=True)
+                    active = f"{prompt.clip_l} {prompt.clip_g}".casefold()
+                    self.assertIn(primary, active)
+                    self.assertIn(secondary, active)
+                    for phrase in (part.strip() for part in motif.split(",") if part.strip()):
+                        self.assertIn(phrase.casefold(), prompt.clip_g.casefold())
+                    self.assertIn("Treatment:", prompt.clip_g)
+                    self.assertIn("composition", prompt.clip_g.casefold())
+                    self.assertLessEqual(len(prompt.clip_g.split()), 75)
+                    if attempt > 1:
+                        self.assertIn(prompt.retry_stage + ":", prompt.clip_g)
+                    if exclusion:
+                        self.assertNotIn(exclusion.removeprefix("do not ").casefold(), prompt.clip_g.casefold())
+
+    def test_sdxl_deep_fallback_keeps_late_treatment_phrase(self):
+        source = document_for(CASES[0], "A")
+        source["brief"].update(
+            background_inspiration="Abstract black and yellow background",
+            theme_reference_treatment=(
+                "Use only as a visual theme reference; "
+                "Keep the artwork background-only with usable quiet regions; "
+                "Use colours only as an abstract visual influence; "
+                "angular comic-book forms with distributed bat-like abstract motifs; "
+                "Do not depict Batman"),
+            primary_colour="black", secondary_colour="yellow",
+            negative_constraints=["No people or characters"],
+        )
+        spec = build_candidate_spec(source, "sdxl-1-0", "A")
+        prompt = compile_candidate_prompt(spec, 9, "HUMAN", concise=True)
+        self.assertIn("angular comic-book forms", prompt.clip_g.casefold())
+        self.assertIn("distributed bat-like abstract motifs", prompt.clip_g.casefold())
+        self.assertNotIn("depict batman", prompt.clip_g.casefold())
+        self.assertIn("composition:", prompt.clip_g.casefold())
+        self.assertIn("no human or costumed figures", prompt.clip_g.casefold())
+        self.assertIn(prompt.retry_stage + ":", prompt.clip_g)
+        self.assertLessEqual(len(prompt.clip_g.split()), 75)
+
+
     def test_default_flexible_palette_wording_matches_supporting_secondary(self):
         for primary, secondary in (("red", "gold"), ("green", "purple"), ("blue", "red")):
             with self.subTest(primary=primary, secondary=secondary):

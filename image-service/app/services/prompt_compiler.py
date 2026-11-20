@@ -632,6 +632,41 @@ def _sdxl_treatment_core(treatment: str) -> str:
     return visual or treatment
 
 
+def _sdxl_visual_treatment(treatment: str, motif: str, budget: int) -> str:
+    """Pack complete, brief-grounded visual phrases without relying on prose order."""
+    units = []
+    for source, priority in ((motif, 2), (treatment, 1)):
+        for raw in re.split(r"[;.!?]|,\s*|\bwith\b", source):
+            unit = raw.strip(" .,:;")
+            if not unit or re.search(r"\b(?:do not|don't|no|without|avoid|exclude|never)\b", unit, re.I):
+                continue
+            if re.search(r"\b(?:only as|visual theme reference|named reference|background.only|"
+                         r"usable quiet|later poster|inspiration only)\b", unit, re.I):
+                continue
+            unit = re.sub(r"^(?:use|include|depict|render|feature|let it influence)\s+", "", unit, flags=re.I)
+            if not unit or len(unit.split()) > budget:
+                continue
+            visual = len(re.findall(
+                r"\b(?:abstract|angular|geometric|geometry|comic|form\w*|motif\w*|"
+                r"pattern\w*|layer\w*|foliage|floral|plant\w*|petal\w*|"
+                r"crack\w*|burst\w*|energy|circular|mechanic\w*|digital|circuit\w*|"
+                r"line\w*|depth|motion|movement|flow|distributed|organic|rough|"
+                r"decorative|futuristic|restrained)\b", unit, re.I))
+            if visual:
+                units.append((priority, visual, unit))
+    selected = []
+    seen = set()
+    for _, _, unit in sorted(units, key=lambda item: (-item[0], -item[1], item[2].casefold())):
+        key = unit.casefold()
+        if key in seen or any(key in existing.casefold() for existing in selected):
+            continue
+        if sum(len(item.split()) for item in selected) + len(unit.split()) > budget:
+            continue
+        selected.append(unit)
+        seen.add(key)
+    return ", ".join(selected)
+
+
 def _abstract_subject_correction(spec: CandidateSpec) -> str:
     semantics = spec.visual_design["visual_semantics"]
     motif = ("approved motif structure, " if semantics["motif_descriptors"]
@@ -1277,7 +1312,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
     short_treatment = _first_words(treatment, 3 if sdxl_event and role_correction else
                                   7 if role_correction else 9 if sdxl_event else 10)
     if spec.engine_id == "sdxl-1-0" and treatment:
-        short_treatment = _first_words(_sdxl_treatment_core(treatment), 10)
+        short_treatment = _sdxl_visual_treatment(treatment, motif, 10)
     for feature, label in (("viewpoint:first_person", "first-person viewpoint"),
                            ("viewpoint:aerial", "aerial viewpoint"),
                            ("depth:receding", "receding depth"),
@@ -1387,7 +1422,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
             short_subject_line,
             f"Palette: {full_relationship}" if chromatic_ownership else "",
             sdxl_event_line, mood_line, audience_line,
-            f"Treatment: {_first_words(_sdxl_treatment_core(treatment), 8)}." if chromatic_ownership and treatment else "",
+            f"Treatment: {_sdxl_visual_treatment(treatment, motif, 10)}." if treatment else "",
             f"Composition: {_first_words(composition, 3)}." if compact_persistent and composition
             else f"Composition: {', '.join(composition.split(', ')[:2])}." if chromatic_ownership and composition
             else spatial_line,
@@ -1429,19 +1464,32 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
             "MOTIF_DRIFT": "Restore motif topology.",
             "TREATMENT_DRIFT": "Restore viewpoint and movement.",
         }.get(retry_category, _first_words(short_correction, 8))
-        clip_g = _join_sections(
-            f"Visual subject: {_first_words(subject, 6)}.",
-            f"Palette: {compact_palette}." if colours else "",
-            sdxl_event_line, audience_line,
-            f"Mood: {_first_words(mood, 2)}." if mood else "",
-            f"Treatment: {_first_words(_sdxl_treatment_core(treatment), 6)}." if treatment else "",
-            f"Composition: {', '.join(composition.split(', ')[:2])}." if composition else "",
-            compact_policy,
-            "No human or costumed figures; no human, mascot or costumed figures." if intrusion_positive else
-            "No human or costumed figures." if design.get("characters_prohibited") else "",
-            "Persistent palette recovery." if persistent_palette else "",
-            f"{compiled.retry_stage}: {compact_correction}" if correction else "",
-        )
+        subject_section = f"Visual subject: {_first_words(subject, 12).removesuffix(' and')}."
+        treatment_core = _sdxl_visual_treatment(treatment, motif, 12)
+        required_sections = [subject_section,
+                             f"Palette: {compact_palette}." if colours else "",
+                             f"Treatment: {treatment_core}." if treatment_core else "",
+                             f"Composition: {', '.join(composition.split(', ')[:2])}." if composition else "",
+                             compact_policy,
+                             "No human or costumed figures; no human, mascot or costumed figures."
+                             if intrusion_positive else
+                             "No human or costumed figures." if design.get("characters_prohibited") else "",
+                             f"{compiled.retry_stage}: {compact_correction}" if correction else ""]
+        if len(_join_sections(*required_sections).split()) > 75:
+            required_sections[0] = f"Visual subject: {_first_words(subject, 6)}."
+        if len(_join_sections(*required_sections).split()) > 75:
+            treatment_core = _sdxl_visual_treatment(treatment, motif, 8)
+            required_sections[2] = f"Treatment: {treatment_core}." if treatment_core else ""
+        retained_context = _join_sections("Persistent palette recovery." if persistent_palette else "",
+                                          sdxl_event_line, audience_line)
+        if retained_context and len(_join_sections(*required_sections, retained_context).split()) > 75:
+            required_sections[0] = f"Visual subject: {_first_words(subject, 6)}."
+        clip_g = _join_sections(*required_sections)
+        for optional in ("Persistent palette recovery." if persistent_palette else "",
+                         sdxl_event_line, audience_line,
+                         f"Mood: {_first_words(mood, 2)}." if mood else ""):
+            if optional and len(_join_sections(clip_g, optional).split()) <= 75:
+                clip_g = _join_sections(clip_g, optional)
     positive = _join_sections(positive_source.replace(correction, "") if correction else positive_source,
                              motif_line if motif_line not in clip_g else "",
                              mood_line if sd35_motif_recovery else "",
@@ -1477,9 +1525,11 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                                                         else ("positive", "clip_g"))
                               if _treatment_covered(treatment, cleaned[channel])]}
     if spec.engine_id == "sdxl-1-0":
-        treatment_core = _sdxl_treatment_core(treatment) if treatment else ""
+        treatment_core = _sdxl_visual_treatment(treatment, motif, 12) if treatment else ""
+        selected_units = [unit.strip().casefold() for unit in treatment_core.split(", ") if unit.strip()]
         coverage["treatment"] = [channel for channel in ("clip_l", "clip_g")
-                                 if _treatment_covered(treatment_core, cleaned[channel])]
+                                 if selected_units and any(unit in cleaned[channel].casefold()
+                                                           for unit in selected_units)]
         coverage["visual_anchors"] = [channel for channel in ("clip_l", "clip_g")
                                       if anchor_core and clean(anchor_core).casefold() in cleaned[channel].casefold()]
         spatial_cue = _spatial_instruction(design).split(", ", 1)[0]

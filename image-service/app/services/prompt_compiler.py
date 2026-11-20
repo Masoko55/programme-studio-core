@@ -531,6 +531,8 @@ def _direction_motif(spec: CandidateSpec) -> str:
 def _motif_policy_instruction(spec: CandidateSpec) -> str:
     if spec.visual_design.get("motif_literalization_policy") != "motif_only":
         return ""
+    if spec.visual_design.get("reference_motifs"):
+        return "Requested motifs as background pattern; no unrequested source subject."
     return ("Non-literal geometric motif only; no unrequested literal objects."
             if _literal_motif_source(spec) else
             "Motif as abstract pattern structure; no unrequested literal objects.")
@@ -556,6 +558,10 @@ def _literal_motif_source(spec: CandidateSpec) -> str:
     if not (explicit_motif or explicit_anchor):
         return ""
     source = match.group(1).casefold()
+    if any(re.search(rf"\b{re.escape(source)}-(?:like|inspired)\b",
+                     str(item.get("description") or ""), re.I)
+           for item in design.get("reference_motifs", []) if isinstance(item, dict)):
+        return ""
     authorized = str(design.get("authorized_literal_subject") or "")
     grounded = " ".join((str(design.get("primary_visual_subject") or ""),
                          *design["visual_anchors"], authorized))
@@ -907,6 +913,10 @@ def compile_candidate_prompt(spec: CandidateSpec, attempt: int, reason: str = ""
     if engine_capabilities(spec.engine_id)["negative_prompt_channel"] and (
             literal_source := _literal_motif_source(spec)):
         negative += f", literal {literal_source} depiction"
+    reference_source = str(spec.visual_design.get("reference_source") or "")
+    if (engine_capabilities(spec.engine_id)["negative_prompt_channel"] and reference_source
+            and not spec.visual_design.get("reference_source_literal_authorized")):
+        negative += f", literal {reference_source} depiction"
     if engine_capabilities(spec.engine_id)["negative_prompt_channel"]:
         negative += ", " + _palette_negative(spec, stage, category, failure_history)
     extra_negative = {
@@ -1311,7 +1321,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                       if treatment else "")
     short_treatment = _first_words(treatment, 3 if sdxl_event and role_correction else
                                   7 if role_correction else 9 if sdxl_event else 10)
-    if spec.engine_id == "sdxl-1-0" and treatment:
+    if spec.engine_id in {"sdxl-1-0", "sd-3-5-medium"} and treatment:
         short_treatment = _sdxl_visual_treatment(treatment, motif, 10)
     for feature, label in (("viewpoint:first_person", "first-person viewpoint"),
                            ("viewpoint:aerial", "aerial viewpoint"),
@@ -1378,26 +1388,60 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                             "" if chromatic_ownership else short_palette_line,
                             persistent_palette, figure_contract, intrusion_positive, sdxl_topology, correction)
               if spec.engine_id == "sdxl-1-0" else
-              _join_sections(short_subject_line, short_treatment_line, short_palette_line,
-                             sd35_topology, sd35_recovery_correction) if sd35_motif_recovery else
+              _join_sections(short_subject_line, motif_line, short_treatment_line, spatial_line,
+                             short_palette_line, sd35_topology, sd35_recovery_correction) if sd35_motif_recovery else
               _join_sections(short_subject_line, sd35_event_line, sd35_audience_line, mood_line,
-                             motif_line if sd35_motif_recovery else "", short_treatment_line,
+                             motif_line, short_treatment_line,
                              spatial_line, short_palette_line, persistent_palette,
                              figure_contract, intrusion_positive, sd35_topology, correction) if spec.engine_id == "sd-3-5-medium" else
               _join_sections(subject_line, mood_line, audience_line, motif_line, motif_policy_line,
                              treatment_line, palette_line, spatial_line, style_line, light_line,
                              figure_contract, intrusion_positive))
-    if chromatic_ownership and len(clip_g.split()) > 75:
+    if spec.engine_id == "sd-3-5-medium":
+        sd35_subject = short_subject_line
+        sd35_motif = motif_line
+        sd35_treatment = short_treatment_line
+        sd35_spatial = spatial_line
+        sd35_persistent = persistent_palette
+        sd35_intrusion = intrusion_positive
+        sd35_correction = sd35_recovery_correction if sd35_motif_recovery else correction
+        if len(_join_sections(short_subject_line, motif_line, short_treatment_line, spatial_line,
+                              short_palette_line, persistent_palette, figure_contract,
+                              intrusion_positive, sd35_topology, correction,
+                              sd35_event_line, sd35_audience_line, mood_line).split()) > 75:
+            sd35_subject = f"Visual subject: {_first_words(subject, 7)}."
+            sd35_motif = f"Motif: {_first_words(motif, 8)}." if motif else ""
+            compact_treatment = _sdxl_visual_treatment(treatment, motif, 8)
+            sd35_treatment = f"Treatment: {compact_treatment}." if compact_treatment else ""
+            sd35_spatial = (f"Composition: {composition.split(', ')[0]}." if composition else "")
+            sd35_persistent = "Persistent palette recovery: keep requested colours." if persistent_palette else ""
+            sd35_intrusion = "no human, mascot or costumed figures." if intrusion_positive else ""
+            sd35_correction = (f"{compiled.retry_stage}: {_first_words(short_correction, 8)}."
+                               if correction else "")
+        required = _join_sections(sd35_subject, sd35_motif, sd35_treatment,
+                                  sd35_spatial, short_palette_line, sd35_persistent,
+                                  figure_contract, sd35_intrusion, sd35_topology, sd35_correction)
+        clip_g = required
+        for optional in (sd35_event_line, sd35_audience_line, mood_line):
+            if optional and len(_join_sections(clip_g, optional).split()) <= 75:
+                clip_g = _join_sections(clip_g, optional)
+    if chromatic_ownership and len(clip_g.split()) > 60:
         clip_g = clip_g.replace(short_palette_line,
                                 f"Palette: {_concise_palette_relationship(spec, include_explicit=False)}", 1)
-        if motif_policy_line and len(clip_g.split()) > 75:
+        if motif_policy_line and len(clip_g.split()) > 60:
             clip_g = clip_g.replace(motif_policy_line, "Abstract motifs; no literal objects.", 1)
-        if spatial_line and len(clip_g.split()) > 75:
+        if spatial_line and len(clip_g.split()) > 60:
             compact_spatial = f"Composition: {', '.join(composition.split(', ')[:2])}."
             clip_g = clip_g.replace(spatial_line, compact_spatial, 1)
     positive_source = clip_g.replace(short_subject_line, subject_line, 1).replace(short_treatment_line, treatment_line, 1) if spec.engine_id != "flux-2" else clip_g
+    if spec.engine_id == "sd-3-5-medium":
+        positive_source = (clip_g.replace(sd35_subject, subject_line, 1)
+                           .replace(sd35_treatment, treatment_line, 1)
+                           .replace(sd35_correction, "").strip())
+        if intrusion_positive and "same background scene" not in positive_source:
+            positive_source = _join_sections(positive_source, intrusion_positive)
     if (sdxl_motif_recovery and (retry_category in _PALETTE_FAILURES or persistent_palette)
-            and len(clip_g.split()) > 75):
+            and len(clip_g.split()) > 60):
         if retry_category == "PALETTE_OFF":
             compact_focus = "Confine chromatic design to requested families; no third colours."
         elif retry_category == "PRIMARY_MISSING":
@@ -1406,7 +1450,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
         elif retry_category == "SECONDARY_MISSING" and len(design["requested_palette"]) > 1:
             compact_focus = f"Secondary {design['requested_palette'][1]['colour']} across several substantial regions."
         elif retry_category == "PALETTE_ROLE_DRIFT":
-            compact_focus = "Restore requested visual mass roles."
+            compact_focus = role_correction or "Restore requested visual mass roles."
         elif retry_category == "SUBJECT_DRIFT":
             compact_focus = "Restore requested subject and motif."
         elif retry_category == "HUMAN":
@@ -1416,7 +1460,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
         compact_correction = f"{compiled.retry_stage}: {compact_focus}" if correction else ""
         compact_persistent = ("Persistent palette recovery: requested roles remain mandatory."
                               if persistent_palette else "")
-        compact_intrusion = ("No human or costumed figures; no mascots."
+        compact_intrusion = ("no human, mascot or costumed figures."
                              if intrusion_positive else "")
         clip_g = _join_sections(
             short_subject_line,
@@ -1434,7 +1478,7 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
             "Distributed motifs." if compact_persistent else
             "Distributed motifs; no central figure.", compact_correction,
         )
-    if spec.engine_id == "sdxl-1-0" and len(clip_g.split()) > 75:
+    if spec.engine_id == "sdxl-1-0" and len(clip_g.split()) > 60:
         compact_palette = full_relationship
         if chromatic_ownership:
             policy = palette_relationship_policy(design["palette_relationship"],
@@ -1448,12 +1492,15 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                              "primary visual mass on principal surfaces, secondary clearly visible"))
             compact_palette = (f"{roles}; {_first_words(policy['relationship'], 8)}"
                                if policy["explicit"] else f"{roles}; {role_cue}; neutrals only fine detail")
+            if role_correction and retry_category == "PALETTE_ROLE_DRIFT":
+                compact_palette = f"{roles}; principal surfaces; visual mass roles; neutrals only fine detail"
         compact_policy = ("Distributed non-literal geometric motifs only."
                           if _literal_motif_source(spec) else
                           "Distributed motifs; no literal objects." if motif_policy_line else "")
         compact_correction = {
             "PALETTE_OFF": "Allow no third colours.",
-            "PALETTE_ROLE_DRIFT": "Restore visual mass roles.",
+            "PALETTE_ROLE_DRIFT": ("Restore visual mass roles; " + role_correction.split(" ", 1)[-1]
+                                   if role_correction else "Restore visual mass roles."),
             "PRIMARY_MISSING": f"Restore primary {design['requested_palette'][0]['colour']} mass.",
             "SECONDARY_MISSING": (f"Restore secondary {design['requested_palette'][1]['colour']} regions."
                                   if len(design["requested_palette"]) > 1 else "Restore secondary mass."),
@@ -1471,28 +1518,34 @@ def _concise_runtime_prompt(compiled: CompiledPrompt, spec: CandidateSpec,
                              f"Treatment: {treatment_core}." if treatment_core else "",
                              f"Composition: {', '.join(composition.split(', ')[:2])}." if composition else "",
                              compact_policy,
-                             "No human or costumed figures; no human, mascot or costumed figures."
+                             "no human or costumed figures; no human, mascot or costumed figures."
                              if intrusion_positive else
                              "No human or costumed figures." if design.get("characters_prohibited") else "",
+                             "Persistent palette recovery." if persistent_palette else "",
                              f"{compiled.retry_stage}: {compact_correction}" if correction else ""]
-        if len(_join_sections(*required_sections).split()) > 75:
+        if len(_join_sections(*required_sections).split()) > 60:
             required_sections[0] = f"Visual subject: {_first_words(subject, 6)}."
-        if len(_join_sections(*required_sections).split()) > 75:
+        if len(_join_sections(*required_sections).split()) > 60:
             treatment_core = _sdxl_visual_treatment(treatment, motif, 8)
             required_sections[2] = f"Treatment: {treatment_core}." if treatment_core else ""
-        retained_context = _join_sections("Persistent palette recovery." if persistent_palette else "",
-                                          sdxl_event_line, audience_line)
-        if retained_context and len(_join_sections(*required_sections, retained_context).split()) > 75:
-            required_sections[0] = f"Visual subject: {_first_words(subject, 6)}."
+        if len(_join_sections(*required_sections).split()) > 60:
+            required_sections[0] = f"Visual subject: {_first_words(subject, 4)}."
+        if len(_join_sections(*required_sections).split()) > 60:
+            treatment_core = _sdxl_visual_treatment(treatment, motif, 6)
+            required_sections[2] = f"Treatment: {treatment_core}." if treatment_core else ""
+        if len(_join_sections(*required_sections).split()) > 60 and persistent_palette:
+            required_sections[4] = "No literal objects." if compact_policy else ""
+        if len(_join_sections(*required_sections).split()) > 60 and retry_category == "HUMAN":
+            required_sections[-1] = f"{compiled.retry_stage}: No figures."
         clip_g = _join_sections(*required_sections)
-        for optional in ("Persistent palette recovery." if persistent_palette else "",
-                         sdxl_event_line, audience_line,
+        for optional in (sdxl_event_line, audience_line,
                          f"Mood: {_first_words(mood, 2)}." if mood else ""):
-            if optional and len(_join_sections(clip_g, optional).split()) <= 75:
+            if optional and len(_join_sections(clip_g, optional).split()) <= 60:
                 clip_g = _join_sections(clip_g, optional)
     positive = _join_sections(positive_source.replace(correction, "") if correction else positive_source,
                              motif_line if motif_line not in clip_g else "",
-                             mood_line if sd35_motif_recovery else "",
+                             spatial_line if spec.engine_id == "sd-3-5-medium" and spatial_line not in clip_g else "",
+                             mood_line if spec.engine_id == "sd-3-5-medium" else "",
                              (f"Palette relationship: {_palette_relationship(spec)}."
                               if spec.engine_id != "flux-2" and palette_relationship_policy(
                                   design["palette_relationship"], design.get("palette_relationship_source"),

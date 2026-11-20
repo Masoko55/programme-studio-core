@@ -35,6 +35,88 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_explicit_source_subject_and_focal_motif_have_separate_authorization(self):
+        base = {"primary_visual_subject": "decorative background",
+                "motif_literalization_policy": "motif_only",
+                "reference_source": "Clock Tower",
+                "visual_semantics": {"motif_descriptors": ["central radiating clockwork motif"]},
+                "reference_motifs": [{"description": "central radiating clockwork motif",
+                                      "provenance": "USER_EXPLICIT"}]}
+        focal, _ = self._assess(base, {"subject_score": .95, "motif_score": .95,
+            "unrequested_literal_object_visible": True,
+            "unrequested_literal_object_evidence": {
+                "object": "central radiating clockwork motif", "location": "central foreground",
+                "why_unrequested": "recognizable requested motif pattern, not the source subject"}})
+        self.assertNotEqual(focal["decision"], "UNREQUESTED_LITERAL_OBJECT")
+        source_claim = {"subject_score": .95, "motif_score": .95,
+                        "unrequested_literal_object_visible": True,
+                        "unrequested_literal_object_evidence": {
+                            "object": "Clock Tower", "location": "central foreground",
+                            "why_unrequested": "literal source subject rather than requested motif pattern"}}
+        denied, _ = self._assess(base, source_claim)
+        self.assertEqual(denied["decision"], "UNREQUESTED_LITERAL_OBJECT")
+        allowed, _ = self._assess({**base, "reference_source_literal_authorized": True}, source_claim)
+        self.assertNotEqual(allowed["decision"], "UNREQUESTED_LITERAL_OBJECT")
+
+    def test_grounded_reference_motif_is_distinct_from_source_character(self):
+        design = {"primary_visual_subject": "abstract comic background",
+                  "motif_literalization_policy": "motif_only",
+                  "characters_prohibited": True,
+                  "reference_motifs": [{"description": "small distributed bat-like abstract motifs",
+                                        "provenance": "USER_EXPLICIT"}],
+                  "visual_semantics": {"motif_descriptors": ["small distributed bat-like abstract motifs"]}}
+        common = {"subject_score": .95, "motif_score": .95, "character_visible": False,
+                  "unrequested_literal_object_visible": True}
+        motif, _ = self._assess(design, {**common, "unrequested_literal_object_evidence": {
+            "object": "several recognizable bat motifs", "location": "throughout the background",
+            "why_unrequested": "the requested motif pattern is recognizable, not the subject"}})
+        self.assertNotEqual(motif["decision"], "UNREQUESTED_LITERAL_OBJECT")
+        unrelated, _ = self._assess(design, {**common, "unrequested_literal_object_evidence": {
+            "object": "several recognizable bird objects", "location": "throughout the background",
+            "why_unrequested": "not the requested motif pattern or subject"}})
+        self.assertEqual(unrelated["decision"], "UNREQUESTED_LITERAL_OBJECT")
+        emblem, _ = self._assess(design, {**common, "unrequested_literal_object_evidence": {
+            "object": "central bat emblem", "location": "central foreground",
+            "why_unrequested": "unrequested emblem rather than motif pattern or subject"}})
+        self.assertEqual(emblem["decision"], "UNREQUESTED_LITERAL_OBJECT")
+        character, _ = self._assess(design, {**common, "character_visible": True,
+            "character_description": "masked costumed figure standing in foreground",
+            "observed_evidence": ["masked costumed figure standing in foreground"],
+            "unrequested_literal_object_visible": False})
+        self.assertEqual(character["decision"], "CHARACTER")
+
+    def test_inferred_reference_motif_is_supporting_not_source_authorization(self):
+        design = {"primary_visual_subject": "abstract decorative background",
+                  "motif_literalization_policy": "motif_only",
+                  "reference_source": "a fictional hero",
+                  "reference_motifs": [{"description": "small distributed wing-like motifs",
+                                        "provenance": "SEMANTIC_INFERENCE"}],
+                  "visual_semantics": {"motif_descriptors": ["small distributed wing-like motifs"]}}
+        common = {"subject_score": .95, "motif_score": .95,
+                  "unrequested_literal_object_visible": True}
+        supporting, _ = self._assess(design, {**common, "unrequested_literal_object_evidence": {
+            "object": "small wing motifs", "location": "distributed throughout background",
+            "why_unrequested": "recognizable requested motif pattern rather than subject"}})
+        self.assertNotEqual(supporting["decision"], "UNREQUESTED_LITERAL_OBJECT")
+        source, _ = self._assess(design, {**common, "unrequested_literal_object_evidence": {
+            "object": "the fictional hero", "location": "central foreground",
+            "why_unrequested": "the inspiration source subject, not the motif pattern"}})
+        self.assertEqual(source["decision"], "UNREQUESTED_LITERAL_OBJECT")
+
+    def test_concrete_scene_observations_corroborate_false_scene_boolean(self):
+        design = {"primary_visual_subject": "restrained abstract geometric background",
+                  "environment_prohibited": True}
+        common = {"subject_score": .95, "unsupported_scene_visible": False}
+        scene, _ = self._assess(design, {**common,
+            "observed_evidence": ["Symmetrical white walls forming a layered nested archway",
+                                  "Receding steps and platforms beneath the background arch"],
+            "reason": "Visible walls and steps form a recognizable interior scene, not the requested abstract background."})
+        self.assertIn("unsupported_scene_visible", scene["hard_failed_dimensions"])
+        abstract, _ = self._assess(design, {**common,
+            "observed_evidence": ["Abstract arches and layered geometric curves in the background"],
+            "reason": "Decorative abstract geometry matches the requested background."})
+        self.assertNotIn("unsupported_scene_visible", abstract["hard_failed_dimensions"])
+
     def test_explicit_audience_uses_existing_hard_margin_and_retry_category(self):
         design = {"primary_visual_subject": "abstract comic background",
                   "visual_semantics": {"audience_descriptors": ["young guests"]},

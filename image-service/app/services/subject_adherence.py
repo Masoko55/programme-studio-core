@@ -203,6 +203,41 @@ def _supported_literal_object_claim(answer: dict, visual_design: dict) -> bool:
     return bool(object_words and not object_words.issubset(authorized_words))
 
 
+def _grounded_reference_motif_claim(answer: dict, visual_design: dict) -> bool:
+    """A located pattern matching a persisted motif is not the source subject."""
+    evidence = answer.get("unrequested_literal_object_evidence")
+    if not isinstance(evidence, dict):
+        return False
+    obj = str(evidence.get("object") or "")
+    location = str(evidence.get("location") or "")
+    if (not re.search(r"\b(?:motifs?|patterns?|shapes?|geometry|linework)\b", obj, re.I)
+            or re.search(r"\b(?:badge|logo|emblem|"
+                         r"insignia|shield|crest|character|figure|person|body)\b", obj + " " + location, re.I)):
+        return False
+    source = str(visual_design.get("reference_source") or "")
+    if source and re.search(rf"(?<!\w){re.escape(source)}(?!\w)", obj, re.I):
+        return False
+    object_words = set(re.findall(r"[a-z0-9]+", obj.casefold()))
+    focal = bool(re.search(r"\b(?:central|center|centre|focal|isolated|dominant)\b",
+                           obj + " " + location, re.I))
+    distributed = bool(re.search(r"\b(?:distributed|throughout|repeated|multiple|several)\b",
+                                 obj + " " + location, re.I))
+    generic = {"motif", "motifs", "pattern", "patterns", "shape", "shapes", "abstract",
+               "geometric", "geometry", "form", "forms", "visual", "reference", "inspired",
+               "recognizable", "recognisable", "small", "several", "distributed", "like"}
+    for motif in visual_design.get("reference_motifs") or []:
+        if not isinstance(motif, dict) or motif.get("provenance") not in {
+                "USER_EXPLICIT", "GRILL_ME_CLARIFIED", "SEMANTIC_INFERENCE"}:
+            continue
+        motif_words = set(re.findall(r"[a-z0-9]+", str(motif.get("description") or "").casefold())) - generic
+        explicit_focal = (motif.get("provenance") in {"USER_EXPLICIT", "GRILL_ME_CLARIFIED"}
+                          and re.search(r"\b(?:central|center|centre|focal|isolated|dominant)\b",
+                                        str(motif.get("description") or ""), re.I))
+        if object_words & motif_words and ((focal and explicit_focal) or (distributed and not focal)):
+            return True
+    return False
+
+
 def _supported_literal_observation_claim(answer: dict, visual_design: dict) -> bool:
     """Corroborate a clear literalization statement with a located observation."""
     reason = str(answer.get("reason") or "")
@@ -249,6 +284,22 @@ def _supported_unsupported_scene_claim(answer: dict) -> bool:
         and re.search(r"\b(?:environment|scene|subject|brief|requested|authorized)\b",
                       evidence["why_unsupported"], re.I)
     )
+
+
+def _corroborated_unsupported_scene_observation(answer: dict) -> bool:
+    """Use concrete scene observations despite a false scene checkbox."""
+    reason = str(answer.get("reason") or "")
+    if not (re.search(r"\b(?:interior|room|building|hall|stage|venue|landscape|city|street|scene)\b", reason, re.I)
+            and re.search(r"\b(?:not|unrequested|unsupported|unauthorized)\b", reason, re.I)
+            and re.search(r"\b(?:requested|brief|subject|background)\b", reason, re.I)):
+        return False
+    observations = [item for item in answer.get("observed_evidence", []) if isinstance(item, str)]
+    concrete = [item for item in observations if not re.search(r"\b(?:abstract|decorative|geometric|pattern)\b", item, re.I)
+                and re.search(r"\b(?:walls?|windows?|doors?|steps?|stairs?|platforms?|floors?|ceilings?|"
+                              r"rooms?|buildings?|facades?|streets?|horizons?)\b", item, re.I)]
+    return (len(concrete) >= 2
+            and any(re.search(r"\b(?:background|foreground|behind|beneath|inside|receding|left|right|"
+                              r"upper|lower|center|centre)\b", item, re.I) for item in concrete))
 
 
 def _vision_response_problem(error: Exception) -> tuple[str, list[str]]:
@@ -1318,11 +1369,22 @@ def assess_subject_adherence(
                 {"incompatible_treatment_visible": "UNAVAILABLE"} if incompatible else {}),
         }
 
+    grounded_reference_motif = _grounded_reference_motif_claim(answer, visual_design)
+    literal_evidence = answer.get("unrequested_literal_object_evidence") or {}
+    reference_source = str(visual_design.get("reference_source") or "")
+    authorized_reference_source = bool(
+        visual_design.get("reference_source_literal_authorized") and reference_source
+        and isinstance(literal_evidence, dict)
+        and re.fullmatch(rf"(?:the\s+)?{re.escape(reference_source)}",
+                         str(literal_evidence.get("object") or "").strip(), re.I))
     unauthorized_literal = (not literal_evidence_unavailable and
                             visual_design.get("motif_literalization_policy") == "motif_only"
-                            and (answer.get("unrequested_literal_object_visible") is True or
-                                 _supported_literal_object_claim(answer, visual_design) or
-                                 _supported_literal_observation_claim(answer, visual_design)))
+                            and ((answer.get("unrequested_literal_object_visible") is True
+                                  and not grounded_reference_motif and not authorized_reference_source) or
+                                 (_supported_literal_object_claim(answer, visual_design) and
+                                  not grounded_reference_motif and not authorized_reference_source) or
+                                 (_supported_literal_observation_claim(answer, visual_design) and
+                                  not grounded_reference_motif and not authorized_reference_source)))
     character_description = str(answer.get("character_description") or "")[:240]
     prohibited_character = bool(visual_design.get("characters_prohibited") and
                                 _confirmed_character_evidence(answer.get("character_visible"),
@@ -1473,7 +1535,8 @@ def assess_subject_adherence(
     if prohibited_human:
         hard_failed.append("human_visible")
     unsupported_scene = bool(visual_design.get("environment_prohibited") and
-                             _supported_unsupported_scene_claim(answer))
+                             (_supported_unsupported_scene_claim(answer) or
+                              _corroborated_unsupported_scene_observation(answer)))
     if unsupported_scene:
         hard_failed.append("unsupported_scene_visible")
     incompatible_treatment = bool(incompatible and answer.get("incompatible_treatment_visible") is True)
@@ -1670,7 +1733,8 @@ def assess_subject_adherence(
         "reason": ("Prohibited human: " + (human_description or next(
             (str(item) for item in evidence if isinstance(item, str) and item.strip()), "visible human evidence"))
                    if prohibited_human else
-                   "Unsupported scene: " + str(answer["unsupported_scene_evidence"]["object_or_scene"])
+                     "Unsupported scene: " + str((answer.get("unsupported_scene_evidence") or {}).get(
+                         "object_or_scene") or next((item for item in evidence if isinstance(item, str)), "scene evidence"))
                    if unsupported_scene else
                    "Incompatible treatment visible: " + incompatible if incompatible_treatment else
                    "Prohibited depicted character: " + character_evidence if prohibited_character else str(

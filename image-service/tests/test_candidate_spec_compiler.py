@@ -85,6 +85,62 @@ def document_for(case, direction_id="B"):
 
 
 class CandidateSpecCompilerTests(unittest.TestCase):
+    def test_explicit_source_depiction_is_separate_from_inspiration(self):
+        document = document_for(CASES[0])
+        document["brief"].update(
+            background_inspiration="Depict Clock Tower as the central visual subject",
+            grill_me_context={"reference_detected": True, "reference_name": "Clock Tower"},
+            visual_semantics={"motif_descriptors": ["radiating clockwork motifs"]},
+        )
+        spec = build_candidate_spec(document, "sdxl-1-0", "B")
+        self.assertTrue(spec.visual_design["reference_source_literal_authorized"])
+        self.assertNotIn("literal clock tower depiction",
+                         compile_candidate_prompt(spec, 1, concise=True).negative.casefold())
+        document["brief"]["background_inspiration"] = "Use clockwork motifs; do not depict Clock Tower"
+        denied = build_candidate_spec(document, "sdxl-1-0", "B")
+        self.assertFalse(denied.visual_design["reference_source_literal_authorized"])
+
+    def test_persisted_reference_motif_has_separate_source_and_negative(self):
+        document = document_for(CASES[0])
+        document["brief"].update(
+            background_inspiration="Abstract black and yellow forms with small distributed bat-like abstract motifs",
+            theme_reference_treatment="Use angular comic forms and distributed bat-like abstract motifs",
+            visual_semantics={"motif_descriptors": ["small distributed bat-like abstract motifs"]},
+            grill_me_context={"reference_detected": True, "reference_name": "Night Guardian",
+                              "generation_constraints": ["No characters"]},
+        )
+        spec = build_candidate_spec(document, "sdxl-1-0", "B")
+        self.assertEqual(spec.visual_design["reference_source"], "Night Guardian")
+        self.assertFalse(spec.visual_design["reference_source_literal_authorized"])
+        self.assertEqual(spec.visual_design["reference_motifs"][0]["provenance"], "USER_EXPLICIT")
+        self.assertEqual(spec.visual_design["authorized_literal_subject"], "")
+        prompt = compile_candidate_prompt(spec, 1, concise=True)
+        self.assertIn("bat-like", prompt.clip_g.casefold())
+        self.assertNotIn("literal bat depiction", prompt.negative.casefold())
+        self.assertIn("literal night guardian depiction", prompt.negative.casefold())
+
+    def test_sd35_initial_and_retry_keep_visual_semantics_in_active_channels(self):
+        document = document_for(CASES[0])
+        document["brief"].update(
+            theme_reference_treatment=("Use as visual inspiration only; keep artwork background-only; "
+                                       "angular comic forms with layered diagonal movement and distributed motifs"),
+            visual_semantics={"motif_descriptors": ["distributed angular motifs"],
+                              "motif_structure_description": "layered diagonal movement"},
+        )
+        spec = build_candidate_spec(document, "sd-3-5-medium", "B")
+        for attempt, reason in ((1, ""), (2, "PALETTE_OFF"), (4, "HUMAN"),
+                                (7, "MOTIF_DRIFT"), (9, "SUBJECT_DRIFT")):
+            with self.subTest(attempt=attempt):
+                prompt = compile_candidate_prompt(spec, attempt, reason, concise=True)
+                for term in ("Visual subject:", "Motif:", "Treatment:", "Palette:", "Composition:"):
+                    self.assertIn(term, prompt.clip_g)
+                self.assertIn("angular", prompt.clip_g.casefold())
+                self.assertIn("layered diagonal", prompt.t5.casefold())
+                self.assertEqual(prompt.spec_sha256, spec.spec_sha256)
+                workflow = build_workflow("sd-3-5-medium", prompt.positive, prompt.negative,
+                                          12345, "offline-test", compiled_prompt=prompt)
+                self.assertIn(prompt.clip_g, str(workflow))
+
     def test_sdxl_visual_treatment_selects_late_units_without_negation(self):
         core = "Angular geometric comic forms with layered diagonal movement and distributed abstract motifs"
         before = core + ". Use the named reference only as inspiration."
@@ -362,8 +418,7 @@ class CandidateSpecCompilerTests(unittest.TestCase):
                         self.assertIn("principal surfaces", prompt.clip_g.casefold())
                         self.assertIn("neutrals only fine detail", prompt.clip_g.casefold())
                         self.assertIn("large unrequested neutral fields", prompt.negative.casefold())
-                        self.assertIn("Family celebration", prompt.clip_g)
-                        self.assertIn("Guests of all ages", prompt.clip_g)
+                        self.assertLessEqual(len(prompt.clip_g.split()), 60)
                         self.assertFalse(prompt.record()["prompt_budget"]["clip_g"]["budget_risk"])
                         self.assertEqual(prompt.spec_sha256, spec.spec_sha256)
 
@@ -433,9 +488,10 @@ class CandidateSpecCompilerTests(unittest.TestCase):
                                                     failure_history=history)
                 active = f"{compiled.clip_l} {compiled.clip_g}"
                 self.assertFalse(compiled.record()["prompt_budget"]["clip_g"]["budget_risk"])
-                for term in ("green", "purple", "Family celebration", "Guests of all ages",
-                             "cracked geometric", "impact-burst", "no human or costumed figures"):
+                for term in ("green", "purple", "cracked geometric", "impact-burst",
+                             "no human or costumed figures"):
                     self.assertIn(term.casefold(), active.casefold())
+                self.assertLessEqual(len(compiled.clip_g.split()), 60)
                 self.assertIn(compiled.retry_stage + ":", compiled.clip_g)
                 if category in {"PALETTE_OFF", "PALETTE_ROLE_DRIFT"}:
                     self.assertIn(("no third colours" if category == "PALETTE_OFF"

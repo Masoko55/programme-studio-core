@@ -300,6 +300,14 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
 
     reference_traits = (_reference_visual_traits(field(brief, "background_inspiration"), reference_pattern)
                         if reference_name and characters_prohibited else "")
+    source_literal_authorized = bool(
+        reference_pattern and not characters_prohibited
+        and re.search(rf"\b(?:depict|render|show|feature|illustrate)\s+(?:the\s+)?{reference_pattern}",
+                      field(brief, "background_inspiration"), re.I)
+        and not re.search(rf"\b(?:do not|don't|never|avoid|without)\s+"
+                          rf"(?:\w+\s+){{0,2}}(?:depict|render|show|feature|illustrate)\s+"
+                          rf"(?:the\s+)?{reference_pattern}",
+                          field(brief, "background_inspiration"), re.I))
 
     def reference_subject_pressure(text: str) -> bool:
         return bool(has_reference(text) or (reference_name and characters_prohibited and
@@ -326,7 +334,7 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
             else reference_traits or ", ".join(semantic_motifs))
     safe_scene = contract["scene_family"] if contract["scene_family"] != "general" else ""
     render_subject = contract["primary_visual_subject"]
-    if reference_subject_pressure(render_subject):
+    if reference_subject_pressure(render_subject) and not source_literal_authorized:
         if not semantic_motifs and not reference_traits:
             raise ValueError("Detected reference lacks a renderable semantic motif")
         render_subject = reference_traits or ", ".join(semantic_motifs)
@@ -349,6 +357,20 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
             render_treatment, maxsplit=1, flags=re.I,
         )[0].rstrip(" ,.;")
     motif_policy, authorized_literal_subject = _motif_literalization(contract, subject, has_reference)
+    explicit_motif_text = " ".join((field(brief, "background_inspiration"),
+                                    *values(brief, "visual_anchors"),
+                                    *values(brief, "symbolic_motifs"),
+                                    *values(brief, "environmental_motifs"),
+                                    field(brief, "theme_reference_treatment"))).casefold()
+    reference_motifs = []
+    if reference_name:
+        for item in dict.fromkeys(render_visual_semantics["motif_descriptors"]):
+            if not item:
+                continue
+            provenance = contract["semantic_provenance"].get("motif_descriptors", "SAFE_FALLBACK")
+            if item.casefold() in explicit_motif_text:
+                provenance = "USER_EXPLICIT"
+            reference_motifs.append({"description": item, "provenance": provenance})
     visual_design = {
         "primary_visual_subject": render_subject,
         "event_context": field(brief, "event_context") or field(brief, "event_type"),
@@ -368,6 +390,9 @@ def build_candidate_spec(document: dict, engine_id: str, direction_id: str) -> C
         "theme_reference_treatment": render_treatment,
         "motif_literalization_policy": motif_policy,
         "authorized_literal_subject": authorized_literal_subject,
+        "reference_source": reference_name,
+        "reference_source_literal_authorized": source_literal_authorized,
+        "reference_motifs": reference_motifs,
         "mood": field(brief, "mood"),
         "visual_style": field(brief, "visual_style"),
         "requested_palette": contract["palette"],

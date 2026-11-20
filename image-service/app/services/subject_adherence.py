@@ -152,6 +152,15 @@ def _confirmed_character_evidence(visible: object, description: str, evidence: o
     return False if visible is False else None
 
 
+def _literal_concept_words(value: str) -> set[str]:
+    """Normalize bounded noun inflections for literal and motif evidence."""
+    tokens = re.findall(r"[a-z0-9]+", value.casefold())
+    return {token[:-3] + "y" if token.endswith("ies") and len(token) > 3 else
+            token[:-2] if token.endswith(("ches", "shes", "xes", "zes", "sses")) else
+            token[:-1] if token.endswith("s") and not token.endswith("ss") and len(token) > 3 else token
+            for token in tokens}
+
+
 def _supported_literal_object_claim(answer: dict, visual_design: dict) -> bool:
     """A hard literal-object claim needs an object, location and contract reason."""
     evidence = answer.get("unrequested_literal_object_evidence")
@@ -166,18 +175,12 @@ def _supported_literal_object_claim(answer: dict, visual_design: dict) -> bool:
             or not re.search(r"\b(?:subject|brief|requested)\b", evidence["why_unrequested"], re.I)):
         return False
 
-    def words(value: str) -> set[str]:
-        tokens = re.findall(r"[a-z0-9]+", value.casefold())
-        return {token[:-3] + "y" if token.endswith("ies") else
-                token[:-1] if token.endswith("s") and not token.endswith("ss") else token
-                for token in tokens}
-
-    object_words = words(evidence["object"])
-    authorized_words = words(str(visual_design.get("authorized_literal_subject") or ""))
+    object_words = _literal_concept_words(evidence["object"])
+    authorized_words = _literal_concept_words(str(visual_design.get("authorized_literal_subject") or ""))
     semantics = visual_design.get("visual_semantics") or {}
     motif_description = " ".join((*(str(item) for item in semantics.get("motif_descriptors", [])),
                                   str(semantics.get("motif_structure_description") or "")))
-    motif_words = words(motif_description)
+    motif_words = _literal_concept_words(motif_description)
     distinctive_motif_words = motif_words - {
         "abstract", "decorative", "motif", "pattern", "geometry", "shape", "form", "small", "repeated",
         "like", "distributed", "style", "styled", "inspired", "visual", "graphic", "geometric",
@@ -203,6 +206,15 @@ def _supported_literal_object_claim(answer: dict, visual_design: dict) -> bool:
     return bool(object_words and not object_words.issubset(authorized_words))
 
 
+def _observed_reference_source(obj: str, visual_design: dict) -> bool:
+    """Match a persisted source across ordinary spacing and punctuation."""
+    source_parts = re.findall(r"[a-z0-9]+", str(visual_design.get("reference_source") or "").casefold())
+    if not source_parts:
+        return False
+    source_pattern = r"(?<!\w)" + r"[\W_]*".join(map(re.escape, source_parts)) + r"(?!\w)"
+    return re.search(source_pattern, obj, re.I) is not None
+
+
 def _grounded_reference_motif_claim(answer: dict, visual_design: dict) -> bool:
     """A located pattern matching a persisted motif is not the source subject."""
     evidence = answer.get("unrequested_literal_object_evidence")
@@ -210,30 +222,48 @@ def _grounded_reference_motif_claim(answer: dict, visual_design: dict) -> bool:
         return False
     obj = str(evidence.get("object") or "")
     location = str(evidence.get("location") or "")
-    if (not re.search(r"\b(?:motifs?|patterns?|shapes?|geometry|linework)\b", obj, re.I)
-            or re.search(r"\b(?:badge|logo|emblem|"
-                         r"insignia|shield|crest|character|figure|person|body)\b", obj + " " + location, re.I)):
+    if (not obj.strip() or not location.strip()
+            or re.search(r"\b(?:badge|logo|emblem|insignia|shield|crest|character|figure|"
+                         r"person|people|human|humanoid|mascot|costume|costumed|body|face)\b",
+                         obj + " " + location, re.I)):
         return False
-    source = str(visual_design.get("reference_source") or "")
-    if source and re.search(rf"(?<!\w){re.escape(source)}(?!\w)", obj, re.I):
+    if _observed_reference_source(obj, visual_design):
         return False
-    object_words = set(re.findall(r"[a-z0-9]+", obj.casefold()))
-    focal = bool(re.search(r"\b(?:central|center|centre|focal|isolated|dominant)\b",
+    if visual_design.get("environment_prohibited") and (
+            _supported_unsupported_scene_claim(answer) or
+            _corroborated_unsupported_scene_observation(answer)):
+        return False
+    object_words = _literal_concept_words(obj)
+    focal = bool(re.search(r"\b(?:central|center|centered|centred|centre|focal|isolated|dominant)\b",
                            obj + " " + location, re.I))
-    distributed = bool(re.search(r"\b(?:distributed|throughout|repeated|multiple|several)\b",
+    distributed = bool(re.search(r"\b(?:distributed|throughout|repeated|repeating|multiple|several|"
+                                 r"perimeter|outer edges?)\b",
                                  obj + " " + location, re.I))
-    generic = {"motif", "motifs", "pattern", "patterns", "shape", "shapes", "abstract",
-               "geometric", "geometry", "form", "forms", "visual", "reference", "inspired",
-               "recognizable", "recognisable", "small", "several", "distributed", "like"}
+    generic = {"a", "an", "the", "and", "with", "along", "around", "of", "in", "on",
+               "motif", "pattern", "shape", "abstract", "abstraction", "geometric", "geometry",
+               "form", "linework", "visual", "decorative", "reference", "inspired", "inspiration",
+               "recognizable", "recognisable", "small", "large", "central", "center", "centre",
+               "peripheral", "repeated", "repeating", "distributed", "several", "like", "structure",
+               "structural", "background", "outer", "edge", "radiating", "layered", "throughout"}
+    palette_words = _literal_concept_words(" ".join(str(item.get("colour") or "") for item in
+                                              visual_design.get("requested_palette", []) if isinstance(item, dict)))
     for motif in visual_design.get("reference_motifs") or []:
         if not isinstance(motif, dict) or motif.get("provenance") not in {
                 "USER_EXPLICIT", "GRILL_ME_CLARIFIED", "SEMANTIC_INFERENCE"}:
             continue
-        motif_words = set(re.findall(r"[a-z0-9]+", str(motif.get("description") or "").casefold())) - generic
+        description = str(motif.get("description") or "")
+        motif_words = _literal_concept_words(description) - generic - palette_words
         explicit_focal = (motif.get("provenance") in {"USER_EXPLICIT", "GRILL_ME_CLARIFIED"}
                           and re.search(r"\b(?:central|center|centre|focal|isolated|dominant)\b",
-                                        str(motif.get("description") or ""), re.I))
-        if object_words & motif_words and ((focal and explicit_focal) or (distributed and not focal)):
+                                        description, re.I))
+        requested_peripheral = bool(re.search(r"\b(?:perimeter|outer edges?|border)\b", description, re.I))
+        observed_peripheral = bool(re.search(r"\b(?:perimeter|outer edges?|border)\b",
+                                             obj + " " + location, re.I))
+        size_conflict = bool(re.search(r"\bsmall\b", description, re.I)
+                             and re.search(r"\b(?:large|huge|giant|oversized)\b", obj, re.I))
+        topology_ok = ((focal and explicit_focal) or (distributed and not focal
+                       and (not requested_peripheral or observed_peripheral)))
+        if motif_words and object_words & motif_words and topology_ok and not size_conflict:
             return True
     return False
 
@@ -1044,7 +1074,11 @@ def assess_subject_adherence(
                     raise ValueError("Vision response lacks concrete depicted-character evidence")
                 if (visual_design.get("motif_literalization_policy") == "motif_only" and
                         answer.get("unrequested_literal_object_visible") is True and
-                        not _supported_literal_object_claim(answer, visual_design)):
+                        not (_supported_literal_object_claim(answer, visual_design) or
+                             (isinstance(answer.get("unrequested_literal_object_evidence"), dict) and
+                              _observed_reference_source(str(answer["unrequested_literal_object_evidence"].get(
+                                  "object") or ""), visual_design)) or
+                             _grounded_reference_motif_claim(answer, visual_design))):
                     if not assessment_attempt:
                         clarification = (" Recheck unrequested_literal_object_visible. If true, identify "
                                          "the visible object, its location, and why it comes only from a motif "

@@ -35,6 +35,151 @@ from tests.test_renderer_brief_matrix import fixture
 
 
 class BriefFidelityRecoveryTests(unittest.TestCase):
+    def test_concrete_nouns_match_persisted_distributed_reference_motifs(self):
+        cases = (
+            ("small distributed bat-like abstract motifs", "several small recognizable bats",
+             "distributed throughout the background"),
+            ("small distributed bat-like abstract motifs", "several small bat motifs",
+             "distributed throughout the background"),
+            ("small repeated spider-like motifs with web structures", "small spiders and web strands",
+             "repeated around the perimeter"),
+            ("small repeated wing-like forms", "several small wings", "distributed around the background"),
+            ("repeated arch-like structural motifs along the outer edges", "repeating arches",
+             "along both outer edges"),
+        )
+        for description, obj, location in cases:
+            with self.subTest(description=description, obj=obj):
+                design = {"primary_visual_subject": "decorative background",
+                          "motif_literalization_policy": "motif_only",
+                          "reference_source": "Clock Tower",
+                          "reference_motifs": [{"description": description, "provenance": "USER_EXPLICIT"}],
+                          "visual_semantics": {"motif_descriptors": [description]}}
+                result, _ = self._assess(design, {
+                    "subject_score": .95, "motif_score": .95,
+                    "unrequested_literal_object_visible": True,
+                    "unrequested_literal_object_evidence": {
+                        "object": obj, "location": location,
+                        "why_unrequested": "recognizable objects rather than abstract decoration"},
+                })
+                self.assertEqual(result["decision"], "pass")
+                self.assertEqual(result["vision_debug"]["assessment_attempts"], 1)
+
+    def test_concrete_noun_reference_motif_keeps_source_and_topology_gates(self):
+        design = {"primary_visual_subject": "decorative background",
+                  "motif_literalization_policy": "motif_only",
+                  "reference_source": "Clock Tower",
+                  "reference_source_literal_authorized": False,
+                  "reference_motifs": [{"description": "small distributed bat-like abstract motifs",
+                                        "provenance": "USER_EXPLICIT"}],
+                  "visual_semantics": {"motif_descriptors": ["small distributed bat-like abstract motifs"]}}
+        for obj, location in (("several small birds", "distributed throughout the background"),
+                              ("one large central bat emblem", "central foreground"),
+                              ("large central winged badge", "central foreground"),
+                              ("Clock Tower standing centrally", "central foreground")):
+            with self.subTest(obj=obj):
+                result, _ = self._assess(design, {
+                    "subject_score": .95, "motif_score": .95,
+                    "unrequested_literal_object_visible": True,
+                    "unrequested_literal_object_evidence": {
+                        "object": obj, "location": location,
+                        "why_unrequested": "unrequested literal object rather than the requested motif pattern"},
+                })
+                self.assertEqual(result["decision"], "UNREQUESTED_LITERAL_OBJECT")
+        character_design = {**design, "characters_prohibited": True}
+        character, _ = self._assess(character_design, {
+            "subject_score": .95, "motif_score": .95, "character_visible": True,
+            "character_description": "masked costumed humanoid figure standing in the foreground",
+            "observed_evidence": ["masked costumed humanoid figure standing in the foreground"],
+            "unrequested_literal_object_visible": False,
+        })
+        self.assertEqual(character["decision"], "CHARACTER")
+        human, _ = self._assess({**design, "humans_prohibited": True}, {
+            "subject_score": .95, "motif_score": .95,
+            "human_visible": True, "human_description": "person standing in the center",
+            "observed_evidence": ["person standing in the center"],
+            "unrequested_literal_object_visible": False,
+        })
+        self.assertEqual(human["decision"], "HUMAN")
+
+        fallback = {**design, "reference_motifs": [{
+            "description": "small distributed bat-like abstract motifs", "provenance": "SAFE_FALLBACK"}]}
+        ungrounded, _ = self._assess(fallback, {
+            "subject_score": .95, "motif_score": .95,
+            "unrequested_literal_object_visible": True,
+            "unrequested_literal_object_evidence": {
+                "object": "several small bats", "location": "distributed throughout the background",
+                "why_unrequested": "unrequested literal objects rather than the requested motif pattern"},
+        })
+        self.assertEqual(ungrounded["decision"], "UNREQUESTED_LITERAL_OBJECT")
+
+    def test_concrete_focal_clockwork_is_authorized_but_source_and_scene_are_not(self):
+        design = {"primary_visual_subject": "abstract decorative background",
+                  "motif_literalization_policy": "motif_only",
+                  "reference_source": "Clock Tower",
+                  "reference_source_literal_authorized": False,
+                  "reference_motifs": [{"description": "central radiating clockwork motif",
+                                        "provenance": "USER_EXPLICIT"}],
+                  "visual_semantics": {"motif_descriptors": ["central radiating clockwork motif"]}}
+        focal, _ = self._assess(design, {
+            "subject_score": .95, "motif_score": .95,
+            "unrequested_literal_object_visible": True,
+            "unrequested_literal_object_evidence": {
+                "object": "large radiating clockwork structure", "location": "center of image",
+                "why_unrequested": "recognizable object rather than abstract decoration"},
+        })
+        self.assertNotEqual(focal["decision"], "UNREQUESTED_LITERAL_OBJECT")
+        inferred, _ = self._assess({**design, "reference_motifs": [{
+            "description": "central radiating clockwork motif", "provenance": "SEMANTIC_INFERENCE"}]}, {
+            "subject_score": .95, "motif_score": .95,
+            "unrequested_literal_object_visible": True,
+            "unrequested_literal_object_evidence": {
+                "object": "large radiating clockwork structure", "location": "center of image",
+                "why_unrequested": "unrequested focal object rather than requested motif pattern"},
+        })
+        self.assertEqual(inferred["decision"], "UNREQUESTED_LITERAL_OBJECT")
+        scene, _ = self._assess({**design, "environment_prohibited": True}, {
+            "subject_score": .95, "motif_score": .95,
+            "unsupported_scene_visible": True,
+            "unsupported_scene_evidence": {
+                "object_or_scene": "recognizable interior room", "location": "center of image",
+                "why_unsupported": "not the requested abstract background scene"},
+            "unrequested_literal_object_visible": True,
+            "unrequested_literal_object_evidence": {
+                "object": "large radiating clockwork structure", "location": "center of image",
+                "why_unrequested": "recognizable object rather than abstract decoration"},
+        })
+        self.assertIn("unsupported_scene_visible", scene["hard_failed_dimensions"])
+
+    def test_arch_motif_does_not_authorize_the_reference_landmark(self):
+        design = {"primary_visual_subject": "abstract decorative background",
+                  "motif_literalization_policy": "motif_only",
+                  "reference_source": "Clock Tower",
+                  "reference_source_literal_authorized": False,
+                  "reference_motifs": [{"description": "repeated arch-like structural motifs along outer edges",
+                                        "provenance": "USER_EXPLICIT"}],
+                  "visual_semantics": {"motif_descriptors": ["repeated arch-like structural motifs along outer edges"]}}
+        for obj, location, expected in (("repeating arches", "along both outer edges", "pass"),
+                                        ("full Clock Tower building", "central foreground",
+                                         "UNREQUESTED_LITERAL_OBJECT")):
+            with self.subTest(obj=obj):
+                result, _ = self._assess(design, {
+                    "subject_score": .95, "motif_score": .95,
+                    "unrequested_literal_object_visible": True,
+                    "unrequested_literal_object_evidence": {
+                        "object": obj, "location": location,
+                        "why_unrequested": "unrequested source subject rather than requested motif pattern"},
+                })
+                self.assertEqual(result["decision"], expected)
+        alternate = {**design, "reference_source": "Arch Tower"}
+        source_variant, _ = self._assess(alternate, {
+            "subject_score": .95, "motif_score": .95,
+            "unrequested_literal_object_visible": True,
+            "unrequested_literal_object_evidence": {
+                "object": "several Arch-Tower structures", "location": "repeated along outer edges",
+                "why_unrequested": "unrequested source subject rather than requested motif pattern"},
+        })
+        self.assertEqual(source_variant["decision"], "UNREQUESTED_LITERAL_OBJECT")
+
     def test_explicit_source_subject_and_focal_motif_have_separate_authorization(self):
         base = {"primary_visual_subject": "decorative background",
                 "motif_literalization_policy": "motif_only",
